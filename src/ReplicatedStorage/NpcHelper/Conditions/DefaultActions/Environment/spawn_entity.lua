@@ -48,40 +48,55 @@ return function(actor: Actor, mainConfig: table)
 	local weapons = {"Fist", "Guns"}
     local randomWeapon = weapons[math.random(1, #weapons)]
     npcModel:SetAttribute("Weapon", randomWeapon)
-	npcModel:SetAttribute("Equipped", false)
+	npcModel:SetAttribute("Equipped", true)  -- NPCs should be equipped to use Combat.Light
+	npcModel:SetAttribute("IsNPC", true)  -- Mark as NPC for damage system
 
-    -- Determine spawn location
+	print("Spawning NPC:", npcModel.Name, "with IsNPC attribute:", npcModel:GetAttribute("IsNPC"))
+
+    -- Determine spawn location with improved distribution
     local spawn_
     local npcTypeKey = regionName .. "_" .. npcName
-    
+
     -- Initialize tracking for this NPC type if not exists
     if not usedSpawns[npcTypeKey] then
-        usedSpawns[npcTypeKey] = {}
+        usedSpawns[npcTypeKey] = {
+            currentIndex = 0,
+            occupiedSpawns = {}
+        }
     end
-    
-    -- If quantity equals number of spawns, ensure unique spawn assignment
-    local quantity = mainConfig.Spawning.Quantity or 1
-    if quantity == #spawnLocations then
-        -- Find first unused spawn location
-        for i, location in ipairs(spawnLocations) do
-            local locationKey = tostring(location)
-            if not usedSpawns[npcTypeKey][locationKey] then
-                spawn_ = location
-                usedSpawns[npcTypeKey][locationKey] = true
-                break
-            end
-        end
-        
-        -- If all spawns are used, reset and use first one
-        if not spawn_ then
-            usedSpawns[npcTypeKey] = {}
-            spawn_ = spawnLocations[1]
-            usedSpawns[npcTypeKey][tostring(spawn_)] = true
-        end
+
+    -- Get current spawn index for this NPC type
+    local currentSpawnIndex = usedSpawns[npcTypeKey].currentIndex or 0
+
+    -- Always try to distribute NPCs across available spawn points
+    if #spawnLocations > 1 then
+        -- Find the next available spawn point
+        local attempts = 0
+        local maxAttempts = #spawnLocations * 2 -- Prevent infinite loops
+
+        repeat
+            currentSpawnIndex = (currentSpawnIndex % #spawnLocations) + 1
+            attempts = attempts + 1
+        until not usedSpawns[npcTypeKey].occupiedSpawns[currentSpawnIndex] or attempts >= maxAttempts
+
+        -- If all spawns are occupied, use round-robin anyway but with larger offset
+        local isOccupied = usedSpawns[npcTypeKey].occupiedSpawns[currentSpawnIndex]
+        spawn_ = spawnLocations[currentSpawnIndex]
+        usedSpawns[npcTypeKey].currentIndex = currentSpawnIndex
+        usedSpawns[npcTypeKey].occupiedSpawns[currentSpawnIndex] = true
+
+        print("Spawning", npcName, "at spawn point", currentSpawnIndex, "of", #spawnLocations, "at position:", spawn_, isOccupied and "(was occupied)" or "(free)")
     else
-        -- Original random selection for other cases
-        spawn_ = spawnLocations[math.random(1, #spawnLocations)]
+        -- Only one spawn location available
+        spawn_ = spawnLocations[1]
+        print("Spawning", npcName, "at single spawn point:", spawn_)
     end
+
+    -- Add random offset to prevent exact overlap, larger if spawn was occupied
+    local offsetMultiplier = usedSpawns[npcTypeKey].occupiedSpawns and usedSpawns[npcTypeKey].occupiedSpawns[currentSpawnIndex] and 2 or 1
+    local offsetX = (math.random() - 0.5) * 4 * offsetMultiplier -- Random offset between -2 and 2 studs (or -4 to 4 if occupied)
+    local offsetZ = (math.random() - 0.5) * 4 * offsetMultiplier
+    spawn_ = spawn_ + Vector3.new(offsetX, 0, offsetZ)
 
     mainConfig.Spawning.SpawnedAt = spawn_
 
@@ -131,6 +146,9 @@ return function(actor: Actor, mainConfig: table)
 
     mainConfig.LoadAppearance()
 
+    -- Entity creation will be handled automatically by Startup.lua when NPC is added to workspace.World.Live
+    print("Spawned NPC:", npcModel.Name, "- entity creation will be handled by monitoring system")
+
     -- skillSystem:setUp(npcModel)
 
     for _, basepart: BasePart in npcModel:GetChildren() do
@@ -154,13 +172,17 @@ return function(actor: Actor, mainConfig: table)
 
         local function cleanSweep()
             -- Clear the used spawn when NPC is cleaned up
-            if spawn_ then
-                local locationKey = tostring(spawn_)
-                if usedSpawns[npcTypeKey] then
-                    usedSpawns[npcTypeKey][locationKey] = nil
+            if spawn_ and usedSpawns[npcTypeKey] then
+                -- Find which spawn index this NPC was using and mark it as free
+                for i, location in ipairs(spawnLocations) do
+                    if (location - spawn_).Magnitude < 10 then -- Within 10 studs of original spawn
+                        usedSpawns[npcTypeKey].occupiedSpawns[i] = nil
+                        print("Freed spawn point", i, "for", npcName)
+                        break
+                    end
                 end
             end
-            
+
             if npcModel then
                 npcModel:Destroy()
                 npcModel = nil

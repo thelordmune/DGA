@@ -184,11 +184,11 @@ return function(Player, Data, Server)
 						bodyAngularVelocity.Parent = part
 						Debris:AddItem(bodyAngularVelocity, 0.8)
 
-						print("Shell Piercer: Flung wall part with velocity:", bodyVelocity.Velocity)
+						-- print("Shell Piercer: Flung wall part with velocity:", bodyVelocity.Velocity)
 					end
 				end
 
-				print("Shell Piercer: Destroyed", #destroyedParts, "wall parts")
+				-- print("Shell Piercer: Destroyed", #destroyedParts, "wall parts")
 			end
 		end)
 	end

@@ -211,12 +211,45 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			)
 		end
 
+		print("Damage.Tag called - Target:", Target.Name, "IsNPC:", Target:GetAttribute("IsNPC"))
+
 		if Target:GetAttribute("IsNPC") then
-        local NPCSystem = Server.Modules.NPC
-        local npc = NPCSystem.GetNPC(Target)
-        if npc then
-            npc:OnTakeDamage(Invoker)
+        -- Log the attack for NPC aggression system
+        local damageLog = Target:FindFirstChild("Damage_Log")
+        if not damageLog then
+            damageLog = Instance.new("Folder")
+            damageLog.Name = "Damage_Log"
+            damageLog.Parent = Target
         end
+
+        -- Create attack record
+        local attackRecord = Instance.new("ObjectValue")
+        attackRecord.Name = "Attack_" .. os.clock()
+        attackRecord.Value = Invoker
+        attackRecord.Parent = damageLog
+
+        -- Clean up old attack records (keep only last 5)
+        local records = damageLog:GetChildren()
+        if #records > 5 then
+            for i = 1, #records - 5 do
+                records[i]:Destroy()
+            end
+        end
+
+        -- Set recently attacked state using the character's IFrames (which is a StringValue)
+        local iFrames = Target:FindFirstChild("IFrames")
+        if iFrames and iFrames:IsA("StringValue") then
+            Library.TimedState(iFrames, "RecentlyAttacked", 2) -- Short window just for aggression trigger
+            Library.TimedState(iFrames, "Damaged", 1) -- Very short immediate reaction
+            print("Set RecentlyAttacked and Damaged states for NPC:", Target.Name)
+        else
+            print("Warning: Could not find IFrames StringValue for NPC:", Target.Name)
+        end
+
+        print("NPC", Target.Name, "was attacked by", Invoker.Name, "- logging for aggression system")
+
+        -- Note: Original NPC damage handling removed as Server.Modules.NPC doesn't exist
+        -- The aggression system will handle NPC behavior through the behavior trees
     end
 
 		if pData then
@@ -411,18 +444,32 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	--if Table.BlockBreak
 
-	if Library.StateCount(Target.IFrames) then
-		if Library.StateCheck(Target.IFrames, "Dodge") then
-			Library.RemoveState(Target.IFrames, "Dodge")
-			print("Dodge")
+	-- Check for specific immunity states, but don't block all damage for NPCs with minor states
+	if Library.StateCheck(Target.IFrames, "Dodge") then
+		Library.RemoveState(Target.IFrames, "Dodge")
+		print("Dodge")
 
-			Visuals.Ranged(
-				Target.HumanoidRootPart.Position,
-				300,
-				{ Module = "Base", Function = "PerfectDodge", Arguments = { Target } }
-			)
-		end
+		Visuals.Ranged(
+			Target.HumanoidRootPart.Position,
+			300,
+			{ Module = "Base", Function = "PerfectDodge", Arguments = { Target } }
+		)
 		return
+	end
+
+	-- For NPCs, only block damage if they have true immunity states, not minor states like "RecentlyAttacked"
+	local isNPC = Target:GetAttribute("IsNPC")
+	if isNPC then
+		-- Only block damage for NPCs if they have actual immunity states
+		if Library.StateCheck(Target.IFrames, "IFrame") or Library.StateCheck(Target.IFrames, "ForceField") then
+			return
+		end
+		-- Allow damage through for states like "RecentlyAttacked", "Damaged", etc.
+	else
+		-- For players, maintain original behavior
+		if Library.StateCount(Target.IFrames) then
+			return
+		end
 	end
 
 	--if Library.StateCheck(Target.Actions, "M2") and Library.StateCheck(Invoker.Actions,"M2") and not Library.CheckCooldown(Invoker,"Clash") and not Library.CheckCooldown(Target,"Clash") then

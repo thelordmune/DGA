@@ -22,16 +22,36 @@ return function(TREE)
 		idle_sequence = function(TREE)
 			return SEQUENCE({
 				Condition("is_passive"),
+				INVERT({Condition("is_aggressive")}), -- Don't idle if aggressive
 				Condition("idle_at_spawn"),
+			})
+		end,
+
+		aggressive_sequence = function(TREE)
+			return SEQUENCE({
+				Condition("enter_aggressive_mode"), -- Check if should enter aggressive mode
+				Condition("is_aggressive"), -- Confirm we're in aggressive mode
+				FALLBACK({
+					-- If we have a target from being attacked, pursue them
+					SEQUENCE({
+						Condition("detect_enemy"),
+						Condition("follow_enemy"),
+					}),
+					-- Otherwise search for enemies more aggressively
+					Condition("detect_enemy"),
+				})
 			})
 		end,
 
 		target_sequence = function(TREE)
 			return FALLBACK({
-				-- If passive and not attacked, skip targeting
+				-- Priority 1: Handle aggressive mode (when attacked)
+				tree_composition.aggressive_sequence(TREE),
+
+				-- Priority 2: If passive and not attacked, just idle
 				tree_composition.idle_sequence(TREE),
 
-				-- Original targeting logic
+				-- Priority 3: Original targeting logic for normal behavior
 				SEQUENCE({
 					FALLBACK({
 						SEQUENCE({
@@ -56,53 +76,55 @@ return function(TREE)
 		end,
 
 		attack_sequence = function(tree)
+			local function aggressive_attack_loop(TREE)
+				return SEQUENCE({
+					Condition("is_aggressive"),
+					Condition("enemy_within_range", 25),
+					FALLBACK({
+						-- Continuous attack when aggressive and in range
+						SEQUENCE({
+							Condition("enemy_within_range", 15),
+							Condition("npc_continuous_attack"),  -- Use continuous attack for aggressive NPCs
+						}),
+						-- Move closer if too far
+						SEQUENCE({
+							INVERT({Condition("enemy_within_range", 15)}),
+							Condition("follow_enemy"),
+						}),
+					})
+				})
+			end
+
 			local function long_distance_attack(TREE)
-				return Condition("always_false")
+				return SEQUENCE({
+					Condition("enemy_within_range", 25),
+					INVERT({Condition("enemy_within_range", 15)}),
+					Condition("npc_attack"), -- Use our new NPC attack system for ranged
+				})
 			end
 			local function medium_distance_attack(TREE)
-				return Condition("always_false")
+				return SEQUENCE({
+					Condition("enemy_within_range", 15),
+					INVERT({Condition("enemy_within_range", 8)}),
+					Condition("npc_attack"), -- Use our new NPC attack system for medium range
+				})
 			end
 			local function close_distance_attack(TREE)
 				return FALLBACK({
 					SEQUENCE({
 						Condition("enemy_has_state", "Attacking", "M1"),
-						--FALLBACK {
-						--	Condition('use_guard_break'), --guqardbreak skils or m2
-						--	SEQUENCE {
-						--		Condition('wait_for_hit', 0.5), -- waits for the npc to land a hit for half a second
-						--		Condition('repeat_action', "M1", 4), -- repeats the m1 action 4 times
-						--		Condition('use_finisher'), -- skills that knockback
-
-						--	},
-						--},
+						Condition("block"), -- Block if enemy is attacking
 					}),
-					--SEQUENCE {
-					--	INVERT{Condition('enemy_has_state', "Blocking")},
-					--	FALLBACK {
-					--		Condition('use_m1s_or_combo_starters'),
-					--		SEQUENCE {
-					--			Condition('wait_for_hit', 1), -- waits for the npc to land a hit for 1s
-					--			Condition('repeat_action', "M1", 4), -- repeats the m1 action 4 times
-					--			Condition('use_finisher'), -- skills that knockback
-					--		},
-					--		Condition('curve_dash_behind_player'),
-					--	},
-					--},
-					--SEQUENCE {
-					--	Condition('enemy_has_state', "Blocking"),
-					--	FALLBACK {
-					--		Condition('use_guard_break'), --guqardbreak skils or m2
-					--		SEQUENCE {
-					--			Condition('wait_for_hit', 0.5), -- waits for the npc to land a hit for half a second
-					--			Condition('repeat_action', "M1", 4), -- repeats the m1 action 4 times
-					--			Condition('use_finisher'), -- skills that knockback
-
-					--		},
-					--	},
-					--},
+					SEQUENCE({
+						Condition("enemy_within_range", 15),
+						Condition("npc_attack"), -- Use our new NPC attack system
+					}),
 				})
 			end
 			return FALLBACK({
+				-- Priority 1: Aggressive attack loop when in aggressive mode
+				aggressive_attack_loop(TREE),
+				-- Priority 2: Normal attack patterns
 				long_distance_attack(TREE),
 				medium_distance_attack(TREE),
 				close_distance_attack(TREE),
@@ -150,7 +172,23 @@ return function(TREE)
 		end,
 		combat_sequence = function(tree)
 			return FALLBACK({
-				-- Only engage in combat if not passive or has been attacked
+				-- Priority 1: If aggressive, always engage in combat
+				SEQUENCE({
+					Condition("is_aggressive"),
+					FALLBACK({
+						SEQUENCE({
+							Condition("enemy_has_state", "Attacking"),
+							tree_composition.defense_sequence(TREE),
+						}),
+						FALLBACK({
+							Condition("stop_block"),
+							Condition("always_true"),
+						}),
+						tree_composition.attack_sequence(TREE),
+					}),
+				}),
+
+				-- Priority 2: Normal combat if not passive
 				SEQUENCE({
 					INVERT({ Condition("is_passive") }),
 					FALLBACK({
@@ -166,8 +204,12 @@ return function(TREE)
 					}),
 				}),
 
-				-- If passive, just idle
-				tree_composition.idle_sequence(TREE),
+				-- Priority 3: If passive and not aggressive, just idle
+				SEQUENCE({
+					Condition("is_passive"),
+					INVERT({Condition("is_aggressive")}),
+					tree_composition.idle_sequence(TREE),
+				}),
 			})
 		end,
 	}

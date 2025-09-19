@@ -239,9 +239,9 @@ Library.RemoveState = function(Table, Name)
 end
 
 Library.TimedState = function(Table, Name, Time)
-	self.AddState(Table, Name)
+	Library.AddState(Table, Name)
 	task.delay(Time, function()
-		self.RemoveState(Table, Name)
+		Library.RemoveState(Table, Name)
 	end)
 end
 

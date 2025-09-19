@@ -11,11 +11,15 @@ Combat.Light = function(Character: Model)
 	local Hitbox = Server.Modules.Hitbox
 	local Entity = Server.Modules["Entities"].Get(Character)
 	if not Entity then return end
-	
+
 	local Player : Player;
 	if Entity.Player then Player = Entity.Player end;
 
-	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then return end
+	-- Allow NPCs to attack even with states, but block players with certain states
+	local isNPC = Character:GetAttribute("IsNPC")
+	if not isNPC and (Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns)) then
+		return
+	end
 
 	Server.Library.StopAllAnims(Character)
 

@@ -90,6 +90,11 @@ EntityClass.Init = function(Entity) : EntityObject
     else
         debugPrint("NPC entity detected:", Entity.Name, "Weapon:", Entity:GetAttribute("Weapon"))
         self.Weapon = Entity:GetAttribute("Weapon")
+        -- Ensure NPC has the IsNPC attribute for damage system
+        if not Entity:GetAttribute("IsNPC") then
+            Entity:SetAttribute("IsNPC", true)
+            debugPrint("Set IsNPC attribute for:", Entity.Name)
+        end
     end;
 
     self:Initialize();
