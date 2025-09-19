@@ -1,0 +1,115 @@
+local Hitbox = {}
+local Server = require(script.Parent)
+Hitbox.__index = Hitbox
+local self = setmetatable({}, Hitbox)
+
+-- Modified to check for both entities and walls
+function CheckValidTarget(TargetPart, Entity)
+	local Valid = false
+
+	-- Check if it's a character/entity
+	if TargetPart ~= nil and TargetPart.Parent ~= nil then
+		-- Check for regular entities
+		if TargetPart.Parent:FindFirstChild("Humanoid") then
+			local TargetCharacter = TargetPart.Parent
+			if TargetCharacter:IsDescendantOf(workspace.World.Live) and TargetCharacter ~= Entity then
+				Valid = true
+			end
+
+			-- Check for alchemy walls (parts with the special attribute)
+		elseif TargetPart.Name:find("AbilityWall_") and TargetPart:GetAttribute("Id") then
+			print("youre attempting to attack a wall")
+			Valid = true
+		end
+	end
+
+	return Valid
+end
+
+local function ExtrapolateMovingCFrame(Base: BasePart): CFrame
+	local LinearVel = Base.AssemblyLinearVelocity
+	local LinearExtrapVel = Vector3.new(LinearVel.X, LinearVel.Y / 2, LinearVel.Z) / 4
+	local Decay = (1 + (0.185 * LinearExtrapVel.Magnitude) ^ 8)
+
+	local ApplyDecay = function(Axis: number)
+		return (math.abs(Axis / Decay) > math.abs(Axis / 2) and (Axis / Decay) or (Axis / 2))
+	end
+
+	return Base.CFrame + Vector3.new(ApplyDecay(LinearExtrapVel.X), LinearExtrapVel.Y, ApplyDecay(LinearExtrapVel.Z)),
+		LinearVel.Magnitude
+end
+
+Hitbox.SpatialQuery = function(Entity: Model, BoxSize: Vector3, BoxCFrame: CFrame, Visualize: boolean?)
+	local PotentialTargets = {}
+
+	-- First check for entities
+	local EntityParams = OverlapParams.new()
+	EntityParams.FilterDescendantsInstances = { workspace.World.Live }
+	EntityParams.FilterType = Enum.RaycastFilterType.Include
+	EntityParams.CollisionGroup = "Default"
+
+	-- Then check for walls (in Transmutables folder)
+	local WallParams = OverlapParams.new()
+	WallParams.FilterDescendantsInstances = { workspace.Transmutables }
+	WallParams.FilterType = Enum.RaycastFilterType.Include
+	WallParams.CollisionGroup = "Default"
+
+	-- Combine results from both queries
+	local HitParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, EntityParams)
+	local WallParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, WallParams)
+
+	-- Merge the two tables
+	for _, part in ipairs(WallParts) do
+		table.insert(HitParts, part)
+	end
+
+	-- Create a visualizer part
+	if Visualize then
+		local VisualizerPart = Instance.new("Part")
+		VisualizerPart.Anchored = true
+		VisualizerPart.CanCollide = false
+		VisualizerPart.Transparency = 0.5
+		VisualizerPart.Color = Color3.new(1, 0, 0)
+		VisualizerPart.Size = BoxSize
+		VisualizerPart.CFrame = BoxCFrame
+		VisualizerPart.Parent = workspace.World.Visuals
+		task.delay(0.5, function()
+			VisualizerPart:Destroy()
+		end)
+	end
+
+	for _, HitPart in HitParts do
+		if CheckValidTarget(HitPart, Entity) then
+			-- For entities, store the parent (character)
+			-- For walls, store the part itself
+			local target = HitPart.Parent:FindFirstChild("Humanoid") and HitPart.Parent or HitPart
+			if not table.find(PotentialTargets, target) then
+				table.insert(PotentialTargets, target)
+			end
+		end
+	end
+
+	-- Remove the visualizer part after a short delay
+
+	return PotentialTargets
+end
+
+-- Additional function specifically for wall detection
+Hitbox.CheckWallCollision = function(Origin: Vector3, Direction: Vector3, Range: number)
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = { workspace.Transmutables }
+	raycastParams.FilterType = Enum.RaycastFilterType.Include
+	raycastParams.CollisionGroup = "Default"
+
+	local raycastResult = workspace:Raycast(Origin, Direction * Range, raycastParams)
+	if raycastResult then
+		local hitPart = raycastResult.Instance
+		if hitPart.Name:find("AbilityWall_") and hitPart:GetAttribute("Id") then
+			return hitPart, raycastResult.Position
+		end
+	end
+
+	return nil
+end
+
+return Hitbox

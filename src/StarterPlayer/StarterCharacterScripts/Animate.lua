@@ -1,0 +1,1 @@
+--// Disables default roblox character animation script

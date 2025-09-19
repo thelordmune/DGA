@@ -1,0 +1,8 @@
+[package]
+name = "uuath/iv"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
+replica = "ldgerrits/replica@1.0.3"

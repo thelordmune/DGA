@@ -1,0 +1,1 @@
+--// Disables Default Character Health Script

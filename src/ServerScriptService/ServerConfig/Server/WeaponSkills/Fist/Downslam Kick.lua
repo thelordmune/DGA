@@ -1,0 +1,108 @@
+local ServerStorage = game:GetService("ServerStorage")
+local Replicated = game:GetService("ReplicatedStorage")
+local Library = require(Replicated.Modules.Library)
+local Skills = require(ServerStorage.Stats._Skills)
+local RunService = game:GetService("RunService")
+
+local Global = require(Replicated.Modules.Shared.Global)
+return function(Player, Data, Server)
+	local Character = Player.Character
+
+	if not Character or not Character:GetAttribute("Equipped") then
+		return
+	end
+	local Weapon = Global.GetData(Player).Weapon
+	local PlayerObject = Server.Modules["Players"].Get(Player)
+	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
+
+	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then
+		return
+	end
+
+	if PlayerObject and PlayerObject.Keys and not Server.Library.CheckCooldown(Character, script.Name) then
+		Server.Library.SetCooldown(Character, script.Name, 2.5)
+		Server.Library.StopAllAnims(Character)
+
+		local Move = Library.PlayAnimation(Character, Animation)
+		-- Move:Play()
+		local animlength = Move.Length
+
+		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
+		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
+
+		local hittimes = {}
+		for i, fraction in Skills[Weapon][script.Name].HitTime do
+			hittimes[i] = fraction * animlength
+		end
+
+		print(tostring(hittimes[1]))
+
+		task.delay(hittimes[1], function()
+			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+				Module = "Base",
+				Function = "Downslam",
+				Arguments = { Character, "Start" },
+			})
+
+			-- Create linear velocity for arc motion
+			local lv = Instance.new("LinearVelocity")
+			local attachment = Instance.new("Attachment")
+			attachment.Parent = Character.PrimaryPart
+
+			lv.MaxForce = math.huge
+			lv.Attachment0 = attachment
+			lv.RelativeTo = Enum.ActuatorRelativeTo.World
+			lv.Parent = Character.PrimaryPart
+
+			-- Launch forward and up
+			local forwardVector = Character.PrimaryPart.CFrame.LookVector
+			local startTime = os.clock()
+			local launchDuration = hittimes[2] - hittimes[1]
+
+			-- Smooth arc motion using heartbeat
+			local conn
+			conn = RunService.Heartbeat:Connect(function()
+				local elapsed = os.clock() - startTime
+				local progress = math.min(elapsed / launchDuration, 1)
+
+				-- Smooth arc trajectory - only forward (Z) and up (Y)
+				local forwardSpeed = 50 * (1 - progress * 0.45) -- Gradual slowdown
+				local verticalSpeed = 120 * (1 - progress) - 150 * progress -- Much higher arc up then down
+
+				lv.VectorVelocity = forwardVector * forwardSpeed + Vector3.new(0, verticalSpeed, 0)
+
+				-- Pause animation at peak
+				if progress >= 1 then
+					Move:AdjustSpeed(0)
+					conn:Disconnect()
+
+					-- Start descent phase
+					local descentConn
+					descentConn = RunService.Heartbeat:Connect(function()
+						-- Gradually slow down the descent
+						local currentVelocity = lv.VectorVelocity
+						lv.VectorVelocity = Vector3.new(
+							0, -- No X movement
+							math.max(currentVelocity.Y * 0.98, -30), -- Cap downward speed at -30
+							currentVelocity.Z * 0.95 -- Slow Z movement
+						)
+
+						local raycast = workspace:Raycast(Character.PrimaryPart.Position, Vector3.new(0, -20, 0))
+						if raycast and raycast.Distance < 8 then
+							-- Close to ground - unpause animation and remove velocity
+							Move:AdjustSpeed(1)
+							lv:Destroy()
+							attachment:Destroy()
+							descentConn:Disconnect()
+							Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+								Module = "Base",
+								Function = "Downslam",
+								Arguments = { Character, "Land" },
+							})
+						end
+					end)
+				end
+			end)
+		end)
+	end
+end
