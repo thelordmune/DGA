@@ -1,7 +1,7 @@
 return {
 	--// Information
-	["Weapon"] = "Fist",
-	["Alchemy"] = "Stone",
+	["Weapon"] = "Guns",
+	["Alchemy"] = "Flame",
 	["Inventory"] = {},
 	["Emotes"] = {},
 	["Passives"] = {"Kinetic Redirection"},

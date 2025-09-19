@@ -74,14 +74,17 @@ NetworkModule.EndPoint = function(Player, Data)
 		})
 
 		local startTime = os.clock()
-		local hitInterval = 0.025 -- Hit every 0.2 seconds
-		local lastHitTime = 0
-		local hitTargets = {} -- Track who we've hit recently to prevent spam
+		-- DPS Calculation: 3.5 damage every 0.5 seconds = 7 DPS per target
+		-- This provides consistent, predictable damage instead of chunky bursts
+		local hitInterval = 0.15 -- Hit every 0.5 seconds for consistent DPS
+		local lastGlobalHitTime = 0
+		local targetLastHitTimes = {} -- Track individual hit times per target
 
 		local connection
 		task.delay(.6, function()
 			connection = RunService.Heartbeat:Connect(function()
-				local elapsed = os.clock() - startTime
+				local currentTime = os.clock()
+				local elapsed = currentTime - startTime
 
 				-- Stop when animation ends
 				if elapsed >= Alchemy.Length then
@@ -89,14 +92,9 @@ NetworkModule.EndPoint = function(Player, Data)
 					return
 				end
 
-				-- Check if it's time for next hit
-				if elapsed - lastHitTime >= hitInterval then
-					lastHitTime = elapsed
-
-					-- Clear hit tracking every few hits to allow re-hitting
-					if elapsed % 1 < .2 then
-						hitTargets = {}
-					end
+				-- Check if it's time for next global hit check
+				if currentTime - lastGlobalHitTime >= hitInterval then
+					lastGlobalHitTime = currentTime
 
 					-- Get targets in range
 					local HitTargets = Hitbox.SpatialQuery(
@@ -107,9 +105,28 @@ NetworkModule.EndPoint = function(Player, Data)
 					)
 
 					for _, Target in pairs(HitTargets) do
-						if not hitTargets[Target] then
-							hitTargets[Target] = true
+						-- Check if enough time has passed since we last hit this specific target
+						local lastHitTime = targetLastHitTimes[Target] or 0
+						if currentTime - lastHitTime >= hitInterval then
+							targetLastHitTimes[Target] = currentTime
 							Server.Modules.Damage.Tag(Character, Target, Moves.Flame.Cinder["DamageTable"])
+
+							-- Visual effect for each consistent hit
+							Server.Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {
+								Module = "Base",
+								Function = "CinderHit",
+								Arguments = { Target }
+							})
+
+							-- Debug print for consistent DPS tracking
+							print("Cinder consistent hit:", Target.Name, "damage: 3.5, interval:", hitInterval)
+						end
+					end
+
+					-- Clean up old target tracking (remove targets not hit in last 2 seconds)
+					for target, lastTime in pairs(targetLastHitTimes) do
+						if currentTime - lastTime > 2 then
+							targetLastHitTimes[target] = nil
 						end
 					end
 				end

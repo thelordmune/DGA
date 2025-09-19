@@ -514,6 +514,84 @@ function Base.Shake(Type: string, Params: {})
 	end
 end
 
+function Base.SpecialShake(Type: string, Params: {})
+	print("SpecialShake function called with Type:", Type, "Params:", Params)
+	if Type == "Once" then
+		print("firing it brotato chipper - about to create camera shake")
+		local camShake = CameraShakeModule.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
+			Camera.CFrame = Camera.CFrame * shakeCf
+		end)
+		print("camera shake created, starting...")
+		camShake:Start()
+		print("camera shake started, calling ShakeOnce with params:", Params)
+		camShake:ShakeOnce(table.unpack(Params))
+		print("ShakeOnce called successfully")
+	elseif Type == "BloomBlur" then
+		-- Create circular inout bloom and blur tween that lasts for 0.2 seconds
+		local lighting = game:GetService("Lighting")
+
+		-- Get or create bloom and blur effects
+		local bloom = lighting:FindFirstChild("Bloom") or Instance.new("BloomEffect")
+		local blur = lighting:FindFirstChild("MotionBlur") or Instance.new("BlurEffect")
+
+		if not bloom.Parent then
+			bloom.Name = "Bloom"
+			bloom.Parent = lighting
+		end
+
+		if not blur.Parent then
+			blur.Name = "MotionBlur"
+			blur.Parent = lighting
+		end
+
+		-- Store original values
+		local originalBloomIntensity = bloom.Intensity
+		local originalBloomSize = bloom.Size
+		local originalBloomThreshold = bloom.Threshold
+		local originalBlurSize = blur.Size
+
+		-- Target values for the effect
+		local targetBloomIntensity = Params.BloomIntensity or 2
+		local targetBloomSize = Params.BloomSize or 56
+		local targetBloomThreshold = Params.BloomThreshold or 0.8
+		local targetBlurSize = Params.BlurSize or 24
+
+		-- Create tween info for circular in-out easing
+		local tweenInfo = TweenInfo.new(
+			0.1, -- Half duration for in
+			Enum.EasingStyle.Circular,
+			Enum.EasingDirection.In,
+			0,
+			true, -- Reverses automatically
+			0
+		)
+
+		-- Create tweens
+		local bloomTween = TweenService:Create(bloom, tweenInfo, {
+			Intensity = targetBloomIntensity,
+			Size = targetBloomSize,
+			Threshold = targetBloomThreshold,
+		})
+
+		local blurTween = TweenService:Create(blur, tweenInfo, {
+			Size = targetBlurSize,
+		})
+
+		-- Start the tweens
+		bloomTween:Play()
+		blurTween:Play()
+
+		-- Clean up after the effect completes
+		bloomTween.Completed:Connect(function()
+			-- Reset to original values
+			bloom.Intensity = originalBloomIntensity
+			bloom.Size = originalBloomSize
+			bloom.Threshold = originalBloomThreshold
+			blur.Size = originalBlurSize
+		end)
+	end
+end
+
 function Base.Deconstruct(Character: Model)
 	local root = Character.HumanoidRootPart
 
@@ -986,7 +1064,7 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 				v:Emit(v:GetAttribute("EmitCount"))
 			end
 		end
-			task.delay(3, function()
+		task.delay(3, function()
 			eff:Destroy()
 		end)
 	end
@@ -1200,7 +1278,7 @@ function Base.Cinder(Character: Model, Frame: string)
 
 		local fx2 = Replicated.Assets.VFX.Cinder.Move2BeamPart2:Clone()
 		fx2.Parent = workspace.World.Visuals
-		fx2.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0,0,-15)
+		fx2.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -15)
 		for _, v in pairs(fx2:GetDescendants()) do
 			if v:IsA("ParticleEmitter") or v:IsA("Beam") then
 				local emitDelay = v:GetAttribute("EmitDelay") or 0.1
@@ -1217,7 +1295,7 @@ function Base.Cinder(Character: Model, Frame: string)
 
 		local start = Replicated.Assets.VFX.Cinder.Move2BeamPart:Clone()
 		start.Parent = workspace.World.Visuals
-		start.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0,0,-10)
+		start.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10)
 		for _, v in pairs(start:GetDescendants()) do
 			if v:IsA("ParticleEmitter") or v:IsA("Beam") then
 				local emitDelay = v:GetAttribute("EmitDelay") or 0.1
@@ -1237,7 +1315,7 @@ function Base.Cinder(Character: Model, Frame: string)
 
 		local fx3 = Replicated.Assets.VFX.Cinder.Move2BeamPart3:Clone()
 		fx3.Parent = workspace.World.Visuals
-		fx3.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)
+		fx3.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
 		for _, v in pairs(fx3:GetDescendants()) do
 			if v:IsA("ParticleEmitter") or v:IsA("Beam") then
 				local emitDelay = v:GetAttribute("EmitDelay") or 0.1
@@ -1249,7 +1327,6 @@ function Base.Cinder(Character: Model, Frame: string)
 					task.wait(emitDuration) -- wait for duration
 					v.Enabled = false -- disable particle emission
 				end)()
-
 			end
 		end
 		task.delay(3, function()
@@ -1316,7 +1393,9 @@ function Base.NeedleThrust(Character: Model, Frame: string)
 			eff:Destroy()
 		end)
 
-		require(Replicated.Assets.VFX.NeedleThrust.JumpModule)(Character.HumanoidRootPart.CFrame * CFrame.new(0, -3, 0) * CFrame.Angles(math.rad(-15), 0, 0))
+		require(Replicated.Assets.VFX.NeedleThrust.JumpModule)(
+			Character.HumanoidRootPart.CFrame * CFrame.new(0, -3, 0) * CFrame.Angles(math.rad(-15), 0, 0)
+		)
 	end
 
 	if Frame == "Hit" then
@@ -1378,7 +1457,76 @@ function Base.ShellPiercer(Character: Model, Frame: string, tim: number)
 		task.delay(3, function()
 			eff:Destroy()
 		end)
-	end 
+		print("firing it brotato chipper - about to create camera shake")
+		local camShake = CameraShakeModule.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
+			Camera.CFrame = Camera.CFrame * shakeCf
+		end)
+		print("camera shake created, starting...")
+		camShake:Start()
+		camShake:ShakeOnce(6, 11, 0, 0.7, Vector3.new(1.1, 2, 1.1), Vector3.new(0.34, 0.25, 0.34))
+		print("ShakeOnce called successfully")
+		local lighting = game:GetService("Lighting")
+
+		-- Get or create bloom and blur effects
+		local bloom = lighting:FindFirstChild("Bloom") or Instance.new("BloomEffect")
+		local blur = lighting:FindFirstChild("MotionBlur") or Instance.new("BlurEffect")
+
+		if not bloom.Parent then
+			bloom.Name = "Bloom"
+			bloom.Parent = lighting
+		end
+
+		if not blur.Parent then
+			blur.Name = "MotionBlur"
+			blur.Parent = lighting
+		end
+
+		-- Store original values
+		local originalBloomIntensity = bloom.Intensity
+		local originalBloomSize = bloom.Size
+		local originalBloomThreshold = bloom.Threshold
+		local originalBlurSize = blur.Size
+
+		-- Target values for the effect
+		local targetBloomIntensity = 2
+		local targetBloomSize =  56
+		local targetBloomThreshold =  0.8
+		local targetBlurSize =  24
+
+		-- Create tween info for circular in-out easing
+		local tweenInfo = TweenInfo.new(
+			0.1, -- Half duration for in
+			Enum.EasingStyle.Circular,
+			Enum.EasingDirection.In,
+			0,
+			true, -- Reverses automatically
+			0
+		)
+
+		-- Create tweens
+		local bloomTween = TweenService:Create(bloom, tweenInfo, {
+			Intensity = targetBloomIntensity,
+			Size = targetBloomSize,
+			Threshold = targetBloomThreshold,
+		})
+
+		local blurTween = TweenService:Create(blur, tweenInfo, {
+			Size = targetBlurSize,
+		})
+
+		-- Start the tweens
+		bloomTween:Play()
+		blurTween:Play()
+
+		-- Clean up after the effect completes
+		bloomTween.Completed:Connect(function()
+			-- Reset to original values
+			bloom.Intensity = 0
+			bloom.Size = 0
+			bloom.Threshold = 0
+			blur.Size = 0
+		end)
+	end
 end
 
 function Base.SC(Character: Model, Frame: string)
@@ -1419,7 +1567,7 @@ function Base.SC(Character: Model, Frame: string)
 		end
 		task.delay(3, function()
 			eff:Destroy()
-		end)	
+		end)
 	end
 	if Frame == "groundye" then
 		local eff = Replicated.Assets.VFX.SC.groundye:Clone()
@@ -1441,9 +1589,9 @@ function Base.SC(Character: Model, Frame: string)
 				v:Emit(v:GetAttribute("EmitCount"))
 			end
 		end
-		task.delay(3, function()
-			eff:Destroy()
-		end)
+		-- task.delay(3, function()
+
+		-- end)
 	end
 	if Frame == "RFire" then
 		local rGun = Character:FindFirstChild("RightGun")
@@ -1452,9 +1600,9 @@ function Base.SC(Character: Model, Frame: string)
 				v:Emit(v:GetAttribute("EmitCount"))
 			end
 		end
-		task.delay(3, function()
-			eff:Destroy()
-		end)
+		-- task.delay(3, function()
+		-- 	eff:Destroy()
+		-- end)
 	end
 end
 

@@ -31,7 +31,7 @@ local Table = {
             ["HitTime"] = {20/50}
         },
         ["Strategist Combination"] = {
-            ["DamageTable"] = {
+            ["Sweep"] = {
             BlockBreak = false,
 			Damage = 3.5,
 			PostureDamage = 5,
@@ -40,20 +40,66 @@ local Table = {
 			FX = Replicated.Assets.VFX.Blood.Attachment,
 			Stun = 0.4,
             },
+            ["Up"] = {
+            BlockBreak = false,
+			Damage = 3.5,
+			PostureDamage = 5,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.4,
+            },
+            ["Down"] = {
+            BlockBreak = false,
+			Damage = 3.5,
+			PostureDamage = 5,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.4,
+            },
+            ["groundye"] = {
+            BlockBreak = false,
+			Damage = 3.5,
+			PostureDamage = 5,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.4,
+            },
+            ["LFire"] = {
+            BlockBreak = false,
+			Damage = .5,
+			PostureDamage = 5,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.4,
+            },
+            ["RFire"] = {
+            BlockBreak = false,
+			Damage = .5,
+			PostureDamage = 5,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.4,
+            },
+
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTimes"] = {16/275, 56/275, 130/275, 135/275, 170/275, 175/275, 180/275, 185/275, 190/275, 195/275, 200/275, 205/275, 210/275, 215/275, 220/275, 225/275}
         },
-        ["Inverse Rainstorm"] = {
-            ["DamageTable"] = {
-            BlockBreak = false,
-			Damage = 3.5,
-			PostureDamage = 5,
-			LightKnockback = false,
-			M2 = false,
-			FX = Replicated.Assets.VFX.Blood.Attachment,
-			Stun = 0.4,
-            },
-        }
+        -- ["Inverse Rainstorm"] = {
+        --     ["DamageTable"] = {
+        --     BlockBreak = false,
+		-- 	Damage = 3.5,
+		-- 	PostureDamage = 5,
+		-- 	LightKnockback = false,
+		-- 	M2 = false,
+		-- 	FX = Replicated.Assets.VFX.Blood.Attachment,
+		-- 	Stun = 0.4,
+        --     },
+        -- }
     },
     ["Fist"] = {
         ["Downslam Kick"] = {

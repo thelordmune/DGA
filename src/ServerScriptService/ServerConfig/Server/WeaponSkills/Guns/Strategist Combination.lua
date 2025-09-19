@@ -49,7 +49,7 @@ return function(Player, Data, Server)
 				-- Hit detected, play victim animation and continue
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Character then
-						local VictimMove = Library.PlayAnimation(Target, VictimAnimation)
+						Library.PlayAnimation(Target, VictimAnimation)
 						-- VictimMove:Play()
 						
 						-- Apply damage or other effects here
@@ -85,6 +85,7 @@ return function(Player, Data, Server)
                             })
                         end)
                         for i = 5, 16 do
+							-- Server.Modules.Damage.Tag(Character, Target, Moves.Flame.Firestorm["DamageTableStart"])
                             task.delay(hittimes[i], function()
                                 local fireType = (i % 2 == 1) and "LFire" or "RFire"
                                 Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
