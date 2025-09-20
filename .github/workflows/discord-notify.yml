@@ -20,15 +20,17 @@ jobs:
           
           # Format the message with proper newline handling
           if [ -n "$DESCRIPTION" ]; then
-            # Replace actual newlines with \n for JSON and add Discord formatting
-            FORMATTED_DESCRIPTION=$(echo "$DESCRIPTION" | sed ':a;N;$!ba;s/\n/\\n/g')
-            FORMATTED_MESSAGE="**${SUMMARY}**\\n${FORMATTED_DESCRIPTION}"
+            # Properly escape the description for JSON
+            ESCAPED_DESCRIPTION=$(printf '%s' "$DESCRIPTION" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+            ESCAPED_SUMMARY=$(printf '%s' "$SUMMARY" | sed 's/"/\\"/g')
+            FORMATTED_MESSAGE="**${ESCAPED_SUMMARY}**\\n${ESCAPED_DESCRIPTION}"
           else
-            FORMATTED_MESSAGE="**${SUMMARY}**"
+            ESCAPED_SUMMARY=$(printf '%s' "$SUMMARY" | sed 's/"/\\"/g')
+            FORMATTED_MESSAGE="**${ESCAPED_SUMMARY}**"
           fi
           
-          # Create JSON payload using jq for proper escaping (more reliable)
-          echo "$FORMATTED_MESSAGE" | jq -R -s '{content: .}' > payload.json
+          # Create JSON payload manually with proper escaping
+          echo "{\"content\": \"${FORMATTED_MESSAGE}\"}" > payload.json
           
           # Send the webhook
           curl -H "Content-Type: application/json" \
