@@ -195,6 +195,11 @@ function Initialize(Character: Model)
 	Client.Modules["Interface"].UpdateStats("Energy", Energy.Value, Energy.MaxValue)
 	Client.Modules["Interface"].UpdateStats("Posture", Posture.Value, Posture.MaxValue)
 	Client.Modules["Interface"].LoadHotbar()
+	task.delay(3, function()
+		Client.Modules["Interface"].Hotbar("Update")
+	end)
+	-- Client.Modules["Interface"].Hotbar("Update")
+	Client.Modules["Interface"].Party()
 
 	safeConnect(Actions, "Changed", function()
 		if Client.Library.StateCheck(Speeds, "FlashSpeedSet50") then
