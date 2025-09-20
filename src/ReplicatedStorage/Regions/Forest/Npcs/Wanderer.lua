@@ -40,7 +40,7 @@ local WandererData = {
 	SpawnCooldown = 1,
 
 	Type = "Active",
-	AlwaysSpawn = true,
+	AlwaysSpawn = false,
 	-- LoadDistance = 200,
 
 	DataToSendOverAndUdpate = {

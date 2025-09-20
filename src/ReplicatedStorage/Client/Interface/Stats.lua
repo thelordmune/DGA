@@ -1,7 +1,7 @@
 local Controller = {}; local Client = require(script.Parent.Parent);
 Controller.__index = Controller;
 local self = setmetatable({}, Controller);
-local Replicaetd = game:GetService("ReplicatedStorage")
+local Replicated = game:GetService("ReplicatedStorage")
 local plr = game:GetService("Players").LocalPlayer
 local Character = plr.Character or plr.CharacterAdded
 
@@ -9,7 +9,7 @@ local UI = Client.UI or plr.PlayerGui.ScreenGui;
 
 Controller.Check = function()
 	if not UI or not UI:FindFirstChild("Stats") then
-       local ui = Replicaetd.Assets.GUI.ScreenGui:Clone()
+       local ui = Replicated.Assets.GUI.ScreenGui:Clone()
 	   ui.Parent = plr.PlayerGui
         return
     end
@@ -268,6 +268,96 @@ Controller.Hotbar = function(Order: string)
         Controller.LoadAlchemyMoves()
         Controller.LoadWeaponSkills()
     end
+end
+
+Controller.Party = function()
+local Fusion = require(Replicated.Modules.Fusion)
+
+local Children, scoped, peek, out, OnEvent, Value, Tween = 
+	Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out, Fusion.OnEvent, Fusion.Value, Fusion.Tween
+
+
+    local scope = scoped(Fusion, {
+		Party = require(Replicated.Client.Components.Party)
+	})
+	
+	local start = scope:Value(false)
+	local squ = scope:Value(false)
+	local temper = scope:Value(false)
+	local invitd = scope:Value(false)
+	local use = scope:Value("")
+	local par = UI
+	local move = scope:Value(false)
+	
+	--task.delay(3, function()
+	--	scope:Party{
+	--		squadselected = squ,
+	--		temp = temper,
+	--		started = start,
+	--		invited = invitd,
+	--		user = use,
+	--		parent = par
+	--	}
+	--	move:set(true)
+	--	start:set(true)
+	--end)
+	
+	--task.delay(5, function()
+		
+	--end)
+	
+	scope:New "Frame" {
+		Parent = UI,
+		Name = "PartyButton",
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		BackgroundTransparency = 1,
+		BorderColor3 = Color3.fromRGB(0, 0, 0),
+		BorderSizePixel = 0,
+		Position = scope:Spring(
+			scope:Computed(function(use)
+				return if use(move) then UDim2.fromScale(-1.5, 0.5) else UDim2.fromScale(0, 0.5)
+			end),
+			18,
+			.23
+			),
+		Size = UDim2.fromOffset(100, 100),
+        ZIndex = -5,
+
+		[Children] = {
+			scope:New "ImageButton" {
+				Name = "Add",
+				Active = true,
+				BackgroundTransparency = 1,
+				Image = "rbxassetid://8445470984",
+				--ImageContent = Content.new(Content),
+				ImageRectOffset = Vector2.new(804, 704),
+				ImageRectSize = Vector2.new(96, 96),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Selectable = false,
+				Size = UDim2.fromOffset(24, 24),
+
+				[Children] = {
+					scope:New "UIAspectRatioConstraint" {
+						Name = "UIAspectRatioConstraint",
+						DominantAxis = Enum.DominantAxis.Height,
+					},
+				},
+				[OnEvent "Activated"] = function(_,numclicks)
+					print("activated party button")
+					scope:Party{
+						squadselected = squ,
+						tempselected = temper,
+						started = start,
+						invited = invitd,
+						user = use,
+                        parent = par
+					}
+					move:set(true)
+					start:set(true)
+				end,
+			},
+		}
+	}
 end
 
 -- Set up BridgeNet2 listener for hotbar updates

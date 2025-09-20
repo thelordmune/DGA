@@ -10,13 +10,26 @@ jobs:
     steps:
     - name: Send Discord Notification
       run: |
-        # Replace YOUR_DISCORD_WEBHOOK_URL with your actual webhook URL
         DISCORD_WEBHOOK="https://discordapp.com/api/webhooks/1419064748238180423/rQzkMO5ZErFf5YfZbnspMth8uxWm2rZEsY7U2pd6dTop-yn7zXExeVxO-wWAT7wXUiA0"
 
-        # Create simple JSON payload with just commit message
+        # Get the full commit message
+        FULL_MESSAGE="${{ github.event.head_commit.message }}"
+
+        # Split into summary (first line) and description (rest)
+        SUMMARY=$(echo "$FULL_MESSAGE" | head -n1)
+        DESCRIPTION=$(echo "$FULL_MESSAGE" | tail -n +2 | sed '/^$/d')
+
+        # Format the message
+        if [ -n "$DESCRIPTION" ]; then
+          FORMATTED_MESSAGE="**${SUMMARY}**\n${DESCRIPTION}"
+        else
+          FORMATTED_MESSAGE="**${SUMMARY}**"
+        fi
+
+        # Create JSON payload
         cat << EOF > payload.json
         {
-          "content": "� **${{ github.event.head_commit.message }}**"
+          "content": "${FORMATTED_MESSAGE}"
         }
         EOF
 

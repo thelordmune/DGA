@@ -23,4 +23,12 @@ Interface.LoadHotbar = function()
 	self.Modules["Stats"].Hotbar("Initiate");
 end
 
+Interface.Party = function()
+	self.Modules["Stats"].Party();
+end
+
+Interface.Hotbar = function()
+	self.Modules["Stats"].Hotbar("Update");
+end
+
 return Interface
