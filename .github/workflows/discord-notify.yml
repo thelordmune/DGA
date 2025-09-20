@@ -15,8 +15,9 @@ jobs:
         # Get the commit message
         COMMIT_MSG='${{ github.event.head_commit.message }}'
 
-        # Replace (line) markers with actual newlines
-        COMMIT_MSG=$(echo "$COMMIT_MSG" | sed 's/(line)/\n/g')
+        # Replace (line) markers with a special character first, then convert to newlines
+        COMMIT_MSG=$(echo "$COMMIT_MSG" | sed 's/(line)/§/g')
+        COMMIT_MSG=$(echo "$COMMIT_MSG" | tr '§' '\n')
 
         # Extract first line (summary) and rest (description)
         SUMMARY=$(echo "$COMMIT_MSG" | head -n1)
