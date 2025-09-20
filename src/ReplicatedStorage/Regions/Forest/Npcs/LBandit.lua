@@ -1,25 +1,70 @@
 local NPC_CONTENTS,NPC_SHARED = script.Parent.Parent.NpcContents,script.Parent.Parent.NpcShared
 
-local leftGuardSpawn = workspace.World.Spawns.LeftGuard.Position
-local rightGuardSpawn = workspace.World.Spawns.RightGuard.Position
+-- Safe spawn location retrieval with error handling
+local function getSpawnLocations()
+    local locations = {}
+
+    -- Try to get LeftGuard spawn
+    local world = workspace:FindFirstChild("World")
+    if world then
+        local spawns = world:FindFirstChild("Spawns")
+        if spawns then
+            local leftGuard = spawns:FindFirstChild("LeftGuard")
+            local rightGuard = spawns:FindFirstChild("RightGuard")
+
+            if leftGuard then
+                table.insert(locations, leftGuard.Position)
+                print("Found LeftGuard spawn at:", leftGuard.Position)
+            else
+                warn("LeftGuard spawn not found - using default position")
+                table.insert(locations, Vector3.new(-20, 5, 0))
+            end
+
+            if rightGuard then
+                table.insert(locations, rightGuard.Position)
+                print("Found RightGuard spawn at:", rightGuard.Position)
+            else
+                warn("RightGuard spawn not found - using default position")
+                table.insert(locations, Vector3.new(20, 5, 0))
+            end
+        else
+            warn("Spawns folder not found - using default positions")
+            table.insert(locations, Vector3.new(-20, 5, 0)) -- Default left
+            table.insert(locations, Vector3.new(20, 5, 0))  -- Default right
+        end
+    else
+        warn("World folder not found - using default positions")
+        table.insert(locations, Vector3.new(-20, 5, 0)) -- Default left
+        table.insert(locations, Vector3.new(20, 5, 0))  -- Default right
+    end
+
+    print("Bandit spawn locations:", #locations, "locations found")
+    for i, pos in pairs(locations) do
+        print("- Location", i .. ":", pos)
+    end
+
+    return locations
+end
+
+local spawnLocations = getSpawnLocations()
 
 local Settings = require(NPC_SHARED.BanditSettings)
 local BanditData = {
 	Name = "Bandit",
-	Quantity = 2,
-	
+	Quantity = 0, -- Disabled - using separate LeftGuard and RightGuard
+
 	SpawnCooldown = 1,
 
 	Type = "Active",-- ex: dialogue, active, passive (can potentially be attacked and the npc will attack back) (gon do nun for now until we add functionality for it later)
 
-	AlwaysSpawn = true,
-	--[[ 
-	data to send over and update is basically the data that updates the mainconfig table thats unique to the npc's data and replaces it, 
+	AlwaysSpawn = false, -- Disabled
+	--[[
+	data to send over and update is basically the data that updates the mainconfig table thats unique to the npc's data and replaces it,
 	this is so each data setting is different (bc why would a bandit npc have the same data as a boss npc) ]]
 
 	DataToSendOverAndUdpate = {
 		Spawning = {
-			Locations = {leftGuardSpawn, rightGuardSpawn},
+			Locations = spawnLocations,
 			Cooldown = Settings.SpawnTime,
 			DespawnTime = 3,
 			Tags = {"Humanoids"}, -- stuff like f you want to do some special stuff like adding it to bosses tag nd looping through that tag and create specific ui

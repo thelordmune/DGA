@@ -25,7 +25,9 @@ task.delay(5, function()
     -- Monitor all descendants of workspace.World.Live
     workspace.World.Live.DescendantAdded:Connect(function(descendant)
         if descendant:IsA("Model") and CollectionService:HasTag(descendant, "Humanoids") then
-            onNpcAdded(descendant)
+            task.delay(5, function()
+                onNpcAdded(descendant)
+            end)
         end
     end)
 

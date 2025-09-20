@@ -61,6 +61,9 @@ end
 
 local serverProcess = {}
 
+-- Track if server process has already started
+local hasStarted = false
+
 function serverProcess.sendAllReliable(id: number, writer: (value: any) -> (), data: { [string]: any })
 	load(globalReliable)
 
@@ -112,15 +115,35 @@ function serverProcess.sendPlayerUnreliable(
 end
 
 function serverProcess.start()
-	local reliableRemote = Instance.new("RemoteEvent")
-	reliableRemote.Name = "ByteNetReliable"
-	reliableRemote.OnServerEvent:Connect(onServerEvent)
-	reliableRemote.Parent = ReplicatedStorage
+	if hasStarted then
+		print("ByteNet server process already started, skipping duplicate initialization")
+		return
+	end
+	hasStarted = true
+	print("Starting ByteNet server process")
 
-	local unreliableRemote = Instance.new("UnreliableRemoteEvent")
-	unreliableRemote.Name = "ByteNetUnreliable"
+	-- Check if RemoteEvents already exist to prevent duplicates
+	local reliableRemote = ReplicatedStorage:FindFirstChild("ByteNetReliable")
+	if not reliableRemote then
+		reliableRemote = Instance.new("RemoteEvent")
+		reliableRemote.Name = "ByteNetReliable"
+		reliableRemote.Parent = ReplicatedStorage
+		print("Created new ByteNetReliable RemoteEvent")
+	else
+		print("Using existing ByteNetReliable RemoteEvent")
+	end
+	reliableRemote.OnServerEvent:Connect(onServerEvent)
+
+	local unreliableRemote = ReplicatedStorage:FindFirstChild("ByteNetUnreliable")
+	if not unreliableRemote then
+		unreliableRemote = Instance.new("UnreliableRemoteEvent")
+		unreliableRemote.Name = "ByteNetUnreliable"
+		unreliableRemote.Parent = ReplicatedStorage
+		print("Created new ByteNetUnreliable RemoteEvent")
+	else
+		print("Using existing ByteNetUnreliable RemoteEvent")
+	end
 	unreliableRemote.OnServerEvent:Connect(onServerEvent)
-	unreliableRemote.Parent = ReplicatedStorage
 
 	for _, player in Players:GetPlayers() do
 		playerAdded(player)

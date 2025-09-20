@@ -63,8 +63,11 @@ function RegionSystem:init()
 				self.regions[region.Name] = regionData
 
 				for moduleName, moduleData in regionData do
-					if typeof(moduleData) == "table" and moduleData.Quantity then
+					if typeof(moduleData) == "table" and moduleData.Quantity and moduleData.Quantity > 0 then
+						print("Loading NPC:", moduleName, "with quantity:", moduleData.Quantity)
 						self:prepareNPCFiles(region.Name, moduleData)
+					elseif typeof(moduleData) == "table" and moduleData.Quantity and moduleData.Quantity <= 0 then
+						print("Skipping disabled NPC:", moduleName, "with quantity:", moduleData.Quantity)
 					end
 				end
 			else
@@ -75,56 +78,83 @@ function RegionSystem:init()
 end
 
 function RegionSystem:prepareNPCFiles(regionName: string, npcData: NPCData)
-	local regionContainer = workspace.World.Live:FindFirstChild(regionName) or 
+	print("=== PREPARING NPC FILES ===")
+	print("Region:", regionName)
+	print("NPC Name:", npcData.Name)
+	print("Quantity:", npcData.Quantity)
+
+	local regionContainer = workspace.World.Live:FindFirstChild(regionName) or
 		Instance.new("Folder", workspace.World.Live)
 	regionContainer.Name = regionName
+	print("Region container:", regionContainer.Name, "created/found")
 
 	-- Check if NPCs already exist for this region
-	local npcsContainer = regionContainer:FindFirstChild("NPCs")
-	if npcsContainer and #npcsContainer:GetChildren() > 0 then
-		return -- NPCs already exist, don't spawn more
-	end
+	-- local npcsContainer = regionContainer:FindFirstChild("NPCs")
+	-- if npcsContainer and #npcsContainer:GetChildren() > 0 then
+	-- 	print("NPCs already exist for", regionName, "- found", #npcsContainer:GetChildren(), "existing NPCs")
+	-- 	return -- NPCs already exist, don't spawn more
+	-- end
 
 	regionContainer:SetAttribute("LastSpawned",os.clock())
+	print("Set LastSpawned attribute for", regionName)
 
-	local npcsContainer = regionContainer:FindFirstChild("NPCs") or 
+	local npcsContainer = regionContainer:FindFirstChild("NPCs") or
 		Instance.new("Folder", regionContainer)
 	npcsContainer.Name = "NPCs"
+	print("NPCs container created/found for", regionName)
 
 	local spawnTask = task.spawn(function()
+		print("Starting spawn task for", npcData.Name, "- creating", npcData.Quantity, "NPC files")
 		for i = 1, npcData.Quantity do
-			--if os.clock() - 
+			print("Creating NPC file", i, "of", npcData.Quantity, "for", npcData.Name)
+			--if os.clock() -
 			if not npcData then
 				warn(`Somehow npcData returned: {npcData}, check if it was deleted in {regionName} region.`)
 				continue
 			end
 
 			local npcFile = toPath:FindFirstChild("NpcFile")
-			if not npcData then
+			if not npcFile then
+				warn("NpcFile not found in ReplicatedStorage!")
 				continue
 			end
+			print("Found NpcFile template in ReplicatedStorage")
 
 			local npcFile = npcFile:Clone()
+			print("Cloned NpcFile for", npcData.Name)
 
 			npcFile.Name = npcData.Name--`{npcData.Name}_NpcFile_{i}`
 
-			local _= npcData.Quantity > 1 and npcFile:SetAttribute("SetName",`{npcData.Name}{i}`) or npcFile:SetAttribute("SetName",npcData.Name)
-			npcFile:SetAttribute("DefaultName",`{npcData.Name}`)
-			--npcFile:SetAttribute("SetName", npcData.Name .. (npcData.Quantity > 1 and i or ""))
+			local setName = npcData.Quantity > 1 and `{npcData.Name}{i}` or npcData.Name
+			npcFile:SetAttribute("SetName", setName)
+			npcFile:SetAttribute("DefaultName", npcData.Name)
+
+			-- For wanderers, assign a specific spawn index based on their creation order
+			if npcData.Name == "Wanderer" then
+				npcFile:SetAttribute("AssignedSpawn", i)
+				print("Assigned spawn", i, "to wanderer", setName)
+			end
+
+			print("Set NPC attributes - SetName:", setName, "DefaultName:", npcData.Name)
 
 			local dataFolder = Instance.new("Folder")
 			dataFolder.Name = `{npcData.Name}_NpcFile_{i}Data`; dataFolder.Name = "Data"
 			seralizer.LoadTableThroughInstance(dataFolder,npcData.DataToSendOverAndUdpate)
+			print("Created data folder and loaded NPC configuration")
 
 			dataFolder.Parent = npcFile
-
 			npcFile.Parent = npcsContainer
+			print("Added NPC file", setName, "to NPCs container")
 			--task.wait(1)
 		end
+		print("Completed spawn task for", npcData.Name)
 	end)
 
 	self._loaded[regionName] = self._loaded[regionName] or {}
 	self._loaded[regionName][npcData.Name] = spawnTask
+	print("Registered spawn task for", regionName, "-", npcData.Name)
+	print("=== END PREPARING NPC FILES ===")
+	print()
 end
 
 function RegionSystem:getRegionData(regionName: string): RegionData?

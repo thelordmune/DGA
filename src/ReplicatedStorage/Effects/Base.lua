@@ -1012,10 +1012,27 @@ local function meshfunction(CF: CFrame?, Parent: Instance?)
 end
 
 function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun: MeshPart)
+	-- print("Base.Shot called - Character:", Character.Name, "Combo:", Combo, "LeftGun:", LeftGun and LeftGun.Name or "nil", "RightGun:", RightGun and RightGun.Name or "nil")
 	if Combo == 1 then
 		local eff = Replicated.Assets.VFX.Shot:Clone()
 		eff.Parent = workspace.World.Visuals
-		eff.CFrame = Character:FindFirstChild("RightHand").CFrame * CFrame.Angles(0, math.rad(-120), 0)
+		-- Use RightGun position and face forward in character's direction
+		local effectPosition
+		if LeftGun and LeftGun:FindFirstChild("EndPart") then
+			local endPart = LeftGun:FindFirstChild("EndPart")
+			effectPosition = endPart.Position
+			-- print("Combo 1: Using LeftGun", endPart.Name, "position")
+		elseif LeftGun then
+			-- Use gun position even without End part
+			effectPosition = LeftGun.Position
+			-- print("Combo 1: Using LeftGun base position")
+		else
+			-- Fallback to hand position
+			effectPosition = Character:FindFirstChild("RightHand").Position
+			-- print("Combo 1: Using RightHand fallback")
+		end
+		-- Always face forward in character's direction
+		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector) * CFrame.Angles(0, math.rad(90), 0)
 		for _, v in eff:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
 				v:Emit(v:GetAttribute("EmitCount"))
@@ -1028,7 +1045,23 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 	if Combo == 2 then
 		local eff = Replicated.Assets.VFX.Shot:Clone()
 		eff.Parent = workspace.World.Visuals
-		eff.CFrame = Character:FindFirstChild("LeftHand").CFrame * CFrame.Angles(0, math.rad(-120), 0)
+		-- Use LeftGun position and face forward in character's direction
+		local effectPosition
+		if RightGun and RightGun:FindFirstChild("EndPart") then
+			local endPart = RightGun:FindFirstChild("EndPart")
+			effectPosition = endPart.Position
+			-- print("Combo 2: Using RightGun", endPart.Name, "position")
+		elseif RightGun then
+			-- Use gun position even without End part
+			effectPosition = RightGun.Position
+			-- print("Combo 2: Using RightGun base position")
+		else
+			-- Fallback to hand position
+			effectPosition = Character:FindFirstChild("LeftHand").Position
+			-- print("Combo 2: Using LeftHand fallback")
+		end
+		-- Always face forward in character's direction
+		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector) * CFrame.Angles(0, math.rad(90), 0)
 		for _, v in eff:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
 				v:Emit(v:GetAttribute("EmitCount"))
@@ -1041,7 +1074,9 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 	if Combo == 3 then
 		local eff = Replicated.Assets.VFX.Combined:Clone()
 		eff.Parent = workspace.World.Visuals
-		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 1.5, -2) * CFrame.Angles(0, math.rad(-180), 0)
+		-- Position in front of character and face forward (no rotation)
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 1.5, -2) * CFrame.Angles(0, math.rad(180), 0)
+		-- print("Combo 3: Using Combined effect in front of character")
 
 		for _, v in eff:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
@@ -1055,19 +1090,7 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 		meshfunction(eff.CFrame, workspace.World.Visuals)
 	end
 
-	if Combo == 4 then
-		local eff = Replicated.Assets.VFX.Shot:Clone()
-		eff.Parent = workspace.World.Visuals
-		eff.CFrame = LeftGun.End.CFrame
-		for _, v in eff:GetDescendants() do
-			if v:IsA("ParticleEmitter") then
-				v:Emit(v:GetAttribute("EmitCount"))
-			end
-		end
-		task.delay(3, function()
-			eff:Destroy()
-		end)
-	end
+
 end
 
 function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, state: string })

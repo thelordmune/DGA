@@ -10,6 +10,7 @@ local bridgeTree = {
 	Dialogue = bridgeNet2.ReferenceBridge("Dialogue"),
 	Inventory = bridgeNet2.ReferenceBridge("Inventory"),
 	Quests = bridgeNet2.ReferenceBridge("Quests"),
+	UpdateHotbar = bridgeNet2.ReferenceBridge("UpdateHotbar"),
 }
 
 return bridgeTree

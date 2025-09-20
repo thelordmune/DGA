@@ -44,24 +44,49 @@ end
 Controller.LoadAlchemyMoves = function()
     local currentAlchemy = Client.Alchemy
     local Skills = require(game.ReplicatedStorage.Modules.Shared.Skills)
-    
+
     if not Skills[currentAlchemy] then
         warn("Alchemy type not found:", currentAlchemy)
         return
     end
-    
+
     local alchemyMoves = Skills[currentAlchemy]
-    
+
     -- Map moves to hotbar slots (Z=8, X=9, C=10)
     local moveSlots = {
         [8] = alchemyMoves.ZMove,  -- Z key
-        [9] = alchemyMoves.XMove,  -- X key  
+        [9] = alchemyMoves.XMove,  -- X key
         [10] = alchemyMoves.CMove  -- C key
     }
-    
+
     -- Update hotbar text for alchemy moves
     for slotNumber, moveName in pairs(moveSlots) do
         Controller.UpdateHotbarSlot(slotNumber, moveName)
+    end
+end
+
+Controller.LoadWeaponSkills = function()
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+    local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManager)
+
+    local player = Players.LocalPlayer
+    local pent = ref.get("local_player", player)
+
+    if not pent then
+        warn("Player entity not found for weapon skills")
+        return
+    end
+
+    -- Get weapon skills from hotbar slots 1-7
+    for slotNumber = 1, 7 do
+        local item = InventoryManager.getHotbarItem(pent, slotNumber)
+        if item and item.typ == "skill" then
+            Controller.UpdateHotbarSlot(slotNumber, item.name)
+        else
+            Controller.UpdateHotbarSlot(slotNumber, "") -- Clear slot if no skill
+        end
     end
 end
 
@@ -188,11 +213,11 @@ Controller.Hotbar = function(Order: string)
         task.delay(2, function()
         for i = 2, 10 do
             task.wait(0.05) -- Small delay between creating each hotbar
-            
+
             local newHotbar = hotbarContainer:Clone()
             newHotbar.Name = "Hotbar" .. i
             newHotbar.Parent = UI.Hotbar
-            
+
             -- Set the key label for this hotbar
             local newImageLabel = newHotbar:FindFirstChild("ImageLabel")
             if newImageLabel then
@@ -209,15 +234,15 @@ Controller.Hotbar = function(Order: string)
                     end
                 end
             end
-            
+
             -- Position the new hotbar next to the previous on
             -- Store the original properties for this specific hotbar
             local hotbarProperties = {}
             storeOriginalProperties(newHotbar, hotbarProperties)
-            
+
             -- Set the new hotbar to transparent initially
             setTransparent(newHotbar)
-            
+
             -- Tween it to visible after a short delay
             task.delay(2, function()
                 task.wait(0.1 * (i-1)) -- Staggered delay based on index
@@ -233,6 +258,7 @@ Controller.Hotbar = function(Order: string)
         end
         task.wait(0.1)
         Controller.LoadAlchemyMoves()
+        Controller.LoadWeaponSkills()
         end)
         
         
@@ -240,7 +266,16 @@ Controller.Hotbar = function(Order: string)
        
     elseif Order == "Update" then
         Controller.LoadAlchemyMoves()
+        Controller.LoadWeaponSkills()
     end
 end
+
+-- Set up BridgeNet2 listener for hotbar updates
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Bridges = require(ReplicatedStorage.Modules.Bridges)
+Bridges.UpdateHotbar:Connect(function()
+    -- Update weapon skills display when server tells us to
+    Controller.LoadWeaponSkills()
+end)
 
 return Controller;

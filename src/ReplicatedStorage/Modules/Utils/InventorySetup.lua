@@ -117,6 +117,11 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
             end
         end
     end
+
+    -- Update client hotbar display if this is for a player
+    if player and RunService:IsServer() then
+        Bridges.UpdateHotbar:Fire(player, {})
+    end
     
     -- Fire inventory update to client if on server
     if RunService:IsServer() then

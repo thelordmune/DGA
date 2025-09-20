@@ -122,9 +122,14 @@ local function calculateWaitTime(character: Model?): number
 end
 
 function NpcBrain._update(params: UpdateParams)
-	local behavior: any = Behaviors[`{params.npcName}_BehaviorTree`]
-	if not behavior then 
-		return 
+	local behaviorName = `{params.npcName}_BehaviorTree`
+	local behavior: any = Behaviors[behaviorName]
+
+	-- print("NpcBrain looking for behavior:", behaviorName, "Found:", behavior ~= nil)
+
+	if not behavior then
+		-- print("Available behaviors:", table.concat(table.keys(Behaviors), ", "))
+		return
 	end
 
 	--task.desynchronize()

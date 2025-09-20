@@ -11,234 +11,281 @@ local EquipModule = require(game:GetService("ServerScriptService").ServerConfig.
 -- local AnimateScript = game.ReplicatedStorage.NpcHelper.Animations:Clone()
 
 return function(actor: Actor, mainConfig: table)
+	-- print("=== SPAWN_ENTITY CALLED ===")
+	-- print("Actor:", actor.Name)
+	-- print("NPC Name:", mainConfig.Name or "Unknown")
+	-- print("Spawn Locations:", mainConfig.Spawning and #mainConfig.Spawning.Locations or "No locations")
 
-    -- More thorough check for existing NPC
-    if actor:FindFirstChildWhichIsA("Model") then
-        return false
-    end
+	-- More thorough check for existing NPC
+	if actor:FindFirstChildWhichIsA("Model") then
+		return false
+	end
 
-    -- Enforce cooldown more strictly
-    local currentTime = os.clock()
-    if currentTime - mainConfig.Spawning.LastSpawned < mainConfig.Spawning.Cooldown then
-        return
-    end
+	-- Enforce cooldown more strictly
+	local currentTime = os.clock()
+	if currentTime - mainConfig.Spawning.LastSpawned < mainConfig.Spawning.Cooldown then
+		return
+	end
 
-    local npcName = actor.Parent.Name
-    local regionName = actor.Parent.Parent.Parent.Name
+	local npcName = actor.Parent.Name
+	local regionName = actor.Parent.Parent.Parent.Name
 
-    --print(npcName,regionName)
-    local dataModel = game.ReplicatedStorage.Regions[regionName].NpcContents.DataModels[npcName]
-    if not dataModel then
-        warn(`Failed to find data model for {npcName} in {regionName}`)
-        return false
-    end
+	--print(npcName,regionName)
+	-- Use the shared Bandit DataModel for all NPCs
+	local dataModel = game.ReplicatedStorage.Assets.NPC.Bandit
+	if not dataModel then
+		warn(`Failed to find Bandit data model in ReplicatedStorage.Assets.NPC.Bandit`)
+		return false
+	end
 
-    print(math.random(1, 2))
+	-- print("Using shared Bandit DataModel for", npcName)
 
-    mainConfig.cleanup()
+	-- print(math.random(1, 2))
 
-    local spawnLocations = {}
-    for _, location in mainConfig.Spawning.Locations do
-        table.insert(spawnLocations, location)
-    end
+	mainConfig.cleanup()
 
-    local npcModel = dataModel:Clone()
-    npcModel.Name = actor.Parent:GetAttribute("SetName") .. tostring(math.random(1, 1000))
+	local spawnLocations = {}
+	for _, location in mainConfig.Spawning.Locations do
+		table.insert(spawnLocations, location)
+	end
 
-	local weapons = {"Fist", "Guns"}
-    local randomWeapon = weapons[math.random(1, #weapons)]
-    npcModel:SetAttribute("Weapon", randomWeapon)
-	npcModel:SetAttribute("Equipped", true)  -- NPCs should be equipped to use Combat.Light
-	npcModel:SetAttribute("IsNPC", true)  -- Mark as NPC for damage system
+	-- print("Spawn locations for", npcName .. ":", #spawnLocations, "locations")
+	-- for i, loc in pairs(spawnLocations) do
+	-- 	-- print("- Spawn", i .. ":", loc)
+	-- end
 
-	print("Spawning NPC:", npcModel.Name, "with IsNPC attribute:", npcModel:GetAttribute("IsNPC"))
+	local npcModel = dataModel:Clone()
+	npcModel.Name = actor.Parent:GetAttribute("SetName") .. tostring(math.random(1, 1000))
 
-    -- Determine spawn location with improved distribution
-    local spawn_
-    local npcTypeKey = regionName .. "_" .. npcName
+	-- Set weapon based on NPC type
+	local randomWeapon
+	if npcName == "Wanderer" then
+		randomWeapon = "Fist" -- Wanderers are unarmed
+	else
+		local weapons = {"Guns"} -- Guards use guns
+		randomWeapon = weapons[math.random(1, #weapons)]
+	end
 
-    -- Initialize tracking for this NPC type if not exists
-    if not usedSpawns[npcTypeKey] then
-        usedSpawns[npcTypeKey] = {
-            currentIndex = 0,
-            occupiedSpawns = {}
-        }
-    end
+	npcModel:SetAttribute("Weapon", randomWeapon)
+	npcModel:SetAttribute("Equipped", npcName ~= "Wanderer") -- Only equip weapons for non-wanderers
+	npcModel:SetAttribute("IsNPC", true) -- Mark as NPC for damage system
 
-    -- Get current spawn index for this NPC type
-    local currentSpawnIndex = usedSpawns[npcTypeKey].currentIndex or 0
+	-- print("Spawning NPC:", npcModel.Name, "with IsNPC attribute:", npcModel:GetAttribute("IsNPC"))
 
-    -- Always try to distribute NPCs across available spawn points
-    if #spawnLocations > 1 then
-        -- Find the next available spawn point
-        local attempts = 0
-        local maxAttempts = #spawnLocations * 2 -- Prevent infinite loops
+	-- Determine spawn location with improved distribution
+	local spawn_
+	local spawnIndex -- Declare spawnIndex in the outer scope
+	local npcTypeKey = regionName .. "_" .. npcName
 
-        repeat
-            currentSpawnIndex = (currentSpawnIndex % #spawnLocations) + 1
-            attempts = attempts + 1
-        until not usedSpawns[npcTypeKey].occupiedSpawns[currentSpawnIndex] or attempts >= maxAttempts
+	print("=== SPAWN DISTRIBUTION DEBUG ===")
+	print("NPC Type Key:", npcTypeKey)
+	print("Available spawn locations:", #spawnLocations)
+	for i, loc in pairs(spawnLocations) do
+		print("- Spawn", i .. ":", loc)
+	end
 
-        -- If all spawns are occupied, use round-robin anyway but with larger offset
-        local isOccupied = usedSpawns[npcTypeKey].occupiedSpawns[currentSpawnIndex]
-        spawn_ = spawnLocations[currentSpawnIndex]
-        usedSpawns[npcTypeKey].currentIndex = currentSpawnIndex
-        usedSpawns[npcTypeKey].occupiedSpawns[currentSpawnIndex] = true
+	-- Special handling for wanderers - use assigned spawn from regions
+	if npcName == "Wanderer" then
+		-- Check if this wanderer has an assigned spawn from regions
+		local assignedSpawnIndex = actor.Parent:GetAttribute("AssignedSpawn")
+		if assignedSpawnIndex and assignedSpawnIndex <= #spawnLocations then
+			spawnIndex = assignedSpawnIndex
+			spawn_ = spawnLocations[spawnIndex]
+			print("Wanderer", actor.Parent.Name, "using assigned spawn", spawnIndex, "at position:", spawn_)
+		else
+			-- Fallback to first spawn if no assignment
+			spawnIndex = 1
+			spawn_ = spawnLocations[1]
+			print("Wanderer", actor.Parent.Name, "using fallback spawn 1 at position:", spawn_)
+		end
+	else
+		-- For other NPCs, use round-robin distribution
+		if not usedSpawns[npcTypeKey] then
+			usedSpawns[npcTypeKey] = {
+				currentIndex = 0,
+			}
+			print("Initialized new spawn tracking for:", npcTypeKey)
+		end
 
-        print("Spawning", npcName, "at spawn point", currentSpawnIndex, "of", #spawnLocations, "at position:", spawn_, isOccupied and "(was occupied)" or "(free)")
-    else
-        -- Only one spawn location available
-        spawn_ = spawnLocations[1]
-        print("Spawning", npcName, "at single spawn point:", spawn_)
-    end
+		-- Simple round-robin distribution
+		if #spawnLocations > 1 then
+			-- Get next spawn index using simple round-robin
+			local currentSpawnIndex = (usedSpawns[npcTypeKey].currentIndex % #spawnLocations) + 1
+			spawn_ = spawnLocations[currentSpawnIndex]
+			usedSpawns[npcTypeKey].currentIndex = currentSpawnIndex
 
-    -- Add random offset to prevent exact overlap, larger if spawn was occupied
-    local offsetMultiplier = usedSpawns[npcTypeKey].occupiedSpawns and usedSpawns[npcTypeKey].occupiedSpawns[currentSpawnIndex] and 2 or 1
-    local offsetX = (math.random() - 0.5) * 4 * offsetMultiplier -- Random offset between -2 and 2 studs (or -4 to 4 if occupied)
-    local offsetZ = (math.random() - 0.5) * 4 * offsetMultiplier
-    spawn_ = spawn_ + Vector3.new(offsetX, 0, offsetZ)
+			-- print("Round-robin spawn:", npcName, "at spawn point", currentSpawnIndex, "of", #spawnLocations)
+			-- print("Spawn position:", spawn_)
+			-- print("Updated currentIndex to:", currentSpawnIndex)
+		else
+			-- Only one spawn location available
+			spawn_ = spawnLocations[1]
+			-- print("Single spawn point for", npcName, "at:", spawn_)
+		end
+	end
+	print("=== END SPAWN DEBUG ===")
+	print()
 
-    mainConfig.Spawning.SpawnedAt = spawn_
+	-- Add small random offset to prevent exact overlap
+	local offsetX = (math.random() - 0.5) * 4 -- Random offset between -2 and 2 studs
+	local offsetZ = (math.random() - 0.5) * 4
+	spawn_ = spawn_ + Vector3.new(offsetX, 0, offsetZ)
 
-    npcModel:SetPrimaryPartCFrame(CFrame.new(spawn_) * CFrame.Angles(0, math.rad(90), 0))
-    npcModel:MoveTo(spawn_)
+	mainConfig.Spawning.SpawnedAt = spawn_
 
-    if VISUALIZE_SPAWN_PART then
-        local visualziedPart = Instance.new("Part")
-        visualziedPart.Anchored = true
-        visualziedPart.CanCollide = false
-        visualziedPart.Material = "Neon"
-        visualziedPart.Color = Color3.fromRGB(255, 0, 0)
-        visualziedPart.CFrame = CFrame.new(spawn_)
-        visualziedPart.Parent = workspace
-    end
+	npcModel:SetPrimaryPartCFrame(CFrame.new(spawn_) * CFrame.Angles(0, math.rad(90), 0))
+	npcModel:MoveTo(spawn_)
 
-    local function findExistingNPC(actor)
-        -- Check under actor first
-        local npc = actor:FindFirstChildWhichIsA("Model")
-        if npc then
-            return npc
-        end
+	if VISUALIZE_SPAWN_PART then
+		local visualziedPart = Instance.new("Part")
+		visualziedPart.Anchored = true
+		visualziedPart.CanCollide = false
+		visualziedPart.Material = "Neon"
+		visualziedPart.Color = Color3.fromRGB(255, 0, 0)
+		visualziedPart.CFrame = CFrame.new(spawn_)
+		visualziedPart.Parent = workspace
+	end
 
-        -- Check in world live as fallback
-        for _, child in ipairs(workspace.World.Live:GetChildren()) do
-            if child:IsA("Model") and child.Name == actor.Parent:GetAttribute("SetName") then
-                return child
-            end
-        end
-        return nil
-    end
+	local function findExistingNPC(actor)
+		-- Check under actor first
+		local npc = actor:FindFirstChildWhichIsA("Model")
+		if npc then
+			return npc
+		end
 
-    local existingNPC = findExistingNPC(actor)
-    if existingNPC then
-        return false
-    end
-    for _, specificTag in mainConfig.Spawning.Tags do
-        game.CollectionService:AddTag(npcModel, specificTag)
-    end
+		-- Check in world live as fallback
+		for _, child in ipairs(workspace.World.Live:GetChildren()) do
+			if child:IsA("Model") and child.Name == actor.Parent:GetAttribute("SetName") then
+				return child
+			end
+		end
+		return nil
+	end
 
-    npcModel.Parent = actor
-    npcModel.AncestryChanged:Connect(function(_, parent)
-        if parent.Name ~= "DataModels" then
-            npcModel:FindFirstChild("hi").Enabled = true
-        end
-    end)
+	local existingNPC = findExistingNPC(actor)
+	if existingNPC then
+		return false
+	end
+	for _, specificTag in mainConfig.Spawning.Tags do
+		game.CollectionService:AddTag(npcModel, specificTag)
+	end
 
-    mainConfig.LoadAppearance()
-
-    -- Entity creation will be handled automatically by Startup.lua when NPC is added to workspace.World.Live
-    print("Spawned NPC:", npcModel.Name, "- entity creation will be handled by monitoring system")
-
-    -- skillSystem:setUp(npcModel)
-
-    for _, basepart: BasePart in npcModel:GetChildren() do
-        if basepart:IsA("BasePart") or basepart:IsA("MeshPart") then
-            basepart:SetNetworkOwner(nil)
-        end
-    end
-
-    local _ = SPAWN_EFFECT and mainConfig.SpawnEffect(mainConfig.Spawning.SpawnedAt)
-
-    local damageLog = Instance.new("Folder")
-    damageLog.Name = "Damage_Log"
-    damageLog.Parent = npcModel
-
-    mainConfig.Spawning.LastSpawned = os.clock()
-
-    -- connectors (adjust to game framework)
-    local statesFolder = game.ReplicatedStorage.PlayerStates:WaitForChild(npcModel.Name)
-    do
-        local root, humanoid = npcModel.HumanoidRootPart, npcModel.Humanoid
-
-        local function cleanSweep()
-            -- Clear the used spawn when NPC is cleaned up
-            if spawn_ and usedSpawns[npcTypeKey] then
-                -- Find which spawn index this NPC was using and mark it as free
-                for i, location in ipairs(spawnLocations) do
-                    if (location - spawn_).Magnitude < 10 then -- Within 10 studs of original spawn
-                        usedSpawns[npcTypeKey].occupiedSpawns[i] = nil
-                        print("Freed spawn point", i, "for", npcName)
-                        break
-                    end
-                end
-            end
-
-            if npcModel then
-                npcModel:Destroy()
-                npcModel = nil
-            end
-
-            local _ = npcModel ~= nil and mainConfig.getState(npcModel):Destroy()
-
-            mainConfig.Spawning.LastSpawned = os.clock()
-
-            mainConfig.Idle.PauseDuration.Current = nil
-            mainConfig.Idle.NextPause.Current = nil
-
-            mainConfig.EnemyDetection.Current = nil
-
-            for _, specificTag in mainConfig.Spawning.Tags do
-                game.CollectionService:RemoveTag(npcModel, specificTag)
-            end
-            mainConfig.cleanup()
-
-            for _, connection in mainConfig.SpawnConnections do
-                connection:Disconnect()
-            end
-            table.clear(mainConfig.SpawnConnections)
-        end
-
-        table.insert(
-            mainConfig.SpawnConnections,
-            statesFolder.ChildRemoved:Connect(function(Child)
-                if Child.Name == "Stunned" then
-                    root:SetNetworkOwner(nil)
-                end
-            end)
-        )
-
-        table.insert(
-            mainConfig.SpawnConnections,
-            humanoid.Died:Connect(function()
-                local diedAt: CFrame = mainConfig.getNpcCFrame()
-
-                mainConfig.getState(npcModel):Destroy()
-
-                task.wait(mainConfig.Spawning.DespawnTime)
-
-                local _ = DESPAWN_EFFECT and mainConfig.DespawnEffect(diedAt)
-                cleanSweep()
-            end)
-        )
-    end
-
-	EquipModule.EquipWeapon(npcModel, randomWeapon)
-	task.delay(5, function()
-    local AnimateScript = game.ReplicatedStorage.NpcHelper.Animations:Clone()
-    AnimateScript.Parent = npcModel
-    AnimateScript.Enabled = true
+	npcModel.Parent = actor
+	npcModel.AncestryChanged:Connect(function(_, parent)
+		if parent.Name ~= "DataModels" then
+			npcModel:FindFirstChild("hi").Enabled = true
+		end
 	end)
 
+	mainConfig.LoadAppearance()
 
-    return true
+	-- Entity creation will be handled automatically by Startup.lua when NPC is added to workspace.World.Live
+	-- print("Spawned NPC:", npcModel.Name, "- entity creation will be handled by monitoring system")
+
+	-- skillSystem:setUp(npcModel)
+
+	for _, basepart: BasePart in npcModel:GetChildren() do
+		if basepart:IsA("BasePart") or basepart:IsA("MeshPart") then
+			basepart:SetNetworkOwner(nil)
+		end
+	end
+
+	local _ = SPAWN_EFFECT and mainConfig.SpawnEffect(mainConfig.Spawning.SpawnedAt)
+
+	local damageLog = Instance.new("Folder")
+	damageLog.Name = "Damage_Log"
+	damageLog.Parent = npcModel
+
+	mainConfig.Spawning.LastSpawned = os.clock()
+
+	-- Store spawn info for cleanup (before adding random offset)
+
+	-- connectors (adjust to game framework)
+	local statesFolder = game.ReplicatedStorage.PlayerStates:WaitForChild(npcModel.Name)
+	do
+		local root, humanoid = npcModel.HumanoidRootPart, npcModel.Humanoid
+
+		local function cleanSweep()
+			-- Clear the used spawn when NPC is cleaned up
+			if usedSpawns[npcTypeKey] then
+				-- For other NPCs, use the old system
+				for i, location in ipairs(spawnLocations) do
+					if (location - spawn_).Magnitude < 10 then -- Within 10 studs of original spawn
+						if usedSpawns[npcTypeKey].occupiedSpawns then
+							usedSpawns[npcTypeKey].occupiedSpawns[i] = nil
+							-- print("Freed spawn point", i, "for", npcName)
+						end
+						break
+					end
+				end
+			end
+
+			if npcModel then
+				npcModel:Destroy()
+				npcModel = nil
+			end
+
+			local _ = npcModel ~= nil and mainConfig.getState(npcModel):Destroy()
+
+			mainConfig.Spawning.LastSpawned = os.clock()
+
+			mainConfig.Idle.PauseDuration.Current = nil
+			mainConfig.Idle.NextPause.Current = nil
+
+			mainConfig.EnemyDetection.Current = nil
+
+			for _, specificTag in mainConfig.Spawning.Tags do
+				game.CollectionService:RemoveTag(npcModel, specificTag)
+			end
+			mainConfig.cleanup()
+
+			for _, connection in mainConfig.SpawnConnections do
+				connection:Disconnect()
+			end
+			table.clear(mainConfig.SpawnConnections)
+		end
+
+		table.insert(
+			mainConfig.SpawnConnections,
+			statesFolder.ChildRemoved:Connect(function(Child)
+				if Child.Name == "Stunned" then
+					root:SetNetworkOwner(nil)
+				end
+			end)
+		)
+
+		table.insert(
+			mainConfig.SpawnConnections,
+			humanoid.Died:Connect(function()
+				local diedAt: CFrame = mainConfig.getNpcCFrame()
+
+				mainConfig.getState(npcModel):Destroy()
+
+				task.wait(mainConfig.Spawning.DespawnTime)
+
+				local _ = DESPAWN_EFFECT and mainConfig.DespawnEffect(diedAt)
+				cleanSweep()
+			end)
+		)
+	end
+
+	-- print("Setting up NPC:", npcModel.Name, "Type:", npcName, "Weapon:", randomWeapon)
+
+	-- Setup NPC based on type
+	task.delay(2, function()
+		-- Only equip weapons for combat NPCs (not wanderers)
+		if npcName ~= "Wanderer" and randomWeapon ~= "Fist" then
+			-- print("Equipping weapon for combat NPC:", npcModel.Name)
+			EquipModule.EquipWeapon(npcModel, randomWeapon)
+		else
+			-- print("Skipping weapon equip for peaceful NPC:", npcModel.Name)
+		end
+
+		task.wait(1)
+		local AnimateScript = game.ReplicatedStorage.NpcHelper.Animations:Clone()
+		AnimateScript.Parent = npcModel
+		AnimateScript.Enabled = true
+	end)
+
+	return true
 end

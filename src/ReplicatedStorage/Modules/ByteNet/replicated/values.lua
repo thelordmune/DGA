@@ -13,9 +13,16 @@ local values = {}
 
 function values.start()
 	if runContext == "server" then
-		local storage = Instance.new("Folder")
-		storage.Name = "BytenetStorage"
-		storage.Parent = ReplicatedStorage
+		-- Check if storage already exists to prevent duplicates
+		local storage = ReplicatedStorage:FindFirstChild("BytenetStorage")
+		if not storage then
+			storage = Instance.new("Folder")
+			storage.Name = "BytenetStorage"
+			storage.Parent = ReplicatedStorage
+			print("Created new BytenetStorage folder")
+		else
+			print("Using existing BytenetStorage folder")
+		end
 
 		valueFolder = storage
 	elseif runContext == "client" then

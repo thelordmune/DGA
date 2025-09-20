@@ -46,9 +46,14 @@ NetworkModule.EndPoint = function(Player, Data)
             print("Switched to weapon:", usedItem.name)
         elseif usedItem.typ == "skill" then
             -- Activate skill
-            print("Activated skill:", usedItem.name)
-            local skill = require(script.Parent.Parent.WeaponSkills[Weapon][usedItem.name])
-            skill(Player, Data, Server)
+            print("Activated skill:", usedItem.name, "for weapon:", Weapon)
+            local skillPath = script.Parent.Parent.WeaponSkills[Weapon]
+            if skillPath and skillPath:FindFirstChild(usedItem.name) then
+                local skill = require(skillPath[usedItem.name])
+                skill(Player, Data, Server)
+            else
+                warn("Skill not found:", usedItem.name, "for weapon:", Weapon)
+            end
         end
     else
         warn("Failed to use item:", Data.itemName)
