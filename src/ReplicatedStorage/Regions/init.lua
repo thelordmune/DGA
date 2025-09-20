@@ -105,6 +105,7 @@ function RegionSystem:prepareNPCFiles(regionName: string, npcData: NPCData)
 
 	local spawnTask = task.spawn(function()
 		print("Starting spawn task for", npcData.Name, "- creating", npcData.Quantity, "NPC files")
+		if npcData.AlwaysSpawn == false then return end
 		for i = 1, npcData.Quantity do
 			print("Creating NPC file", i, "of", npcData.Quantity, "for", npcData.Name)
 			--if os.clock() -
