@@ -8,86 +8,15 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 2
-
-    - name: Get commit details
-      id: commit
-      run: |
-        # Get the latest commit info
-        COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')
-        COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an')
-        COMMIT_SHA=$(git log -1 --pretty=format:'%h')
-        COMMIT_URL="${{ github.event.head_commit.url }}"
-        
-        # Get changed files
-        CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | head -10)
-        
-        # Escape special characters for JSON
-        COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | sed 's/"/\\"/g' | sed "s/'/\\'/g")
-        
-        echo "message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
-        echo "author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
-        echo "sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
-        echo "url=$COMMIT_URL" >> $GITHUB_OUTPUT
-        
-        # Format changed files for Discord
-        if [ -n "$CHANGED_FILES" ]; then
-          FORMATTED_FILES=$(echo "$CHANGED_FILES" | sed 's/^/• /' | tr '\n' '\n')
-          echo "files<<EOF" >> $GITHUB_OUTPUT
-          echo "$FORMATTED_FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-        else
-          echo "files=No files changed" >> $GITHUB_OUTPUT
-        fi
-
     - name: Send Discord Notification
-      env:
-        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        COMMIT_MESSAGE: ${{ steps.commit.outputs.message }}
-        COMMIT_AUTHOR: ${{ steps.commit.outputs.author }}
-        COMMIT_SHA: ${{ steps.commit.outputs.sha }}
-        COMMIT_URL: ${{ steps.commit.outputs.url }}
-        CHANGED_FILES: ${{ steps.commit.outputs.files }}
-        REPO_NAME: ${{ github.repository }}
-        BRANCH_NAME: ${{ github.ref_name }}
       run: |
-        # Create JSON payload with proper escaping
+        # Replace YOUR_DISCORD_WEBHOOK_URL with your actual webhook URL
+        DISCORD_WEBHOOK="https://discordapp.com/api/webhooks/1419064748238180423/rQzkMO5ZErFf5YfZbnspMth8uxWm2rZEsY7U2pd6dTop-yn7zXExeVxO-wWAT7wXUiA0"
+
+        # Create simple JSON payload with just commit message
         cat << EOF > payload.json
         {
-          "embeds": [{
-            "title": "🚀 New Push to ${REPO_NAME}",
-            "description": "**${COMMIT_MESSAGE}**",
-            "color": 5814783,
-            "fields": [
-              {
-                "name": "👤 Author",
-                "value": "${COMMIT_AUTHOR}",
-                "inline": true
-              },
-              {
-                "name": "🌿 Branch",
-                "value": "${BRANCH_NAME}",
-                "inline": true
-              },
-              {
-                "name": "📝 Commit",
-                "value": "[\`${COMMIT_SHA}\`](${COMMIT_URL})",
-                "inline": true
-              },
-              {
-                "name": "📁 Changed Files",
-                "value": "\`\`\`\n${CHANGED_FILES}\n\`\`\`",
-                "inline": false
-              }
-            ],
-            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)",
-            "footer": {
-              "text": "GitHub Push Notification"
-            }
-          }]
+          "content": "� **${{ github.event.head_commit.message }}**"
         }
         EOF
 
