@@ -12,26 +12,28 @@ jobs:
       run: |
         DISCORD_WEBHOOK="https://discordapp.com/api/webhooks/1419064748238180423/rQzkMO5ZErFf5YfZbnspMth8uxWm2rZEsY7U2pd6dTop-yn7zXExeVxO-wWAT7wXUiA0"
 
-        # Get the full commit message
-        FULL_MESSAGE="${{ github.event.head_commit.message }}"
+        # Get the commit message
+        COMMIT_MSG='${{ github.event.head_commit.message }}'
 
-        # Split into summary (first line) and description (rest)
-        SUMMARY=$(echo "$FULL_MESSAGE" | head -n1)
-        DESCRIPTION=$(echo "$FULL_MESSAGE" | tail -n +2 | sed '/^$/d')
+        # Extract first line (summary) and rest (description)
+        SUMMARY=$(echo "$COMMIT_MSG" | head -n1)
+        DESCRIPTION=$(echo "$COMMIT_MSG" | tail -n +2)
 
-        # Format the message
+        # Remove leading empty lines from description
+        DESCRIPTION=$(echo "$DESCRIPTION" | sed '/./,$!d')
+
+        # Create the formatted message
         if [ -n "$DESCRIPTION" ]; then
-          FORMATTED_MESSAGE="**${SUMMARY}**\n${DESCRIPTION}"
+          FORMATTED_MSG="**${SUMMARY}**"$'\n'"${DESCRIPTION}"
         else
-          FORMATTED_MESSAGE="**${SUMMARY}**"
+          FORMATTED_MSG="**${SUMMARY}**"
         fi
 
+        # Escape quotes and backslashes for JSON
+        ESCAPED_MSG=$(echo "$FORMATTED_MSG" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
+
         # Create JSON payload
-        cat << EOF > payload.json
-        {
-          "content": "${FORMATTED_MESSAGE}"
-        }
-        EOF
+        echo "{\"content\": \"$ESCAPED_MSG\"}" > payload.json
 
         # Send the webhook
         curl -H "Content-Type: application/json" \
