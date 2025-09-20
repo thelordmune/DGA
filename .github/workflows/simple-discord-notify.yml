@@ -1,0 +1,26 @@
+name: Simple Discord Notification
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Send Discord Message
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      run: |
+        # Create JSON payload
+        cat << EOF > payload.json
+        {
+          "content": "🚀 **New push to ${{ github.repository }}** by **${{ github.event.head_commit.author.name }}**\\n📝 \`${{ github.event.head_commit.message }}\`\\n🔗 [View commit](${{ github.event.head_commit.url }})"
+        }
+        EOF
+
+        # Send the webhook
+        curl -H "Content-Type: application/json" \
+             -X POST \
+             -d @payload.json \
+             "$DISCORD_WEBHOOK"
