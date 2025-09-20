@@ -309,9 +309,11 @@ return function(scope, props: {})
 
 					scope:New "UIStroke" {
 						Name = "UIStroke",
-						Color = scope:Computed(function(use)
-								return if use(temp) then Color3.fromRGB(1, 255, 86) else Color3.fromRGB(255, 255, 255)
+						Color = scope:Tween(scope:Computed(function(use)
+								return if use(invited) then Color3.fromRGB(1, 255, 86) else Color3.fromRGB(255, 255, 255)
 							end),
+                            TInfo
+                        ),
 						Thickness = 1.5,
 					},
 				}
@@ -345,9 +347,11 @@ return function(scope, props: {})
 
 					scope:New "UIStroke" {
 						Name = "UIStroke",
-						Color = scope:Computed(function(use)
-								return if use(squad) then Color3.fromRGB(1, 255, 86) else Color3.fromRGB(255, 255, 255)
+						Color = scope:Tween(scope:Computed(function(use)
+								return if use(invited) then Color3.fromRGB(1, 255, 86) else Color3.fromRGB(255, 255, 255)
 							end),
+                            TInfo
+                        ),
 						Thickness = 1.5,
 					},
 				}
@@ -381,9 +385,11 @@ return function(scope, props: {})
 
 					scope:New "UIStroke" {
 						Name = "UIStroke",
-						Color = scope:Computed(function(use)
+						Color = scope:Tween(scope:Computed(function(use)
 								return if use(invited) then Color3.fromRGB(1, 255, 86) else Color3.fromRGB(255, 255, 255)
 							end),
+                            TInfo
+                        ),
 						Thickness = 1.5,
 					},
 				}
