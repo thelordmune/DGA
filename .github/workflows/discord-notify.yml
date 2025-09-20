@@ -1,5 +1,4 @@
 name: Discord Push Notification
-
 on:
   push:
     branches: [ main, master ]
@@ -8,34 +7,31 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-    - name: Send Discord Notification
-      run: |
-        DISCORD_WEBHOOK="https://discordapp.com/api/webhooks/1419064748238180423/rQzkMO5ZErFf5YfZbnspMth8uxWm2rZEsY7U2pd6dTop-yn7zXExeVxO-wWAT7wXUiA0"
-
-        # Get the full commit message and preserve newlines
-        FULL_MESSAGE="${{ github.event.head_commit.message }}"
-
-        # Split into summary (first line) and description (rest)
-        SUMMARY=$(echo "$FULL_MESSAGE" | head -n1)
-        DESCRIPTION=$(echo "$FULL_MESSAGE" | tail -n +2)
-
-        # Remove leading/trailing empty lines from description but preserve internal ones
-        DESCRIPTION=$(echo "$DESCRIPTION" | sed '/./,$!d' | sed ':a;/^\s*$/N;$!ba;s/\n*$//')
-
-        # Format the message with proper newlines
-        if [ -n "$DESCRIPTION" ]; then
-          # Replace actual newlines with \n for JSON
-          DESCRIPTION_ESCAPED=$(echo "$DESCRIPTION" | sed ':a;N;$!ba;s/\n/\\n/g')
-          FORMATTED_MESSAGE="**${SUMMARY}**\\n${DESCRIPTION_ESCAPED}"
-        else
-          FORMATTED_MESSAGE="**${SUMMARY}**"
-        fi
-
-        # Create JSON payload using jq for proper escaping
-        jq -n --arg content "$FORMATTED_MESSAGE" '{content: $content}' > payload.json
-
-        # Send the webhook
-        curl -H "Content-Type: application/json" \
-             -X POST \
-             -d @payload.json \
-             "$DISCORD_WEBHOOK"
+      - name: Send Discord Notification
+        run: |
+          DISCORD_WEBHOOK="https://discordapp.com/api/webhooks/1419064748238180423/rQzkMO5ZErFf5YfZbnspMth8uxWm2rZEsY7U2pd6dTop-yn7zXExeVxO-wWAT7wXUiA0"
+          
+          # Get the full commit message and preserve newlines
+          FULL_MESSAGE="${{ github.event.head_commit.message }}"
+          
+          # Split into summary (first line) and description (rest)
+          SUMMARY=$(echo "$FULL_MESSAGE" | head -n1)
+          DESCRIPTION=$(echo "$FULL_MESSAGE" | tail -n +2 | sed '/^$/d')
+          
+          # Format the message with proper newline handling
+          if [ -n "$DESCRIPTION" ]; then
+            # Replace actual newlines with \n for JSON and add Discord formatting
+            FORMATTED_DESCRIPTION=$(echo "$DESCRIPTION" | sed ':a;N;$!ba;s/\n/\\n/g')
+            FORMATTED_MESSAGE="**${SUMMARY}**\\n${FORMATTED_DESCRIPTION}"
+          else
+            FORMATTED_MESSAGE="**${SUMMARY}**"
+          fi
+          
+          # Create JSON payload using jq for proper escaping (more reliable)
+          echo "$FORMATTED_MESSAGE" | jq -R -s '{content: .}' > payload.json
+          
+          # Send the webhook
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d @payload.json \
+               "$DISCORD_WEBHOOK"
