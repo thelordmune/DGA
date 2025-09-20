@@ -48,6 +48,13 @@ return {
 		QuestsCompleted = {},
 		QuestsTaken = {},
 	},
+	["Squad"] = {
+		Name = "",
+		Members = {},
+		Leader = "",
+		Officers = {},
+		Active = false
+	},
 
 	["Clan"] = "",
 	["FL_Name"] = { ["First"] = "", ["Last"] = "" },
