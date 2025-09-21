@@ -198,6 +198,9 @@ return function(scope, props: {})
 							if v.Name == peek(user) then
 								print("valid user found proceeding")
                                 invited:set(true)
+								task.delay(3, function()
+									invited:set(false)
+								end)
 								--send invite to party here, validate user
 							end
 						end
