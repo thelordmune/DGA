@@ -189,27 +189,27 @@ Customs.FlameProjEffect = function(Character, Combo)
 		-- 	0 -- No sparks
 		-- )
 
-		Server.Visuals.Ranged(
-		Character.HumanoidRootPart.Position,
-		300,
-		{ Module = "Base", Function = "Lightning", Arguments = {{"cylinder", -- Shape
-			ColorSequence.new({
-				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 50)), -- Orange
-				ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 0)) -- Yellow
-			}),
-			3, -- Color speed
-			true, -- Juggle colors
-			Character.HumanoidRootPart, -- Start
-			endPart, -- End
-			false, -- Not spread
-			math.random(1, 1.2), -- Size
-			12, -- Segments (optimized)
-			2.5, -- Zigzag intensity
-			nil, -- Instant strike
-			0.3, -- Animation speed (faster)
-			.7, -- Fade direction
-			0 }}} -- No sparks}} }
-	)
+	-- 	Server.Visuals.Ranged(
+	-- 	Character.HumanoidRootPart.Position,
+	-- 	300,
+	-- 	{ Module = "Base", Function = "Lightning", Arguments = {{"cylinder", -- Shape
+	-- 		ColorSequence.new({
+	-- 			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 50)), -- Orange
+	-- 			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 0)) -- Yellow
+	-- 		}),
+	-- 		3, -- Color speed
+	-- 		true, -- Juggle colors
+	-- 		Character.HumanoidRootPart, -- Start
+	-- 		endPart, -- End
+	-- 		false, -- Not spread
+	-- 		math.random(1, 1.2), -- Size
+	-- 		12, -- Segments (optimized)
+	-- 		2.5, -- Zigzag intensity
+	-- 		nil, -- Instant strike
+	-- 		0.3, -- Animation speed (faster)
+	-- 		.7, -- Fade direction
+	-- 		0 }}} -- No sparks}} }
+	-- )
 
 		-- Damage/explosion logic (unchanged from your original)
 		task.delay(0.3, function() -- Sync with lightning timing
@@ -265,11 +265,11 @@ if Combo == 3 then
         eff.Parent = workspace.World.Visuals
 		eff.CFrame = CFrame.new(spawnPosition)
         
-Server.Visuals.Ranged(
-		Character.HumanoidRootPart.Position,
-		300,
-		{ Module = "Base", Function = "Shake", Arguments = {"Once", { 2, 4, 0.3, 0.1, Vector3.new(1.1, 2, 1.1), Vector3.new(0.11, 0.25, 0.11) }} }
-	)
+-- Server.Visuals.Ranged(
+-- 		Character.HumanoidRootPart.Position,
+-- 		300,
+-- 		{ Module = "Base", Function = "Shake", Arguments = {"Once", { 2, 4, 0.3, 0.1, Vector3.new(1.1, 2, 1.1), Vector3.new(0.11, 0.25, 0.11) }} }
+-- 	)
 
         -- Visual effect
         Server.Visuals.Ranged(
@@ -337,27 +337,27 @@ if Combo == 4 then
 	eff.Parent = workspace.World.Visuals
 	eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10)
 	
-	Server.Visuals.Ranged(
-		Character.HumanoidRootPart.Position,
-		300,
-		{ Module = "Base", Function = "Lightning", Arguments = {{"cylinder", -- Shape
-			ColorSequence.new({
-				ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 64, 50)), -- Orange
-				ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 166, 0))
-			}),
-			10, -- Color speed
-			true, -- Juggle colors
-			Character.HumanoidRootPart, -- Start
-			endPart, -- End
-			true, -- Not spread
-			math.random(2, 2.5), -- Size
-			20, -- Segments (optimized)
-			1, -- Zigzag intensity
-			nil, -- Instant strike
-			0.3, -- Animation speed (faster)
-			1, -- Fade direction
-			0}}} -- No sparks}} }
-	)
+	-- Server.Visuals.Ranged(
+	-- 	Character.HumanoidRootPart.Position,
+	-- 	300,
+	-- 	{ Module = "Base", Function = "Lightning", Arguments = {{"cylinder", -- Shape
+	-- 		ColorSequence.new({
+	-- 			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 64, 50)), -- Orange
+	-- 			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 166, 0))
+	-- 		}),
+	-- 		10, -- Color speed
+	-- 		true, -- Juggle colors
+	-- 		Character.HumanoidRootPart, -- Start
+	-- 		endPart, -- End
+	-- 		true, -- Not spread
+	-- 		math.random(2, 2.5), -- Size
+	-- 		20, -- Segments (optimized)
+	-- 		1, -- Zigzag intensity
+	-- 		nil, -- Instant strike
+	-- 		0.3, -- Animation speed (faster)
+	-- 		1, -- Fade direction
+	-- 		0}}} -- No sparks}} }
+	-- )
 
 	Server.Visuals.Ranged(
 		Character.HumanoidRootPart.Position,

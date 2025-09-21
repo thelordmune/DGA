@@ -36,7 +36,7 @@ System.Humanoid  = nil;
 System.Animator  = nil;
 System.Root 	 = nil;
 
-System.Weapon = "Guns";
+System.Weapon = "Flame";
 System.Alchemy = "Flame";
 
 System.Speeds   = nil;
