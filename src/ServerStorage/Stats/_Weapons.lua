@@ -203,9 +203,9 @@ local Table = {
 	},
 
 	["Spear"] = {
-		["MaxCombo"] = 4,
-		["Endlag"] = { 32 / 60, 28 / 60, 32 / 60, 35 / 60, 30 / 60 },
-		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60 },
+		["MaxCombo"] = 5,
+		["Endlag"] = { 32 / 60, 28 / 60, 32 / 60, 35 / 60, 30 / 60, 25/60 },
+		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60, 25/60 },
 		["SoundTimes"] = {},
 		["Hitboxes"] = {
 			[1] = {
@@ -224,6 +224,10 @@ local Table = {
 			},
 
 			[4] = {
+				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxOffset"] = CFrame.new(0, 0, -4),
+			},
+			[5] = {
 				["HitboxSize"] = Vector3.new(5, 7, 8),
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
@@ -388,7 +392,7 @@ local Table = {
 			Stun = 0.7,
 		},
 
-		["Slashes"] = true,
+		["Slashes"] = false,
 
 		["Trail"] = true,
 	},
