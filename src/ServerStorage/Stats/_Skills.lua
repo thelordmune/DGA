@@ -15,6 +15,38 @@ local Table = {
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTime"] = {36/71}
         },
+
+		["Grand Cleave"] = {
+			["Slash1"] = {
+				BlockBreak = false,
+				Damage = 3.5,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.4,
+			},
+			["Slash2"] = {
+				BlockBreak = false,
+				Damage = 4,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.4,
+			},
+			["Slash3"] = {
+				BlockBreak = true,
+				Damage = 6,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.4,
+			},
+			["HitTimes"] = {25/120, 29/120, 38/120, 51/120, 52/120, 54/120, 79/120, 83/120, 89/120}
+			-- startslash, startdrag1, enddrag1, startdrag2, startslash and swingwooo, enddrag2, startslash, startdrag3, enddrag3
+		}
     },
     ["Guns"] = {
         ["Shell Piercer"] = {
