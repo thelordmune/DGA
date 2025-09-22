@@ -338,6 +338,31 @@ end
 
 function MainConfig.getState(player: Model | Player)
 	player = player or MainConfig.getNpc()
+
+	-- For NPCs, use the standard entity system states instead of creating duplicates
+	if player and player:IsA("Model") then
+		-- Check if this is an NPC (not a player character)
+		local isNPC = player:GetAttribute("IsNPC") or not game.Players:GetPlayerFromCharacter(player)
+
+		if isNPC then
+			-- Use the standard Stuns state object created by the entity system
+			local stunState = player:FindFirstChild("Stuns")
+			if stunState then
+				return stunState
+			else
+				-- If no Stuns state exists, the NPC hasn't been properly initialized
+				warn("NPC", player.Name, "missing Stuns state - may need entity initialization")
+				-- Create a temporary state to prevent errors
+				local tempState = Instance.new("StringValue")
+				tempState.Name = "TempStuns"
+				tempState.Value = "[]"
+				tempState.Parent = player
+				return tempState
+			end
+		end
+	end
+
+	-- For players, use the original PlayerStates system
 	local statesFolder = game.ReplicatedStorage:FindFirstChild("PlayerStates")
 	if not statesFolder then
 		statesFolder = Instance.new("Folder")

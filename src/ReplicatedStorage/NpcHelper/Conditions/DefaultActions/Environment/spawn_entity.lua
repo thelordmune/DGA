@@ -201,7 +201,7 @@ return function(actor: Actor, mainConfig: table)
 	-- Store spawn info for cleanup (before adding random offset)
 
 	-- connectors (adjust to game framework)
-	local statesFolder = game.ReplicatedStorage.PlayerStates:WaitForChild(npcModel.Name)
+	-- local statesFolder = game.ReplicatedStorage.PlayerStates:WaitForChild(npcModel.Name)
 	do
 		local root, humanoid = npcModel.HumanoidRootPart, npcModel.Humanoid
 
@@ -245,14 +245,14 @@ return function(actor: Actor, mainConfig: table)
 			table.clear(mainConfig.SpawnConnections)
 		end
 
-		table.insert(
-			mainConfig.SpawnConnections,
-			statesFolder.ChildRemoved:Connect(function(Child)
-				if Child.Name == "Stunned" then
-					root:SetNetworkOwner(nil)
-				end
-			end)
-		)
+		-- table.insert(
+		-- 	mainConfig.SpawnConnections,
+		-- 	statesFolder.ChildRemoved:Connect(function(Child)
+		-- 		if Child.Name == "Stunned" then
+		-- 			root:SetNetworkOwner(nil)
+		-- 		end
+		-- 	end)
+		-- )
 
 		table.insert(
 			mainConfig.SpawnConnections,

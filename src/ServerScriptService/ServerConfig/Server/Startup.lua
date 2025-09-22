@@ -10,7 +10,14 @@ task.delay(5, function()
     local function onNpcAdded(npc)
         if npc:IsA("Model") and npc:IsDescendantOf(workspace.World.Live) then
             print("NPC detected in Live folder:", npc.Name)
-            Server.Modules.Entities.Init(npc)
+            -- Ensure NPC is properly initialized with entity system
+            local entity = Server.Modules.Entities.Get(npc)
+            if not entity then
+                print("Initializing entity for NPC:", npc.Name)
+                Server.Modules.Entities.Init(npc)
+            else
+                print("NPC", npc.Name, "already has entity")
+            end
         end
     end
 

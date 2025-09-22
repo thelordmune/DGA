@@ -21,6 +21,11 @@ Combat.Light = function(Character: Model)
 		return
 	end
 
+	-- For NPCs, clear any problematic feint states that might cause loops
+	if isNPC and Character:GetAttribute("Feint") then
+		Character:SetAttribute("Feint", nil)
+	end
+
 	Server.Library.StopAllAnims(Character)
 
 	if not Entity.Combo then Entity.Combo = 0 end
@@ -92,7 +97,7 @@ Combat.Light = function(Character: Model)
 		
 	
 		local Connection Connection = Character.Stuns.Changed:Once(function()
-			Connection = nil
+			-- Connection = nil
 			
 			if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
 				Server.Library.RemoveState(Character.Speeds,"M1Speed8")
@@ -106,18 +111,20 @@ Combat.Light = function(Character: Model)
 			
 			SwingAnimation:Stop(.2)
 			
-			Character:SetAttribute("Feint",nil)
+			-- Character:SetAttribute("Feint",nil)
 
 			Cancel = true
 		end)
 
-		Character:SetAttribute("Feint",true)
+		-- Character:SetAttribute("Feint",true)
 		
 		
-		local Feint Feint = Character:GetAttributeChangedSignal("Feint"):Once(function()
-			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "Feint", Arguments = {Character}})
-			Cancel = true
-			Server.Library.TimedState(Character.Stuns,"Feint",0)
+		local Feint Feint = Character.Stuns.Changed:Once(function()
+			-- Only trigger feint visual if FeintStun was added (manual feint), not on other stun changes
+			if Server.Library.StateCheck(Character.Stuns, "FeintStun") then
+				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "Feint", Arguments = {Character}})
+				Cancel = true
+			end
 		end)
 
 		task.delay(Stats["HitTimes"][Combo] - (15/60), function()

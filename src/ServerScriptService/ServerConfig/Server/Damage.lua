@@ -83,6 +83,11 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	local function Parried()
+		-- Apply stun IMMEDIATELY when parry is detected
+		Library.StopAllAnims(Invoker)
+		Library.TimedState(Invoker.Speeds, "ParrySpeedSet4", 1.2)
+		Library.TimedState(Invoker.Stuns, "ParryStun", 1.2)
+
 		if not Table.NoParryAnimation then
 			for _, v in script.Parent.Callbacks.Parry:GetChildren() do
 				if v:IsA("ModuleScript") and tData and table.find(tData.Passives, v.Name) then
@@ -99,9 +104,6 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					#Replicated.Assets.SFX.Parries:GetChildren()
 				)]
 			)
-			Library.StopAllAnims(Invoker)
-			Library.TimedState(Invoker.Speeds, "ParrySpeedSet4", 0.55)
-			Library.TimedState(Invoker.Stuns, "ParryStun", 0.55)
 
 			Invoker.Posture.Value += Table.Damage and Table.Damage / 5 or 1
 			Target.Posture.Value -= Table.Damage and Table.Damage / 4 or 1
@@ -237,16 +239,16 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
         end
 
         -- Set recently attacked state using the character's IFrames (which is a StringValue)
-        local iFrames = Target:FindFirstChild("IFrames")
-        if iFrames and iFrames:IsA("StringValue") then
-            Library.TimedState(iFrames, "RecentlyAttacked", 2) -- Short window just for aggression trigger
-            Library.TimedState(iFrames, "Damaged", 1) -- Very short immediate reaction
-            print("Set RecentlyAttacked and Damaged states for NPC:", Target.Name)
-        else
-            print("Warning: Could not find IFrames StringValue for NPC:", Target.Name)
-        end
+        -- local iFrames = Target:FindFirstChild("IFrames")
+        -- if iFrames and iFrames:IsA("StringValue") then
+        --     Library.TimedState(iFrames, "RecentlyAttacked", 2) -- Short window just for aggression trigger
+        --     Library.TimedState(iFrames, "Damaged", 1) -- Very short immediate reaction
+        --     print("Set RecentlyAttacked and Damaged states for NPC:", Target.Name)
+        -- else
+        --     print("Warning: Could not find IFrames StringValue for NPC:", Target.Name)
+        -- end
 
-        print("NPC", Target.Name, "was attacked by", Invoker.Name, "- logging for aggression system")
+        -- print("NPC", Target.Name, "was attacked by", Invoker.Name, "- logging for aggression system")
 
         -- Note: Original NPC damage handling removed as Server.Modules.NPC doesn't exist
         -- The aggression system will handle NPC behavior through the behavior trees
@@ -457,16 +459,16 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		return
 	end
 
-	-- For NPCs, only block damage if they have true immunity states, not minor states like "RecentlyAttacked"
+	-- Check immunity frames - different logic for NPCs vs Players
 	local isNPC = Target:GetAttribute("IsNPC")
 	if isNPC then
-		-- Only block damage for NPCs if they have actual immunity states
+		-- For NPCs, only block damage if they have actual immunity states, not minor states like "RecentlyAttacked"
 		if Library.StateCheck(Target.IFrames, "IFrame") or Library.StateCheck(Target.IFrames, "ForceField") then
 			return
 		end
 		-- Allow damage through for states like "RecentlyAttacked", "Damaged", etc.
 	else
-		-- For players, maintain original behavior
+		-- For players, maintain original behavior - block all IFrame states
 		if Library.StateCount(Target.IFrames) then
 			return
 		end
@@ -496,6 +498,11 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	if Table.Stun then
 		DealStun()
+
+		-- Give NPCs brief immunity after taking stun to prevent spam
+		if Target:GetAttribute("IsNPC") then
+			Library.TimedState(Target.IFrames, "IFrame", 0.3)
+		end
 	end
 
 	if Table.FX then
@@ -524,6 +531,11 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	if Table.Damage then
 		DealDamage()
+
+		-- Give NPCs brief immunity after taking damage to prevent spam
+		if Target:GetAttribute("IsNPC") then
+			Library.TimedState(Target.IFrames, "IFrame", 0.2)
+		end
 	end
 
 	if Table.Status then
