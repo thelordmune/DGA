@@ -119,12 +119,10 @@ Combat.Light = function(Character: Model)
 		-- Character:SetAttribute("Feint",true)
 		
 		
-		local Feint Feint = Character.Stuns.Changed:Once(function()
-			-- Only trigger feint visual if FeintStun was added (manual feint), not on other stun changes
-			if Server.Library.StateCheck(Character.Stuns, "FeintStun") then
-				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "Feint", Arguments = {Character}})
-				Cancel = true
-			end
+		local Feint Feint = Character:GetAttributeChangedSignal("Feint"):Once(function()
+			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "Feint", Arguments = {Character}})
+			Cancel = true
+			Server.Library.TimedState(Character.Stuns,"Feint",0)
 		end)
 
 		task.delay(Stats["HitTimes"][Combo] - (15/60), function()

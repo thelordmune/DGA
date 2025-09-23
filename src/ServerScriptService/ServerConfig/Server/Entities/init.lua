@@ -44,6 +44,11 @@ end
 EntityClass.Remove = function(Entity)
     debugPrint("Attempting to remove entity:", Entity.Name)
     if Server.Entities[Entity] then
+        -- Clean up equip state before removing entity (prevents stuck states on respawn)
+        if Server.Modules.Network and Server.Modules.Network.Equip then
+            Server.Modules.Network.Equip.CleanupCharacterEquipState(Entity)
+        end
+
         setmetatable(Server.Entities[Entity], nil);
         Server.Entities[Entity] = nil;
         warn(("Removed: %s"):format(Entity.Name));

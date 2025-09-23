@@ -67,10 +67,19 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
     local AnimationSet = Replicated.Assets.Animations.Weapons[WeaponName]
     local WeaponFolder: Folder? = ServerStorage.Assets.Models.Weapons[WeaponName]
 
-    -- Check if character has actions (players) or skip for NPCs
-    if Character:FindFirstChild("Actions") and Library.StateCount(Character.Actions) then
-        print("Early return: Character has active states")
-        return
+    -- Clean up any stuck states first (fix for respawn issues)
+    if Character:FindFirstChild("Actions") then
+        -- Remove any stuck Equip states
+        if Library.StateCheck(Character.Actions, "Equip") then
+            Library.RemoveState(Character.Actions, "Equip")
+            print("Cleaned up stuck Equip state")
+        end
+
+        -- Check if character has other active states (but allow if only Equip was stuck)
+        if Library.StateCount(Character.Actions) then
+            print("Early return: Character has active states")
+            return
+        end
     end
 
     local isEquipped = Character:GetAttribute("Equipped")
@@ -177,6 +186,12 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
                     end
                 end
             end)
+        else
+            -- If no animation, immediately remove the Equip state
+            if Character:FindFirstChild("Actions") then
+                Library.RemoveState(Character.Actions, "Equip")
+                print("Removed Equip state (no animation)")
+            end
         end
     else
         NetworkModule.UnequipWeapon(Character, WeaponName, skipAnimation)
@@ -298,6 +313,30 @@ NetworkModule.RemoveWeapon = function(PlayerOrCharacter)
         end
     end
     print("Removed", removedCount, "weapon parts")
+end
+
+-- Cleanup function to call when character is being removed/respawning
+NetworkModule.CleanupCharacterEquipState = function(Character: Model)
+    if not Character then return end
+
+    print("=== CLEANING UP EQUIP STATE ===")
+    print("Character:", Character.Name)
+
+    -- Remove any stuck equip states
+    if Character:FindFirstChild("Actions") then
+        if Library.StateCheck(Character.Actions, "Equip") then
+            Library.RemoveState(Character.Actions, "Equip")
+            print("Cleaned up stuck Equip state on character removal")
+        end
+    end
+
+    -- Reset equipped attribute
+    Character:SetAttribute("Equipped", false)
+
+    -- Remove all weapon parts
+    NetworkModule.RemoveWeapon(Character)
+
+    print("=== EQUIP STATE CLEANUP COMPLETE ===")
 end
 
 return NetworkModule

@@ -14,6 +14,12 @@ return ByteNet.defineNamespace("Networking", function()
 				Arguments = ByteNet.array(ByteNet.unknown); --> IF DATA LOSS THEN REVERT IT TO JUST BYTENET.UNKNOWN
 			})
 		});
+		AlchemyUpdate = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Alchemy = ByteNet.string;
+			})
+		});
 		
 		ClientCFrame = ByteNet.definePacket({
 			reliabilityType = "unreliable";
