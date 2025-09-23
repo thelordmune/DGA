@@ -18,7 +18,7 @@ NetworkModule.EndPoint = function(Player, Data)
     print("Item:", Data.itemName)
     print("Hotbar Slot:", Data.hotbarSlot)
     
-    local pent = ref.get("local_player", Player)
+    local pent = ref.get("player", Player)  -- Fixed: Use "player" on server, not "local_player"
     if not pent then
         warn("Player entity not found")
         return

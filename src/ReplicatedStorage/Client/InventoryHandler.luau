@@ -34,26 +34,7 @@ end
 Bridges.Inventory:Connect(function(syncData)
     print("Client: Received inventory update from server")
     
-    local pent = ref.get("player", player)
-    print("INVENTORY HANDLER DEBUG: Entity ID for", player.Name, ":", pent)
-
-    if not pent then
-        warn("INVENTORY: Player entity not found, retrying...")
-        -- Retry a few times
-        local attempts = 0
-        while attempts < 10 and not pent do
-            task.wait(0.2)
-            pent = ref.get("player", player)
-            attempts = attempts + 1
-        end
-
-        if not pent then
-            warn("INVENTORY: Failed to get player entity after retries")
-            return
-        end
-        print("INVENTORY: Found entity after retry:", pent)
-    end
-
+    local pent = ref.get("local_player", player)
     if pent then
         -- Update inventory component
         local inventory = deserializeInventory(syncData.inventory)

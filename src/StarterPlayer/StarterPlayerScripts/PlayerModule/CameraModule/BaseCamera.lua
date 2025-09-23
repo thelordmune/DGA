@@ -19,8 +19,8 @@ do
 end
 local FFlagUserFixCameraOffsetJitter = FlagUtil.getUserFlag("UserFixCameraOffsetJitter2")
 
-local UNIT_Z = Vector3.new(0,0,1)
-local X1_Y0_Z1 = Vector3.new(1,0,1)	--Note: not a unit vector, used for projecting onto XZ plane
+local UNIT_Z = Vector3.new(0,0,.5)
+local X1_Y0_Z1 = Vector3.new(.5,0,.5)	--Note: not a unit vector, used for projecting onto XZ plane
 
 local DEFAULT_DISTANCE = 12.5	-- Studs
 local PORTRAIT_DEFAULT_DISTANCE = 25		-- Studs
@@ -456,7 +456,7 @@ function BaseCamera:GetSubjectPosition(): Vector3?
 
 	local result = rawPosition
 	if self.lastSubjectPosition then
-		local lerpFactor = .35
+		local lerpFactor = .15
 		result = self.lastSubjectPosition:Lerp(cameraSubject.Parent.Head.CFrame.p, lerpFactor)
 	end
 

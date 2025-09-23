@@ -71,6 +71,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
 		Server.Library.TimedState(Character.Actions, "Cascade", Alchemy.Length)
 		Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
+		Server.Library.TimedState(Character.Stuns, "AlcJump-0", Alchemy.Length)  -- Prevent jumping during Cascade
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
 
 		task.delay(hittimes[1], function()

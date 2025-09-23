@@ -106,7 +106,7 @@ EntityClass.Init = function(Entity) : EntityObject
         self.Player = Player;
         self.Weapon = Player:GetAttribute("Weapon");
         self.Snapshots = {};
-        local entity = ref.get("local_player", Player)
+        local entity = ref.get("player", Player)  -- Fixed: Use "player" on server, not "local_player"
         task.delay(5, function()
             debugPrint("Giving weapon skills to player:", Player.Name, "Weapon:", self.Weapon)
             InventorySetup.GiveWeaponSkills(entity, self.Weapon, Player)

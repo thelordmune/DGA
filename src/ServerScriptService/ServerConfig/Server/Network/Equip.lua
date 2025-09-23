@@ -32,7 +32,7 @@ NetworkModule.EndPoint = function(Player, Data)
     print("Character exists:", Character ~= nil)
 
     if pent == nil then
-        pent = ref.get("local_player", Player)
+        pent = ref.get("player", Player)  -- Fixed: Use "player" on server, not "local_player"
         print("Created pent for player")
     end
 

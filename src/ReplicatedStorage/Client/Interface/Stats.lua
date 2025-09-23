@@ -72,24 +72,11 @@ Controller.LoadWeaponSkills = function()
     local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManager)
 
     local player = Players.LocalPlayer
-    local pent = ref.get("player", player)
-    print("STATS DEBUG: Entity ID for", player.Name, ":", pent)
+    local pent = ref.get("local_player", player)
 
     if not pent then
-        warn("Player entity not found for weapon skills, retrying...")
-        -- Retry a few times
-        local attempts = 0
-        while attempts < 10 and not pent do
-            task.wait(0.2)
-            pent = ref.get("player", player)
-            attempts = attempts + 1
-        end
-
-        if not pent then
-            warn("Failed to get player entity for weapon skills after retries")
-            return
-        end
-        print("STATS DEBUG: Found entity after retry:", pent)
+        warn("Player entity not found for weapon skills")
+        return
     end
 
     -- Get weapon skills from hotbar slots 1-7

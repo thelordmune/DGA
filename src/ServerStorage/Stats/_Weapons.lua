@@ -13,9 +13,10 @@ local Table = {
 
 	["Fist"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 32 / 60, 28 / 60, 32 / 60, 35 / 60, 30 / 60 },
-		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60 },
+		["Endlag"] = { 25.6 / 60, 22.4 / 60, 25.6 / 60, 28 / 60, 24 / 60 },  -- Adjusted for 1.25x speed (25% faster)
+		["HitTimes"] = { 20 / 60, 20 / 60, 22.4 / 60, 24.8 / 60, 19.2 / 60 },  -- Adjusted for 1.25x speed (25% faster)
 		["SoundTimes"] = {},
+		["Speed"] = 1.25,  -- Increased fist M1 speed from default 1.0 to 1.25
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(3,5,5),
@@ -818,11 +819,11 @@ local Table = {
 
 	["Guns"] = {
 		["MaxCombo"] = 3,
-		["Endlag"] = { 22 / 60, 25 / 60, 30 / 60, 35 / 60, 30 / 60 },
-		["HitTimes"] = { 15 / 60, 16 / 60, 20 / 60, 26 / 60, 31 / 60 },
+		["Endlag"] = { 29.3 / 60, 33.3 / 60, 40 / 60, 46.7 / 60, 40 / 60 },  -- Adjusted for 0.75x speed (25% slower)
+		["HitTimes"] = { 20 / 60, 21.3 / 60, 26.7 / 60, 34.7 / 60, 41.3 / 60 },  -- Adjusted for 0.75x speed (25% slower)
 		["SoundTimes"] = {},
 		["Exception"] = true,
-		["Speed"] = 1,
+		["Speed"] = 0.75,  -- Nerfed gun M1 speed from 1.0 to 0.75
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(5, 7, 8),

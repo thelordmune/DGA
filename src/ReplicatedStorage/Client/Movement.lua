@@ -112,7 +112,7 @@ Movement.Dodge = function()
     local Animation = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes[Direction])
     
     -- CONSISTENT DASH PARAMETERS
-    local Speed = 85  -- Consistent speed
+    local Speed = 135  -- Consistent speed
     local Duration = 0.5  -- Consistent duration
     local TweenDuration = Duration  -- Match tween to velocity duration
     Client.Dodging = true
@@ -133,17 +133,26 @@ Movement.Dodge = function()
 
     Client.Packets.Dodge.send({Direction = Direction})
 
-    -- Create consistent tween that matches velocity duration
+    -- Create smooth deceleration tween - gradually slow down instead of stopping abruptly
+    local SlowdownSpeed = Speed * 0.15  -- End at 15% of original speed for smooth transition
     local DashTween = Client.Service["TweenService"]:Create(
         Velocity,
-        TweenInfo.new(TweenDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {VectorVelocity = Vector3.zero}
+        TweenInfo.new(TweenDuration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+        {VectorVelocity = Vector * SlowdownSpeed}
     )
     DashTween:Play()
-    print("Dash: Speed =", Speed, "Duration =", Duration, "Direction =", Direction)
+
+    -- Final cleanup - remove velocity completely after tween
+    DashTween.Completed:Connect(function()
+        if Velocity and Velocity.Parent then
+            Velocity:Destroy()
+        end
+    end)
+
+    print("Dash: Speed =", Speed, "Slowdown =", SlowdownSpeed, "Duration =", Duration, "Direction =", Direction)
     
     Animation.Stopped:Once(function()
-        if Velocity then Velocity:Destroy() end
+        -- Velocity cleanup is handled by the tween completion
         Client.Dodging = false
         Client.Library.RemoveState(Client.Statuses, "Dodging")
     end)

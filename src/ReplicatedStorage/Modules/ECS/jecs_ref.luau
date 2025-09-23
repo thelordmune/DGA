@@ -6,7 +6,7 @@ local jecs = require(ReplicatedStorage.Modules.Imports.jecs)
 local world = require(script.Parent.jecs_world)
 
 local running_on: "server" | "client" = (if RunService:IsServer() then "server" else "client")
-local local_player_entity = world:entity()
+local local_player_entity: jecs.Entity? = nil  -- Will be set per client
 local local_character_entity: jecs.Entity? = nil
 local player_refs: { [string]: jecs.Entity } = {}
 local network_id_refs: { [number]: jecs.Entity } = {}
@@ -50,6 +50,32 @@ local ref = {}
 ref.get = (
 	function(type, data: any): any?
 		if type == "local_player" then
+			-- Initialize local_player_entity if not set
+			if not local_player_entity then
+				if running_on == "client" then
+					local Players = game:GetService("Players")
+					local localPlayer = Players.LocalPlayer
+					if localPlayer then
+						-- Get the player's unique entity from player_refs
+						local_player_entity = player_refs[`{localPlayer.UserId}`]
+						if not local_player_entity then
+							-- Create unique entity for this client if not found
+							local_player_entity = world:entity()
+							player_refs[`{localPlayer.UserId}`] = local_player_entity
+						end
+					end
+				else
+					-- On server, data should be the Player object
+					if data and data.UserId then
+						local_player_entity = player_refs[`{data.UserId}`]
+						if not local_player_entity then
+							-- Create unique entity for this player if not found
+							local_player_entity = world:entity()
+							player_refs[`{data.UserId}`] = local_player_entity
+						end
+					end
+				end
+			end
 			return local_player_entity
 		elseif type == "local_character" then
 			assert(running_on == "client", "Cannot get local_character on server")

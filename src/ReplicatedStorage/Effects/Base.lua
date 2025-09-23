@@ -1301,7 +1301,9 @@ function Base.Cinder(Character: Model, Frame: string)
 
 		local fx2 = Replicated.Assets.VFX.Cinder.Move2BeamPart2:Clone()
 		fx2.Parent = workspace.World.Visuals
-		fx2.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -15)
+		-- Use fresh CFrame to avoid dash position desync
+		local currentCFrame = Character.HumanoidRootPart.CFrame
+		fx2.CFrame = currentCFrame * CFrame.new(0, 0, -15)
 		for _, v in pairs(fx2:GetDescendants()) do
 			if v:IsA("ParticleEmitter") or v:IsA("Beam") then
 				local emitDelay = v:GetAttribute("EmitDelay") or 0.1

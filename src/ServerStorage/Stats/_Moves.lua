@@ -115,8 +115,8 @@ local Table = {
 			},
 			["DamageTable"] = {
 				BlockBreak = false,
-				Damage = 3.5,
-				PostureDamage = 5,
+				Damage = 1.5,  -- Greatly reduced from 3.5 to 1.5
+				PostureDamage = 3,  -- Reduced from 5 to 3
 				LightKnockback = false,
 				M2 = false,
 				FX = Replicated.Assets.VFX.Flame.Attachment,

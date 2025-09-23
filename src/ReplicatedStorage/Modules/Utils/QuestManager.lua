@@ -34,7 +34,7 @@ function QuestManager.acceptQuest(player, npcname, questName)
 end
 
 function QuestManager.getActiveQuests(player)
-	local playerEntity = ref.get("local_player", player)
+	local playerEntity = ref.get("player", player)  -- Fixed: Use "player" instead of "local_player"
 	if not playerEntity or not world:contains(playerEntity) then
 		return {}
 	end
@@ -48,7 +48,7 @@ function QuestManager.getActiveQuests(player)
 end
 
 function QuestManager.hasActiveQuest(player, npcname, questName)
-    local playerEntity = ref.get("local_player", player)
+    local playerEntity = ref.get("player", player)  -- Fixed: Use "player" instead of "local_player"
     if not playerEntity or not world:contains(playerEntity) then
         return false
     end

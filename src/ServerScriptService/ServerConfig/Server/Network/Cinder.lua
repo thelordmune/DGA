@@ -67,7 +67,9 @@ NetworkModule.EndPoint = function(Player, Data)
 		Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
 
-		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+		-- Fix VFX positioning - get fresh position to avoid dash desync
+		local currentPosition = Character.HumanoidRootPart.Position
+		Server.Visuals.Ranged(currentPosition, 300, {
 			Module = "Base",
 			Function = "Cinder",
 			Arguments = { Character, "Start" },
@@ -96,11 +98,12 @@ NetworkModule.EndPoint = function(Player, Data)
 				if currentTime - lastGlobalHitTime >= hitInterval then
 					lastGlobalHitTime = currentTime
 
-					-- Get targets in range
+					-- Get targets in range - use fresh CFrame to avoid dash desync
+					local currentCFrame = Character.HumanoidRootPart.CFrame
 					local HitTargets = Hitbox.SpatialQuery(
 						Character,
 						Moves.Flame.Cinder["Hitboxes"][1]["HitboxSize"],
-						Entity:GetCFrame() * Moves.Flame.Cinder["Hitboxes"][1]["HitboxOffset"],
+						currentCFrame * Moves.Flame.Cinder["Hitboxes"][1]["HitboxOffset"],
 						false
 					)
 
@@ -119,7 +122,7 @@ NetworkModule.EndPoint = function(Player, Data)
 							})
 
 							-- Debug print for consistent DPS tracking
-							print("Cinder consistent hit:", Target.Name, "damage: 3.5, interval:", hitInterval)
+							print("Cinder consistent hit:", Target.Name, "damage: 1.5, interval:", hitInterval)
 						end
 					end
 
