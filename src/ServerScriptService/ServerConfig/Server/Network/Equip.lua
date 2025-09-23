@@ -373,6 +373,7 @@ NetworkModule.CleanupCharacterEquipState = function(Character: Model)
 
     -- Reset equipped attribute
     Character:SetAttribute("Equipped", false)
+    print("setting stuff i guess")
 
     -- Remove all weapon parts
     NetworkModule.RemoveWeapon(Character)
