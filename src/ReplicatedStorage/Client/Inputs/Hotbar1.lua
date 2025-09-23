@@ -25,9 +25,9 @@ local keyToSlot = {
 InputModule.InputBegan = function(input, Client)
     local hotbarSlot = keyToSlot[input.KeyCode]
     if not hotbarSlot then return end
-    
+
     print("Hotbar slot pressed:", hotbarSlot)
-    
+
     local item = InventoryManager.getHotbarItem(pent, hotbarSlot)
     if not item then
         print("No item in hotbar slot:", hotbarSlot)

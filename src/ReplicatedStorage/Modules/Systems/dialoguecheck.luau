@@ -44,7 +44,8 @@ local function findCharacter(character): Model?
         return nil
     end
 
-    local pent = ref.get("local_player", player)
+    local pent = ref.get("player", player)
+    print("DIALOGUE DEBUG: Entity ID for", player.Name, ":", pent)
     DebugPrint("Player entity:", pent)
 
     local root = character:FindFirstChild("HumanoidRootPart")
@@ -107,7 +108,7 @@ local function sendinrange(character)
     DebugPrint("sendinrange called")
     local model = findCharacter(character)
 
-    local pEntity = ref.get("local_player", player)
+    local pEntity = ref.get("player", player)
     
     if not pEntity then
         DebugPrint("ERROR: Could not get player entity")

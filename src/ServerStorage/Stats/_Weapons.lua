@@ -18,22 +18,22 @@ local Table = {
 		["SoundTimes"] = {},
 		["Hitboxes"] = {
 			[1] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(3,5,5),
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[2] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(3,5,5),
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[3] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(3,5,5),
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[4] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(3,5,5),
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 		},

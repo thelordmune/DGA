@@ -72,24 +72,34 @@ Movement.Dodge = function()
 	end
 
 	-- Check if we can dash
-	if Client.Dodging then return end
-	if Client.Library.StateCount(Client.Actions) or 
-		Client.Library.StateCount(Client.Stuns) or 
-		Client.Library.StateCheck(Client.Speeds, "M1Speed8") then 
-		return 
+	if Client.Dodging then
+		print("Dodge blocked: Already dodging")
+		return
+	end
+	if Client.Library.StateCount(Client.Actions) or
+		Client.Library.StateCount(Client.Stuns) or
+		Client.Library.StateCheck(Client.Speeds, "M1Speed8") then
+		print("Dodge blocked: Character has active states")
+		return
 	end
 
 	-- Check cooldown only if out of charges
 	if Client.DodgeCharges <= 0 then
-		if Client.Library.CheckCooldown(Client.Character, "Dodge") then return end
+		if Client.Library.CheckCooldown(Client.Character, "Dodge") then
+			print("Dodge blocked: On cooldown")
+			return
+		end
 		Client.DodgeCharges = 2  -- Reset charges
+		print("Dodge charges reset to 2")
 	end
 
 	Client.DodgeCharges = Client.DodgeCharges - 1
+	print("Dodge charge used, remaining:", Client.DodgeCharges)
 
 	-- Set cooldown when out of charges
 	if Client.DodgeCharges <= 0 then
 		Client.Library.SetCooldown(Client.Character, "Dodge", 2.5)
+		print("Dodge cooldown set")
 	end
     
     Client.Library.AddState(Client.Statuses, "Dodging")
@@ -101,11 +111,12 @@ Movement.Dodge = function()
     Client.Library.StopAllAnims(Client.Character)
     local Animation = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes[Direction])
     
-    local Ceiling = 90
-    local Duration = .6
-    local Start = os.clock()
+    -- CONSISTENT DASH PARAMETERS
+    local Speed = 85  -- Consistent speed
+    local Duration = 0.5  -- Consistent duration
+    local TweenDuration = Duration  -- Match tween to velocity duration
     Client.Dodging = true
-    
+
     local Velocity = Instance.new("LinearVelocity")
     Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
     Velocity.ForceLimitsEnabled = true
@@ -113,14 +124,23 @@ Movement.Dodge = function()
     Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
     Velocity.Attachment0 = Client.Root.RootAttachment
     Velocity.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-    Velocity.VectorVelocity = Vector * Ceiling
+    Velocity.VectorVelocity = Vector * Speed
     Velocity.Name = "Dodge"
     Velocity.Parent = Client.Root
-    Client.Utilities.Debris:AddItem(Velocity, Duration)
-    
+
+    -- Ensure velocity is destroyed at the right time
+    Client.Utilities.Debris:AddItem(Velocity, Duration + 0.1)
+
     Client.Packets.Dodge.send({Direction = Direction})
-    
-    Client.Service["TweenService"]:Create(Velocity, TweenInfo.new(Duration * 3, Enum.EasingStyle.Circular, Enum.EasingDirection.Out), {VectorVelocity = Vector3.zero}):Play()
+
+    -- Create consistent tween that matches velocity duration
+    local DashTween = Client.Service["TweenService"]:Create(
+        Velocity,
+        TweenInfo.new(TweenDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {VectorVelocity = Vector3.zero}
+    )
+    DashTween:Play()
+    print("Dash: Speed =", Speed, "Duration =", Duration, "Direction =", Direction)
     
     Animation.Stopped:Once(function()
         if Velocity then Velocity:Destroy() end

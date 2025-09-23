@@ -15,18 +15,19 @@ local Cooldowns  = {};
 
 Library.PlayAnimation = function(Char: Model, Name, Transition: number)
     if not Char then return end;
-    if not Animations[Char.Name] then Animations[Char.Name] = {} end
+    -- Use character instance as key instead of name to avoid respawn issues
+    if not Animations[Char] then Animations[Char] = {} end
 
     -- Check if animation is already playing
-    if Animations[Char.Name][Name] and Animations[Char.Name][Name].IsPlaying then
-        return Animations[Char.Name][Name]
+    if Animations[Char][Name] and Animations[Char][Name].IsPlaying then
+        return Animations[Char][Name]
     end
 
     local Anim = Name;
     if type(Anim) == "string" then
         -- First try to find in Movement folder for run animations
         Anim = Replicated:WaitForChild("Assets").Animations.Movement:FindFirstChild(Name, true)
-        
+
         -- If not found in Movement, search in all Animations
         if not Anim then
             Anim = Replicated:WaitForChild("Assets").Animations:FindFirstChild(Name, true)
@@ -39,46 +40,81 @@ Library.PlayAnimation = function(Char: Model, Name, Transition: number)
     end
 
     -- Load and play animation only if not already loaded and playing
-    if not Animations[Char.Name][Name] then
-        Animations[Char.Name][Name] = Char.Humanoid.Animator:LoadAnimation(Anim)
+    if not Animations[Char][Name] then
+        Animations[Char][Name] = Char.Humanoid.Animator:LoadAnimation(Anim)
     end
-    
-    Animations[Char.Name][Name]:Play(Transition)
-    return Animations[Char.Name][Name]
+
+    Animations[Char][Name]:Play(Transition)
+    return Animations[Char][Name]
 end
 
 Library.StopAnimation = function(Char: Model,Name, Table)
 	if not Char then return end;
-	if not Animations[Char.Name] then Animations[Char.Name] = {} end
+	-- Use character instance as key instead of name to avoid respawn issues
+	if not Animations[Char] then Animations[Char] = {} end
 
-	if Animations[Char.Name][Name] == nil then
+	if Animations[Char][Name] == nil then
 		local anim = Name
 		if type(anim) == "string" then
 			anim = Replicated:WaitForChild("Assets").Animations:FindFirstChild(Name, true)
 		end
-		Animations[Char.Name][Name] = Char.Humanoid.Animator:LoadAnimation(anim)
+		Animations[Char][Name] = Char.Humanoid.Animator:LoadAnimation(anim)
 	end
-	
-	Animations[Char.Name][Name]:Stop(Table)
+
+	Animations[Char][Name]:Stop(Table)
 end
 
 Library.StopAllAnims = function(Char: Model)
 	local Weapon
 	local Player = Players:GetPlayerFromCharacter(Char)
-	if not Char then return end 
-	
+	if not Char then return end
+
 	if Player then
 		Weapon = Player:GetAttribute("Weapon")
 	else
 		Weapon = "Fist"
 	end
-	
+
 	for _, v in next, Char.Humanoid.Animator:GetPlayingAnimationTracks() do
 		if tonumber(v.Name) or Replicated.Assets.Animations.Abilities:FindFirstChild(v.Name) or Replicated.Assets.Animations.Weapons[Weapon].Swings:FindFirstChild(v.Name) or Replicated.Assets.Animations.Weapons[Weapon]:FindFirstChild(v.Name) then
 			v:Stop(.2)
 		end
 	end
-	
+
+end
+
+-- Comprehensive cleanup function for character respawn
+Library.CleanupCharacter = function(Char: Model)
+	if not Char then return end
+
+	-- Clear animation cache for this character
+	if Animations[Char] then
+		for _, animTrack in pairs(Animations[Char]) do
+			if animTrack and animTrack.IsPlaying then
+				animTrack:Stop(0)
+			end
+			if animTrack then
+				animTrack:Destroy()
+			end
+		end
+		Animations[Char] = nil
+		print("Cleared animation cache for character:", Char.Name)
+	end
+
+	-- Clear cooldowns for this character
+	if Cooldowns[Char] then
+		Cooldowns[Char] = nil
+		print("Cleared cooldowns for character:", Char.Name)
+	end
+
+	-- Stop all playing animation tracks
+	if Char:FindFirstChild("Humanoid") and Char.Humanoid:FindFirstChild("Animator") then
+		for _, track in pairs(Char.Humanoid.Animator:GetPlayingAnimationTracks()) do
+			track:Stop(0)
+			track:Destroy()
+		end
+		print("Stopped all animation tracks for character:", Char.Name)
+	end
 end
 
 Library.StopMovementAnimations = function(Char: Model)
@@ -168,17 +204,19 @@ Library.PlaySound = function(Origin, S,Overlap: boolean,Speed: number)
 end
 
 Library.SetCooldown = function(Char: Model, Identifier: string, Time: number)
-	if not Cooldowns[Char.Name] then Cooldowns[Char.Name] = {} end;
-	Cooldowns[Char.Name][Identifier] = os.clock() + Time
+	-- Use character instance as key instead of name to avoid respawn issues
+	if not Cooldowns[Char] then Cooldowns[Char] = {} end;
+	Cooldowns[Char][Identifier] = os.clock() + Time
 end
 
 Library.CheckCooldown = function(Char: Model, Identifier: string)
-	if not Cooldowns[Char.Name] then Cooldowns[Char.Name] = {} end;
-	if Cooldowns[Char.Name][Identifier] then 
-		if Cooldowns[Char.Name][Identifier] > os.clock()  then
+	-- Use character instance as key instead of name to avoid respawn issues
+	if not Cooldowns[Char] then Cooldowns[Char] = {} end;
+	if Cooldowns[Char][Identifier] then
+		if Cooldowns[Char][Identifier] > os.clock()  then
 			return true;
 		else
-			Cooldowns[Char.Name][Identifier] = nil
+			Cooldowns[Char][Identifier] = nil
 			return false;
 		end
 	end;
@@ -187,8 +225,9 @@ Library.CheckCooldown = function(Char: Model, Identifier: string)
 end
 
 Library.ResetCooldown = function(Char: Model, Identifier: string)
-	if not Cooldowns[Char.Name] then Cooldowns[Char.Name] = {} end;
-	if Cooldowns[Char.Name][Identifier] ~= nil then Cooldowns[Char.Name][Identifier] = 0 end;
+	-- Use character instance as key instead of name to avoid respawn issues
+	if not Cooldowns[Char] then Cooldowns[Char] = {} end;
+	if Cooldowns[Char][Identifier] ~= nil then Cooldowns[Char][Identifier] = 0 end;
 end
 
 function ReturnDecodedTable(Table)

@@ -266,4 +266,38 @@ function InventoryManager.useHotbarSlot(entity, hotbarSlot)
     return false
 end
 
+-- Clear all hotbar slots (for character reset)
+function InventoryManager.clearHotbar(entity)
+    if not world:has(entity, comps.Hotbar) then
+        return
+    end
+
+    local hotbar = world:get(entity, comps.Hotbar)
+    hotbar.slots = {}
+    hotbar.activeSlot = 1
+    world:set(entity, comps.Hotbar, hotbar)
+    markInventoryChanged(entity)
+    print("Cleared hotbar for entity")
+end
+
+-- Clear entire inventory (for character reset)
+function InventoryManager.clearInventory(entity)
+    if not world:has(entity, comps.Inventory) then
+        return
+    end
+
+    local inventory = world:get(entity, comps.Inventory)
+    inventory.items = {}
+    world:set(entity, comps.Inventory, inventory)
+    markInventoryChanged(entity)
+    print("Cleared inventory for entity")
+end
+
+-- Comprehensive cleanup for character reset
+function InventoryManager.resetPlayerInventory(entity)
+    InventoryManager.clearInventory(entity)
+    InventoryManager.clearHotbar(entity)
+    print("Reset player inventory and hotbar")
+end
+
 return InventoryManager

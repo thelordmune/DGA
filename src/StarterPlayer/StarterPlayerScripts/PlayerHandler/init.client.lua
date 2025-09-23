@@ -123,9 +123,31 @@ function Initialize(Character: Model)
 	Client.Service["RunService"].RenderStepped:Wait()
 	Client.Character = Character
 
+	-- COMPREHENSIVE CHARACTER REINITIALIZATION
+	print("=== REINITIALIZING CHARACTER ===")
+	print("Character:", Character.Name)
+
+	-- Reset all client states
 	Client.Dodging = false
 	Client.Running = false
-	Client.DodgeCharges = 2 -- Reset dodge charges after respawn
+	Client.DodgeCharges = 2
+	print("Reset client movement states")
+
+	-- Comprehensive cleanup of previous character data
+	if Client.Library and Client.Library.CleanupCharacter then
+		-- This will clear animations, cooldowns, and stop all tracks
+		Client.Library.CleanupCharacter(Character)
+	end
+
+	-- Additional manual cleanup for any stuck states
+	if Client.Library then
+		if Client.Library.ResetCooldown then
+			Client.Library.ResetCooldown(Character, "Dodge")
+			Client.Library.ResetCooldown(Character, "DodgeCancel")
+			Client.Library.ResetCooldown(Character, "Feint")
+			print("Reset all cooldowns for new character")
+		end
+	end
 
 	local Humanoid = Character:WaitForChild("Humanoid") :: Humanoid
 	local Speeds = Character:WaitForChild("Speeds", 60) :: StringValue
@@ -257,8 +279,60 @@ function Initialize(Character: Model)
 
 	-- local pent = ref.get("player", Players.LocalPlayer)
 
+	-- REINITIALIZE ALL SYSTEMS
+	print("=== REINITIALIZING ALL SYSTEMS ===")
+
+	-- Reinitialize animation system
 	Client.Modules["Animate"].Init()
+	print("Reinitialized animation system")
+
+	-- Reinitialize zone controller
 	Client.Modules["ZoneController"]()
+	print("Reinitialized zone controller")
+
+	-- Clear any stuck states in character frames
+	task.wait(0.1) -- Wait for frames to be ready
+	if Character:FindFirstChild("Actions") then
+		Character.Actions.Value = "[]"
+		print("Cleared Actions states")
+	end
+	if Character:FindFirstChild("Stuns") then
+		Character.Stuns.Value = "[]"
+		print("Cleared Stuns states")
+	end
+	if Character:FindFirstChild("Speeds") then
+		Character.Speeds.Value = "[]"
+		print("Cleared Speeds states")
+	end
+	if Character:FindFirstChild("Status") then
+		Character.Status.Value = "[]"
+		print("Cleared Status states")
+	end
+
+	-- Reset character attributes
+	Character:SetAttribute("Equipped", false)
+	Character:SetAttribute("DodgeCharges", 2)
+	print("Reset character attributes")
+
+	-- CLEAR HOTBAR AND INVENTORY (Fix item mismatch)
+	local InventoryManager = require(Replicated.Modules.Utils.InventoryManager)
+	if pent then
+		InventoryManager.resetPlayerInventory(pent)
+		print("Cleared hotbar and inventory to prevent item mismatch")
+	end
+
+	-- Clear hotbar UI display
+	task.wait(0.2) -- Wait for UI to be ready
+	if Client.Interface and Client.Interface.Stats then
+		-- Clear all hotbar slot displays
+		for i = 1, 10 do
+			if Client.Interface.Stats.UpdateHotbarSlot then
+				Client.Interface.Stats.UpdateHotbarSlot(i, "")
+			end
+		end
+		print("Cleared hotbar UI display")
+	end
+
 	-- Client.Modules["InventoryHandler"]()
 
 	local DialogueTracker = require(Replicated.Client.Misc.DialogueTracker)

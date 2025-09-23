@@ -44,9 +44,28 @@ end
 EntityClass.Remove = function(Entity)
     debugPrint("Attempting to remove entity:", Entity.Name)
     if Server.Entities[Entity] then
+        -- COMPREHENSIVE CLEANUP BEFORE REMOVAL
+        debugPrint("=== CLEANING UP ENTITY ON DEATH ===")
+        debugPrint("Entity:", Entity.Name)
+
         -- Clean up equip state before removing entity (prevents stuck states on respawn)
         if Server.Modules.Network and Server.Modules.Network.Equip then
             Server.Modules.Network.Equip.CleanupCharacterEquipState(Entity)
+        end
+
+        -- Clean up all character data (animations, cooldowns, etc.)
+        if Server.Library and Server.Library.CleanupCharacter then
+            Server.Library.CleanupCharacter(Entity)
+            debugPrint("Cleaned up character data for:", Entity.Name)
+        end
+
+        -- Stop any playing animations
+        if Entity:FindFirstChild("Humanoid") and Entity.Humanoid:FindFirstChild("Animator") then
+            for _, track in pairs(Entity.Humanoid.Animator:GetPlayingAnimationTracks()) do
+                track:Stop(0)
+                track:Destroy()
+            end
+            debugPrint("Stopped all animations for:", Entity.Name)
         end
 
         setmetatable(Server.Entities[Entity], nil);
@@ -164,6 +183,55 @@ function EntityClass:Initialize()
         -- Initialize equipped state for players
         self.Character:SetAttribute("Equipped", false)
         debugPrint("Initialized equipped state for:", self.Player.Name)
+
+        -- COMPREHENSIVE SERVER-SIDE CLEANUP AND REINITIALIZATION
+        debugPrint("=== SERVER-SIDE CHARACTER REINITIALIZATION ===")
+        debugPrint("Player:", self.Player.Name)
+
+        -- Clear any stuck cooldowns and states from previous character
+        if Server.Library then
+            if Server.Library.CleanupCharacter then
+                Server.Library.CleanupCharacter(self.Character)
+            end
+            if Server.Library.ResetCooldown then
+                Server.Library.ResetCooldown(self.Character, "Dodge")
+                Server.Library.ResetCooldown(self.Character, "DodgeCancel")
+                Server.Library.ResetCooldown(self.Character, "Feint")
+                Server.Library.ResetCooldown(self.Character, "Equip")
+                debugPrint("Reset all cooldowns for:", self.Player.Name)
+            end
+        end
+
+        -- Ensure all character frames are properly initialized
+        task.wait(0.1) -- Wait for frames to be cloned
+        if self.Character:FindFirstChild("Actions") then
+            self.Character.Actions.Value = "[]"
+            debugPrint("Initialized Actions frame")
+        end
+        if self.Character:FindFirstChild("Stuns") then
+            self.Character.Stuns.Value = "[]"
+            debugPrint("Initialized Stuns frame")
+        end
+        if self.Character:FindFirstChild("Speeds") then
+            self.Character.Speeds.Value = "[]"
+            debugPrint("Initialized Speeds frame")
+        end
+        if self.Character:FindFirstChild("Status") then
+            self.Character.Status.Value = "[]"
+            debugPrint("Initialized Status frame")
+        end
+
+        -- CLEAR HOTBAR AND INVENTORY (Fix item mismatch on respawn)
+        if self.Player then
+            local ref = require(Server.Service.ReplicatedStorage.Modules.ECS.jecs_ref)
+            local InventoryManager = require(Server.Service.ReplicatedStorage.Modules.Utils.InventoryManager)
+
+            local pent = ref.get("player", self.Player)
+            if pent then
+                InventoryManager.resetPlayerInventory(pent)
+                debugPrint("Cleared hotbar and inventory for:", self.Player.Name)
+            end
+        end
     end
 
     self:LoadWeapon(self.Character)

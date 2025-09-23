@@ -67,7 +67,13 @@ NetworkModule.EndPoint = function(Player, Data)
 			Server.Library.StopAllAnims(Character)
 
 			local Alchemy = Library.PlayAnimation(Character, Animation)
+			if not Alchemy then
+				print("Failed to load Construct animation")
+				return
+			end
+
 			Alchemy.Looped = false
+			print("Construct animation loaded, Length:", Alchemy.Length)
 
 			-- Get floor color for wall material
 			local floorColor = getFloorColor(Character)
@@ -78,7 +84,9 @@ NetworkModule.EndPoint = function(Player, Data)
 			Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
 			Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
 
-			
+			-- Track connections for cleanup
+			local connections = {}
+
 			local kfConn
 			kfConn = Alchemy.KeyframeReached:Connect(function(key)
 				if key == "Clap" then
@@ -193,6 +201,32 @@ NetworkModule.EndPoint = function(Player, Data)
 				end
 			end)
 			table.insert(activeConnections, kfConn)
+			table.insert(connections, kfConn)
+
+			-- PROPER ANIMATION CLEANUP - Fix looping issue
+			local animEndConn
+			animEndConn = Alchemy.Stopped:Connect(function()
+				print("Construct animation stopped, cleaning up")
+				-- Disconnect keyframe connection
+				if kfConn then
+					kfConn:Disconnect()
+					kfConn = nil
+				end
+				-- Disconnect this connection
+				if animEndConn then
+					animEndConn:Disconnect()
+					animEndConn = nil
+				end
+				-- Clean up from active connections
+				for i, conn in ipairs(activeConnections) do
+					if conn == kfConn then
+						table.remove(activeConnections, i)
+						break
+					end
+				end
+				print("Construct animation cleanup complete")
+			end)
+			table.insert(connections, animEndConn)
 		end
 	end
 end
