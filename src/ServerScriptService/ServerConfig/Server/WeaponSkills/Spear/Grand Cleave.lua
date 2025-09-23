@@ -40,6 +40,26 @@ return function(Player, Data, Server)
 				Function = "GrandCleave",
 				Arguments = { Character, "Slash1"},
 			})
+
+			-- Add hitbox for Slash1
+			local Hitbox = Server.Modules.Hitbox
+			local Entity = Server.Modules["Entities"].Get(Character)
+
+			if Entity then
+				local HitTargets = Hitbox.SpatialQuery(
+					Character,
+					Vector3.new(8, 8, 10), -- Wide slash hitbox
+					Entity:GetCFrame() * CFrame.new(0, 0, -5), -- In front of player
+					false -- Don't visualize
+				)
+
+				for _, Target in pairs(HitTargets) do
+					if Target ~= Character and Target:IsA("Model") then
+						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["Slash1"])
+						print("Grand Cleave Slash1 hit:", Target.Name)
+					end
+				end
+			end
         end)
         task.delay(hittimes[2], function()
             Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
@@ -61,6 +81,26 @@ return function(Player, Data, Server)
 				Function = "GrandCleave",
 				Arguments = { Character, "Slash2"},
 			})
+
+			-- Add hitbox for Slash2
+			local Hitbox = Server.Modules.Hitbox
+			local Entity = Server.Modules["Entities"].Get(Character)
+
+			if Entity then
+				local HitTargets = Hitbox.SpatialQuery(
+					Character,
+					Vector3.new(8, 8, 10), -- Wide slash hitbox
+					Entity:GetCFrame() * CFrame.new(0, 0, -5), -- In front of player
+					false -- Don't visualize
+				)
+
+				for _, Target in pairs(HitTargets) do
+					if Target ~= Character and Target:IsA("Model") then
+						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["Slash2"])
+						print("Grand Cleave Slash2 hit:", Target.Name)
+					end
+				end
+			end
         end)
         task.delay(hittimes[7], function()
             Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
@@ -68,6 +108,26 @@ return function(Player, Data, Server)
 				Function = "GrandCleave",
 				Arguments = { Character, "Slash3"},
 			})
+
+			-- Add hitbox for Slash3 (final slash with block break)
+			local Hitbox = Server.Modules.Hitbox
+			local Entity = Server.Modules["Entities"].Get(Character)
+
+			if Entity then
+				local HitTargets = Hitbox.SpatialQuery(
+					Character,
+					Vector3.new(8, 8, 10), -- Wide slash hitbox
+					Entity:GetCFrame() * CFrame.new(0, 0, -5), -- In front of player
+					false -- Don't visualize
+				)
+
+				for _, Target in pairs(HitTargets) do
+					if Target ~= Character and Target:IsA("Model") then
+						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["Slash3"])
+						print("Grand Cleave Slash3 hit:", Target.Name)
+					end
+				end
+			end
         end)
         task.delay(hittimes[8], function()
             Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {

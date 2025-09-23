@@ -156,8 +156,16 @@ function EntityClass:Initialize()
     if self.Player then
         debugPrint("Loading appearance for player:", self.Player.Name)
         task.spawn(Appearance.Load, self.Player)
+
+        -- Initialize dodge charges for players
+        self.Character:SetAttribute("DodgeCharges", 2)
+        debugPrint("Initialized dodge charges for:", self.Player.Name)
+
+        -- Initialize equipped state for players
+        self.Character:SetAttribute("Equipped", false)
+        debugPrint("Initialized equipped state for:", self.Player.Name)
     end
-    
+
     self:LoadWeapon(self.Character)
     
     local function Remove() 

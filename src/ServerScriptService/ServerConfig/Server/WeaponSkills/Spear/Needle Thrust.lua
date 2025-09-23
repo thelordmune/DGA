@@ -48,12 +48,32 @@ return function(Player, Data, Server)
 
         task.delay(hittimes[1], function()
              Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-						Module = "Base", 
-						Function = "NeedleThrust", 
+						Module = "Base",
+						Function = "NeedleThrust",
 						Arguments = {Character, "Hit"}
 					})
 
                     Server.Modules.Combat.Trail(Character, false)
+
+                    -- Add hitbox for Needle Thrust - long lengthwise hitbox
+                    local Hitbox = Server.Modules.Hitbox
+                    local Entity = Server.Modules["Entities"].Get(Character)
+
+                    if Entity then
+                        local HitTargets = Hitbox.SpatialQuery(
+                            Character,
+                            Vector3.new(4, 6, 16), -- Long lengthwise hitbox
+                            Entity:GetCFrame() * CFrame.new(0, 0, -8), -- In front of player
+                            false -- Don't visualize
+                        )
+
+                        for _, Target in pairs(HitTargets) do
+                            if Target ~= Character and Target:IsA("Model") then
+                                Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
+                                print("Needle Thrust hit:", Target.Name)
+                            end
+                        end
+                    end
         end)
 	end
 	-- print("activating skill; " .. script.Name)

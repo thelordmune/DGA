@@ -69,7 +69,7 @@ local Table = {
 				LightKnockback = false,
 				M2 = false,
 				FX = Replicated.Assets.VFX.Flame.Attachment,
-				Stun = 0.25,
+				Stun = 1.5, -- Increased stun to ensure rapid fire hits connect
 			},
 			["DamageTableRapid"] = {
 				BlockBreak = false,

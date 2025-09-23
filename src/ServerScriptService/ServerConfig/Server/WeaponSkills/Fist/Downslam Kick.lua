@@ -99,6 +99,26 @@ return function(Player, Data, Server)
 								Function = "Downslam",
 								Arguments = { Character, "Land" },
 							})
+
+							-- Add AOE hitbox for Downslam Kick when landing
+							local Hitbox = Server.Modules.Hitbox
+							local Entity = Server.Modules["Entities"].Get(Character)
+
+							if Entity then
+								local HitTargets = Hitbox.SpatialQuery(
+									Character,
+									Vector3.new(12, 8, 12), -- Large AOE hitbox
+									Entity:GetCFrame() * CFrame.new(0, -2, 0), -- Around the landing point
+									false -- Don't visualize
+								)
+
+								for _, Target in pairs(HitTargets) do
+									if Target ~= Character and Target:IsA("Model") then
+										Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
+										print("Downslam Kick hit:", Target.Name)
+									end
+								end
+							end
 						end
 					end)
 				end

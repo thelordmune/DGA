@@ -20,8 +20,9 @@ NetworkModule.EndPoint = function(Player, Data)
 	if PlayerObject  then
 		if Character:GetAttribute("Feint") and not Library.CheckCooldown(Character,"Feint") then
 			Library.SetCooldown(Character,"Feint",1.5)
-			Library.TimedState(Character.Stuns,"FeintStun",0)
-		end	
+			-- Trigger the feint by setting attribute to nil (this fires the AttributeChangedSignal)
+			Character:SetAttribute("Feint", nil)
+		end
 	end
 	
 end

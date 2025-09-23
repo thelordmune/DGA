@@ -54,6 +54,12 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
         return
     end
 
+    -- Wait for character to be fully loaded
+    if not Character:FindFirstChild("HumanoidRootPart") or not Character:FindFirstChild("Humanoid") then
+        print("Early return: Character not fully loaded")
+        return
+    end
+
     -- Get weapon name from character attribute if not provided
     WeaponName = WeaponName or Character:GetAttribute("Weapon")
     if not WeaponName then
@@ -75,31 +81,54 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
             print("Cleaned up stuck Equip state")
         end
 
-        -- Check if character has other active states (but allow if only Equip was stuck)
+        -- Remove any other stuck states that might prevent equipping
+        local stuckStates = {"FeintStun", "Stun", "Attacking", "Blocking"}
+        for _, stateName in pairs(stuckStates) do
+            if Library.StateCheck(Character.Actions, stateName) then
+                Library.RemoveState(Character.Actions, stateName)
+                print("Cleaned up stuck state:", stateName)
+            end
+        end
+
+        -- Check if character still has other active states after cleanup
         if Library.StateCount(Character.Actions) then
-            print("Early return: Character has active states")
+            print("Early return: Character still has active states after cleanup")
             return
         end
+    end
+
+    -- Initialize equipped attribute if it doesn't exist
+    if Character:GetAttribute("Equipped") == nil then
+        Character:SetAttribute("Equipped", false)
+        print("Initialized Equipped attribute to false")
     end
 
     local isEquipped = Character:GetAttribute("Equipped")
     print("Currently equipped:", isEquipped)
 
-    if not isEquipped then
+    -- Treat nil as false for equipped state
+    if not isEquipped or isEquipped == false then
         Character:SetAttribute("Equipped", true)
 
         -- Play animation only if not skipping and AnimationSet exists
         local EquipAnimation
         if not skipAnimation and AnimationSet then
-            EquipAnimation = Library.PlayAnimation(Character, AnimationSet.Equip)
-            -- EquipAnimation:Play()
-            EquipAnimation.Priority = Enum.AnimationPriority.Action
-            for _, v in Character:GetDescendants() do
-                if v:GetAttribute("WeaponTrail") then
-                    v.Enabled = true
+            local Humanoid = Character:FindFirstChild("Humanoid")
+            if Humanoid and Humanoid:FindFirstChild("Animator") then
+                -- Load animation, set priority, then play manually
+                EquipAnimation = Humanoid.Animator:LoadAnimation(AnimationSet.Equip)
+                EquipAnimation.Priority = Enum.AnimationPriority.Action
+                EquipAnimation:Play()
+
+                for _, v in Character:GetDescendants() do
+                    if v:GetAttribute("WeaponTrail") then
+                        v.Enabled = true
+                    end
                 end
+                print("Equip animation started with proper priority and manual control")
+            else
+                print("Warning: No Humanoid or Animator found for equip animation")
             end
-            print("Equip animation started")
 
             -- Play sound if character has a player
             local Player = game.Players:GetPlayerFromCharacter(Character)
@@ -126,7 +155,16 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
         if WeaponFolder and not table.find(blacklist, WeaponName) then
             print("=== SPAWNING WEAPON PARTS ===")
 
-            if not Character:FindFirstChild(WeaponName) then
+            -- Check for existing weapon parts by Weapon attribute, not by name
+            local hasWeaponParts = false
+            for _, child in pairs(Character:GetChildren()) do
+                if child:GetAttribute("Weapon") then
+                    hasWeaponParts = true
+                    break
+                end
+            end
+
+            if not hasWeaponParts then
                 print("Weapon not found in character, creating new parts")
                 local weaponParts = ServerStorage.Assets.Models.Weapons[WeaponName]:GetChildren()
 
@@ -178,7 +216,7 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
             EquipAnimation.Stopped:Once(function()
                 if Character:FindFirstChild("Actions") then
                     Library.RemoveState(Character.Actions, "Equip")
-                    print("Removed Equip state")
+                    print("Removed Equip state via animation completion")
                 end
                 for _, v in Character:GetDescendants() do
                     if v:GetAttribute("WeaponTrail") then
@@ -210,7 +248,7 @@ NetworkModule.UnequipWeapon = function(Character: Model, WeaponName: string?, sk
     end
 
     print("=== UNEQUIPPING WEAPON ===")
-    Character:SetAttribute("Equipped", nil)
+    Character:SetAttribute("Equipped", false)
 
     local AnimationSet = Replicated.Assets.Animations.Weapons[WeaponName]
     local EquipAnimation
@@ -324,9 +362,12 @@ NetworkModule.CleanupCharacterEquipState = function(Character: Model)
 
     -- Remove any stuck equip states
     if Character:FindFirstChild("Actions") then
-        if Library.StateCheck(Character.Actions, "Equip") then
-            Library.RemoveState(Character.Actions, "Equip")
-            print("Cleaned up stuck Equip state on character removal")
+        local statesToClean = {"Equip", "FeintStun", "Stun", "Attacking", "Blocking"}
+        for _, stateName in pairs(statesToClean) do
+            if Library.StateCheck(Character.Actions, stateName) then
+                Library.RemoveState(Character.Actions, stateName)
+                print("Cleaned up stuck state on character removal:", stateName)
+            end
         end
     end
 

@@ -125,6 +125,7 @@ function Initialize(Character: Model)
 
 	Client.Dodging = false
 	Client.Running = false
+	Client.DodgeCharges = 2 -- Reset dodge charges after respawn
 
 	local Humanoid = Character:WaitForChild("Humanoid") :: Humanoid
 	local Speeds = Character:WaitForChild("Speeds", 60) :: StringValue
