@@ -151,7 +151,7 @@ local Table = {
 			},
 		},
 		["Cascade"] = {
-			["HitTimes"] = {14/83, 43/84, 55/84, 69/84, 83/84},
+			["HitTimes"] = {14/83, 43/84, 55/84, 69/84, 83/84, 95/84, 107/84},  -- Added 2 additional rows (total 7 hit times for 5 rows)
 			["Hitboxes"] = {
 				[1] = {
 					["HitboxSize"] = Vector3.new(10,10,10),

@@ -436,6 +436,7 @@ local Table = {
 
 		["Critical"] = {
 			["DamageTable"] = {
+				BlockBreak = true,  -- Added BlockBreak to make critical guardbreak
 				Damage = 8,
 				PostureDamage = 15,
 				LightKnockback = true,

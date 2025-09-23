@@ -349,7 +349,7 @@ end
 Server.Utilities:AddToCoreLoop(function(DeltaTime)
     for _, Instance in Server.Service.CollectionService:GetTagged("PostureInstances") do
         --> Some arbitrary check to see if in combat, recently taken damage what ever blah blah
-        Instance.Value -= .25
+        Instance.Value -= .1  -- Reduced posture regeneration from .25 to .1
     end
 end)
 

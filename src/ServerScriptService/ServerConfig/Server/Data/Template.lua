@@ -24,7 +24,7 @@ return {
 		["Money"] = 0,
 		["Damage"] = 0,
 		["Energy"] = 100,
-		["Posture"] = 100,
+		["Posture"] = 30,  -- Greatly reduced from 100 to 30
 		["Health"] = 100,
 		["Armor"] = 0,
 		["Speed"] = 1,

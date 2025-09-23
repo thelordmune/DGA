@@ -148,8 +148,18 @@ NetworkModule.EndPoint = function(Player, Data)
 
 					poof.CFrame = poof.CFrame * CFrame.Angles(0, poofSpinSpeed * dt, 0)
 
-					local forwardVector = root.CFrame.LookVector
-					poof.CFrame = poof.CFrame + forwardVector * poofMoveSpeed * dt
+					-- Use mouse position for aiming direction
+					local targetDirection
+					if Data.MousePosition and Data.MousePosition.Magnitude > 0 then
+						-- Calculate direction from rock to mouse position
+						local rockPosition = poof.Position
+						targetDirection = (Data.MousePosition - rockPosition).Unit
+					else
+						-- Fallback to forward direction if no mouse position
+						targetDirection = root.CFrame.LookVector
+					end
+
+					poof.CFrame = poof.CFrame + targetDirection * poofMoveSpeed * dt
 
 					local raycastParams = RaycastParams.new()
 					raycastParams.FilterDescendantsInstances = { Character, poof }

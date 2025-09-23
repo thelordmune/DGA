@@ -48,7 +48,7 @@ return function(Player, Data, Server)
 			if Entity then
 				local HitTargets = Hitbox.SpatialQuery(
 					Character,
-					Vector3.new(8, 8, 10), -- Wide slash hitbox
+					Vector3.new(10, 10, 12), -- Increased hitbox size from (8,8,10) to (10,10,12)
 					Entity:GetCFrame() * CFrame.new(0, 0, -5), -- In front of player
 					false -- Don't visualize
 				)
@@ -89,7 +89,7 @@ return function(Player, Data, Server)
 			if Entity then
 				local HitTargets = Hitbox.SpatialQuery(
 					Character,
-					Vector3.new(8, 8, 10), -- Wide slash hitbox
+					Vector3.new(10, 10, 12), -- Increased hitbox size from (8,8,10) to (10,10,12)
 					Entity:GetCFrame() * CFrame.new(0, 0, -5), -- In front of player
 					false -- Don't visualize
 				)
@@ -116,7 +116,7 @@ return function(Player, Data, Server)
 			if Entity then
 				local HitTargets = Hitbox.SpatialQuery(
 					Character,
-					Vector3.new(8, 8, 10), -- Wide slash hitbox
+					Vector3.new(10, 10, 12), -- Increased hitbox size from (8,8,10) to (10,10,12)
 					Entity:GetCFrame() * CFrame.new(0, 0, -5), -- In front of player
 					false -- Don't visualize
 				)

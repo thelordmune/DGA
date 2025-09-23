@@ -62,7 +62,7 @@ return function(Player, Data, Server)
                     if Entity then
                         local HitTargets = Hitbox.SpatialQuery(
                             Character,
-                            Vector3.new(4, 6, 16), -- Long lengthwise hitbox
+                            Vector3.new(5, 7, 18), -- Increased hitbox size from (4,6,16) to (5,7,18)
                             Entity:GetCFrame() * CFrame.new(0, 0, -8), -- In front of player
                             false -- Don't visualize
                         )

@@ -59,6 +59,7 @@ return ByteNet.defineNamespace("Networking", function()
 			reliabilityType = "reliable";
 			value = ByteNet.struct({
 				Air = ByteNet.bool,
+				MousePosition = ByteNet.vec3,  -- Added mouse position for aiming
 			})
 		});
 		Firestorm = ByteNet.definePacket({

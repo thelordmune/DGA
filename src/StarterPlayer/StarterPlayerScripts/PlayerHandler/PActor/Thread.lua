@@ -66,14 +66,14 @@ ClientThread.Spawn = function()
 			Root.RootJoint.C0 = Root.RootJoint.C0:Lerp(InitC0 * CFrame.Angles(-Z, -X, 0), DeltaTime * 7.5)
 			
 			-- // Camera Offset
-			if Humanoid:GetState() == Enum.HumanoidStateType.Dead then 
+			if Humanoid:GetState() == Enum.HumanoidStateType.Dead then
 				Humanoid.CameraOffset = Vector3.zero
-			elseif UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then 
+			elseif UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
 				local offset = Root.CFrame:PointToObjectSpace(Character.Head.Position)
-				Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset,DeltaTime*14)
-			else 
-				local offset = (Root.CFrame+Vector3.new(0,.5,0)):PointToObjectSpace(Character.Head.Position)
-				Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset,DeltaTime*14)
+				Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset,DeltaTime*1.5)  -- Reduced from 14 to 4 for smoother camera
+			else
+				local offset = (Root.CFrame+Vector3.new(0,.3,0)):PointToObjectSpace(Character.Head.Position)
+				Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset,DeltaTime*1.5)  -- Reduced from 14 to 4 for smoother camera
 			end
 			
 			-- // Client Netcode
