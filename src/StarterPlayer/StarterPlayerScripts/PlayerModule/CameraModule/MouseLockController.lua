@@ -17,6 +17,8 @@ local CAMERA_OFFSET_DEFAULT = Vector3.new(1.75,0,0)
 --[[ Services ]]--
 local PlayersService = game:GetService("Players")
 local ContextActionService = game:GetService("ContextActionService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local Settings = UserSettings()	-- ignore warning
 local GameSettings = Settings.GameSettings
 
@@ -37,6 +39,18 @@ function MouseLockController.new()
 	self.boundKeys = {Enum.KeyCode.LeftAlt, Enum.KeyCode.RightShift} -- defaults
 
 	self.mouseLockToggledEvent = Instance.new("BindableEvent")
+
+	-- Smooth transition properties
+	self.transitionStartTime = 0
+	self.transitionDuration = 0.5 -- 0.5 second transition
+	self.isTransitioning = false
+	self.startOffset = Vector3.new()
+	self.targetOffset = Vector3.new()
+	self.currentOffset = Vector3.new()
+
+	-- Icon rotation
+	self.iconRotation = 0
+	self.rotationConnection = nil
 
 	local boundKeysObj = script:FindFirstChild("BoundKeys")
 	if (not boundKeysObj) or (not boundKeysObj:IsA("StringValue")) then
@@ -91,8 +105,31 @@ function MouseLockController:GetBindableToggleEvent()
 end
 
 function MouseLockController:GetMouseLockOffset()
+	-- Update smooth transition if active
+	if self.isTransitioning then
+		local elapsed = tick() - self.transitionStartTime
+		local progress = math.min(elapsed / self.transitionDuration, 1)
+
+		-- Cubic ease-out for smooth transition
+		local easedProgress = 1 - (1 - progress) ^ 3
+
+		-- Interpolate between start and target offset
+		self.currentOffset = self.startOffset:Lerp(self.targetOffset, easedProgress)
+
+		-- End transition when complete
+		if progress >= 1 then
+			self.isTransitioning = false
+			self.currentOffset = self.targetOffset
+		end
+	end
+
+	-- Return the smoothly transitioning offset if transitioning, otherwise default
+	if self.isTransitioning or self.isMouseLocked then
+		return self.currentOffset
+	end
+
 	if FFlagUserFixCameraOffsetJitter then
-		return CAMERA_OFFSET_DEFAULT 
+		return CAMERA_OFFSET_DEFAULT
 	else
 		local offsetValueObj: Vector3Value = script:FindFirstChild("CameraOffset") :: Vector3Value
 		if offsetValueObj and offsetValueObj:IsA("Vector3Value") then
@@ -147,7 +184,13 @@ end
 function MouseLockController:OnMouseLockToggled()
 	self.isMouseLocked = not self.isMouseLocked
 
+	-- Start smooth transition
+	self:StartSmoothTransition()
+
 	if self.isMouseLocked then
+		-- Start icon rotation
+		self:StartIconRotation()
+
 		local cursorImageValueObj: StringValue? = script:FindFirstChild("CursorImage") :: StringValue?
 		if cursorImageValueObj and cursorImageValueObj:IsA("StringValue") and cursorImageValueObj.Value then
 			CameraUtils.setMouseIconOverride(cursorImageValueObj.Value)
@@ -163,10 +206,53 @@ function MouseLockController:OnMouseLockToggled()
 			CameraUtils.setMouseIconOverride(DEFAULT_MOUSE_LOCK_CURSOR)
 		end
 	else
+		-- Stop icon rotation
+		self:StopIconRotation()
 		CameraUtils.restoreMouseIcon()
 	end
 
 	self.mouseLockToggledEvent:Fire()
+end
+
+function MouseLockController:StartSmoothTransition()
+	-- Set up transition from current offset to target offset
+	if self.isMouseLocked then
+		-- Transitioning TO shift lock
+		self.startOffset = Vector3.new(0, 0, 0) -- Normal camera position
+		self.targetOffset = CAMERA_OFFSET_DEFAULT -- Shift lock position
+	else
+		-- Transitioning FROM shift lock
+		self.startOffset = self.currentOffset or CAMERA_OFFSET_DEFAULT
+		self.targetOffset = Vector3.new(0, 0, 0) -- Back to normal
+	end
+
+	self.currentOffset = self.startOffset
+	self.transitionStartTime = tick()
+	self.isTransitioning = true
+end
+
+function MouseLockController:StartIconRotation()
+	if self.rotationConnection then
+		self.rotationConnection:Disconnect()
+	end
+
+	self.rotationConnection = RunService.Heartbeat:Connect(function(deltaTime)
+		self.iconRotation = self.iconRotation + (90 * deltaTime) -- 90 degrees per second
+
+		-- Update cursor icon rotation if it exists
+		local mouse = PlayersService.LocalPlayer:GetMouse()
+		if mouse and mouse.Icon == DEFAULT_MOUSE_LOCK_CURSOR then
+			-- Note: Roblox doesn't support cursor rotation, but we track it for potential custom cursor
+		end
+	end)
+end
+
+function MouseLockController:StopIconRotation()
+	if self.rotationConnection then
+		self.rotationConnection:Disconnect()
+		self.rotationConnection = nil
+	end
+	self.iconRotation = 0
 end
 
 function MouseLockController:DoMouseLockSwitch(name, state, input)
@@ -204,6 +290,9 @@ function MouseLockController:EnableMouseLock(enable: boolean)
 			-- Restore mouse cursor
 			CameraUtils.restoreMouseIcon()
 
+			-- Stop icon rotation
+			self:StopIconRotation()
+
 			self:UnbindContextActions()
 
 			-- If the mode is disabled while being used, fire the event to toggle it off
@@ -212,6 +301,7 @@ function MouseLockController:EnableMouseLock(enable: boolean)
 			end
 
 			self.isMouseLocked = false
+			self.isTransitioning = false
 		end
 
 	end

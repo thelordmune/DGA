@@ -21,6 +21,11 @@ ClientThread.Spawn = function()
 	local R 	   = 0;
 	local InitC0   = Client.Character.PrimaryPart:WaitForChild("RootJoint").C0
 
+	-- Reset camera offset on character spawn to fix shift lock reset bug
+	if Client.Humanoid then
+		Client.Humanoid.CameraOffset = Vector3.zero
+	end
+
 	Actors.AddToTempLoop(function(DeltaTime)
 		DeltaTime = math.clamp(DeltaTime, 0, 1/60)
 
@@ -69,11 +74,23 @@ ClientThread.Spawn = function()
 			if Humanoid:GetState() == Enum.HumanoidStateType.Dead then
 				Humanoid.CameraOffset = Vector3.zero
 			elseif UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+				-- Shift lock mode - MouseLockController handles smooth transitions
 				local offset = Root.CFrame:PointToObjectSpace(Character.Head.Position)
-				Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset,DeltaTime*1.5)  -- Reduced from 14 to 4 for smoother camera
+				-- Reset camera offset if it becomes invalid (fixes reset bug)
+				if Humanoid.CameraOffset.Magnitude > 50 or Humanoid.CameraOffset ~= Humanoid.CameraOffset then
+					Humanoid.CameraOffset = offset
+				else
+					Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset, DeltaTime * 1.5)
+				end
 			else
-				local offset = (Root.CFrame+Vector3.new(0,.3,0)):PointToObjectSpace(Character.Head.Position)
-				Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset,DeltaTime*1.5)  -- Reduced from 14 to 4 for smoother camera
+				-- Normal mode
+				local offset = (Root.CFrame + Vector3.new(0, .3, 0)):PointToObjectSpace(Character.Head.Position)
+				-- Reset camera offset if it becomes invalid (fixes reset bug)
+				if Humanoid.CameraOffset.Magnitude > 50 or Humanoid.CameraOffset ~= Humanoid.CameraOffset then
+					Humanoid.CameraOffset = offset
+				else
+					Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset, DeltaTime * 1.5)
+				end
 			end
 			
 			-- // Client Netcode

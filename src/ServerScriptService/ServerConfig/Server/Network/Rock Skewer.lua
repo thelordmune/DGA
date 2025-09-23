@@ -146,8 +146,6 @@ NetworkModule.EndPoint = function(Player, Data)
 
 					local previousPosition = poof.Position
 
-					poof.CFrame = poof.CFrame * CFrame.Angles(0, poofSpinSpeed * dt, 0)
-
 					-- Use mouse position for aiming direction
 					local targetDirection
 					if Data.MousePosition and Data.MousePosition.Magnitude > 0 then
@@ -159,7 +157,13 @@ NetworkModule.EndPoint = function(Player, Data)
 						targetDirection = root.CFrame.LookVector
 					end
 
-					poof.CFrame = poof.CFrame + targetDirection * poofMoveSpeed * dt
+					-- Orient the projectile to face the direction it's traveling
+					local newCFrame = CFrame.lookAt(poof.Position, poof.Position + targetDirection)
+					-- Apply spinning rotation around the forward axis
+					newCFrame = newCFrame * CFrame.Angles(math.rad(-90), poofSpinSpeed * dt, 0)
+
+					-- Move the projectile forward
+					poof.CFrame = newCFrame + targetDirection * poofMoveSpeed * dt
 
 					local raycastParams = RaycastParams.new()
 					raycastParams.FilterDescendantsInstances = { Character, poof }
@@ -170,7 +174,8 @@ NetworkModule.EndPoint = function(Player, Data)
 
 					if raycastResult then
 						local hitPart = raycastResult.Instance
-						local hitHumanoid = hitPart:FindFirstAncestorOfClass("Model"):FindFirstChildOfClass("Humanoid")
+						local hitModel = hitPart:FindFirstAncestorOfClass("Model")
+						local hitHumanoid = hitModel and hitModel:FindFirstChildOfClass("Humanoid")
 
 						if hitHumanoid and hitHumanoid ~= Character.Humanoid then
 							hitSomething = true
