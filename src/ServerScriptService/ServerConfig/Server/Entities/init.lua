@@ -252,26 +252,26 @@ function EntityClass:LoadWeapon(Character: Model)
     
 local WeaponName = self.Weapon
     if WeaponName == "Fist" then 
-        print("weapon is fist")
+        -- print("weapon is fist")
         local WeaponFolder: Folder? = Server.Service.ServerStorage.Assets.Models.Weapons[WeaponName]
         if WeaponFolder then
-            print("Found Fist weapon folder")
+            -- print("Found Fist weapon folder")
             for _, v in WeaponFolder:GetChildren() do
-                print("Processing weapon part:", v.Name)
+                -- print("Processing weapon part:", v.Name)
                 if v:GetAttribute("Arm") then
-                    print("Found Arms attribute on:", v.Name)
+                    -- print("Found Arms attribute on:", v.Name)
                     local rightPart = v:Clone()
                     local leftPart = v:Clone()
                     rightPart.Parent = Character["Right Arm"]
                     leftPart.Parent = Character["Left Arm"]
-                    print("Cloned", v.Name, "to both arms")
+                    -- print("Cloned", v.Name, "to both arms")
                 elseif v:GetAttribute("RightLeg") then
-                    print("Found RightLeg attribute on:", v.Name)
+                    -- print("Found RightLeg attribute on:", v.Name)
                     local part = v:Clone()
                     part.Parent = Character["Right Leg"]
-                    print("Cloned", v.Name, "to right leg")
+                    -- print("Cloned", v.Name, "to right leg")
                 else
-                    print("No special attributes found on:", v.Name)
+                    -- print("No special attributes found on:", v.Name)
                 end
             end
         else

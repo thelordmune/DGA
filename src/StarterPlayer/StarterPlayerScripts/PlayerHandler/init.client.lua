@@ -193,6 +193,13 @@ function Initialize(Character: Model)
 		Humanoid:SetStateEnabled(Enum.HumanoidStateType[StateType], false)
 	end
 
+	-- Wait for loading screen to finish before loading HUD/Interface
+	print("Waiting for loading screen to finish...")
+	while _G.LoadingScreenActive do
+		task.wait(0.1)
+	end
+	print("Loading screen finished, loading HUD...")
+
 	Client.Modules["Interface"].Check()
 
 	safeConnect(Humanoid, "HealthChanged", function(Health)

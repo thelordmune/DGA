@@ -7,7 +7,7 @@ if wanderersFolder then
     -- List all existing spawn points
     for _, part in pairs(wanderersFolder:GetChildren()) do
         if part:IsA("BasePart") then
-            print("Wanderer spawn point:", part.Name, "at position", part.Position)
+            -- print("Wanderer spawn point:", part.Name, "at position", part.Position)
         end
     end
 else

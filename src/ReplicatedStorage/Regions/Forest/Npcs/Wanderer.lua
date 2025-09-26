@@ -10,7 +10,7 @@ local function getWandererSpawns()
         for _, part in pairs(wanderersFolder:GetChildren()) do
             if part:IsA("BasePart") then
                 table.insert(spawns, part.Position)
-                print("Added wanderer spawn at:", part.Position)
+                -- print("Added wanderer spawn at:", part.Position)
             end
         end
     else
