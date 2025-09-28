@@ -29,7 +29,7 @@ return function(Player, Data, Server)
 		local animlength = Move.Length
 
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
-		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
+		Server.Library.TimedState(Character.Speeds, "AlcSpeed6", Move.Length)
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
