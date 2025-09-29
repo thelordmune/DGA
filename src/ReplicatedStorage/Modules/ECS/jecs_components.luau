@@ -87,6 +87,7 @@ local components: {
     Requirement: Entity<{type: string, value: any, description: string?}>,
     Hotbar: Entity<{slots: {[number]: number?}, activeSlot: number?}>,
     InventoryChanged: Entity<number>,
+    ClockTime: Entity<{timeOfDay: number, dayLength: number, startTime: number}>,
 } =
 	{
 		Character = world:component(),
@@ -169,6 +170,7 @@ local components: {
         Requirement = world:component(),
         Hotbar = world:component(),
         InventoryChanged = world:component(),
+        ClockTime = world:component(),
 	}
 
     for name, component in components :: {[string]: jecs.Entity} do 
