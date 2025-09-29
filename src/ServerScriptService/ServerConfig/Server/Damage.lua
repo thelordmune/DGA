@@ -18,8 +18,21 @@ local Global = require(Replicated.Modules.Shared.Global)
 
 DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	local Entity, TargetEntity = Server.Modules.Entities.Get(Invoker), Server.Modules.Entities.Get(Target)
-	if not Entity or not TargetEntity then
+
+	-- Handle destructible objects (they don't have entities)
+	if not Entity then
+		return -- Invoker must have an entity
+	end
+
+	-- Check if target is a destructible object
+	if not TargetEntity and Target:IsA("BasePart") and Target:GetAttribute("Destroyable") == true then
+		-- Handle destructible object destruction
+		DamageService.HandleDestructibleObject(Invoker, Target, Table)
 		return
+	end
+
+	if not TargetEntity then
+		return -- Non-destructible targets must have entities
 	end
 
 	local Player, TargetPlayer
@@ -545,6 +558,53 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	if Table then
 		print(Table)
 	end
+end
+
+-- Handle destruction of destructible objects (barrels, trees, etc.)
+DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePart, Table: {})
+	print("Destroying destructible object:", Target.Name)
+
+	-- Get VoxBreaker module
+	local VoxBreaker = require(Server.Service.ReplicatedStorage.Modules.Voxel)
+
+	-- Create a small hitbox around the target to destroy it
+	local hitboxSize = Vector3.new(
+		math.max(Target.Size.X + 2, 5),
+		math.max(Target.Size.Y + 2, 5),
+		math.max(Target.Size.Z + 2, 5)
+	)
+
+	-- Create overlap params to only affect the target
+	local overlapParams = OverlapParams.new()
+	overlapParams.FilterType = Enum.RaycastFilterType.Include
+	overlapParams.FilterDescendantsInstances = {Target.Parent or Target}
+
+	-- Use VoxBreaker to destroy the object
+	local destroyedParts = VoxBreaker:CreateHitbox(
+		hitboxSize,
+		Target.CFrame,
+		Enum.PartType.Block,
+		3, -- Minimum voxel size
+		15, -- Time to reset (15 seconds)
+		overlapParams
+	)
+
+	-- Play destruction sound effect
+	if Table.SFX then
+		Server.Library.PlaySound(
+			Target,
+			Server.Service.ReplicatedStorage.Assets.SFX.Hits[Table.SFX]:GetChildren()[math.random(1, #Server.Service.ReplicatedStorage.Assets.SFX.Hits[Table.SFX]:GetChildren())]
+		)
+	else
+		-- Default destruction sound - use Blood sounds as fallback since Wood might not exist
+		local hitSounds = Server.Service.ReplicatedStorage.Assets.SFX.Hits:FindFirstChild("Wood") or Server.Service.ReplicatedStorage.Assets.SFX.Hits.Blood
+		Server.Library.PlaySound(
+			Target,
+			hitSounds:GetChildren()[math.random(1, #hitSounds:GetChildren())]
+		)
+	end
+
+	print("Destructible object destroyed:", Target.Name, "- Created", #destroyedParts, "debris pieces")
 end
 
 return DamageService

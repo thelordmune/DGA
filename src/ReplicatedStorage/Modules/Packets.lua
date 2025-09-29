@@ -155,6 +155,13 @@ return ByteNet.defineNamespace("Networking", function()
 				Arguments = ByteNet.array(ByteNet.unknown);
 			})
 		});
-		
+
+		TestDestructible = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				-- Empty struct for simple test command
+			})
+		});
+
 	};
 end)

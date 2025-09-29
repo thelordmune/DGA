@@ -3,7 +3,7 @@ local Server = require(script.Parent)
 Hitbox.__index = Hitbox
 local self = setmetatable({}, Hitbox)
 
--- Modified to check for both entities and walls
+-- Modified to check for entities, walls, and destructible objects
 function CheckValidTarget(TargetPart, Entity)
 	local Valid = false
 
@@ -19,6 +19,11 @@ function CheckValidTarget(TargetPart, Entity)
 			-- Check for alchemy walls (parts with the special attribute)
 		elseif TargetPart.Name:find("AbilityWall_") and TargetPart:GetAttribute("Id") then
 			print("youre attempting to attack a wall")
+			Valid = true
+
+			-- Check for destructible objects (barrels, trees, etc.)
+		elseif TargetPart:GetAttribute("Destroyable") == true then
+			print("youre attempting to attack a destructible object:", TargetPart.Name)
 			Valid = true
 		end
 	end
@@ -54,12 +59,29 @@ Hitbox.SpatialQuery = function(Entity: Model, BoxSize: Vector3, BoxCFrame: CFram
 	WallParams.FilterType = Enum.RaycastFilterType.Include
 	WallParams.CollisionGroup = "Default"
 
-	-- Combine results from both queries
+	-- Check for destructible objects (in Map folder)
+	local DestructibleParams = OverlapParams.new()
+	if workspace:FindFirstChild("Map") then
+		DestructibleParams.FilterDescendantsInstances = { workspace.Map }
+		DestructibleParams.FilterType = Enum.RaycastFilterType.Include
+		DestructibleParams.CollisionGroup = "Default"
+	end
+
+	-- Combine results from all queries
 	local HitParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, EntityParams)
 	local WallParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, WallParams)
+	local DestructibleParts = {}
 
-	-- Merge the two tables
+	if workspace:FindFirstChild("Map") then
+		DestructibleParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, DestructibleParams)
+	end
+
+	-- Merge all the tables
 	for _, part in ipairs(WallParts) do
+		table.insert(HitParts, part)
+	end
+
+	for _, part in ipairs(DestructibleParts) do
 		table.insert(HitParts, part)
 	end
 
