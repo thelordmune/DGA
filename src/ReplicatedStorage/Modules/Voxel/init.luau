@@ -100,6 +100,16 @@ local function CopyProperties(PartOne: Part, PartTwo: Part)
 	PartTwo:SetAttribute(TagName, PartOne:GetAttribute(TagName))
 
 	for i, v in PartOne:GetChildren() do
+		-- Skip SurfaceAppearance if target is not a MeshPart
+		if v:IsA("SurfaceAppearance") and not PartTwo:IsA("MeshPart") then
+			continue -- SurfaceAppearance can only be parented to MeshParts
+		end
+
+		-- Skip other incompatible objects for regular Parts
+		if not PartTwo:IsA("MeshPart") and (v:IsA("SpecialMesh") or v:IsA("FileMesh")) then
+			continue -- These are MeshPart-specific
+		end
+
 		local clone = v:Clone()
 		clone.Parent = PartTwo
 	end

@@ -616,34 +616,9 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 		originalData.modelName = targetModel.Name
 		originalData.modelClone = targetModel:Clone()
 	else
-		-- Store single part properties
+		-- Store single part by cloning it (preserves all properties including MeshId)
 		originalData.isModel = false
-		originalData.properties = {
-			Size = Target.Size,
-			Material = Target.Material,
-			Color = Target.Color,
-			Transparency = Target.Transparency,
-			CanCollide = Target.CanCollide,
-			CanQuery = Target.CanQuery,
-			Name = Target.Name,
-			ClassName = Target.ClassName
-		}
-
-		-- Store mesh properties if it's a MeshPart
-		if Target:IsA("MeshPart") then
-			originalData.properties.MeshId = Target.MeshId
-			originalData.properties.TextureID = Target.TextureID
-		elseif Target:IsA("Part") then
-			originalData.properties.Shape = Target.Shape
-		end
-
-		-- Store any children (like textures, decals, etc.)
-		originalData.children = {}
-		for _, child in pairs(Target:GetChildren()) do
-			if not child:IsA("BodyMover") and not child:IsA("Constraint") then
-				originalData.children[#originalData.children + 1] = child:Clone()
-			end
-		end
+		originalData.originalPart = Target:Clone()
 	end
 
 	-- Create debris from all parts
@@ -680,7 +655,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 							local piece = Instance.new("Part")
 							piece.Size = Vector3.new(pieceSize, pieceSize, pieceSize)
 							piece.Material = part.Material
-							piece.Color = part.Color
+							piece.Color = Color3.fromRGB(92, 51, 23) -- Dark brown color for debris
 							piece.CFrame = part.CFrame * CFrame.new(
 								(x - piecesPerAxis/2 - 0.5) * pieceSize,
 								(y - piecesPerAxis/2 - 0.5) * pieceSize,
@@ -717,43 +692,46 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 			piece.CanQuery = true
 			piece.CanTouch = true
 
+		-- Set dark brown color for debris
+		piece.Color = Color3.fromRGB(92, 51, 23) -- Dark brown color
+
 			-- Calculate debris direction from impact point
 			local impactDirection = (piece.Position - originalCFrame.Position).Unit
 			if impactDirection.Magnitude == 0 then
 				impactDirection = Vector3.new(math.random(-1, 1), 1, math.random(-1, 1)).Unit
 			end
 
-			-- Add upward bias and random scatter
+			-- Add upward bias and random scatter (reduced)
 			local scatterDirection = impactDirection + Vector3.new(
-				(math.random() - 0.5) * 1.2, -- More horizontal scatter
-				math.random() * 0.8 + 0.6,   -- Strong upward bias (0.6 to 1.4)
-				(math.random() - 0.5) * 1.2  -- More horizontal scatter
+				(math.random() - 0.5) * 0.6, -- Reduced horizontal scatter
+				math.random() * 0.4 + 0.3,   -- Reduced upward bias (0.3 to 0.7)
+				(math.random() - 0.5) * 0.6  -- Reduced horizontal scatter
 			)
 			scatterDirection = scatterDirection.Unit
 
-			-- Apply velocity based on piece size (smaller pieces fly further)
-			local sizeMultiplier = math.max(0.4, 3 / math.max(piece.Size.X, piece.Size.Y, piece.Size.Z))
-			local velocity = scatterDirection * (50 + math.random() * 30) * sizeMultiplier
+			-- Apply much lower velocity based on piece size
+			local sizeMultiplier = math.max(0.3, 2 / math.max(piece.Size.X, piece.Size.Y, piece.Size.Z))
+			local velocity = scatterDirection * (15 + math.random() * 10) * sizeMultiplier -- Heavily reduced from 50+30
 
-			-- Create BodyVelocity for initial impulse
+			-- Create BodyVelocity for initial impulse (reduced force)
 			local bodyVelocity = Instance.new("BodyVelocity")
 			bodyVelocity.Velocity = velocity
-			bodyVelocity.MaxForce = Vector3.new(8000, 8000, 8000)
+			bodyVelocity.MaxForce = Vector3.new(3000, 3000, 3000) -- Reduced from 8000
 			bodyVelocity.Parent = piece
 
 			-- Remove velocity after a short time to let gravity take over
-			Debris:AddItem(bodyVelocity, 0.4 + math.random() * 0.3)
+			Debris:AddItem(bodyVelocity, 0.3 + math.random() * 0.2) -- Slightly shorter duration
 
-			-- Add some angular velocity for realistic tumbling
+			-- Add some angular velocity for realistic tumbling (reduced)
 			local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
 			bodyAngularVelocity.AngularVelocity = Vector3.new(
-				(math.random() - 0.5) * 20,
-				(math.random() - 0.5) * 20,
-				(math.random() - 0.5) * 20
+				(math.random() - 0.5) * 8,  -- Reduced from 20
+				(math.random() - 0.5) * 8,  -- Reduced from 20
+				(math.random() - 0.5) * 8   -- Reduced from 20
 			)
-			bodyAngularVelocity.MaxTorque = Vector3.new(2000, 2000, 2000)
+			bodyAngularVelocity.MaxTorque = Vector3.new(800, 800, 800) -- Reduced from 2000
 			bodyAngularVelocity.Parent = piece
-			Debris:AddItem(bodyAngularVelocity, 1 + math.random() * 0.5)
+			Debris:AddItem(bodyAngularVelocity, 0.8 + math.random() * 0.4) -- Shorter duration
 
 			-- Start fading the piece after 3 seconds
 			task.delay(3 + math.random() * 2, function()
@@ -795,43 +773,17 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 
 				print("Respawned destructible model:", respawnedModel.Name)
 			else
-				-- Respawn single part
-				local props = originalData.properties
-				local respawnedPart
-
-				if props.ClassName == "MeshPart" then
-					respawnedPart = Instance.new("MeshPart")
-					respawnedPart.MeshId = props.MeshId
-					respawnedPart.TextureID = props.TextureID
-				else
-					respawnedPart = Instance.new("Part")
-					if props.Shape then
-						respawnedPart.Shape = props.Shape
-					end
-				end
-
-				respawnedPart.Size = props.Size
-				respawnedPart.Material = props.Material
-				respawnedPart.Color = props.Color
-				respawnedPart.Transparency = props.Transparency
-				respawnedPart.CanCollide = props.CanCollide
-				respawnedPart.CanQuery = props.CanQuery
-				respawnedPart.Name = props.Name
+				-- Respawn single part by cloning the stored original
+				-- This preserves all properties including MeshId without permission issues
+				local respawnedPart = originalData.originalPart:Clone()
 				respawnedPart.CFrame = originalCFrame
-				respawnedPart.Anchored = true
-
-				-- Restore children (textures, decals, etc.)
-				for _, childClone in pairs(originalData.children) do
-					childClone.Parent = respawnedPart
-				end
-
-				-- Set destructible attribute
-				respawnedPart:SetAttribute("Destroyable", true)
-				respawnedPart:SetAttribute("OriginalTransparency", props.Transparency)
-				respawnedPart:SetAttribute("OriginalCanCollide", props.CanCollide)
-				respawnedPart:SetAttribute("OriginalCanQuery", props.CanQuery)
-
 				respawnedPart.Parent = originalParent
+
+				-- Ensure it's set up as destructible
+				respawnedPart:SetAttribute("Destroyable", true)
+				respawnedPart:SetAttribute("OriginalTransparency", respawnedPart.Transparency)
+				respawnedPart:SetAttribute("OriginalCanCollide", respawnedPart.CanCollide)
+				respawnedPart:SetAttribute("OriginalCanQuery", respawnedPart.CanQuery)
 
 				-- Destroy the old part
 				if Target and Target.Parent then

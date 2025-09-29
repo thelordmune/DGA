@@ -1,7 +1,6 @@
 -- Test script for destructible objects
 -- This script creates a test barrel and tests the destruction system
 
-local Server = require(game.ServerScriptService.ServerConfig.Server)
 local DamageService = require(game.ServerScriptService.ServerConfig.Server.Damage)
 
 -- Wait for the game to load
@@ -18,6 +17,12 @@ testBarrel.Color = Color3.fromRGB(139, 69, 19) -- Brown color
 testBarrel.MeshId = "rbxasset://fonts/leftarm.mesh" -- Use a basic mesh for testing
 testBarrel.CFrame = CFrame.new(0, 10, 0) -- Position it in the air
 testBarrel.Anchored = true
+
+-- Add a SurfaceAppearance to test the fix
+local surfaceAppearance = Instance.new("SurfaceAppearance")
+surfaceAppearance.Name = "TestSurface"
+surfaceAppearance.Parent = testBarrel
+
 testBarrel.Parent = workspace
 
 -- Set it up as destructible
