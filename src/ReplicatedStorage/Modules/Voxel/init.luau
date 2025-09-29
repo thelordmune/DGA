@@ -71,7 +71,6 @@ local function CopyProperties(PartOne: Part, PartTwo: Part)
 	PartTwo.Name = PartOne.Name
 	PartTwo.Size = PartOne.Size
 	PartTwo.Material = PartOne.Material
-	PartTwo.Shape = PartOne.Shape
 	PartTwo.CollisionGroup = PartOne.CollisionGroup
 	PartTwo.MaterialVariant = PartOne.MaterialVariant
 	PartTwo.BottomSurface = PartOne.BottomSurface
@@ -80,6 +79,23 @@ local function CopyProperties(PartOne: Part, PartTwo: Part)
 	PartTwo.LeftSurface = PartOne.LeftSurface
 	PartTwo.BackSurface = PartOne.BackSurface
 	PartTwo.FrontSurface = PartOne.FrontSurface
+
+	-- Handle Shape property for regular Parts only
+	if PartOne:IsA("Part") and PartTwo:IsA("Part") then
+		PartTwo.Shape = PartOne.Shape
+	elseif PartTwo:IsA("Part") then
+		-- If copying from MeshPart to Part, use default Block shape
+		PartTwo.Shape = Enum.PartType.Block
+	end
+
+	-- Copy MeshPart-specific properties if both are MeshParts
+	if PartOne:IsA("MeshPart") and PartTwo:IsA("MeshPart") then
+		PartTwo.MeshId = PartOne.MeshId
+		PartTwo.TextureID = PartOne.TextureID
+	end
+
+	-- Note: When copying from MeshPart to regular Part (common with PartCache),
+	-- we lose the mesh but keep all other visual properties like Material and Color
 
 	PartTwo:SetAttribute(TagName, PartOne:GetAttribute(TagName))
 

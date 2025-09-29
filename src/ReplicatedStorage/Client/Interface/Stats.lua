@@ -11,6 +11,7 @@ Controller.Check = function()
 	if not UI or not UI:FindFirstChild("Stats") then
        local ui = Replicated.Assets.GUI.ScreenGui:Clone()
 	   ui.Parent = plr.PlayerGui
+	   UI = ui -- Update the UI reference
         return
     end
 end
@@ -66,6 +67,16 @@ Controller.LoadAlchemyMoves = function()
 end
 
 Controller.LoadWeaponSkills = function()
+    -- Check if we're still in loading screen
+    if _G.LoadingScreenActive then
+        return -- Don't load weapon skills during loading screen
+    end
+
+    -- Check if UI is ready
+    if not UI or not UI:FindFirstChild("Hotbar") then
+        return -- UI not ready yet, skip loading
+    end
+
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
@@ -91,9 +102,14 @@ Controller.LoadWeaponSkills = function()
 end
 
 Controller.UpdateHotbarSlot = function(slotNumber, itemName)
+    -- Check if UI and Hotbar exist before trying to access them
+    if not UI or not UI:FindFirstChild("Hotbar") then
+        return -- UI not ready yet, skip update
+    end
+
     local hotbarName = slotNumber == 1 and "Hotbar" or "Hotbar" .. slotNumber
     local hotbar = UI.Hotbar:FindFirstChild(hotbarName)
-    
+
     if hotbar then
         local textLabel = hotbar:FindFirstChild("Text")
         if textLabel then
@@ -364,6 +380,15 @@ end
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Bridges = require(ReplicatedStorage.Modules.Bridges)
 Bridges.UpdateHotbar:Connect(function()
+    -- Don't update during loading screen or if UI isn't ready
+    if _G.LoadingScreenActive then
+        return
+    end
+
+    if not UI or not UI:FindFirstChild("Hotbar") then
+        return
+    end
+
     -- Update weapon skills display when server tells us to
     Controller.LoadWeaponSkills()
 end)

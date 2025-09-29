@@ -566,28 +566,282 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 
 	-- Get VoxBreaker module
 	local VoxBreaker = require(Server.Service.ReplicatedStorage.Modules.Voxel)
+	local TweenService = game:GetService("TweenService")
+	local Debris = game:GetService("Debris")
 
-	-- Create a small hitbox around the target to destroy it
-	local hitboxSize = Vector3.new(
-		math.max(Target.Size.X + 2, 5),
-		math.max(Target.Size.Y + 2, 5),
-		math.max(Target.Size.Z + 2, 5)
-	)
+	-- Determine if we should destroy the whole model or just the part
+	local targetModel = Target.Parent
+	local shouldDestroyWholeModel = false
 
-	-- Create overlap params to only affect the target
-	local overlapParams = OverlapParams.new()
-	overlapParams.FilterType = Enum.RaycastFilterType.Include
-	overlapParams.FilterDescendantsInstances = {Target.Parent or Target}
+	-- Check if the target is part of a destructible model (like a barrel group)
+	if targetModel and targetModel:IsA("Model") and targetModel.Name:lower():find("barrel") or
+	   targetModel and targetModel:IsA("Model") and targetModel.Name:lower():find("crate") or
+	   targetModel and targetModel:IsA("Model") and targetModel.Name:lower():find("tree") then
+		shouldDestroyWholeModel = true
+		print("Destroying entire model:", targetModel.Name)
+	end
 
-	-- Use VoxBreaker to destroy the object
-	local destroyedParts = VoxBreaker:CreateHitbox(
-		hitboxSize,
-		Target.CFrame,
-		Enum.PartType.Block,
-		3, -- Minimum voxel size
-		15, -- Time to reset (15 seconds)
-		overlapParams
-	)
+	-- Get all parts to destroy
+	local partsToDestroy = {}
+	local mainCFrame = Target.CFrame
+
+	if shouldDestroyWholeModel then
+		-- Collect all destructible parts from the model
+		for _, part in pairs(targetModel:GetDescendants()) do
+			if part:IsA("BasePart") and part:GetAttribute("Destroyable") == true then
+				table.insert(partsToDestroy, part)
+			end
+		end
+		-- Use the model's center as the main position
+		if targetModel.PrimaryPart then
+			mainCFrame = targetModel.PrimaryPart.CFrame
+		elseif #partsToDestroy > 0 then
+			mainCFrame = partsToDestroy[1].CFrame
+		end
+	else
+		-- Just destroy the single part
+		table.insert(partsToDestroy, Target)
+	end
+
+	print("Found", #partsToDestroy, "parts to destroy")
+
+	-- Store original properties for respawning
+	local originalCFrame = mainCFrame
+	local originalParent = shouldDestroyWholeModel and targetModel.Parent or Target.Parent
+	-- Store original properties for respawning (either single part or whole model)
+	local originalData = {}
+	if shouldDestroyWholeModel then
+		-- Store the entire model structure
+		originalData.isModel = true
+		originalData.modelName = targetModel.Name
+		originalData.modelClone = targetModel:Clone()
+	else
+		-- Store single part properties
+		originalData.isModel = false
+		originalData.properties = {
+			Size = Target.Size,
+			Material = Target.Material,
+			Color = Target.Color,
+			Transparency = Target.Transparency,
+			CanCollide = Target.CanCollide,
+			CanQuery = Target.CanQuery,
+			Name = Target.Name,
+			ClassName = Target.ClassName
+		}
+
+		-- Store mesh properties if it's a MeshPart
+		if Target:IsA("MeshPart") then
+			originalData.properties.MeshId = Target.MeshId
+			originalData.properties.TextureID = Target.TextureID
+		elseif Target:IsA("Part") then
+			originalData.properties.Shape = Target.Shape
+		end
+
+		-- Store any children (like textures, decals, etc.)
+		originalData.children = {}
+		for _, child in pairs(Target:GetChildren()) do
+			if not child:IsA("BodyMover") and not child:IsA("Constraint") then
+				originalData.children[#originalData.children + 1] = child:Clone()
+			end
+		end
+	end
+
+	-- Create debris from all parts
+	local allShatteredParts = {}
+
+	for _, part in pairs(partsToDestroy) do
+		-- Calculate number of parts based on object size
+		local volume = part.Size.X * part.Size.Y * part.Size.Z
+		local desiredParts = math.clamp(math.floor(volume / 12) + 3, 4, 15) -- Fewer pieces per part for performance
+
+		-- Create a clone of the part to work with
+		local partClone = part:Clone()
+		partClone.Parent = workspace
+		partClone:SetAttribute("Destroyable", true) -- Ensure it has the attribute
+
+		-- Use VoxBreaker to shatter the part into pieces
+		local shatteredParts = VoxBreaker:VoxelizePart(partClone, desiredParts, -1) -- -1 means don't auto-destroy
+		print("VoxelizePart returned", #shatteredParts, "parts for", part.Name)
+
+		-- If VoxelizePart didn't work, create manual debris
+		if #shatteredParts == 0 or (#shatteredParts == 1 and shatteredParts[1] == partClone) then
+			print("VoxelizePart failed for", part.Name, ", creating manual debris")
+			shatteredParts = {}
+
+			-- Create manual debris pieces
+			local pieceSize = math.min(part.Size.X, part.Size.Y, part.Size.Z) / 2
+			local piecesPerAxis = math.ceil(math.max(part.Size.X, part.Size.Y, part.Size.Z) / pieceSize)
+			piecesPerAxis = math.min(piecesPerAxis, 3) -- Limit to 3x3x3 max
+
+			for x = 1, piecesPerAxis do
+				for y = 1, piecesPerAxis do
+					for z = 1, piecesPerAxis do
+						if #shatteredParts < desiredParts then
+							local piece = Instance.new("Part")
+							piece.Size = Vector3.new(pieceSize, pieceSize, pieceSize)
+							piece.Material = part.Material
+							piece.Color = part.Color
+							piece.CFrame = part.CFrame * CFrame.new(
+								(x - piecesPerAxis/2 - 0.5) * pieceSize,
+								(y - piecesPerAxis/2 - 0.5) * pieceSize,
+								(z - piecesPerAxis/2 - 0.5) * pieceSize
+							)
+							piece.Parent = workspace
+							table.insert(shatteredParts, piece)
+						end
+					end
+				end
+			end
+
+			-- Clean up the clone
+			partClone:Destroy()
+		end
+
+		-- Add all pieces from this part to the total collection
+		for _, piece in pairs(shatteredParts) do
+			table.insert(allShatteredParts, piece)
+		end
+
+		-- Hide the original part immediately
+		part.Transparency = 1
+		part.CanCollide = false
+		part.CanQuery = false
+	end
+
+	-- Apply physics and visual effects to each piece
+	for _, piece in ipairs(allShatteredParts) do
+		if piece:IsA("BasePart") then
+			-- Make piece physical
+			piece.Anchored = false
+			piece.CanCollide = true
+			piece.CanQuery = true
+			piece.CanTouch = true
+
+			-- Calculate debris direction from impact point
+			local impactDirection = (piece.Position - originalCFrame.Position).Unit
+			if impactDirection.Magnitude == 0 then
+				impactDirection = Vector3.new(math.random(-1, 1), 1, math.random(-1, 1)).Unit
+			end
+
+			-- Add upward bias and random scatter
+			local scatterDirection = impactDirection + Vector3.new(
+				(math.random() - 0.5) * 1.2, -- More horizontal scatter
+				math.random() * 0.8 + 0.6,   -- Strong upward bias (0.6 to 1.4)
+				(math.random() - 0.5) * 1.2  -- More horizontal scatter
+			)
+			scatterDirection = scatterDirection.Unit
+
+			-- Apply velocity based on piece size (smaller pieces fly further)
+			local sizeMultiplier = math.max(0.4, 3 / math.max(piece.Size.X, piece.Size.Y, piece.Size.Z))
+			local velocity = scatterDirection * (50 + math.random() * 30) * sizeMultiplier
+
+			-- Create BodyVelocity for initial impulse
+			local bodyVelocity = Instance.new("BodyVelocity")
+			bodyVelocity.Velocity = velocity
+			bodyVelocity.MaxForce = Vector3.new(8000, 8000, 8000)
+			bodyVelocity.Parent = piece
+
+			-- Remove velocity after a short time to let gravity take over
+			Debris:AddItem(bodyVelocity, 0.4 + math.random() * 0.3)
+
+			-- Add some angular velocity for realistic tumbling
+			local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
+			bodyAngularVelocity.AngularVelocity = Vector3.new(
+				(math.random() - 0.5) * 20,
+				(math.random() - 0.5) * 20,
+				(math.random() - 0.5) * 20
+			)
+			bodyAngularVelocity.MaxTorque = Vector3.new(2000, 2000, 2000)
+			bodyAngularVelocity.Parent = piece
+			Debris:AddItem(bodyAngularVelocity, 1 + math.random() * 0.5)
+
+			-- Start fading the piece after 3 seconds
+			task.delay(3 + math.random() * 2, function()
+				if piece and piece.Parent then
+					local fadeInfo = TweenInfo.new(
+						4, -- 4 second fade
+						Enum.EasingStyle.Quad,
+						Enum.EasingDirection.InOut
+					)
+					local fadeTween = TweenService:Create(piece, fadeInfo, {
+						Transparency = 1,
+						CanCollide = false
+					})
+					fadeTween:Play()
+
+					-- Destroy piece after fade completes
+					fadeTween.Completed:Connect(function()
+						if piece and piece.Parent then
+							piece:Destroy()
+						end
+					end)
+				end
+			end)
+		end
+	end
+
+	-- Schedule respawn after 30 seconds
+	task.delay(30, function()
+		if originalParent and originalParent.Parent then
+			if originalData.isModel then
+				-- Respawn the entire model
+				local respawnedModel = originalData.modelClone:Clone()
+				respawnedModel.Parent = originalParent
+
+				-- Destroy the old model if it still exists
+				if shouldDestroyWholeModel and targetModel and targetModel.Parent then
+					targetModel:Destroy()
+				end
+
+				print("Respawned destructible model:", respawnedModel.Name)
+			else
+				-- Respawn single part
+				local props = originalData.properties
+				local respawnedPart
+
+				if props.ClassName == "MeshPart" then
+					respawnedPart = Instance.new("MeshPart")
+					respawnedPart.MeshId = props.MeshId
+					respawnedPart.TextureID = props.TextureID
+				else
+					respawnedPart = Instance.new("Part")
+					if props.Shape then
+						respawnedPart.Shape = props.Shape
+					end
+				end
+
+				respawnedPart.Size = props.Size
+				respawnedPart.Material = props.Material
+				respawnedPart.Color = props.Color
+				respawnedPart.Transparency = props.Transparency
+				respawnedPart.CanCollide = props.CanCollide
+				respawnedPart.CanQuery = props.CanQuery
+				respawnedPart.Name = props.Name
+				respawnedPart.CFrame = originalCFrame
+				respawnedPart.Anchored = true
+
+				-- Restore children (textures, decals, etc.)
+				for _, childClone in pairs(originalData.children) do
+					childClone.Parent = respawnedPart
+				end
+
+				-- Set destructible attribute
+				respawnedPart:SetAttribute("Destroyable", true)
+				respawnedPart:SetAttribute("OriginalTransparency", props.Transparency)
+				respawnedPart:SetAttribute("OriginalCanCollide", props.CanCollide)
+				respawnedPart:SetAttribute("OriginalCanQuery", props.CanQuery)
+
+				respawnedPart.Parent = originalParent
+
+				-- Destroy the old part
+				if Target and Target.Parent then
+					Target:Destroy()
+				end
+
+				print("Respawned destructible part:", respawnedPart.Name)
+			end
+		end
+	end)
 
 	-- Play destruction sound effect
 	if Table.SFX then
@@ -596,7 +850,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 			Server.Service.ReplicatedStorage.Assets.SFX.Hits[Table.SFX]:GetChildren()[math.random(1, #Server.Service.ReplicatedStorage.Assets.SFX.Hits[Table.SFX]:GetChildren())]
 		)
 	else
-		-- Default destruction sound - use Blood sounds as fallback since Wood might not exist
+		-- Default destruction sound - use Wood sounds as fallback
 		local hitSounds = Server.Service.ReplicatedStorage.Assets.SFX.Hits:FindFirstChild("Wood") or Server.Service.ReplicatedStorage.Assets.SFX.Hits.Blood
 		Server.Library.PlaySound(
 			Target,
@@ -604,7 +858,9 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 		)
 	end
 
-	print("Destructible object destroyed:", Target.Name, "- Created", #destroyedParts, "debris pieces")
+	local targetName = shouldDestroyWholeModel and targetModel.Name or Target.Name
+	print("Destructible object destroyed:", targetName, "- Created", #allShatteredParts, "total debris pieces")
+	print("Destroyed", #partsToDestroy, "parts from", targetName)
 end
 
 return DamageService
