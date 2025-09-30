@@ -222,9 +222,13 @@ NetworkModule["BaseBvel"] = function(Character: Model)
 end
 
 NetworkModule["RemoveBvel"] = function(Character: Model)
+	-- Only remove velocity objects that don't have special names (to avoid interrupting active moves)
 	for _, v in pairs(Character:GetChildren()) do
 		if v:IsA("BodyVelocity") or v:IsA("LinearVelocity") then
-			v:Destroy()
+			-- Don't remove velocity objects with specific names that indicate active moves
+			if not (v.Name == "NeedleThrust" or v.Name == "DownslamKick" or v.Name == "Dodge") then
+				v:Destroy()
+			end
 		end
 	end
 end
@@ -383,7 +387,8 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 	bv.Velocity = direction * power
 	bv.Parent = eroot
 
-	eroot.AssemblyLinearVelocity = bv.Velocity
+	-- Removed conflicting AssemblyLinearVelocity assignment
+	-- Let BodyVelocity handle the movement to prevent conflicts
 
 	Debris:AddItem(bv, 0.35)
 end
@@ -399,9 +404,16 @@ NetworkModule["NTBvel"] = function(Character)
     local duration = 0.6
     local startTime = os.clock()
 
+    -- Ensure proper network ownership for smooth movement
+    local player = game.Players:GetPlayerFromCharacter(Character)
+    if player then
+        rootPart:SetNetworkOwner(player)
+    end
+
     lv.MaxForce = math.huge
     lv.Attachment0 = attachment
     lv.RelativeTo = Enum.ActuatorRelativeTo.World
+    lv.Name = "NeedleThrust" -- Add name for tracking
     lv.Parent = rootPart
 
     -- Connection to update velocity every frame
@@ -409,10 +421,24 @@ NetworkModule["NTBvel"] = function(Character)
     conn = RunService.Heartbeat:Connect(function()
         local elapsed = os.clock() - startTime
         local progress = math.clamp(elapsed / duration, 0, 1)
-        
+
         -- Get current forward direction
         local forwardVector = rootPart.CFrame.LookVector
-        
+
+        -- Add collision detection to prevent going through walls
+        local raycastParams = RaycastParams.new()
+        raycastParams.FilterDescendantsInstances = {Character}
+        raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+        local raycastResult = workspace:Raycast(
+            rootPart.Position,
+            forwardVector * (speed * 0.1), -- Check ahead based on current speed
+            raycastParams
+        )
+
+        -- If collision detected, reduce horizontal speed
+        local collisionMultiplier = raycastResult and 0.1 or 1
+
         -- Create arc motion with faster descent
         local verticalComponent
         if progress < 0.3 then
@@ -423,9 +449,9 @@ NetworkModule["NTBvel"] = function(Character)
             local fallProgress = (progress - 0.3) / 0.7
             verticalComponent = 12 * (1 - fallProgress^2) - 20 * fallProgress
         end
-        
-        local horizontalSpeed = speed * (1 - progress)
-        
+
+        local horizontalSpeed = speed * (1 - progress) * collisionMultiplier
+
         -- Apply velocity with arc motion
         lv.VectorVelocity = forwardVector * horizontalSpeed + Vector3.new(0, verticalComponent, 0)
     end)

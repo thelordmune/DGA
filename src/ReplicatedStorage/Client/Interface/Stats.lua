@@ -51,19 +51,15 @@ Controller.LoadAlchemyMoves = function()
         return
     end
 
-    local alchemyMoves = Skills[currentAlchemy]
+    -- Update hotbar to show directional casting info
+    local alchemyInfo = Skills[currentAlchemy]
 
-    -- Map moves to hotbar slots (Z=8, X=9, C=10)
-    local moveSlots = {
-        [8] = alchemyMoves.ZMove,  -- Z key
-        [9] = alchemyMoves.XMove,  -- X key
-        [10] = alchemyMoves.CMove  -- C key
-    }
+    -- Update hotbar slots to show casting controls
+    Controller.UpdateHotbarSlot(8, "Cast (Z)")      -- Z key starts/stops casting
+    Controller.UpdateHotbarSlot(9, "Modifier (X)")  -- X key enters modifier mode
+    Controller.UpdateHotbarSlot(10, alchemyInfo.Type .. " Alchemy") -- Show alchemy type
 
-    -- Update hotbar text for alchemy moves
-    for slotNumber, moveName in pairs(moveSlots) do
-        Controller.UpdateHotbarSlot(slotNumber, moveName)
-    end
+    print("📋 Loaded", alchemyInfo.Type, "alchemy - Use Z to cast, X for modifiers")
 end
 
 Controller.LoadWeaponSkills = function()
