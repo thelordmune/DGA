@@ -22,24 +22,24 @@ local function setupDestructiblePart(part)
 end
 
 local function debugWorkspaceStructure()
-    print("=== WORKSPACE STRUCTURE DEBUG ===")
-    print("Workspace children:")
+    -- print("=== WORKSPACE STRUCTURE DEBUG ===")
+    -- print("Workspace children:")
     for _, child in pairs(workspace:GetChildren()) do
-        print("  -", child.Name, "(" .. child.ClassName .. ")")
+        
         if child.Name == "Map" or child.Name == "World" then
-            print("    Map/World children:")
+            
             for _, subChild in pairs(child:GetChildren()) do
-                print("      -", subChild.Name, "(" .. subChild.ClassName .. ")")
+                
                 if subChild.Name == "Destructables" then
-                    print("        Destructables children:")
+                    
                     for _, destructChild in pairs(subChild:GetChildren()) do
-                        print("          -", destructChild.Name, "(" .. destructChild.ClassName .. ")")
+                        
                     end
                 end
             end
         end
     end
-    print("=== END WORKSPACE DEBUG ===")
+    
 end
 
 local function setupDestructibleModel(model)
@@ -63,7 +63,7 @@ local function findDestructablesFolder()
 
     for _, path in pairs(possiblePaths) do
         if path then
-            print("Found destructables folder at:", path:GetFullName())
+            
             return path
         end
     end
@@ -72,14 +72,14 @@ local function findDestructablesFolder()
 end
 
 local function setupBarrels()
-    print("=== SETTING UP BARRELS ===")
+   
     local destructablesFolder = findDestructablesFolder()
     if not destructablesFolder then
-        warn(" No destructables folder found! Trying to find barrels anywhere in workspace...")
+        
         -- Fallback: search entire workspace for barrel-like objects
         for _, descendant in pairs(workspace:GetDescendants()) do
             if descendant:IsA("Model") and descendant.Name:lower():find("barrel") then
-                print("Found barrel model in workspace:", descendant:GetFullName())
+                
                 setupDestructibleModel(descendant)
             end
         end
@@ -90,14 +90,14 @@ local function setupBarrels()
     -- Find barrel folders or models
     for _, child in pairs(destructablesFolder:GetDescendants()) do
         if child:IsA("Model") and child.Name:lower():find("barrel") then
-            print(" Setting up barrel model:", child.Name, "at", child:GetFullName())
+            
             setupDestructibleModel(child)
             barrelsFound = barrelsFound + 1
         elseif child:IsA("Folder") and child.Name:lower():find("barrel") then
-            print(" Found barrel folder:", child.Name)
+            
             for _, barrelModel in pairs(child:GetChildren()) do
                 if barrelModel:IsA("Model") then
-                    print(" Setting up barrel model:", barrelModel.Name)
+                    
                     setupDestructibleModel(barrelModel)
                     barrelsFound = barrelsFound + 1
                 end
@@ -105,18 +105,18 @@ local function setupBarrels()
         end
     end
 
-    print(" Set up", barrelsFound, "barrel models")
+    
 end
 
 local function setupTrees()
-    print("=== SETTING UP TREES ===")
+    
     local destructablesFolder = findDestructablesFolder()
     if not destructablesFolder then
-        warn(" No destructables folder found! Trying to find trees anywhere in workspace...")
+        
         -- Fallback: search entire workspace for tree-like objects
         for _, descendant in pairs(workspace:GetDescendants()) do
             if descendant:IsA("Model") and (descendant.Name:lower():find("tree") or descendant.Name:lower():find("oak") or descendant.Name:lower():find("pine")) then
-                print("Found tree model in workspace:", descendant:GetFullName())
+                
                 setupDestructibleModel(descendant)
             end
         end
@@ -127,21 +127,21 @@ local function setupTrees()
     -- Look for trees folder or tree models directly
     local treesFolder = destructablesFolder:FindFirstChild("Trees")
     if treesFolder then
-        print(" Found Trees folder")
+        
 
         -- Go through numbered folders (1-5) and any other children
         for _, child in pairs(treesFolder:GetChildren()) do
             if child:IsA("Folder") then
-                print(" Checking tree folder:", child.Name)
+                
                 for _, treeModel in pairs(child:GetChildren()) do
                     if treeModel:IsA("Model") then
-                        print(" Setting up tree model:", treeModel.Name)
+                        
                         setupDestructibleModel(treeModel)
                         treesFound = treesFound + 1
                     end
                 end
             elseif child:IsA("Model") then
-                print(" Setting up tree model:", child.Name)
+                
                 setupDestructibleModel(child)
                 treesFound = treesFound + 1
             end
@@ -150,21 +150,21 @@ local function setupTrees()
         -- Look for tree models directly in destructables folder
         for _, child in pairs(destructablesFolder:GetDescendants()) do
             if child:IsA("Model") and (child.Name:lower():find("tree") or child.Name:lower():find("oak") or child.Name:lower():find("pine")) then
-                print(" Setting up tree model:", child.Name, "at", child:GetFullName())
+                
                 setupDestructibleModel(child)
                 treesFound = treesFound + 1
             end
         end
     end
 
-    print(" Set up", treesFound, "tree models")
+    
 end
 
 local function setupGenericDestructibles()
-    print("=== SETTING UP GENERIC DESTRUCTIBLES ===")
+    
     local destructablesFolder = findDestructablesFolder()
     if not destructablesFolder then
-        print(" No destructables folder found for generic setup")
+        
         return
     end
 
@@ -178,7 +178,7 @@ local function setupGenericDestructibles()
                 -- Look for common destructible object names
                 if name:find("crate") or name:find("box") or name:find("pot") or name:find("vase") or
                    name:find("rock") or name:find("stone") or name:find("debris") or name:find("destructible") then
-                    print(" Setting up generic destructible:", child.Name, "at", child:GetFullName())
+                    
                     setupDestructibleModel(child)
                     genericFound = genericFound + 1
                 end
@@ -186,14 +186,13 @@ local function setupGenericDestructibles()
         end
     end
 
-    print(" Set up", genericFound, "generic destructible models")
+    
 end
 
 -- Wait a moment for the workspace to fully load
 task.wait(2)
 
-print(" STARTING DESTRUCTIBLE OBJECTS SETUP...")
-print(" Waiting for workspace to fully load...")
+
 
 -- Debug workspace structure first
 debugWorkspaceStructure()
@@ -207,5 +206,4 @@ setupTrees()
 -- Set up other destructible objects
 setupGenericDestructibles()
 
-print(" DESTRUCTIBLE OBJECTS SETUP COMPLETE!")
-print(" All destructible objects should now be attackable and will shatter when hit!")
+

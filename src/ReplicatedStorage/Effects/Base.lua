@@ -629,7 +629,7 @@ function Base.WallErupt(Part: BasePart?, Character: Model)
 	local effect = Replicated.Assets.VFX.Smash:Clone()
 	effect.Anchored = true
 
-	local charY = Character:GetPivot().Position.Y
+	local charY = Character.Position.Y
 	local partCFrame = Part.CFrame
 	effect.CFrame = partCFrame - partCFrame.Position + Vector3.new(partCFrame.X, charY - 2, partCFrame.Z)
 

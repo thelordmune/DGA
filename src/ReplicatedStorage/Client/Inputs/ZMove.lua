@@ -18,10 +18,13 @@ local self = setmetatable({}, InputModule)
 local castingInstance = nil
 InputModule.castingInstance = castingInstance
 
+-- Track current character to detect respawns
+local currentCharacter = nil
+
 -- Handle completed casting sequences
 local function handleCastingComplete(Client, baseSequence, modifierSequence, isModifier)
-	print("🔮 Processing alchemy cast...")
-	print("Base:", baseSequence, "Modifier:", modifierSequence, "IsModifier:", isModifier)
+	-- print("🔮 Processing alchemy cast...")
+	-- print("Base:", baseSequence, "Modifier:", modifierSequence, "IsModifier:", isModifier)
 
 	-- Check for matching combinations
 	local matchedMove = nil
@@ -46,7 +49,7 @@ local function handleCastingComplete(Client, baseSequence, modifierSequence, isM
 	end
 
 	if matchedMove then
-		print("✨ Matched Alchemy Move:", matchedMove, isAdvanced and "(Advanced)" or "(Basic)")
+		-- print("✨ Matched Alchemy Move:", matchedMove, isAdvanced and "(Advanced)" or "(Basic)")
 
 		-- Send the alchemy move to server
 		if Client.Packets[matchedMove] then
@@ -59,18 +62,29 @@ local function handleCastingComplete(Client, baseSequence, modifierSequence, isM
 				-- Advanced = isAdvanced
 			})
 		else
-			warn("⚠️ No packet handler found for move:", matchedMove)
+			-- warn("⚠️ No packet handler found for move:", matchedMove)
 		end
 	else
-		print("❌ No matching alchemy move found for sequence:", baseSequence)
+		-- print("❌ No matching alchemy move found for sequence:", baseSequence)
 		if modifierSequence ~= "" then
-			print("   Modifier sequence:", modifierSequence)
+			-- print("   Modifier sequence:", modifierSequence)
 		end
 	end
 end
 
 -- Initialize casting system
 local function initializeCasting(Client)
+	-- Check if character has changed (respawned)
+	if currentCharacter ~= Client.Character then
+		-- Character changed, destroy old casting instance
+		if castingInstance then
+			castingInstance:Destroy()
+			castingInstance = nil
+		end
+		currentCharacter = Client.Character
+	end
+
+	-- Create new casting instance if needed
 	if not castingInstance then
 		castingInstance = DirectionalCasting.new(Client.Character)
 		InputModule.castingInstance = castingInstance -- Update exposed reference
@@ -80,7 +94,22 @@ local function initializeCasting(Client)
 			handleCastingComplete(Client, baseSequence, modifierSequence, isModifier)
 		end)
 
-		print("🎯 Directional Casting System Initialized")
+		-- Clean up when character is removed (death/respawn)
+		if Client.Character then
+			Client.Character.AncestryChanged:Connect(function()
+				if not Client.Character.Parent then
+					-- Character was removed, clean up casting instance
+					if castingInstance then
+						castingInstance:Destroy()
+						castingInstance = nil
+						InputModule.castingInstance = nil
+						currentCharacter = nil
+					end
+				end
+			end)
+		end
+
+		-- print("🎯 Directional Casting System Initialized")
 	end
 	return castingInstance
 end

@@ -8,7 +8,7 @@ local Players = game:GetService("Players")
 local Replicated = game:GetService("ReplicatedStorage")
 
 -- Debug settings
-local DEBUG_ENABLED = true
+local DEBUG_ENABLED = false
 local function DebugPrint(message, ...)
     if DEBUG_ENABLED then
         print("[DialogueTracker Debug] " .. message, ...)

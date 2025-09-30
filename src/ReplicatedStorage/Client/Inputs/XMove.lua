@@ -20,17 +20,17 @@ InputModule.InputBegan = function(_, Client)
 
 	if not castingInstance or not castingInstance.isCasting then
 		-- Not currently casting, X does nothing
-		print("❌ Not currently casting - X key has no effect")
+		-- print("❌ Not currently casting - X key has no effect")
 		return
 	end
 
 	if castingInstance.isModifying then
 		-- Already in modifier mode - stop everything
-		print("🛑 Stopping casting from modifier mode")
+		-- print("🛑 Stopping casting from modifier mode")
 		castingInstance:StopCasting()
 	else
 		-- Enter modifier mode
-		print("🔧 Entering modifier mode")
+		-- print("🔧 Entering modifier mode")
 		castingInstance:EnterModifierMode()
 	end
 end

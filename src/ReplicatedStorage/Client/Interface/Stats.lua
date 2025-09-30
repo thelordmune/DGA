@@ -59,7 +59,7 @@ Controller.LoadAlchemyMoves = function()
     Controller.UpdateHotbarSlot(9, "Modifier (X)")  -- X key enters modifier mode
     Controller.UpdateHotbarSlot(10, alchemyInfo.Type .. " Alchemy") -- Show alchemy type
 
-    print("📋 Loaded", alchemyInfo.Type, "alchemy - Use Z to cast, X for modifiers")
+    -- print("📋 Loaded", alchemyInfo.Type, "alchemy - Use Z to cast, X for modifiers")
 end
 
 Controller.LoadWeaponSkills = function()

@@ -37,6 +37,9 @@ local CONFIG = {
 		DEAD_ZONE = 70,
 		MOUSE_SENSITIVITY = 5
 	},
+	CAMERA = {
+		CASTING_SENSITIVITY = 0.5 -- Reduce camera sensitivity to 20% during casting
+	},
 	COLORS = {
 		inactive = Color3.fromRGB(100, 100, 100),
 		hover = Color3.fromRGB(255, 255, 0),
@@ -87,6 +90,9 @@ function DirectionalCasting.new(character)
 	self.center = nil
 	self.triangles = {}
 	self.connections = {}
+
+	-- Camera sensitivity control during casting
+	self.originalMouseSensitivity = nil
 	
 	-- Initialize UI
 	self:_createUI()
@@ -206,6 +212,30 @@ function DirectionalCasting:_updateStates()
 	self._onCastingStateChangedEvent:Fire(self.isCasting, self.isModifying)
 end
 
+-- Reduce camera sensitivity during casting
+function DirectionalCasting:_reduceCameraSensitivity()
+	if self.originalMouseSensitivity then return end -- Already reduced
+
+	-- Store original sensitivity
+	self.originalMouseSensitivity = UserInputService.MouseDeltaSensitivity
+
+	-- Reduce sensitivity during casting
+	UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity * CONFIG.CAMERA.CASTING_SENSITIVITY
+
+	-- print("📷 Camera sensitivity reduced for casting")
+end
+
+-- Restore camera sensitivity after casting
+function DirectionalCasting:_restoreCameraSensitivity()
+	if not self.originalMouseSensitivity then return end -- Not reduced
+
+	-- Restore original sensitivity
+	UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity
+	self.originalMouseSensitivity = nil
+
+	-- print("📷 Camera sensitivity restored")
+end
+
 -- Start casting
 function DirectionalCasting:StartCasting()
 	if self.isCasting then return end
@@ -220,13 +250,16 @@ function DirectionalCasting:StartCasting()
 	-- Update states
 	self:_updateStates()
 	
+	-- Reduce camera sensitivity during casting
+	self:_reduceCameraSensitivity()
+
 	-- Show UI with animations
 	self:_showUI()
-	
+
 	-- Start input tracking
 	self:_startInputTracking()
-	
-	print("🎯 CASTING STARTED - Move mouse to triangles")
+
+	-- print("🎯 CASTING STARTED - Move mouse to triangles (camera sensitivity reduced)")
 end
 
 -- Enter modifier mode
@@ -250,9 +283,9 @@ function DirectionalCasting:EnterModifierMode()
 	-- Update triangle colors to red
 	self:_updateTriangleColors()
 	
-	print("🔧 MODIFIER MODE ACTIVATED - Triangles are now red")
-	print("💾 Base sequence saved: " .. self:_formatSequence(self.savedBaseSequence))
-	print("🆕 Starting fresh modifier sequence...")
+	-- print("🔧 MODIFIER MODE ACTIVATED - Triangles are now red")
+	-- print("💾 Base sequence saved: " .. self:_formatSequence(self.savedBaseSequence))
+	-- print("🆕 Starting fresh modifier sequence...")
 end
 
 -- Stop casting and process results
@@ -267,15 +300,15 @@ function DirectionalCasting:StopCasting()
 		baseSequence = self:_formatSequence(self.savedBaseSequence)
 		modifierSequence = self:_formatSequence(self.modifierSequence)
 		
-		print("🛑 STOPPED! Final Results:")
-		print("📋 Base sequence: " .. baseSequence .. " (Total: " .. #self.savedBaseSequence .. ")")
-		print("🔧 Modifier sequence: " .. modifierSequence .. " (Total: " .. #self.modifierSequence .. ")")
+		-- print("🛑 STOPPED! Final Results:")
+		-- print("📋 Base sequence: " .. baseSequence .. " (Total: " .. #self.savedBaseSequence .. ")")
+		-- print("🔧 Modifier sequence: " .. modifierSequence .. " (Total: " .. #self.modifierSequence .. ")")
 	else
 		-- Normal casting mode
 		baseSequence = self:_formatSequence(self.directionSequence)
 		
-		print("✨ CAST COMPLETE! Sequence: " .. baseSequence)
-		print("📊 Total directions: " .. #self.directionSequence)
+		-- print("✨ CAST COMPLETE! Sequence: " .. baseSequence)
+		-- print("📊 Total directions: " .. #self.directionSequence)
 	end
 	
 	-- Fire completion event
@@ -284,13 +317,16 @@ function DirectionalCasting:StopCasting()
 	-- Reset state
 	self.isCasting = false
 	self.isModifying = false
-	
+
+	-- Restore camera sensitivity
+	self:_restoreCameraSensitivity()
+
 	-- Update states
 	self:_updateStates()
-	
+
 	-- Hide UI
 	self:_hideUI()
-	
+
 	-- Stop input tracking
 	self:_stopInputTracking()
 end
@@ -314,7 +350,10 @@ end
 -- Destroy the casting system
 function DirectionalCasting:Destroy()
 	self:_stopInputTracking()
-	
+
+	-- Ensure camera sensitivity is restored
+	self:_restoreCameraSensitivity()
+
 	if self.screenGui then
 		self.screenGui:Destroy()
 	end
@@ -513,14 +552,14 @@ function DirectionalCasting:_addDirectionToSequence(direction)
 		if #self.modifierSequence == 0 or self.modifierSequence[#self.modifierSequence] ~= direction then
 			table.insert(self.modifierSequence, direction)
 			local formatted = self:_formatSequence(self.modifierSequence)
-			print("🔧 Added modifier direction: " .. direction .. " (Sequence: " .. formatted .. ")")
+			-- print("🔧 Added modifier direction: " .. direction .. " (Sequence: " .. formatted .. ")")
 		end
 	else
 		-- Add to base sequence
 		if #self.directionSequence == 0 or self.directionSequence[#self.directionSequence] ~= direction then
 			table.insert(self.directionSequence, direction)
 			local formatted = self:_formatSequence(self.directionSequence)
-			print("📍 Added direction: " .. direction .. " (Sequence: " .. formatted .. ")")
+			-- print("📍 Added direction: " .. direction .. " (Sequence: " .. formatted .. ")")
 		end
 	end
 end

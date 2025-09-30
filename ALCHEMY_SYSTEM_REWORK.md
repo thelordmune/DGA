@@ -10,6 +10,7 @@ The alchemy system has been completely reworked to use a directional casting sys
 - **Purpose**: Modular casting system with mouse-based directional input
 - **Features**:
   - Mouse tracking with shift-lock compatibility
+  - **Reduced camera sensitivity during casting (20% of normal)**
   - Visual triangle indicators (Up, Down, Left, Right)
   - Base casting and modifier modes
   - Integration with Library StateManager
@@ -138,6 +139,24 @@ end)
 - Easy to match against combination database
 - Efficient for network transmission
 
+### Camera Sensitivity Control
+```lua
+-- Reduce camera sensitivity during casting
+self.originalMouseSensitivity = UserInputService.MouseDeltaSensitivity
+UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity * 0.2
+
+-- Restore after casting
+UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity
+```
+
+**How it works:**
+- Stores original `MouseDeltaSensitivity` when casting starts
+- Reduces sensitivity to 20% of normal (configurable via `CONFIG.CAMERA.CASTING_SENSITIVITY`)
+- Camera still moves but much slower and more controllable
+- Restores original sensitivity when casting ends
+- Works in all camera modes (normal, shift lock, etc.)
+- Automatic cleanup on casting system destruction
+
 ## Benefits
 
 1. **Unlimited Combinations**: No longer limited to 3 moves per alchemy type
@@ -146,6 +165,7 @@ end)
 4. **Expandable**: Easy to add new combinations without UI changes
 5. **Immersive**: Casting feels more like drawing magical symbols
 6. **Modifier System**: Advanced moves through base + modifier combinations
+7. **Camera Control**: Automatic sensitivity reduction during casting for precise directional input
 
 ## Demo Script
 - **File**: `src/StarterPlayer/StarterPlayerScripts/AlchemyCastingDemo.client.lua`
@@ -158,5 +178,26 @@ end)
 - Hotbar UI updated to show casting controls
 - All existing alchemy moves preserved in new combination format
 - Library StateManager integration for proper state tracking
+- **Character respawn handling**: Casting system automatically recreates when player respawns
+
+## Respawn Handling
+The system now properly handles character death and respawning:
+
+```lua
+-- Detects character changes and recreates casting instance
+if currentCharacter ~= Client.Character then
+    if castingInstance then
+        castingInstance:Destroy() -- Clean up old instance
+    end
+    castingInstance = DirectionalCasting.new(Client.Character) -- Create new one
+end
+```
+
+**Features:**
+- Automatic detection of character respawn
+- Proper cleanup of old casting instances
+- Seamless recreation with new character
+- No memory leaks or orphaned UI elements
+- Works with all respawn methods (death, teleporting, etc.)
 
 The new system provides a much more engaging and expandable alchemy experience while maintaining all existing functionality.
