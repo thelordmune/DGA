@@ -1094,49 +1094,92 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 end
 
 function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, state: string })
-	print("commencing")
-	print(Dialogue)
+	print("🎭 [Effects.Base] COMMENCE FUNCTION CALLED")
+	print("📋 Dialogue data received:", Dialogue)
+
+	-- Validate dialogue data
+	if not Dialogue then
+		print("❌ [Effects.Base] ERROR: No dialogue data provided!")
+		return
+	end
+
+	if not Dialogue.npc then
+		print("❌ [Effects.Base] ERROR: No NPC model in dialogue data!")
+		return
+	end
+
+	if not Dialogue.name then
+		print("❌ [Effects.Base] ERROR: No NPC name in dialogue data!")
+		return
+	end
+
+	print("✅ [Effects.Base] Dialogue validation passed")
+	print("🎯 [Effects.Base] NPC:", Dialogue.name, "| In Range:", Dialogue.inrange, "| State:", Dialogue.state)
+	print("📦 [Effects.Base] Loading Fusion scope and Proximity component...")
 	local scope = scoped(Fusion, {
 		Proximity = require(Replicated.Client.Components.Proximity),
 	})
 	local start = scope:Value(false)
+	print("✅ [Effects.Base] Fusion scope created successfully")
+
 	if Dialogue.inrange then
+		print("🎯 [Effects.Base] Player is in range, creating proximity UI...")
+
 		local highlight = Instance.new("Highlight")
 		highlight.FillTransparency = 1
 		highlight.OutlineTransparency = 1
 		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
 		highlight.Parent = Dialogue.npc
+		print("✨ [Effects.Base] Highlight created and parented to NPC")
 
 		local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 0 })
 		hTween:Play()
+		print("🎬 [Effects.Base] Highlight tween started")
 
 		local Target = scope:New("ScreenGui")({
 			Name = "ScreenGui",
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 			Parent = Player.PlayerGui,
 		})
+		print("🖥️ [Effects.Base] ScreenGui created and parented to PlayerGui")
 
 		local parent = Target
 
+		print("🔗 [Effects.Base] Creating Proximity component...")
 		scope:Proximity({
 			begin = start,
 			par = parent,
 		})
+		print("✅ [Effects.Base] Proximity component created")
 
+		print("⏱️ [Effects.Base] Starting proximity animation sequence...")
 		task.wait(0.3)
+		print("🎬 [Effects.Base] Setting start to true")
 		start:set(true)
 		task.wait(2.5)
+		print("🎬 [Effects.Base] Setting start to false")
 		start:set(false)
 		task.wait(0.5)
+		print("🧹 [Effects.Base] Cleaning up scope")
 		scope:doCleanup()
+		print("✅ [Effects.Base] Proximity effect complete")
 	else
+		print("🚫 [Effects.Base] Player not in range, removing highlight...")
 		local highlight = Dialogue.npc:FindFirstChild("Highlight")
-		local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 1 })
-		hTween:Play()
-		hTween.Completed:Connect(function()
-			highlight:Destroy()
-		end)
+		if highlight then
+			print("✨ [Effects.Base] Found existing highlight, fading out...")
+			local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 1 })
+			hTween:Play()
+			hTween.Completed:Connect(function()
+				highlight:Destroy()
+				print("🗑️ [Effects.Base] Highlight destroyed")
+			end)
+		else
+			print("⚠️ [Effects.Base] No highlight found to remove")
+		end
 	end
+
+	print("✅ [Effects.Base] COMMENCE FUNCTION COMPLETE")
 end
 
 function Base.RockSkewer(Character: Model, Frame: string, Wedge: WedgePart)

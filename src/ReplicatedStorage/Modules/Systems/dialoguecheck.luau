@@ -21,12 +21,38 @@ end
 
 repeat task.wait() until game:IsLoaded()
 
-DebugPrint("System initialized, player:", player.Name)
+DebugPrint("🎭 DIALOGUE CHECK SYSTEM INITIALIZATION STARTED")
+DebugPrint("✅ Game loaded, player:", player.Name)
+
+-- Validate initial character
+if character then
+    DebugPrint("✅ Initial character found:", character.Name)
+else
+    DebugPrint("⚠️ No initial character, waiting for CharacterAdded...")
+end
 
 player.CharacterAdded:Connect(function(newCharacter)
     character = newCharacter
-    DebugPrint("Character changed to:", newCharacter.Name)
+    DebugPrint("🔄 Character changed to:", newCharacter.Name)
+
+    -- Validate new character components
+    local root = newCharacter:FindFirstChild("HumanoidRootPart")
+    local humanoid = newCharacter:FindFirstChildOfClass("Humanoid")
+
+    if root then
+        DebugPrint("✅ HumanoidRootPart found in new character")
+    else
+        DebugPrint("❌ No HumanoidRootPart in new character!")
+    end
+
+    if humanoid then
+        DebugPrint("✅ Humanoid found in new character, health:", humanoid.Health)
+    else
+        DebugPrint("❌ No Humanoid in new character!")
+    end
 end)
+
+DebugPrint("📦 Loading ECS modules...")
 
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
@@ -36,7 +62,48 @@ local Sift = require(ReplicatedStorage.Modules.Imports.Sift)
 
 -- local Packets = require(ReplicatedStorage.Modules.Packets)
 
-DebugPrint("ECS modules loaded successfully")
+DebugPrint("✅ ECS modules loaded successfully")
+
+-- Validate workspace structure
+DebugPrint("🗺️ Checking workspace structure...")
+local worldFolder = workspace:FindFirstChild("World")
+if worldFolder then
+    DebugPrint("✅ World folder found")
+    local dialogueFolder = worldFolder:FindFirstChild("Dialogue")
+    if dialogueFolder then
+        local npcCount = #dialogueFolder:GetChildren()
+        DebugPrint("✅ Dialogue folder found with", npcCount, "NPCs")
+
+        -- List all NPCs for debugging
+        for i, npc in pairs(dialogueFolder:GetChildren()) do
+            local hasRoot = npc:FindFirstChild("HumanoidRootPart") ~= nil
+            DebugPrint("  📍 NPC", i .. ":", npc.Name, "- Has HumanoidRootPart:", hasRoot)
+        end
+    else
+        DebugPrint("❌ No Dialogue folder found in World!")
+    end
+else
+    DebugPrint("❌ No World folder found in workspace!")
+end
+
+-- Validate player entity setup
+DebugPrint("🎮 Checking player entity setup...")
+local pEntity = ref.get("player", player)
+if pEntity then
+    DebugPrint("✅ Player entity found:", pEntity)
+
+    local dialogueComp = world:get(pEntity, comps.Dialogue)
+    if dialogueComp then
+        DebugPrint("✅ Dialogue component found:", dialogueComp)
+    else
+        DebugPrint("⚠️ No Dialogue component found, will create when needed")
+    end
+else
+    DebugPrint("❌ Could not get player entity!")
+end
+
+DebugPrint("✅ DIALOGUE CHECK SYSTEM INITIALIZATION COMPLETE")
+DebugPrint("⏱️ System will check for nearby NPCs every", INTERVAL, "seconds")
 
 local function findCharacter(character): Model?
     if not character then
@@ -169,6 +236,12 @@ function DetectRange()
     end
 end
 
+-- Function to toggle debugging
+local function SetDebugging(enabled)
+    DEBUG_ENABLED = enabled
+    DebugPrint("Debugging " .. (enabled and "enabled" or "disabled"))
+end
+
 return {
     run = function()
         DetectRange()
@@ -178,4 +251,5 @@ return {
         depends_on = { "PlayerAdded" },
         client_only = true,
     },
+    SetDebugging = SetDebugging,
 }
