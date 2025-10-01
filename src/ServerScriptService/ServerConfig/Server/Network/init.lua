@@ -21,12 +21,23 @@ for _, Module in next, script:GetChildren() do
         local Required = require(Module);
 
         print("Setting up listener for:", Module.Name)
-        local connection = Server.Packets[Module.Name].listen(function(Data, Player)
-            Required.EndPoint(Player, Data)
-        end)
 
-        -- Store the connection for cleanup
-        _G.NetworkConnections[Module.Name] = connection
+        -- Check if packet exists before trying to listen
+        if not Server.Packets[Module.Name] then
+            warn("No packet defined for:", Module.Name, "- Skipping listener setup")
+            local packetNames = {}
+            for name in pairs(Server.Packets or {}) do
+                table.insert(packetNames, name)
+            end
+            warn("Available packets:", table.concat(packetNames, ", "))
+        else
+            local connection = Server.Packets[Module.Name].listen(function(Data, Player)
+                Required.EndPoint(Player, Data)
+            end)
+
+            -- Store the connection for cleanup
+            _G.NetworkConnections[Module.Name] = connection
+        end
     end
 end
 

@@ -2,15 +2,21 @@
 
 -- Main NPC attack function
 return function(actor: Actor, mainConfig: table)
+    print("=== NPC_ATTACK CALLED ===")
+
     local npc = actor:FindFirstChildOfClass("Model")
     if not npc then
+        print("npc_attack: No NPC found")
         return false
     end
 
     local target = mainConfig.getTarget()
     if not target then
+        print("npc_attack:", npc.Name, "- No target found")
         return false
     end
+
+    print("npc_attack:", npc.Name, "has target:", target.Name)
 
     -- Check if target is still valid and in range
     local targetHumanoid = target:FindFirstChild("Humanoid")
@@ -54,6 +60,16 @@ return function(actor: Actor, mainConfig: table)
 
     -- Use the same combat system as players
     local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
+
+    -- Check if modules are loaded
+    if not Server.Modules.Entities or not Server.Modules.Combat then
+        warn("Server modules not loaded! Entities:", Server.Modules.Entities, "Combat:", Server.Modules.Combat)
+        print("Available Server.Modules:")
+        for k, v in pairs(Server.Modules) do
+            print("  " .. k .. ":", v)
+        end
+        return false
+    end
 
     -- Ensure NPC has an entity in the system
     local Entity = Server.Modules.Entities.Get(npc)

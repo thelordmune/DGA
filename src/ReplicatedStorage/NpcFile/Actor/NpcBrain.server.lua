@@ -132,37 +132,28 @@ function NpcBrain._update(params: UpdateParams)
 		return
 	end
 
-	--task.desynchronize()
-
+	-- Don't use parallel execution - too many restrictions (no require, no Instance operations, etc.)
 	local btInstance = behavior(BT)
-	task.spawn(btInstance,script.Parent,MainConfig)
-
-	--task.synchronize()
-
-	local waitTime: number = calculateWaitTime(params.npc)
-	task.wait(waitTime)
+	btInstance(script.Parent, MainConfig)
 end
 
 function NpcBrain.init()
-	local actor = script:FindFirstAncestorWhichIsA("Actor")
-	assert(actor, `{script.Name} must be parented to an Actor`)
-	
-	
-	task.spawn(function()
-		while true do
-			local npc = script.Parent:FindFirstChildOfClass("Model")
+	-- Removed Actor requirement - NPCs run in main Lua VM to access Server.Modules
+	-- Actors force parallel execution which has too many restrictions
 
-			--local _ = npc and print(`{npc.Name} <- NpcName`)
-			--local _ = not npc and MainConfig.cleanup()
+	RunService.Heartbeat:Connect(function(deltaTime: number)
+		local npc = script.Parent:FindFirstChildOfClass("Model")
 
-			local params: UpdateParams = {
-				npc = npc,
-				npcName = script.Parent.Parent.Name,
-				deltaTime = RunService.Heartbeat:Wait()
-			}
+		--local _ = npc and print(`{npc.Name} <- NpcName`)
+		--local _ = not npc and MainConfig.cleanup()
 
-			NpcBrain._update(params)
-		end
+		local params: UpdateParams = {
+			npc = npc,
+			npcName = script.Parent.Parent.Name,
+			deltaTime = deltaTime
+		}
+
+		NpcBrain._update(params)
 	end)
 end
 

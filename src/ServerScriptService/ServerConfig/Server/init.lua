@@ -1,5 +1,9 @@
 local Server = {}
 
+print("=== SERVER MODULE BEING CREATED ===")
+print("Stack trace:", debug.traceback())
+print("Server table address:", tostring(Server))
+
 --// Services Cache
 Server.Service = setmetatable({}, { --> if you reference a service not already initialized, it'll cache it
 	__index = function(self, Name)
@@ -26,7 +30,9 @@ Server.Modules	= {};
 Server.Entities = {};
 Server.Players  = {};
 
-
+print("=== SERVER MODULE INITIALIZED ===")
+print("Server.Modules address:", tostring(Server.Modules))
+print("Returning Server module")
 
 return Server
 

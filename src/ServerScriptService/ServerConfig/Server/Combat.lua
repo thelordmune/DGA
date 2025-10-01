@@ -21,11 +21,6 @@ Combat.Light = function(Character: Model)
 		return
 	end
 
-	-- For NPCs, clear any problematic feint states that might cause loops
-	if isNPC and Character:GetAttribute("Feint") then
-		Character:SetAttribute("Feint", nil)
-	end
-
 	Server.Library.StopAllAnims(Character)
 
 	if not Entity.Combo then Entity.Combo = 0 end
@@ -98,53 +93,57 @@ Combat.Light = function(Character: Model)
 	
 		local Connection Connection = Character.Stuns.Changed:Once(function()
 			-- Connection = nil
-			
+
 			if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
 				Server.Library.RemoveState(Character.Speeds,"M1Speed8")
 			end
-			
+
 			if Server.Library.StateCheck(Character.Actions, "M1"..Combo) then
-				Server.Library.RemoveState(Character.Actions,"M1"..Combo)	
+				Server.Library.RemoveState(Character.Actions,"M1"..Combo)
 			end
 
 			Sound:Stop()
-			
+
 			SwingAnimation:Stop(.2)
-			
+
 			-- Character:SetAttribute("Feint",nil)
 
 			Cancel = true
 		end)
 
-		Character:SetAttribute("Feint", true)
+		-- Only enable feinting for players, not NPCs
+		local Feint
+		if not isNPC then
+			Character:SetAttribute("Feint", true)
 
-		local Feint = Character:GetAttributeChangedSignal("Feint"):Once(function()
-			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "Feint", Arguments = {Character}})
-			Cancel = true
-			-- Reset combo when feinting to skip M1 count
-			Entity.Combo = math.max(0, Entity.Combo - 1)
-			print("Feint triggered - combo reset to:", Entity.Combo)
+			Feint = Character:GetAttributeChangedSignal("Feint"):Once(function()
+				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "Feint", Arguments = {Character}})
+				Cancel = true
+				-- Reset combo when feinting to skip M1 count
+				Entity.Combo = math.max(0, Entity.Combo - 1)
+				print("Feint triggered - combo reset to:", Entity.Combo)
 
-			-- Clean up M1 states when feinting
-			if Server.Library.StateCheck(Character.Actions, "M1" .. Combo) then
-				Server.Library.RemoveState(Character.Actions, "M1" .. Combo)
-			end
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
-				Server.Library.RemoveState(Character.Speeds, "M1Speed8")
-			end
+				-- Clean up M1 states when feinting
+				if Server.Library.StateCheck(Character.Actions, "M1" .. Combo) then
+					Server.Library.RemoveState(Character.Actions, "M1" .. Combo)
+				end
+				if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
+					Server.Library.RemoveState(Character.Speeds, "M1Speed8")
+				end
 
-			-- Stop animation and sound
-			SwingAnimation:Stop(0.2)
-			Sound:Stop()
+				-- Stop animation and sound
+				SwingAnimation:Stop(0.2)
+				Sound:Stop()
 
-			-- Clean up connections when feinting
-			if Connection then
-				Connection:Disconnect()
-				Connection = nil
-			end
+				-- Clean up connections when feinting
+				if Connection then
+					Connection:Disconnect()
+					Connection = nil
+				end
 
-			Server.Library.TimedState(Character.Stuns,"Feint",0)
-		end)
+				Server.Library.TimedState(Character.Stuns,"Feint",0)
+			end)
+		end
 
 		task.delay(Stats["HitTimes"][Combo] - (15/60), function()
 			if Stats["Slashes"] then

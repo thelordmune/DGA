@@ -31,6 +31,11 @@ local LeftGuardData = {
 	AlwaysSpawn = true,
 
 	DataToSendOverAndUdpate = {
+		States = {
+			IsPassive = true,
+			AggressiveMode = false,
+		},
+
 		Spawning = {
 			Locations = { getLeftGuardSpawn() },
 			Cooldown = Settings.SpawnTime,
@@ -84,7 +89,9 @@ local LeftGuardData = {
 
 		Weapons = {
 			Enabled = true,
-			WeaponList = { "Fist", "Guns" },
+			Weapon1 = "Fist",
+			Weapon2 = "Guns",
+			WeaponCount = 2,
 		},
 
 		Appearance = {
@@ -98,7 +105,7 @@ local LeftGuardData = {
 		},
 	},
 
-	BehaviorTree = require(game.ReplicatedStorage.NpcHelper.Behaviors.Forest.Bandit_BehaviorTree),
+	BehaviorTree = require(game.ReplicatedStorage.NpcHelper.Behaviors.Forest.Guard_BehaviorTree),
 }
 
 print("LeftGuard configuration loaded successfully")

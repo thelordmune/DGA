@@ -39,13 +39,14 @@ return function(actor: Actor, mainConfig: table)
     if hasBeenAttacked then
         -- Only enter aggressive mode if not already aggressive
         if not (mainConfig.States and mainConfig.States.AggressiveMode) then
-            -- print("NPC", npc.Name, "has been attacked! Entering aggressive mode")
+            print("NPC", npc.Name, "has been attacked! Entering aggressive mode")
 
             -- Set the NPC to no longer be passive
             if mainConfig.States then
                 mainConfig.States.IsPassive = false
                 mainConfig.States.AggressiveMode = true
                 mainConfig.States.AggressiveModeStartTime = os.clock()
+                print("Set aggressive mode - IsPassive:", mainConfig.States.IsPassive, "AggressiveMode:", mainConfig.States.AggressiveMode)
             end
         end
 

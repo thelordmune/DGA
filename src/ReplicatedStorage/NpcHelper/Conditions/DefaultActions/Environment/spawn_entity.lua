@@ -57,18 +57,25 @@ return function(actor: Actor, mainConfig: table)
 	local npcModel = dataModel:Clone()
 	npcModel.Name = actor.Parent:GetAttribute("SetName") .. tostring(math.random(1, 1000))
 
-	-- Set weapon based on NPC type
-	local randomWeapon
-	if npcName == "Wanderer" then
-		randomWeapon = "Fist" -- Wanderers are unarmed
+	-- Set weapon based on NPC configuration
+	local randomWeapon = "Fist" -- Default to Fist
+	local shouldEquip = false
+
+	-- Check if NPC has weapon configuration in mainConfig
+	if mainConfig.Weapons and mainConfig.Weapons.Enabled and mainConfig.Weapons.WeaponList and #mainConfig.Weapons.WeaponList > 0 then
+		-- Pick a random weapon from the NPC's weapon list
+		randomWeapon = mainConfig.Weapons.WeaponList[math.random(1, #mainConfig.Weapons.WeaponList)]
+		shouldEquip = true
+		print("NPC", npcName, "assigned weapon from config:", randomWeapon)
 	else
-		local weapons = {"Guns"} -- Guards use guns
-		randomWeapon = weapons[math.random(1, #weapons)]
+		print("NPC", npcName, "has no weapon config, defaulting to Fist")
 	end
 
 	npcModel:SetAttribute("Weapon", randomWeapon)
-	npcModel:SetAttribute("Equipped", npcName ~= "Wanderer") -- Only equip weapons for non-wanderers
+	npcModel:SetAttribute("Equipped", false) -- Always start unequipped, let EquipWeapon handle it
 	npcModel:SetAttribute("IsNPC", true) -- Mark as NPC for damage system
+
+	print("Spawning NPC:", npcModel.Name, "Weapon:", randomWeapon, "ShouldEquip:", shouldEquip)
 
 	-- print("Spawning NPC:", npcModel.Name, "with IsNPC attribute:", npcModel:GetAttribute("IsNPC"))
 
@@ -166,11 +173,13 @@ return function(actor: Actor, mainConfig: table)
 	if existingNPC then
 		return false
 	end
+
 	for _, specificTag in mainConfig.Spawning.Tags do
 		game.CollectionService:AddTag(npcModel, specificTag)
 	end
 
 	npcModel.Parent = actor
+
 	npcModel.AncestryChanged:Connect(function(_, parent)
 		if parent.Name ~= "DataModels" then
 			npcModel:FindFirstChild("hi").Enabled = true
@@ -269,19 +278,22 @@ return function(actor: Actor, mainConfig: table)
 		)
 	end
 
-	-- print("Setting up NPC:", npcModel.Name, "Type:", npcName, "Weapon:", randomWeapon)
+	print("Setting up NPC:", npcModel.Name, "Type:", npcName, "Weapon:", randomWeapon, "ShouldEquip:", shouldEquip)
 
 	-- Setup NPC based on type
 	task.delay(2, function()
-		-- Only equip weapons for combat NPCs (not wanderers)
-		if npcName ~= "Wanderer" and randomWeapon ~= "Fist" then
-			-- print("Equipping weapon for combat NPC:", npcModel.Name)
-			EquipModule.EquipWeapon(npcModel, randomWeapon)
+		-- Equip weapons if configured to do so
+		if shouldEquip and randomWeapon ~= "Fist" then
+			print("Equipping weapon for NPC:", npcModel.Name, "Weapon:", randomWeapon)
+			-- Skip animation for NPCs (3rd parameter = true)
+			EquipModule.EquipWeapon(npcModel, randomWeapon, true)
+			print("NPC weapon equipped. Equipped attribute:", npcModel:GetAttribute("Equipped"))
 		else
-			-- print("Skipping weapon equip for peaceful NPC:", npcModel.Name)
+			print("Skipping weapon equip for NPC:", npcModel.Name)
 		end
 
 		task.wait(1)
+
 		local AnimateScript = game.ReplicatedStorage.NpcHelper.Animations:Clone()
 		AnimateScript.Parent = npcModel
 		AnimateScript.Enabled = true

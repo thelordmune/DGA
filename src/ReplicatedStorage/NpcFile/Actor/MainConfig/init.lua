@@ -228,6 +228,11 @@ local MainConfig = {
 		WalkSpeed = 16,
 		RunSpeed =35,
 		JumpPower = 50,
+	},
+
+	Weapons = {
+		Enabled = false,
+		WeaponList = {},
 	}
 }
 
@@ -289,6 +294,34 @@ local NpcData = script.Parent.Parent:WaitForChild(`Data`) do
 	if DataFetched.Appearance then
 		MainConfig.Appearance = DataFetched.Appearance
 	end
+
+	-- Load States configuration
+	if DataFetched.States then
+		for key, value in DataFetched.States do
+			MainConfig.States[key] = value
+		end
+		print("Loaded States config for NPC - IsPassive:", MainConfig.States.IsPassive, "AggressiveMode:", MainConfig.States.AggressiveMode)
+	end
+
+	-- Load weapon configuration
+	if DataFetched.Weapons then
+		-- Convert Weapon1, Weapon2, etc. back to WeaponList array
+		local weaponList = {}
+		if DataFetched.Weapons.WeaponCount then
+			for i = 1, DataFetched.Weapons.WeaponCount do
+				local weaponKey = "Weapon" .. i
+				if DataFetched.Weapons[weaponKey] then
+					table.insert(weaponList, DataFetched.Weapons[weaponKey])
+				end
+			end
+		end
+
+		MainConfig.Weapons = {
+			Enabled = DataFetched.Weapons.Enabled,
+			WeaponList = weaponList,
+		}
+		print("Loaded weapons config for NPC:", MainConfig.Weapons.Enabled, "Weapons:", table.concat(weaponList, ", "))
+	end
 end
 
 function MainConfig.onCooldown(actionData)
@@ -298,27 +331,105 @@ function MainConfig.onCooldown(actionData)
 	return os.clock() - actionData.Last_Used < actionData.Cooldown
 end
 
-local skillHandlers: { [string]: SkillHandler } = {}
-for i, v: ModuleScript in ReplicatedStorage.Actions:GetDescendants() do if v:IsA("ModuleScript") then 
-		skillHandlers[v.Name] = require(v) :: any
+-- Load weapon skill and alchemy handlers from the same location players use
+local ServerScriptService = game:GetService("ServerScriptService")
+local weaponSkillHandlers = {}
+local alchemySkillHandlers = {}
+
+-- Load all weapon skills from ServerScriptService (same as players)
+local function loadWeaponSkills()
+	local weaponSkillsPath = ServerScriptService:FindFirstChild("ServerConfig")
+	if weaponSkillsPath then
+		weaponSkillsPath = weaponSkillsPath:FindFirstChild("Server")
+		if weaponSkillsPath then
+			weaponSkillsPath = weaponSkillsPath:FindFirstChild("WeaponSkills")
+			if weaponSkillsPath then
+				for _, weaponFolder in weaponSkillsPath:GetChildren() do
+					if weaponFolder:IsA("Folder") then
+						for _, skillModule in weaponFolder:GetChildren() do
+							if skillModule:IsA("ModuleScript") then
+								weaponSkillHandlers[skillModule.Name] = require(skillModule)
+								print("Loaded weapon skill for NPCs:", skillModule.Name)
+							end
+						end
+					end
+				end
+			end
+		end
 	end
 end
 
-function MainConfig.performAction(action, ...)
-	-- simulate npc actions here
-	local character = MainConfig.getNpc()
-	local skillExecution = skillHandlers[action]
+-- Load all alchemy skills from Server/Network (same as players)
+local function loadAlchemySkills()
+	local networkPath = ServerScriptService:FindFirstChild("ServerConfig")
+	if networkPath then
+		networkPath = networkPath:FindFirstChild("Server")
+		if networkPath then
+			networkPath = networkPath:FindFirstChild("Network")
+			if networkPath then
+				-- Alchemy skills: Cascade, Cinder, Firestorm, Rock Skewer, Construct, Deconstruct, AlchemicAssault
+				local alchemySkills = {
+					"Cascade", "Cinder", "Firestorm", "Rock Skewer",
+					"Construct", "Deconstruct", "AlchemicAssault"
+				}
 
-	--print(skillHandlers, MainConfig.onCooldown(action))
-	--print(Skill_Data[action])
-
-	if not MainConfig.onCooldown(Skill_Data[action]) then
-		--task.synchronize()
-		skillExecution(character, {skill = action}, Skill_Data[action])
-		--task.desynchronize()
-	else
-		print("on cooldown")
+				for _, skillName in alchemySkills do
+					local skillModule = networkPath:FindFirstChild(skillName)
+					if skillModule and skillModule:IsA("ModuleScript") then
+						alchemySkillHandlers[skillName] = require(skillModule)
+						print("Loaded alchemy skill for NPCs:", skillName)
+					end
+				end
+			end
+		end
 	end
+end
+
+loadWeaponSkills()
+loadAlchemySkills()
+
+function MainConfig.performAction(action, ...)
+	-- Use the same weapon skill and alchemy system that players use
+	local character = MainConfig.getNpc()
+	if not character then
+		warn("No NPC character found for performAction")
+		return false
+	end
+
+	-- Get Server module (same way skills do)
+	local Server = require(ServerScriptService.ServerConfig.Server)
+
+	-- Create a fake player object for the NPC (skills expect a Player parameter)
+	local fakePlayer = {
+		Character = character,
+		Name = character.Name,
+	}
+
+	-- Check if it's a weapon skill first
+	local weaponSkillHandler = weaponSkillHandlers[action]
+	if weaponSkillHandler then
+		-- Execute the weapon skill using the same function players use
+		-- Weapon skills signature: function(Player, Data, Server)
+		weaponSkillHandler(fakePlayer, {}, Server)
+		return true
+	end
+
+	-- Check if it's an alchemy skill
+	local alchemySkillHandler = alchemySkillHandlers[action]
+	if alchemySkillHandler then
+		-- Execute the alchemy skill using the same function players use
+		-- Alchemy skills signature: NetworkModule.EndPoint(Player, Data)
+		if alchemySkillHandler.EndPoint then
+			alchemySkillHandler.EndPoint(fakePlayer, {})
+		else
+			warn("Alchemy skill", action, "does not have EndPoint function")
+			return false
+		end
+		return true
+	end
+
+	warn("No skill handler found for:", action)
+	return false
 end
 
 function MainConfig.getNpc()
@@ -452,16 +563,9 @@ end
 
 function MainConfig.LoadAppearance()
 	local npc = MainConfig.getNpc()
-	if not npc or not MainConfig.Appearance then 
+	if not npc or not MainConfig.Appearance then
 		return
 	end
-
-	local actor = script.Parent :: Actor
-	if not actor:IsA("Actor") then
-		warn(`MainConfig isnnt parented under an Actor || Parent: {actor}`)
-		return
-	end
-
 
 	if not MainConfig.Appearance.Enabled then
 		return
@@ -542,8 +646,9 @@ function MainConfig.getMimic(): Folder
 	local pathfindingId: IntValue = Instance.new("IntValue")
 	pathfindingId.Name = "StateId"
 	pathfindingId.Parent = Folder;
-	
+
 	Folder.Parent = npc;
+
 	return Folder
 end
 

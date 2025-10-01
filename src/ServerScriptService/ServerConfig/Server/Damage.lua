@@ -91,8 +91,14 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			)
 		end
 
-		Library.TimedState(Target.Stuns, "DamageStun", Table.Stun)
-		Library.TimedState(Target.Speeds, "DamageSpeedSet4", Table.Stun)
+		-- Reduce stun duration for NPCs so they can parry during M1 combos
+		local stunDuration = Table.Stun
+		if Target:GetAttribute("IsNPC") then
+			stunDuration = stunDuration * 0.7 -- 30% shorter stun for NPCs (allows parrying)
+		end
+
+		Library.TimedState(Target.Stuns, "DamageStun", stunDuration)
+		Library.TimedState(Target.Speeds, "DamageSpeedSet4", stunDuration)
 	end
 
 	local function Parried()

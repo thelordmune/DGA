@@ -81,10 +81,13 @@ return function(TREE)
 					Condition("is_aggressive"),
 					Condition("enemy_within_range", 25),
 					FALLBACK({
-						-- Continuous attack when aggressive and in range
+						-- Use intelligent attack system when aggressive
 						SEQUENCE({
 							Condition("enemy_within_range", 15),
-							Condition("npc_continuous_attack"),  -- Use continuous attack for aggressive NPCs
+							FALLBACK({
+								Condition("intelligent_attack"), -- Try intelligent attack first
+								Condition("npc_continuous_attack"),  -- Fallback to continuous attack
+							}),
 						}),
 						-- Move closer if too far
 						SEQUENCE({
@@ -99,14 +102,20 @@ return function(TREE)
 				return SEQUENCE({
 					Condition("enemy_within_range", 25),
 					INVERT({Condition("enemy_within_range", 15)}),
-					Condition("npc_attack"), -- Use our new NPC attack system for ranged
+					FALLBACK({
+						Condition("intelligent_attack"), -- Use intelligent attack
+						Condition("npc_attack"), -- Fallback to basic attack
+					}),
 				})
 			end
 			local function medium_distance_attack(TREE)
 				return SEQUENCE({
 					Condition("enemy_within_range", 15),
 					INVERT({Condition("enemy_within_range", 8)}),
-					Condition("npc_attack"), -- Use our new NPC attack system for medium range
+					FALLBACK({
+						Condition("intelligent_attack"), -- Use intelligent attack
+						Condition("npc_attack"), -- Fallback to basic attack
+					}),
 				})
 			end
 			local function close_distance_attack(TREE)
@@ -117,7 +126,10 @@ return function(TREE)
 					}),
 					SEQUENCE({
 						Condition("enemy_within_range", 15),
-						Condition("npc_attack"), -- Use our new NPC attack system
+						FALLBACK({
+							Condition("intelligent_attack"), -- Use intelligent attack
+							Condition("npc_attack"), -- Fallback to basic attack
+						}),
 					}),
 				})
 			end
