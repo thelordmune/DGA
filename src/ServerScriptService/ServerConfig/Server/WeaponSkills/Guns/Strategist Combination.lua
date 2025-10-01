@@ -89,7 +89,7 @@ return function(Player, Data, Server)
 
 				if not Target then return end
 
-				-- Sweep hit
+				-- Sweep hit (hittime 1)
                 Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 							Module = "Base",
 							Function = "SC",
@@ -97,8 +97,8 @@ return function(Player, Data, Server)
 						})
 				Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["Sweep"])
 
-				-- Up hit
-                task.delay(hittimes[2], function()
+				-- Up hit (hittime 2)
+                task.delay(hittimes[2] - hittimes[1], function()
                     Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 							Module = "Base",
 							Function = "SC",
@@ -107,8 +107,8 @@ return function(Player, Data, Server)
 					Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["Up"])
                 end)
 
-				-- Down hit
-                task.delay(hittimes[3] - .15, function()
+				-- Down hit (hittime 3)
+                task.delay(hittimes[3] - hittimes[1], function()
                     Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 							Module = "Base",
 							Function = "SC",
@@ -117,8 +117,8 @@ return function(Player, Data, Server)
 					Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["Down"])
                 end)
 
-				-- Ground hit
-                task.delay(hittimes[4], function()
+				-- Ground hit (hittime 4)
+                task.delay(hittimes[4] - hittimes[1], function()
                     Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 							Module = "Base",
 							Function = "SC",
@@ -127,9 +127,9 @@ return function(Player, Data, Server)
 					Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["groundye"])
                 end)
 
-				-- Fire hits (12 rapid hits)
+				-- Fire hits (12 rapid hits - hittimes 5 through 16)
                 for i = 5, 16 do
-                    task.delay(hittimes[i], function()
+                    task.delay(hittimes[i] - hittimes[1], function()
                         local fireType = (i % 2 == 1) and "LFire" or "RFire"
                         Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
                             Module = "Base",
