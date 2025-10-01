@@ -51,9 +51,17 @@ local function getBestDefense(playerAction, distance)
     -- Check for M1 attacks (M11, M12, M13, M14)
     -- M1 states are stored as "M11", "M12", "M13", "M14" in Actions
     if string.match(playerAction, "^M1") then
-        -- M1 attacks are fast and can be parried
+        -- M1 attacks - prefer blocking over parrying
         if distance < 10 then
-            return "Parry"
+            -- 70% chance to block, 5% chance to parry, 25% no defense
+            local roll = math.random()
+            if roll < 0.70 then
+                return "Block"
+            elseif roll < 0.75 then
+                return "Parry"
+            else
+                return nil
+            end
         else
             return nil -- Too far to react
         end
@@ -61,8 +69,9 @@ local function getBestDefense(playerAction, distance)
 
     -- Check for M2 attacks (Critical)
     if playerAction == "M2" then
-        -- M2 attacks are heavier, better to block
-        if distance < 12 then
+        -- M2 attacks are heavier, always prefer blocking
+        -- Block 80% of the time
+        if distance < 12 and math.random() < 0.8 then
             return "Block"
         else
             return nil
@@ -71,9 +80,17 @@ local function getBestDefense(playerAction, distance)
 
     -- Check for Running Attack
     if playerAction == "RunningAttack" then
-        -- Running attacks are fast, parry them
+        -- Running attacks - prefer blocking
         if distance < 10 then
-            return "Parry"
+            -- 65% block, 5% parry
+            local roll = math.random()
+            if roll < 0.65 then
+                return "Block"
+            elseif roll < 0.70 then
+                return "Parry"
+            else
+                return nil
+            end
         else
             return nil
         end
@@ -96,7 +113,8 @@ local function getBestDefense(playerAction, distance)
 
     for _, skill in ipairs(dodgeSkills) do
         if playerAction == skill then
-            if distance < 15 then
+            -- Dodge AOE attacks 50% of the time (higher than normal attacks)
+            if distance < 15 and math.random() < 0.5 then
                 return "Dodge"
             else
                 return nil
@@ -114,7 +132,8 @@ local function getBestDefense(playerAction, distance)
 
     for _, skill in ipairs(blockSkills) do
         if playerAction == skill then
-            if distance < 12 then
+            -- Block heavy skills 35% of the time
+            if distance < 12 and math.random() < 0.35 then
                 return "Block"
             else
                 return nil
@@ -238,7 +257,7 @@ return function(actor: Actor, mainConfig: table)
 
     -- Check cooldown for defensive actions
     local lastDefense = mainConfig.States.LastDefense or 0
-    local defenseCooldown = 0.8 -- Reduced cooldown for more responsive defense
+    local defenseCooldown = 1.2 -- Reduced cooldown to allow more frequent blocking (was 2.5)
 
     if os.clock() - lastDefense < defenseCooldown then
         return false

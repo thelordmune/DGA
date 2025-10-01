@@ -6,11 +6,23 @@ return function(actor: Actor, mainConfig: table)
 		return false
 	end
 
+	local root = npc:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return false
+	end
 
-	--task.synchronize()
-	--TODO: if obstacles are in the way , switch method to pathfind
-	npc.Humanoid:MoveTo(mainConfig.Spawning.SpawnedAt)
-	--task.desynchronize()
+	-- Apply smoothed movement
+	local humanoid = npc:FindFirstChild("Humanoid")
+	if humanoid then
+		local targetDirection = (mainConfig.Spawning.SpawnedAt - root.Position).Unit
+
+		-- Smooth interpolation for movement direction
+		local alpha = mainConfig.Movement.SmoothingAlpha
+		local smoothedDirection = mainConfig.Movement.CurrentDirection:Lerp(targetDirection, alpha)
+		mainConfig.Movement.CurrentDirection = smoothedDirection
+
+		humanoid:Move(smoothedDirection)
+	end
 
 	return true
 end

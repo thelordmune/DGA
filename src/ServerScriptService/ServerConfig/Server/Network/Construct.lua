@@ -30,9 +30,9 @@ local function cleanUp()
 	activeTweens = {}
 end
 
-local function getFloorColor(character)
+local function getFloorMaterial(character)
 	local root = character:FindFirstChild("HumanoidRootPart")
-	if not root then return nil end
+	if not root then return nil, nil end
 
 	local rayOrigin = root.Position
 	local rayDirection = Vector3.new(0, -10, 0)
@@ -42,10 +42,10 @@ local function getFloorColor(character)
 
 	local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
 	if raycastResult then
-		return raycastResult.Instance.Color
+		return raycastResult.Instance.Material, raycastResult.Instance.Color
 	end
 
-	return nil
+	return nil, nil
 end
 
 NetworkModule.EndPoint = function(Player, Data)
@@ -75,8 +75,9 @@ NetworkModule.EndPoint = function(Player, Data)
 			Alchemy.Looped = false
 			print("Construct animation loaded, Length:", Alchemy.Length)
 
-			-- Get floor color for wall material
-			local floorColor = getFloorColor(Character)
+			-- Get floor material and color for wall
+			local floorMaterial, floorColor = getFloorMaterial(Character)
+			local wallMaterial = floorMaterial or Enum.Material.Plastic
 			local wallColor = floorColor or Color3.fromRGB(100, 150, 255)
 
 			-- Set character states
@@ -136,7 +137,7 @@ NetworkModule.EndPoint = function(Player, Data)
 					part.Anchored = true
 					part.CanCollide = true
 					part.Transparency = 1  -- Start fully transparent
-					part.Material = Enum.Material.Plastic
+					part.Material = wallMaterial -- Use floor material
 					part.Color = wallColor
 					part:SetAttribute("Id", HttpService:GenerateGUID(false))
 

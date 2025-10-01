@@ -91,21 +91,31 @@ local function updateMovementPattern(mainConfig)
 end
 
 local function createAlignment(npc: Model, victim: Model, mainConfig: table)
-	--task.synchronize()
-	local alignOrientation= npc.PrimaryPart:FindFirstChild("AlignOrient") or Instance.new("AlignOrientation") :: AlignOrientation
-	alignOrientation.Name = "AlignOrient"
-	alignOrientation.MaxTorque = 1000000
-	alignOrientation.Responsiveness = 100
-	alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	alignOrientation.Enabled = true
-	alignOrientation.Attachment0 = npc.PrimaryPart.RootAttachment
+	-- Don't create AlignOrientation during attacks to prevent choppy movement
+	local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
+	if Server.Library.StateCheck(npc.Actions, "Attacking") then
+		return nil
+	end
 
+	--task.synchronize()
+	local alignOrientation = npc.PrimaryPart:FindFirstChild("AlignOrient")
+
+	-- Only create if it doesn't exist
+	if not alignOrientation then
+		alignOrientation = Instance.new("AlignOrientation") :: AlignOrientation
+		alignOrientation.Name = "AlignOrient"
+		alignOrientation.MaxTorque = 1000000
+		alignOrientation.Responsiveness = 100
+		alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+		alignOrientation.Enabled = true
+		alignOrientation.Attachment0 = npc.PrimaryPart.RootAttachment
+		alignOrientation.Parent = npc.PrimaryPart
+	end
+
+	-- Update the angle to face target
 	local diff = (mainConfig.getNpcCFrame().Position - mainConfig.getTargetCFrame().Position)
 	local angle = math.atan2(diff.X, diff.Z)
 	alignOrientation.CFrame = CFrame.Angles(0, angle, 0)
-
-
-	alignOrientation.Parent = npc.PrimaryPart
 
 	--task.desynchronize()
 	return alignOrientation
@@ -152,10 +162,12 @@ return function(actor: Actor, mainConfig: table )
 		[`Direct`] = function()
 			local movementPatterns = {
 				[`Still`] = function()
-					--task.synchronize()
-					--print("still")
-					humanoid:Move(Vector3.zero)
-					--task.desynchronize()
+					-- Set target direction to zero for smooth stopping
+					if mainConfig.Movement and mainConfig.Movement.TargetDirection then
+						mainConfig.Movement.TargetDirection = Vector3.new(0, 0, 0)
+					else
+						humanoid:Move(Vector3.new(0, 0, 0))
+					end
 				end,
 
 				[`Follow`] = function()
@@ -169,7 +181,7 @@ return function(actor: Actor, mainConfig: table )
 							local alignOrientation = createAlignment(npc, victim, mainConfig)
 							local patterns = mainConfig.Movement.Patterns.Types.Strafe;
 
-							local strafeDir = mainConfig.States.StrafeDirection or 
+							local strafeDir = mainConfig.States.StrafeDirection or
 								(math.random() > 0.5 and rightVector or -rightVector)
 							mainConfig.States.StrafeDirection = strafeDir
 
@@ -225,18 +237,23 @@ return function(actor: Actor, mainConfig: table )
 
 					local currentPattern = updateMovementPattern(mainConfig)
 					--print(currentPattern)
-					local finalDirection = patternBehaviors[currentPattern]()
+					local targetDirection = patternBehaviors[currentPattern]()
 
 					local _ = currentPattern == "Direct" and clearAlignOrientation(npc)
 
-					--task.synchronize()
-					humanoid:Move(finalDirection)
-					--task.desynchronize()
+					-- Smooth interpolation for movement direction
+					-- Lerp from current direction to target direction for smooth transitions
+					local alpha = mainConfig.Movement.SmoothingAlpha
+					local smoothedDirection = mainConfig.Movement.CurrentDirection:Lerp(targetDirection, alpha)
+					mainConfig.Movement.CurrentDirection = smoothedDirection
+
+					-- Apply smoothed movement
+					humanoid:Move(smoothedDirection)
 				end
 			}
 
-			local DISTANCE_TO_STOP_FOLLOWING_AT: number = 2.5; -- used to be 3
-			local indexType = if (mainConfig.getTargetCFrame().Position - mainConfig.getNpcCFrame().Position).Magnitude < DISTANCE_TO_STOP_FOLLOWING_AT then "Still" 
+			local DISTANCE_TO_STOP_FOLLOWING_AT: number = 6; -- Increased from 2.5 to maintain better spacing
+			local indexType = if (mainConfig.getTargetCFrame().Position - mainConfig.getNpcCFrame().Position).Magnitude < DISTANCE_TO_STOP_FOLLOWING_AT then "Still"
 				else "Follow"
 
 			movementPatterns[indexType]()
@@ -256,8 +273,8 @@ return function(actor: Actor, mainConfig: table )
 	local RootPosition = root.Position
 	local Direction: Vector3? = (TargetPosition - RootPosition)
 
-	local UnitVector: any = vector.normalize(Direction)
-	local MagnitudeIndex = vector.magnitude(Direction) + 1;
+	local UnitVector: any = Direction.Unit
+	local MagnitudeIndex = Direction.Magnitude + 1;
 
 	local Pass: number = 1;
 

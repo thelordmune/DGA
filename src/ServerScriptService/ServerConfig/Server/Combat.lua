@@ -547,23 +547,23 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
             BlockStates[Character].HoldTime = 0
             BlockStates[Character].Connection = Server.Utilities:AddToTempLoop(function(dt)
                 if not BlockStates[Character] then return true end
-                
+
                 BlockStates[Character].HoldTime = BlockStates[Character].HoldTime + dt
-                
-                -- If held long enough, start blocking
-                if BlockStates[Character].HoldTime >= 0.15 and not BlockStates[Character].Blocking then
+
+                -- If held long enough, start blocking - increased from 0.15s to 0.25s
+                if BlockStates[Character].HoldTime >= 0.25 and not BlockStates[Character].Blocking then
                     BlockStates[Character].Blocking = true
                     self.StartBlock(Character)
                 end
-                
+
                 return false
             end)
         end
     else
         -- Release input
         if BlockStates[Character] then
-            -- If released quickly, attempt parry
-            if BlockStates[Character].HoldTime < 0.15 and not BlockStates[Character].Blocking then
+            -- If released quickly, attempt parry - increased from 0.15s to 0.25s
+            if BlockStates[Character].HoldTime < 0.25 and not BlockStates[Character].Blocking then
                 self.AttemptParry(Character)
             end
             
@@ -594,13 +594,13 @@ Combat.AttemptParry = function(Character: Model)
     
     Server.Library.SetCooldown(Character, "Parry", 0.5)
     Server.Library.StopAllAnims(Character)
-    
+
     -- Play parry animation
     local ParryAnimation = Server.Library.PlayAnimation(Character, Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Parry)
     ParryAnimation.Priority = Enum.AnimationPriority.Action2
-    
-    -- Add parry frames
-    Server.Library.TimedState(Character.Frames, "Parry", .3)
+
+    -- Add parry frames - increased from 0.3s to 0.5s to make parrying easier
+    Server.Library.TimedState(Character.Frames, "Parry", .5)
     
     -- Visual effect
     -- Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {

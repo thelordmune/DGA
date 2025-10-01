@@ -104,7 +104,8 @@ return function(npc: Model, mainConfig, target: Model | Vector3)
 
 
 					local difference = (waypoint.Position - npc:GetPivot().Position)
-					humanoid:Move(difference)
+					-- Apply movement directly
+					humanoid:Move(difference.Unit)
 
 					if waypoint.Action == Enum.PathWaypointAction.Jump then
 						humanoid.Jump = true

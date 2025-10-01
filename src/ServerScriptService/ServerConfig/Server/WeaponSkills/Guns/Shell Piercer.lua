@@ -149,12 +149,37 @@ return function(Player, Data, Server)
 			-- Fling the destroyed parts forward
 			if #destroyedParts > 0 then
 				local forwardDirection = Character.HumanoidRootPart.CFrame.LookVector
+				local RunService = game:GetService("RunService")
 
 				for _, part in pairs(destroyedParts) do
 					if part:IsA("BasePart") then
 						-- Make part moveable
 						part.Anchored = false
 						part.CanCollide = true
+
+						-- Add trail to the part
+						local attachment0 = Instance.new("Attachment")
+						attachment0.Name = "TrailAttachment0"
+						attachment0.Position = Vector3.new(0, part.Size.Y/2, 0)
+						attachment0.Parent = part
+
+						local attachment1 = Instance.new("Attachment")
+						attachment1.Name = "TrailAttachment1"
+						attachment1.Position = Vector3.new(0, -part.Size.Y/2, 0)
+						attachment1.Parent = part
+
+						local trail = Instance.new("Trail")
+						trail.Attachment0 = attachment0
+						trail.Attachment1 = attachment1
+						trail.Color = ColorSequence.new(part.Color)
+						trail.Transparency = NumberSequence.new({
+							NumberSequenceKeypoint.new(0, 0.5),
+							NumberSequenceKeypoint.new(1, 1)
+						})
+						trail.Lifetime = 0.5
+						trail.MinLength = 0.1
+						trail.FaceCamera = true
+						trail.Parent = part
 
 						-- Create velocity to fling parts forward
 						local bodyVelocity = Instance.new("BodyVelocity")
@@ -167,7 +192,8 @@ return function(Player, Data, Server)
 							(math.random() - 0.5) * 0.3  -- Random Z spread
 						)
 
-						bodyVelocity.Velocity = flingDirection.Unit * (50 + math.random() * 30) -- 50-80 speed
+						local flingSpeed = 50 + math.random() * 30 -- 50-80 speed
+						bodyVelocity.Velocity = flingDirection.Unit * flingSpeed
 						bodyVelocity.Parent = part
 
 						-- Remove velocity after a short time
@@ -183,6 +209,49 @@ return function(Player, Data, Server)
 						)
 						bodyAngularVelocity.Parent = part
 						Debris:AddItem(bodyAngularVelocity, 0.8)
+
+						-- Add hitbox to the flying part
+						local hitTargets = {} -- Track what we've already hit
+						local hitConnection
+						hitConnection = RunService.Heartbeat:Connect(function()
+							if not part or not part.Parent then
+								hitConnection:Disconnect()
+								return
+							end
+
+							-- Check for nearby characters
+							local partsInRadius = workspace:GetPartBoundsInRadius(part.Position, part.Size.Magnitude)
+
+							for _, hitPart in pairs(partsInRadius) do
+								local hitCharacter = hitPart.Parent
+								if hitCharacter and hitCharacter:IsA("Model") and hitCharacter:FindFirstChild("Humanoid") then
+									-- Don't hit the caster or already-hit targets
+									if hitCharacter ~= Character and not hitTargets[hitCharacter] then
+										hitTargets[hitCharacter] = true
+
+										-- Apply damage
+										local damageTable = {
+											Damage = 5, -- Reduced damage for debris
+											PostureDamage = 8,
+											Stun = 0.3,
+											LightKnockback = true,
+											M2 = false,
+											FX = Replicated.Assets.VFX.Blood.Attachment,
+										}
+
+										Server.Modules.Damage.Tag(Character, hitCharacter, damageTable)
+										print("Shell Piercer debris hit:", hitCharacter.Name)
+									end
+								end
+							end
+						end)
+
+						-- Clean up hitbox connection after 2 seconds
+						task.delay(2, function()
+							if hitConnection then
+								hitConnection:Disconnect()
+							end
+						end)
 
 						-- print("Shell Piercer: Flung wall part with velocity:", bodyVelocity.Velocity)
 					end

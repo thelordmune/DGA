@@ -120,10 +120,11 @@ return function(TREE)
 			end
 			local function close_distance_attack(TREE)
 				return FALLBACK({
-					SEQUENCE({
-						Condition("enemy_has_state", "Attacking", "M1"),
-						Condition("block"), -- Block if enemy is attacking
-					}),
+					-- Removed automatic M1 blocking - smart_defense handles this with randomness now
+					-- SEQUENCE({
+					-- 	Condition("enemy_has_state", "Attacking", "M1"),
+					-- 	Condition("block"), -- Block if enemy is attacking
+					-- }),
 					SEQUENCE({
 						Condition("enemy_within_range", 15),
 						FALLBACK({
@@ -161,16 +162,18 @@ return function(TREE)
 						Condition("dash", "Back"),
 					}),
 
-					FALLBACK({
+					-- Removed automatic M1 blocking - smart_defense handles this with randomness now
+					-- FALLBACK({
+					-- 	SEQUENCE({
+					-- 		FALLBACK({ -- CONDITIONS TO BLOCK
+					-- 			Condition("enemy_has_state", "Attacking", "M1"),
+					-- 		}),
+					-- 		Condition("block"),
+					-- 	}),
+					-- 	Condition("stop_block"),
+					-- }),
 
-						SEQUENCE({
-							FALLBACK({ -- CONDITIONS TO BLOCK
-								Condition("enemy_has_state", "Attacking", "M1"),
-							}),
-							Condition("block"),
-						}),
-						Condition("stop_block"),
-					}),
+					Condition("stop_block"), -- Just ensure we stop blocking when not needed
 				})
 			end
 			return FALLBACK({

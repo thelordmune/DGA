@@ -10,7 +10,7 @@ local Table = {
 			LightKnockback = false,
 			M2 = false,
 			FX = Replicated.Assets.VFX.Blood.Attachment,
-			Stun = 0.4,
+			Stun = 0.8, -- Increased from 0.4 to 0.8 for better NPC stun
             },
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTime"] = {36/71}
@@ -142,7 +142,7 @@ local Table = {
 			LightKnockback = false,
 			M2 = false,
 			FX = Replicated.Assets.VFX.Blood.Attachment,
-			Stun = 0.4,
+			Stun = 0.8, -- Increased from 0.4 to 0.8 for better NPC stun
             },
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTime"] = {10/74, 33/74, 33/38}
@@ -155,7 +155,7 @@ local Table = {
 			LightKnockback = false,
 			M2 = false,
 			FX = Replicated.Assets.VFX.Blood.Attachment,
-			Stun = 0.4,
+			Stun = 0.8, -- Increased from 0.4 to 0.8 for better NPC stun
             },
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTime"] = {24/49}

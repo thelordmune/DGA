@@ -21,14 +21,19 @@ return function(actor: Actor, mainConfig: table)
 
 	local distanceToVictim = (root.Position - vRoot.Position).Magnitude
 	if distanceToVictim <= mainConfig.EnemyDetection.RunAway.Ranges.SafeRange then
-		local runDirection = -(vRoot.Position - root.Position).Unit
+		local targetDirection = -(vRoot.Position - root.Position).Unit
 
-		--task.synchronize()	
 		if root.AssemblyLinearVelocity.Magnitude < (humanoid.WalkSpeed  * .75) then
 			humanoid.Jump = true
 		end
-		humanoid:Move(runDirection)
-		--task.desynchronize()
+
+		-- Smooth interpolation for movement direction
+		local alpha = mainConfig.Movement.SmoothingAlpha
+		local smoothedDirection = mainConfig.Movement.CurrentDirection:Lerp(targetDirection, alpha)
+		mainConfig.Movement.CurrentDirection = smoothedDirection
+
+		-- Apply smoothed movement
+		humanoid:Move(smoothedDirection)
 	else
 		mainConfig.Idle.PauseDuration.Current = nil;
 		mainConfig.Idle.NextPause.Current = nil;

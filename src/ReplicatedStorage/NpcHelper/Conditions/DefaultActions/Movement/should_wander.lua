@@ -41,13 +41,12 @@ return function(actor: Actor, mainConfig: table)
 
 			if os.clock() - mainConfig.Idle.NextPause.Current < mainConfig.Idle.PauseDuration.Current then
 				if mainConfig.Idle.Idling then
-					--task.synchronize()
-					humanoid:Move(Vector3.zero)
+					-- Stop movement during pause
+					humanoid:Move(Vector3.new(0, 0, 0))
 					mainConfig.Idle.Idling = false
-					--task.desynchronize()
-				end 
+				end
 				return false
-			else 
+			else
 				mainConfig.Idle.PauseDuration.Current = nil
 				mainConfig.Idle.NextPause.Current = nil
 			end

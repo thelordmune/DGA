@@ -319,6 +319,22 @@ function EntityClass:GetCFrame(TimeStamp: number) : CFrame
             return CurrentCF
         end
 
+        -- Also skip reconciliation if character has high velocity (likely from a skill)
+        -- This prevents teleporting when velocity is applied before action state is set
+        local root = self.Character.PrimaryPart
+        if root and root.AssemblyLinearVelocity.Magnitude > 40 then
+            return CurrentCF
+        end
+
+        -- Skip reconciliation if there are any LinearVelocity movers (from skills/dashes)
+        if root then
+            for _, child in ipairs(root:GetChildren()) do
+                if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") then
+                    return CurrentCF
+                end
+            end
+        end
+
         local LatestSnapshot;
         local PreviousSnapshot;
 

@@ -102,13 +102,14 @@ return function(TREE)
                     Condition("dash", "Back"),
                 }),
 
+                -- Removed automatic blocking - smart_defense handles this with randomness now
                 -- Priority 3: Block if enemy is attacking
-                SEQUENCE({
-                    Condition("enemy_has_state", "Attacking"),
-                    Condition("block"),
-                }),
+                -- SEQUENCE({
+                --     Condition("enemy_has_state", "Attacking"),
+                --     Condition("block"),
+                -- }),
 
-                -- Priority 4: Stop blocking if not needed
+                -- Priority 3: Stop blocking if not needed
                 Condition("stop_block"),
             })
         end,

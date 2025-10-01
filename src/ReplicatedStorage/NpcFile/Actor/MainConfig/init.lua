@@ -97,6 +97,9 @@ local MainConfig = {
 		MaxAlignmentDot = 0.3, -- Minimum dot product to allow strafing
 		BackupSpeed = 5, -- when being pressed by a player and the npc backs up
 
+		-- Smooth movement interpolation
+		CurrentDirection = Vector3.zero,
+		SmoothingAlpha = 0.25, -- Higher = faster response, lower = smoother (0-1)
 
 		Patterns = {
 			Current = nil, -- Current pattern type

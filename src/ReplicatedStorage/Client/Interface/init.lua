@@ -31,4 +31,7 @@ Interface.Hotbar = function()
 	self.Modules["Stats"].Hotbar("Update");
 end
 
+-- Expose CooldownDisplay module
+Interface.CooldownDisplay = self.Modules["CooldownDisplay"]
+
 return Interface

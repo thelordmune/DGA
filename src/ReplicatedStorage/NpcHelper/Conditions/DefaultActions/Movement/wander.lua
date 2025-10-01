@@ -60,19 +60,17 @@ return function(actor: Actor, mainConfig: mainConfig)
 	-- Scale the direction toward the spawn point based on proximity to MaxDistance
 	local Weight = math.clamp((Distance / MaxDistance), 0, 1)
 	local ToSpawnDirection = Difference.Unit
-	local SmoothedDirection = Direction:Lerp(ToSpawnDirection, Weight)
+	local targetDirection = Direction:Lerp(ToSpawnDirection, Weight)
 
-	-- Apply smoothing to the final direction over time
-	local CurrentVelocity = root.AssemblyLinearVelocity
-	local TargetVelocity = SmoothedDirection * humanoid.WalkSpeed
-	local InterpolatedVelocity = CurrentVelocity:Lerp(TargetVelocity, 0.1) -- Adjust 0.1 for smoother/faster response
+	-- Smooth interpolation for movement direction
+	local alpha = mainConfig.Movement.SmoothingAlpha
+	local smoothedDirection = mainConfig.Movement.CurrentDirection:Lerp(targetDirection, alpha)
+	mainConfig.Movement.CurrentDirection = smoothedDirection
 
-	-- Update the NPC's movement
-	--task.synchronize()
-	humanoid:Move(InterpolatedVelocity)
+	-- Apply smoothed movement
+	humanoid:Move(smoothedDirection)
 	mainConfig.Idle.NoiseOffset = NoiseOffset + 0.1
 	mainConfig.Idle.Idling = true
-	--task.desynchronize()
 
 	return true
 end

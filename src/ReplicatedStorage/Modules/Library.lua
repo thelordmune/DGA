@@ -230,6 +230,22 @@ Library.ResetCooldown = function(Char: Model, Identifier: string)
 	if Cooldowns[Char][Identifier] ~= nil then Cooldowns[Char][Identifier] = 0 end;
 end
 
+Library.GetCooldowns = function(Char: Model)
+	-- Get all cooldowns for a character
+	if not Cooldowns[Char] then Cooldowns[Char] = {} end;
+	return Cooldowns[Char]
+end
+
+Library.GetCooldownTime = function(Char: Model, Identifier: string)
+	-- Get remaining cooldown time for a specific skill
+	if not Cooldowns[Char] then return 0 end;
+	if Cooldowns[Char][Identifier] then
+		local remaining = Cooldowns[Char][Identifier] - os.clock()
+		return math.max(0, remaining)
+	end
+	return 0
+end
+
 function ReturnDecodedTable(Table)
 	return HttpService:JSONDecode(Table.Value)
 end

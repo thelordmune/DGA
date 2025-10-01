@@ -195,6 +195,12 @@ function Initialize(Character: Model)
 
 	Client.Modules["Interface"].Check()
 
+	-- Initialize cooldown display
+	if Client.Modules["Interface"].CooldownDisplay and Client.Modules["Interface"].CooldownDisplay.Init then
+		Client.Modules["Interface"].CooldownDisplay.Init()
+		print("Initialized cooldown display")
+	end
+
 	safeConnect(Humanoid, "HealthChanged", function(Health)
 		Client.Modules["Interface"].UpdateStats("Health", Health, Humanoid.MaxHealth)
 	end)

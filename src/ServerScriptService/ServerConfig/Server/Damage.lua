@@ -91,11 +91,8 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			)
 		end
 
-		-- Reduce stun duration for NPCs so they can parry during M1 combos
+		-- NPCs and players get the same stun duration now
 		local stunDuration = Table.Stun
-		if Target:GetAttribute("IsNPC") then
-			stunDuration = stunDuration * 0.7 -- 30% shorter stun for NPCs (allows parrying)
-		end
 
 		Library.TimedState(Target.Stuns, "DamageStun", stunDuration)
 		Library.TimedState(Target.Speeds, "DamageSpeedSet4", stunDuration)
@@ -518,10 +515,8 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	if Table.Stun then
 		DealStun()
 
-		-- Give NPCs brief immunity after taking stun to prevent spam
-		if Target:GetAttribute("IsNPC") then
-			Library.TimedState(Target.IFrames, "IFrame", 0.3)
-		end
+		-- Removed NPC IFrames after stun - was preventing NPCs from being stunned properly
+		-- NPCs should be able to be stunned like players
 	end
 
 	if Table.FX then

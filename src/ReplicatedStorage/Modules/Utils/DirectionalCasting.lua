@@ -212,17 +212,61 @@ function DirectionalCasting:_updateStates()
 	self._onCastingStateChangedEvent:Fire(self.isCasting, self.isModifying)
 end
 
--- Reduce camera sensitivity during casting
+-- Lock character rotation during casting (shift lock mode)
+function DirectionalCasting:_lockCharacterRotation()
+	if self.rotationLocked then return end -- Already locked
+
+	-- Check if in shift lock mode
+	local isShiftLock = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
+
+	if isShiftLock and self.Character then
+		local humanoid = self.Character:FindFirstChild("Humanoid")
+
+		if humanoid then
+			-- Store original AutoRotate state
+			self.originalAutoRotate = humanoid.AutoRotate
+
+			-- Disable AutoRotate to prevent character from rotating with mouse movement
+			humanoid.AutoRotate = false
+
+			self.rotationLocked = true
+
+			-- print("🔒 AutoRotate DISABLED for casting (shift lock mode)")
+		end
+	end
+end
+
+-- Unlock character rotation after casting
+function DirectionalCasting:_unlockCharacterRotation()
+	if not self.rotationLocked then return end
+
+	-- Restore AutoRotate
+	if self.Character then
+		local humanoid = self.Character:FindFirstChild("Humanoid")
+		if humanoid and self.originalAutoRotate ~= nil then
+			humanoid.AutoRotate = self.originalAutoRotate
+		end
+	end
+
+	self.rotationLocked = false
+	self.originalAutoRotate = nil
+
+	-- print("🔓 AutoRotate restored")
+end
+
+-- Reduce camera sensitivity during casting (for non-shift-lock mode)
 function DirectionalCasting:_reduceCameraSensitivity()
 	if self.originalMouseSensitivity then return end -- Already reduced
 
-	-- Store original sensitivity
-	self.originalMouseSensitivity = UserInputService.MouseDeltaSensitivity
+	-- Check if in shift lock mode
+	local isShiftLock = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
 
-	-- Reduce sensitivity during casting
-	UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity * CONFIG.CAMERA.CASTING_SENSITIVITY
-
-	-- print("📷 Camera sensitivity reduced for casting")
+	if not isShiftLock then
+		-- Normal mode: reduce sensitivity
+		self.originalMouseSensitivity = UserInputService.MouseDeltaSensitivity
+		UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity * CONFIG.CAMERA.CASTING_SENSITIVITY
+		-- print("📷 Camera sensitivity reduced for casting")
+	end
 end
 
 -- Restore camera sensitivity after casting
@@ -239,18 +283,21 @@ end
 -- Start casting
 function DirectionalCasting:StartCasting()
 	if self.isCasting then return end
-	
+
 	self.isCasting = true
 	self.isModifying = false
 	self.directionSequence = {}
 	self.modifierSequence = {}
 	self.savedBaseSequence = {}
 	self.currentTriangle = nil
-	
+
 	-- Update states
 	self:_updateStates()
-	
-	-- Reduce camera sensitivity during casting
+
+	-- Lock character rotation if in shift lock mode
+	self:_lockCharacterRotation()
+
+	-- Reduce camera sensitivity during casting (for non-shift-lock)
 	self:_reduceCameraSensitivity()
 
 	-- Show UI with animations
@@ -259,7 +306,7 @@ function DirectionalCasting:StartCasting()
 	-- Start input tracking
 	self:_startInputTracking()
 
-	-- print("🎯 CASTING STARTED - Move mouse to triangles (camera sensitivity reduced)")
+	-- print("🎯 CASTING STARTED - Move mouse to triangles")
 end
 
 -- Enter modifier mode
@@ -318,6 +365,9 @@ function DirectionalCasting:StopCasting()
 	self.isCasting = false
 	self.isModifying = false
 
+	-- Unlock character rotation (if it was locked)
+	self:_unlockCharacterRotation()
+
 	-- Restore camera sensitivity
 	self:_restoreCameraSensitivity()
 
@@ -351,13 +401,16 @@ end
 function DirectionalCasting:Destroy()
 	self:_stopInputTracking()
 
+	-- Ensure character rotation is unlocked
+	self:_unlockCharacterRotation()
+
 	-- Ensure camera sensitivity is restored
 	self:_restoreCameraSensitivity()
 
 	if self.screenGui then
 		self.screenGui:Destroy()
 	end
-	
+
 	if self._onSequenceCompleteEvent then
 		self._onSequenceCompleteEvent:Destroy()
 	end

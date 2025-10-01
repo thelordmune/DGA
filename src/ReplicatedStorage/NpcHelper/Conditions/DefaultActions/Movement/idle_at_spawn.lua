@@ -1,23 +1,27 @@
 return function(actor: Actor, mainConfig: table)
     local npc = mainConfig.getNpc()
     if not npc then return false end
-    
+
     local root = npc:FindFirstChild("HumanoidRootPart")
     if not root then return false end
-    
+
     -- Get spawn position
     local spawnPosition = mainConfig.Spawning.SpawnedAt
     if not spawnPosition then return false end
-    
+
     -- Check if NPC is far from spawn
     local currentPosition = root.Position
     local distanceFromSpawn = (currentPosition - spawnPosition).Magnitude
-    
+
     -- If too far from spawn, move back
-    if distanceFromSpawn > 10 then
-        local humanoid = npc:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid:MoveTo(spawnPosition)
+    local humanoid = npc:FindFirstChild("Humanoid")
+    if humanoid then
+        if distanceFromSpawn > 10 then
+            local direction = (spawnPosition - currentPosition).Unit
+            humanoid:Move(direction)
+        else
+            -- Stop movement when at spawn
+            humanoid:Move(Vector3.new(0, 0, 0))
         end
     end
     
