@@ -17,17 +17,45 @@ NetworkModule.EndPoint = function(Player, Data)
     print("Player:", Player.Name)
     print("Item:", Data.itemName)
     print("Hotbar Slot:", Data.hotbarSlot)
-    
+
     local pent = ref.get("player", Player)  -- Fixed: Use "player" on server, not "local_player"
     if not pent then
-        warn("Player entity not found")
+        warn("[UseItem] Player entity not found for:", Player.Name)
         return
     end
-    
+
+    print("[UseItem] Player entity:", pent)
+
+    -- Debug: Print hotbar state
+    if world:has(pent, comps.Hotbar) then
+        local hotbar = world:get(pent, comps.Hotbar)
+        print("Hotbar slots:", hotbar.slots)
+        print("Looking for item in hotbar slot:", Data.hotbarSlot)
+        print("Inventory slot mapped to hotbar slot:", hotbar.slots[Data.hotbarSlot])
+    else
+        warn("Player has no Hotbar component!")
+    end
+
+    -- Debug: Print inventory state
+    if world:has(pent, comps.Inventory) then
+        local inventory = world:get(pent, comps.Inventory)
+        print("Inventory items count:", #inventory.items)
+        for slot, item in pairs(inventory.items) do
+            print("  Slot", slot, ":", item.name, "(type:", item.typ, ")")
+        end
+    else
+        warn("Player has no Inventory component!")
+    end
+
     -- Verify item is still in hotbar slot
     local item = InventoryManager.getHotbarItem(pent, Data.hotbarSlot)
-    if not item or item.name ~= Data.itemName then
-        warn("Item mismatch or not found in hotbar slot")
+    if not item then
+        warn("No item found in hotbar slot", Data.hotbarSlot)
+        return
+    end
+
+    if item.name ~= Data.itemName then
+        warn("Item mismatch! Expected:", Data.itemName, "Found:", item.name)
         return
     end
     

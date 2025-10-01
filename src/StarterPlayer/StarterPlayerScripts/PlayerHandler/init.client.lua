@@ -59,20 +59,13 @@ for __ = 1, #EffectModules do
 end
 
 Client.Packets.Visuals.listen(function(Packet)
-    -- Add a check to prevent duplicate processing
-    if Client._processingVisual then return end
-    Client._processingVisual = true
-    
+    -- Process all VFX packets - no duplicate prevention needed with reliable networking
     -- print("Visual packet received:", Packet.Module, Packet.Function)
     if Client.Environment[Packet.Module] and Client.Environment[Packet.Module][Packet.Function] then
         Client.Environment[Packet.Module][Packet.Function](unpack(Packet.Arguments))
     else
         warn(`Index: {Packet.Function} Does Not Exist`)
     end
-    
-    -- Reset flag after a brief delay
-    task.wait()
-    Client._processingVisual = false
 end)
 
 function ConvertToNumber(String)
@@ -321,14 +314,10 @@ function Initialize(Character: Model)
 	Character:SetAttribute("DodgeCharges", 2)
 	print("Reset character attributes")
 
-	-- CLEAR HOTBAR AND INVENTORY (Fix item mismatch)
-	local InventoryManager = require(Replicated.Modules.Utils.InventoryManager)
-	if pent then
-		InventoryManager.resetPlayerInventory(pent)
-		print("Cleared hotbar and inventory to prevent item mismatch")
-	end
+	-- DON'T clear inventory on client - server will sync it
+	-- The server clears and repopulates the inventory, then syncs to client via Bridges.Inventory
 
-	-- Clear hotbar UI display
+	-- Clear hotbar UI display (will be repopulated when server syncs inventory)
 	task.wait(0.2) -- Wait for UI to be ready
 	if Client.Interface and Client.Interface.Stats then
 		-- Clear all hotbar slot displays
@@ -337,7 +326,7 @@ function Initialize(Character: Model)
 				Client.Interface.Stats.UpdateHotbarSlot(i, "")
 			end
 		end
-		print("Cleared hotbar UI display")
+		print("Cleared hotbar UI display - waiting for server inventory sync")
 	end
 
 	-- Client.Modules["InventoryHandler"]()

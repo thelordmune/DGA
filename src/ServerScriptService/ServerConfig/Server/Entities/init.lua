@@ -100,17 +100,13 @@ EntityClass.Init = function(Entity) : EntityObject
     self.Character = Entity;
 
     local Player = Server.Service.Players:GetPlayerFromCharacter(Entity);
-    if Player then 
+    if Player then
 		game.CollectionService:AddTag(self.Character, "Players")
         debugPrint("Player entity detected:", Player.Name, "Weapon:", Player:GetAttribute("Weapon"))
         self.Player = Player;
         self.Weapon = Player:GetAttribute("Weapon");
         self.Snapshots = {};
-        local entity = ref.get("player", Player)  -- Fixed: Use "player" on server, not "local_player"
-        task.delay(5, function()
-            debugPrint("Giving weapon skills to player:", Player.Name, "Weapon:", self.Weapon)
-            InventorySetup.GiveWeaponSkills(entity, self.Weapon, Player)
-        end)
+        -- Weapon skills will be given AFTER inventory is cleared (see below in LoadWeapon)
     else
         debugPrint("NPC entity detected:", Entity.Name, "Weapon:", Entity:GetAttribute("Weapon"))
         self.Weapon = Entity:GetAttribute("Weapon")
@@ -221,17 +217,8 @@ function EntityClass:Initialize()
             debugPrint("Initialized Status frame")
         end
 
-        -- CLEAR HOTBAR AND INVENTORY (Fix item mismatch on respawn)
-        if self.Player then
-            local ref = require(Server.Service.ReplicatedStorage.Modules.ECS.jecs_ref)
-            local InventoryManager = require(Server.Service.ReplicatedStorage.Modules.Utils.InventoryManager)
-
-            local pent = ref.get("player", self.Player)
-            if pent then
-                InventoryManager.resetPlayerInventory(pent)
-                debugPrint("Cleared hotbar and inventory for:", self.Player.Name)
-            end
-        end
+        -- Inventory and weapon skills are now handled in playerloader.luau
+        -- This ensures components are initialized before skills are added
     end
 
     self:LoadWeapon(self.Character)
@@ -319,6 +306,19 @@ function EntityClass:GetCFrame(TimeStamp: number) : CFrame
 
     if self and self.Snapshots and self.Character then
         local CurrentCF = self.Character.PrimaryPart.CFrame;
+
+        -- NPCs don't have snapshots, just return current position
+        if self.Character:GetAttribute("IsNPC") or #self.Snapshots == 0 then
+            return CurrentCF
+        end
+
+        -- Skip position reconciliation if character is performing an action (skill/ability)
+        -- This prevents teleporting during skills that apply velocity (Needle Thrust, Downslam Kick, etc.)
+        local Library = require(Server.Service.ReplicatedStorage.Modules.Library)
+        if Library.StateCount(self.Character.Actions) then
+            return CurrentCF
+        end
+
         local LatestSnapshot;
         local PreviousSnapshot;
 
@@ -330,7 +330,7 @@ function EntityClass:GetCFrame(TimeStamp: number) : CFrame
         end
 
         if not PreviousSnapshot then
-            return CurrentCF;	
+            return CurrentCF;
         end
 
         local Percentage = (TimeStamp - PreviousSnapshot.Time) / (LatestSnapshot.Time - PreviousSnapshot.Time)

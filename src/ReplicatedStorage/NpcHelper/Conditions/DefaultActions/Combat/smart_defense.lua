@@ -47,11 +47,12 @@ local function getBestDefense(playerAction, distance)
     if not playerAction then
         return nil
     end
-    
+
     -- Check for M1 attacks (M11, M12, M13, M14)
-    if string.match(playerAction, "^M1%d$") then
+    -- M1 states are stored as "M11", "M12", "M13", "M14" in Actions
+    if string.match(playerAction, "^M1") then
         -- M1 attacks are fast and can be parried
-        if distance < 8 then
+        if distance < 10 then
             return "Parry"
         else
             return nil -- Too far to react
@@ -78,9 +79,10 @@ local function getBestDefense(playerAction, distance)
         end
     end
     
-    -- Check for blocking state
+    -- Check for blocking state - this is handled separately in intelligent_attack
     if playerAction == "Blocking" then
-        -- Player is blocking, don't defend
+        -- Player is blocking, smart_defense doesn't handle this
+        -- intelligent_attack will use Critical or skills to break block
         return nil
     end
     
@@ -128,29 +130,35 @@ end
 local function executeDefense(npc, defenseType, mainConfig)
     local Combat = Server.Modules.Combat
     if not Combat then
+        warn("[Smart Defense] Combat module not found!")
         return false
     end
-    
+
     if defenseType == "Parry" then
         -- Attempt parry (quick block release)
-        print("NPC", npc.Name, "attempting PARRY")
+        if not Combat.AttemptParry then
+            return false
+        end
+
         Combat.AttemptParry(npc)
         return true
-        
+
     elseif defenseType == "Block" then
         -- Hold block
-        print("NPC", npc.Name, "BLOCKING")
+        if not Combat.HandleBlockInput then
+            return false
+        end
+
         Combat.HandleBlockInput(npc, true)
-        
+
         -- Release block after a short duration
         task.delay(0.5, function()
             Combat.HandleBlockInput(npc, false)
         end)
         return true
-        
+
     elseif defenseType == "Dodge" then
         -- Perform dodge (if NPC has dodge capability)
-        print("NPC", npc.Name, "attempting DODGE")
 
         -- Get a random dodge direction
         local dodgeDirections = {
@@ -194,7 +202,7 @@ return function(actor: Actor, mainConfig: table)
     if not npc then
         return false
     end
-    
+
     -- Only use smart defense when aggressive
     if not (mainConfig.States and mainConfig.States.AggressiveMode) then
         return false
@@ -218,31 +226,31 @@ return function(actor: Actor, mainConfig: table)
     -- Get what the player is doing
     local playerAction = getPlayerAction(target)
     if not playerAction then
+        -- print("[Smart Defense]", npc.Name, "- No player action detected")
         return false
     end
-    
+
     -- Determine best defense
     local defenseType = getBestDefense(playerAction, distance)
     if not defenseType then
         return false
     end
-    
+
     -- Check cooldown for defensive actions
     local lastDefense = mainConfig.States.LastDefense or 0
-    local defenseCooldown = 2.0 -- Don't spam defenses
-    
+    local defenseCooldown = 0.8 -- Reduced cooldown for more responsive defense
+
     if os.clock() - lastDefense < defenseCooldown then
         return false
     end
-    
+
     -- Execute the defense
     local success = executeDefense(npc, defenseType, mainConfig)
-    
+
     if success then
         mainConfig.States.LastDefense = os.clock()
-        print("NPC", npc.Name, "reacted to", playerAction, "with", defenseType)
     end
-    
+
     return success
 end
 

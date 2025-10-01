@@ -87,10 +87,23 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
         if world:has(entity, comps.Player) then
             player = world:get(entity, comps.Player)
         end
+
+        -- Verify entity has Inventory and Hotbar components
+        if not world:has(entity, comps.Inventory) then
+            warn("[GiveWeaponSkills] Entity missing Inventory component! Initializing...")
+            InventoryManager.initializeInventory(entity, 50)
+        end
+        if not world:has(entity, comps.Hotbar) then
+            warn("[GiveWeaponSkills] Entity missing Hotbar component! Initializing...")
+            InventoryManager.initializeInventory(entity, 50)
+        end
     end
 
+    -- Track hotbar slot assignment
+    local currentHotbarSlot = 1
+
     for skillName, skillData in WeaponSkills do
-        local success, slot = InventoryManager.addItem(
+        local success, inventorySlot = InventoryManager.addItem(
             entity,
             skillName,
             "skill",
@@ -101,20 +114,39 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
         )
 
         if success then
-            print("added skill:", skillName, "to slot:", slot)
+            print("[GiveWeaponSkills] Added skill:", skillName, "to inventory slot:", inventorySlot)
 
-            local hotbarSlot = 1
-            for existingSkill, _ in WeaponSkills do
-                if existingSkill == skillName then
-                    break
-                end
-                hotbarSlot += 1
+            -- Assign to hotbar (max 7 skills on hotbar)
+            if currentHotbarSlot <= 7 then
+                InventoryManager.setHotbarSlot(entity, currentHotbarSlot, inventorySlot)
+                print("[GiveWeaponSkills] Set hotbar slot:", currentHotbarSlot, "to inventory slot:", inventorySlot, "for skill:", skillName)
+                currentHotbarSlot = currentHotbarSlot + 1
+            end
+        else
+            warn("[GiveWeaponSkills] Failed to add skill:", skillName)
+        end
+    end
+
+    -- Verify the inventory was actually updated
+    if RunService:IsServer() then
+        local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+        local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+
+        if world:has(entity, comps.Inventory) and world:has(entity, comps.Hotbar) then
+            local inventory = world:get(entity, comps.Inventory)
+            local hotbar = world:get(entity, comps.Hotbar)
+
+            print("[GiveWeaponSkills] VERIFICATION - Inventory items:")
+            for slot, item in pairs(inventory.items) do
+                print("  Slot", slot, ":", item.name, "(type:", item.typ, ")")
             end
 
-            if hotbarSlot <= 7 then
-                InventoryManager.setHotbarSlot(entity, hotbarSlot, slot)
-                print("set hotbar slot:", hotbarSlot, "to slot:", slot)
+            print("[GiveWeaponSkills] VERIFICATION - Hotbar slots:")
+            for slot, invSlot in pairs(hotbar.slots) do
+                print("  Hotbar", slot, "-> Inventory slot", invSlot)
             end
+        else
+            warn("[GiveWeaponSkills] VERIFICATION FAILED - Missing components!")
         end
     end
 

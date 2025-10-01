@@ -141,7 +141,18 @@ function NpcBrain.init()
 	-- Removed Actor requirement - NPCs run in main Lua VM to access Server.Modules
 	-- Actors force parallel execution which has too many restrictions
 
+	-- Use a throttled update instead of every frame to improve performance
+	local updateInterval = 0.1 -- Update 10 times per second instead of 60
+	local timeSinceLastUpdate = 0
+
 	RunService.Heartbeat:Connect(function(deltaTime: number)
+		timeSinceLastUpdate = timeSinceLastUpdate + deltaTime
+
+		-- Only update at the specified interval
+		if timeSinceLastUpdate < updateInterval then
+			return
+		end
+
 		local npc = script.Parent:FindFirstChildOfClass("Model")
 
 		--local _ = npc and print(`{npc.Name} <- NpcName`)
@@ -150,10 +161,11 @@ function NpcBrain.init()
 		local params: UpdateParams = {
 			npc = npc,
 			npcName = script.Parent.Parent.Name,
-			deltaTime = deltaTime
+			deltaTime = timeSinceLastUpdate -- Use accumulated time
 		}
 
 		NpcBrain._update(params)
+		timeSinceLastUpdate = 0 -- Reset timer
 	end)
 end
 

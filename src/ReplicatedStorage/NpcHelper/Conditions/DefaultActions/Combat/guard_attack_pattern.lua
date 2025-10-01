@@ -14,6 +14,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CombatProperties = require(ReplicatedStorage.Modules.CombatProperties)
+local Library = require(ReplicatedStorage.Modules.Library)
 
 -- Get Server from main VM (Actors have separate module caches, so use _G)
 local function getServer()
@@ -144,7 +145,7 @@ local function executePatternAction(mainConfig, npc, target, distance, currentSt
     elseif currentState == GuardPatterns.COUNTER then
         -- Quick M1 counter - check both cooldown and manual timing
         local lastM1 = mainConfig.GuardPattern.LastM1 or 0
-        local m1Cooldown = 1.2 -- Minimum time between M1 attacks (increased from 0.8)
+        local m1Cooldown = 1.5 -- Balanced cooldown
 
         if os.clock() - lastM1 >= m1Cooldown and not isSkillOnCooldown(npc, "M1") then
             skillToUse = "M1"
@@ -159,7 +160,7 @@ local function executePatternAction(mainConfig, npc, target, distance, currentSt
         else
             -- Check M1 cooldown before using as fallback
             local lastM1 = mainConfig.GuardPattern.LastM1 or 0
-            local m1Cooldown = 1.2 -- Minimum time between M1 attacks (increased from 0.8)
+            local m1Cooldown = 1.5 -- Balanced cooldown
 
             if os.clock() - lastM1 >= m1Cooldown and not isSkillOnCooldown(npc, "M1") then
                 skillToUse = "M1"
@@ -222,6 +223,13 @@ local function executePatternAction(mainConfig, npc, target, distance, currentSt
         end
 
         if skillToUse == "M1" then
+            -- Check if NPC is already in an M1 animation (prevent spam)
+            local actions = npc:FindFirstChild("Actions")
+            if actions and Library.StateCount(actions) then
+                -- NPC is already performing an action, don't spam M1
+                return false
+            end
+
             Combat.Light(npc)
             return true
         elseif skillToUse == "Critical" then

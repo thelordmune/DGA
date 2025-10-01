@@ -7,7 +7,7 @@ local ByteNet = require(script.Parent:WaitForChild("ByteNet"));
 return ByteNet.defineNamespace("Networking", function()
 	return {
 		Visuals = ByteNet.definePacket({
-			reliabilityType = "unreliable";
+			reliabilityType = "reliable"; -- Changed from unreliable to reliable to prevent VFX packet loss
 			value = ByteNet.struct({
 				Module    = ByteNet.string;
 				Function  = ByteNet.string;

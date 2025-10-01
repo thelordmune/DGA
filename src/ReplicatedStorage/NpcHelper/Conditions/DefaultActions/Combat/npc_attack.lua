@@ -2,21 +2,15 @@
 
 -- Main NPC attack function
 return function(actor: Actor, mainConfig: table)
-    print("=== NPC_ATTACK CALLED ===")
-
     local npc = actor:FindFirstChildOfClass("Model")
     if not npc then
-        print("npc_attack: No NPC found")
         return false
     end
 
     local target = mainConfig.getTarget()
     if not target then
-        print("npc_attack:", npc.Name, "- No target found")
         return false
     end
-
-    print("npc_attack:", npc.Name, "has target:", target.Name)
 
     -- Check if target is still valid and in range
     local targetHumanoid = target:FindFirstChild("Humanoid")
@@ -36,19 +30,16 @@ return function(actor: Actor, mainConfig: table)
 
     -- Check attack cooldown
     local lastAttack = mainConfig.States.LastAttack or 0
-    local attackCooldown = 1.5 -- Base cooldown in seconds
+    local attackCooldown = 2.0 -- Balanced base cooldown
 
     -- Reduce cooldown when aggressive for more frequent attacks
     if mainConfig.States and mainConfig.States.AggressiveMode then
-        attackCooldown = attackCooldown * 0.6 -- 40% faster attacks when aggressive
-        print("NPC", npc.Name, "is aggressive - reduced attack cooldown to", attackCooldown)
+        attackCooldown = attackCooldown * 0.75 -- 25% faster attacks when aggressive
     end
 
     if os.clock() - lastAttack < attackCooldown then
         return false
     end
-
-    print("NPC", npc.Name, "attacking target", target.Name, "at range", math.floor(distance))
 
     -- Update last attack time
     mainConfig.States.LastAttack = os.clock()
@@ -63,38 +54,29 @@ return function(actor: Actor, mainConfig: table)
 
     -- Check if modules are loaded
     if not Server.Modules.Entities or not Server.Modules.Combat then
-        warn("Server modules not loaded! Entities:", Server.Modules.Entities, "Combat:", Server.Modules.Combat)
-        print("Available Server.Modules:")
-        for k, v in pairs(Server.Modules) do
-            print("  " .. k .. ":", v)
-        end
         return false
     end
 
     -- Ensure NPC has an entity in the system
     local Entity = Server.Modules.Entities.Get(npc)
     if not Entity then
-        print("Warning: NPC", npc.Name, "does not have an entity - creating one")
         -- Try to create entity for NPC
         Server.Modules.Entities.Init(npc)
         Entity = Server.Modules.Entities.Get(npc)
         if not Entity then
-            print("Error: Could not create entity for NPC", npc.Name)
             return false
         end
     end
 
-    -- Clear any blocking states that might prevent attacking
+    -- Check if NPC is already in an M1 animation (prevent spam)
     local actions = npc:FindFirstChild("Actions")
-    if actions then
-        -- Clear any previous attacking states to prevent blocking
-        Server.Library.RemoveState(actions, "Attacking")
+    if actions and Server.Library.StateCount(actions) then
+        -- NPC is already performing an action, don't spam M1
+        return false
     end
 
     -- Use Combat.Light just like players do
-    print("NPC", npc.Name, "calling Combat.Light with entity:", Entity and "found" or "not found")
     Server.Modules.Combat.Light(npc)
-    print("NPC", npc.Name, "Combat.Light call completed")
 
     return true
 end

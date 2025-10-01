@@ -275,7 +275,7 @@ function Base.DashFX(Character: Model, Direction: string)
 			end),
 		}
 
-		Library.PlaySound(Character, SFX.Dashes[Direction])
+		-- Library.PlaySound(Character, SFX.Dashes[Direction])
 	end
 end
 

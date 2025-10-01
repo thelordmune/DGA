@@ -13,6 +13,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CombatProperties = require(ReplicatedStorage.Modules.CombatProperties)
+local Library = require(ReplicatedStorage.Modules.Library)
 
 -- Get Server from main VM (Actors have separate module caches, so use _G)
 local function getServer()
@@ -43,7 +44,7 @@ local function isSkillOnCooldown(npc, skillName, mainConfig)
     -- For M1, add manual cooldown check to prevent spam
     if skillName == "M1" then
         local lastM1 = mainConfig.States and mainConfig.States.LastM1 or 0
-        local m1Cooldown = 1.2 -- Minimum time between M1 attacks (increased from 0.8)
+        local m1Cooldown = 1.5 -- Balanced cooldown - not too fast, not too slow
 
         if os.clock() - lastM1 < m1Cooldown then
             return true -- Still on cooldown
@@ -197,17 +198,56 @@ return function(actor: Actor, mainConfig: table)
     
     -- Get distance to target
     local distance = getDistanceToTarget(npc, target)
-    
+
+    -- Check if player is blocking
+    local targetActions = target:FindFirstChild("Actions")
+    local playerIsBlocking = false
+    if targetActions then
+        playerIsBlocking = Library.StateCheck(targetActions, "Blocking")
+    end
+
+    -- If player is blocking, prioritize Critical or blockbreak skills
+    if playerIsBlocking then
+        -- Check if we have blockbreak skills available
+        local availableSkills = getAvailableSkills(npc, mainConfig)
+        for _, skillName in ipairs(availableSkills) do
+            local properties = CombatProperties[skillName]
+            if properties and properties.SkillType == "Offensive" then
+                -- Prefer skills that can break blocks
+                if skillName ~= "M1" and skillName ~= "Block" then
+                    -- Execute the skill immediately
+                    local Combat = Server.Modules.Combat
+                    if skillName == "Critical" or skillName == "M2" then
+                        Combat.Critical(npc)
+                        return true
+                    else
+                        local success = mainConfig.performAction(skillName)
+                        if success then
+                            return true
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Fallback to Critical if no skills available
+        local Combat = Server.Modules.Combat
+        if not Library.CheckCooldown(npc, "Critical") then
+            Combat.Critical(npc)
+            return true
+        end
+    end
+
     -- Get available skills
     local availableSkills = getAvailableSkills(npc, mainConfig)
-    
+
     -- Score all skills
     local bestSkill = nil
     local bestScore = 0
-    
+
     for _, skillName in ipairs(availableSkills) do
         local score = scoreSkill(skillName, distance, mainConfig, npc, target)
-        
+
         if score > bestScore then
             bestScore = score
             bestSkill = skillName
@@ -241,6 +281,13 @@ return function(actor: Actor, mainConfig: table)
     local success = false
 
     if bestSkill == "M1" then
+        -- Check if NPC is already in an M1 animation (prevent spam)
+        local actions = npc:FindFirstChild("Actions")
+        if actions and Library.StateCount(actions) then
+            -- NPC is already performing an action, don't spam M1
+            return false
+        end
+
         Combat.Light(npc)
         success = true
         -- Track M1 usage for cooldown

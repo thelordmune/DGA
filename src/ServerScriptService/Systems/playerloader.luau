@@ -246,8 +246,20 @@ playerConnections[player] = player.CharacterAdded:Connect(function(rig)
             world:set(e, comps.Special, false)
             world:set(e, comps.Attack, {type = "None", name = "None"})
             world:set(e, comps.Inventory, {items = {}, maxSlots = 50})
-            
+            world:set(e, comps.Hotbar, {slots = {}, activeSlot = 1})
+
             print(`[Character] Finished initializing {rig.Name} for {player.Name}`)
+
+            -- Give weapon skills AFTER components are initialized
+            local InventorySetup = require(ReplicatedStorage.Modules.Utils.InventorySetup)
+            local weapon = player:GetAttribute("Weapon")
+            if weapon then
+                print(`[Character] Giving weapon skills for {player.Name}, Weapon: {weapon}, Entity: {e}`)
+                InventorySetup.GiveWeaponSkills(e, weapon, player)
+                print(`[Character] Finished giving weapon skills to {player.Name}`)
+            else
+                warn(`[Character] No weapon attribute found for {player.Name}`)
+            end
                         print(`[Character] Preloading assets for {rig.Name}`)
             -- preloadCharacterAssets(rig)
             
