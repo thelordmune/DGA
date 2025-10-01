@@ -354,6 +354,7 @@ end
 function Base.Feint(Character: Model)
 	local highlight = Instance.new("Highlight")
 
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 	highlight.FillColor = Color3.fromRGB(255, 255, 255)
 	highlight.FillTransparency = 0.8
 	highlight.OutlineTransparency = 0.6
@@ -374,6 +375,7 @@ end
 function Base.RollCancel(Character: Model)
 	local highlight = Instance.new("Highlight")
 
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 	highlight.FillColor = Color3.fromRGB(255, 212, 41)
 	highlight.FillTransparency = 0.8
 	highlight.OutlineTransparency = 0.6
@@ -400,6 +402,7 @@ end
 function Base.Stall(Character: Model, Duration: number)
 	local highlight = Instance.new("Highlight")
 
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 	highlight.FillColor = Color3.fromRGB(255, 255, 255)
 	highlight.FillTransparency = 0.4
 	highlight.OutlineTransparency = 0.2
@@ -1126,6 +1129,7 @@ function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, s
 		print("🎯 [Effects.Base] Player is in range, creating proximity UI...")
 
 		local highlight = Instance.new("Highlight")
+		highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 		highlight.FillTransparency = 1
 		highlight.OutlineTransparency = 1
 		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)

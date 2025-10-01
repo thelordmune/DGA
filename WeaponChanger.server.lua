@@ -85,6 +85,7 @@ local function changePlayerWeapon(player, weaponName)
 
     -- Optional: Add visual feedback
     local highlight = Instance.new("Highlight")
+    highlight.DepthMode = Enum.HighlightDepthMode.Occluded
     highlight.FillColor = Color3.fromRGB(0, 255, 0)
     highlight.FillTransparency = 0.5
     highlight.OutlineTransparency = 0.3

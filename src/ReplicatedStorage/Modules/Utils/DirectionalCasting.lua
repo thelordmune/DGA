@@ -34,7 +34,7 @@ local CONFIG = {
 		SIZE = UDim2.fromOffset(200, 200),
 		CENTER_SIZE = UDim2.fromOffset(10, 10),
 		TRIANGLE_SIZE = UDim2.fromOffset(40, 40),
-		DEAD_ZONE = 70,
+		DEAD_ZONE = 50, -- Reduced from 70 to make directions easier to reach
 		MOUSE_SENSITIVITY = 5
 	},
 	CAMERA = {
@@ -146,7 +146,7 @@ end
 -- Create directional triangles
 function DirectionalCasting:_createTriangles()
 	local directions = {
-		{name = "UP", text = "▲", position = UDim2.fromScale(0.5, 0.2)},
+		{name = "UP", text = "▲", position = UDim2.fromScale(0.5, 0.15)}, -- Moved closer to center
 		{name = "DOWN", text = "▼", position = UDim2.fromScale(0.5, 0.8)},
 		{name = "LEFT", text = "◀", position = UDim2.fromScale(0.2, 0.5)},
 		{name = "RIGHT", text = "▶", position = UDim2.fromScale(0.8, 0.5)}
@@ -503,8 +503,11 @@ end
 
 -- Get direction from angle with custom sensitivity zones
 function DirectionalCasting:_getDirectionFromAngle(degrees)
+	-- UP: 225° - 315° (90° range) - Much larger zone, easier to reach
+	if degrees >= 225 and degrees <= 315 then
+		return "UP"
 	-- RIGHT: 315° - 45° (90° range)
-	if degrees >= 315 or degrees <= 45 then
+	elseif degrees >= 315 or degrees <= 45 then
 		return "RIGHT"
 	-- DOWN: 75° - 105° (30° range) - less sensitive
 	elseif degrees >= 75 and degrees <= 105 then
@@ -512,9 +515,6 @@ function DirectionalCasting:_getDirectionFromAngle(degrees)
 	-- LEFT: 135° - 225° (90° range)
 	elseif degrees >= 135 and degrees <= 225 then
 		return "LEFT"
-	-- UP: 240° - 300° (60° range) - easier to reach
-	elseif degrees >= 240 and degrees <= 300 then
-		return "UP"
 	end
 
 	return nil

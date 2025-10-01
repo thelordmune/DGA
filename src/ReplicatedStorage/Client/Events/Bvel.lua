@@ -385,8 +385,7 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 	bv.Velocity = direction * power
 	bv.Parent = eroot
 
-	-- Removed conflicting AssemblyLinearVelocity assignment
-	-- Let BodyVelocity handle the movement to prevent conflicts
+	eroot.AssemblyLinearVelocity = direction * power
 
 	Debris:AddItem(bv, 0.35)
 end

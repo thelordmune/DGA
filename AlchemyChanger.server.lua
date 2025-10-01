@@ -64,6 +64,7 @@ local function changePlayerAlchemy(player, alchemyName)
 
     -- Optional: Add visual feedback with alchemy-themed colors
     local highlight = Instance.new("Highlight")
+    highlight.DepthMode = Enum.HighlightDepthMode.Occluded
 
     -- Different colors for different alchemies
     if alchemyName == "Fire" or alchemyName == "Flame" then

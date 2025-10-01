@@ -52,11 +52,7 @@ return function(Player, Data, Server)
 			lv.MaxForce = math.huge
 			lv.Attachment0 = attachment
 			lv.RelativeTo = Enum.ActuatorRelativeTo.World
-			lv.Name = "DownslamKick" -- Add name for tracking
 			lv.Parent = Character.PrimaryPart
-
-			-- Ensure proper network ownership for smooth movement
-			Character.PrimaryPart:SetNetworkOwner(Player)
 
 			-- Launch forward and up
 			local forwardVector = Character.PrimaryPart.CFrame.LookVector
@@ -69,22 +65,8 @@ return function(Player, Data, Server)
 				local elapsed = os.clock() - startTime
 				local progress = math.min(elapsed / launchDuration, 1)
 
-				-- Add collision detection to prevent going through walls
-				local raycastParams = RaycastParams.new()
-				raycastParams.FilterDescendantsInstances = {Character}
-				raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-
-				local raycastResult = workspace:Raycast(
-					Character.PrimaryPart.Position,
-					forwardVector * 5, -- Check 5 studs ahead
-					raycastParams
-				)
-
-				-- If collision detected, reduce forward speed
-				local collisionMultiplier = raycastResult and 0.2 or 1
-
 				-- Smooth arc trajectory - only forward (Z) and up (Y)
-				local forwardSpeed = 50 * (1 - progress * 0.45) * collisionMultiplier -- Gradual slowdown with collision check
+				local forwardSpeed = 50 * (1 - progress * 0.45) -- Gradual slowdown
 				local verticalSpeed = 120 * (1 - progress) - 150 * progress -- Much higher arc up then down
 
 				lv.VectorVelocity = forwardVector * forwardSpeed + Vector3.new(0, verticalSpeed, 0)

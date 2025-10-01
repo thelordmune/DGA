@@ -11,7 +11,7 @@
 
 return {
     -- BASIC ALCHEMY (All Types)
-    ["Construct"] = "DU",              -- Down -> Up (foundation building)
+    ["Construct"] = "DU",              -- Down -> Up (foundation \building)
 
     -- STONE ALCHEMY
     ["Cascade"] = "DLR",               -- Down -> Left -> Right (falling rocks)
