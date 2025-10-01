@@ -58,6 +58,13 @@ Library.StopAnimation = function(Char: Model,Name, Table)
 		if type(anim) == "string" then
 			anim = Replicated:WaitForChild("Assets").Animations:FindFirstChild(Name, true)
 		end
+
+		-- If animation not found, just return instead of trying to load nil
+		if not anim then
+			warn(`Animation "{Name}" not found in Assets.Animations (StopAnimation)`)
+			return
+		end
+
 		Animations[Char][Name] = Char.Humanoid.Animator:LoadAnimation(anim)
 	end
 

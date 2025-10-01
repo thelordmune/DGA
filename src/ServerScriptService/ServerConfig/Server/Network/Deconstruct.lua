@@ -129,6 +129,43 @@ NetworkModule.EndPoint = function(Player, Data)
 							-- Replace the debris velocity section with this:
 							for _, v in pairs(parts) do
 								if v:IsA("BasePart") then
+									-- Add trail to the debris part
+									local attachment0 = Instance.new("Attachment")
+									attachment0.Name = "TrailAttachment0"
+									attachment0.Position = Vector3.new(0, v.Size.Y/2, 0)
+									attachment0.Parent = v
+
+									local attachment1 = Instance.new("Attachment")
+									attachment1.Name = "TrailAttachment1"
+									attachment1.Position = Vector3.new(0, -v.Size.Y/2, 0)
+									attachment1.Parent = v
+
+									local trail = Instance.new("Trail")
+									trail.Attachment0 = attachment0
+									trail.Attachment1 = attachment1
+
+									-- Match the part color exactly
+									trail.Color = ColorSequence.new(v.Color)
+									trail.Transparency = NumberSequence.new({
+										NumberSequenceKeypoint.new(0, 0.3),   -- More transparent at start
+										NumberSequenceKeypoint.new(0.7, 0.6), -- Fade more
+										NumberSequenceKeypoint.new(1, 1)      -- Fully transparent at end
+									})
+									trail.Lifetime = 2.0  -- Long trail
+									trail.MinLength = 0   -- Show trail even for small movements
+
+									-- Make trail wider and more visible
+									trail.WidthScale = NumberSequence.new({
+										NumberSequenceKeypoint.new(0, 1.5),   -- Wider at start
+										NumberSequenceKeypoint.new(0.5, 1.2), -- Stay wide in middle
+										NumberSequenceKeypoint.new(1, 0.4)    -- Taper at end
+									})
+
+									trail.FaceCamera = true
+									trail.LightEmission = 0  -- No glow - use actual part color
+									trail.LightInfluence = 1 -- Fully affected by lighting to match part
+									trail.Parent = v
+
 									-- Create a connection to update the hitbox as the part moves
 									local hitConnection
 									hitConnection = RunService.PostSimulation:Connect(function()

@@ -171,14 +171,27 @@ return function(Player, Data, Server)
 						local trail = Instance.new("Trail")
 						trail.Attachment0 = attachment0
 						trail.Attachment1 = attachment1
+
+						-- Match the part color exactly
 						trail.Color = ColorSequence.new(part.Color)
 						trail.Transparency = NumberSequence.new({
-							NumberSequenceKeypoint.new(0, 0.5),
-							NumberSequenceKeypoint.new(1, 1)
+							NumberSequenceKeypoint.new(0, 0.3),   -- More transparent at start
+							NumberSequenceKeypoint.new(0.7, 0.6), -- Fade more
+							NumberSequenceKeypoint.new(1, 1)      -- Fully transparent at end
 						})
-						trail.Lifetime = 0.5
-						trail.MinLength = 0.1
+						trail.Lifetime = 2.0  -- Long trail
+						trail.MinLength = 0   -- Show trail even for small movements
+
+						-- Make trail wider and more visible
+						trail.WidthScale = NumberSequence.new({
+							NumberSequenceKeypoint.new(0, 1.5),   -- Wider at start
+							NumberSequenceKeypoint.new(0.5, 1.2), -- Stay wide in middle
+							NumberSequenceKeypoint.new(1, 0.4)    -- Taper at end
+						})
+
 						trail.FaceCamera = true
+						trail.LightEmission = 0  -- No glow - use actual part color
+						trail.LightInfluence = 1 -- Fully affected by lighting to match part
 						trail.Parent = part
 
 						-- Create velocity to fling parts forward
