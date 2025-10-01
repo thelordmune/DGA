@@ -400,6 +400,7 @@ connection = RunService.Heartbeat:Connect(function()
 	if isCasting or true then
 		local targetTriangle = getTriangleFromMousePosition()
 		highlightTriangle(targetTriangle)
+		print("highlighting stuff")
 	end
 end)
 
