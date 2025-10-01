@@ -38,7 +38,7 @@ local CONFIG = {
 		MOUSE_SENSITIVITY = 5
 	},
 	CAMERA = {
-		CASTING_SENSITIVITY = 0.5 -- Reduce camera sensitivity to 20% during casting
+		CASTING_SENSITIVITY = 0.36 -- Reduce camera sensitivity to 20% during casting
 	},
 	COLORS = {
 		inactive = Color3.fromRGB(100, 100, 100),
