@@ -309,9 +309,16 @@ Combat.Critical = function(Character: Model)
 						local duration = 1.0
 						local maxDistance = 35
 				task.spawn(function()
-					
+
 							local movingTargets = {}
 							local hitboxSize = wall.Size + Vector3.new(3, 3, 3)
+
+							-- Create dust particles on the wall as it slides
+							Server.Visuals.Ranged(wall.Position, 300, {
+								Module = "Base",
+								Function = "WallSlideDust",
+								Arguments = {wall, duration}
+							})
 
 							while os.clock() - startTime < duration do
 								local elapsed = os.clock() - startTime

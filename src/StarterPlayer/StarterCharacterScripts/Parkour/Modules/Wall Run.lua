@@ -10,6 +10,7 @@ local Camera = workspace.CurrentCamera
 -- // requires
 local Maid = require(Utils.Maid)
 local Raycast = require(Utils.Raycast)
+local Base = require(ReplicatedStorage.Effects.Base)
 
 local Sliding = {}
 Sliding.__index = Sliding
@@ -23,12 +24,23 @@ function Sliding.new(Parkour)
 	self.RunSpeed = 25
 	self.WallRunDuration = 3
 	self.Side = nil
+	self.JustWallJumped = false
+	self.WallJumpTime = 0
 
 	local range = 8
 	self.Directions = {
 		Left = -range,
 		Right = range
 	}
+
+	-- Listen for space bar to perform camera-based air dash after wall jump
+	UIS.InputBegan:Connect(function(input, gameProcessedEvent)
+		if gameProcessedEvent then return end
+
+		if input.KeyCode == Enum.KeyCode.Space then
+			self:TryAirDash()
+		end
+	end)
 
 	return self
 end
@@ -46,6 +58,9 @@ function Sliding:_stopWallrunning()
 	AnimationService:Stop('Wall Run Left')
 
 	RootPart.AssemblyLinearVelocity = Vector3.zero
+
+	-- Stop wall run dust particles
+	Base.StopWallRunDust(Character)
 
 	self.Parent.Busy = false
 end
@@ -70,6 +85,15 @@ function Sliding:Start()
 
 		RootPart.AssemblyLinearVelocity = (self.CrossVector + self.Normal + Vector3.yAxis) * 50
 		AnimationService:Play('Wall Jump Run '.. Inverse[self.Side])
+
+		-- Mark that we just wall jumped to enable air dash
+		self.JustWallJumped = true
+		self.WallJumpTime = tick()
+
+		-- Reset the flag after a short window
+		task.delay(1.5, function()
+			self.JustWallJumped = false
+		end)
 
 		self.Side = nil
 		return
@@ -170,14 +194,56 @@ function Sliding:Start()
 
 		local verticalOffset = (2 - elapsed) * dt
 		BP.Position = Raycast.Position + Raycast.Normal * 1.5 + Vector3.yAxis * verticalOffset
-		BG.CFrame = CFrame.new(Vector3.zero, CrossVector) 
+		BG.CFrame = CFrame.new(Vector3.zero, CrossVector)
 		ghostPart.CFrame = BG.CFrame + BP.Position
+
+		-- Update wall run dust particles
+		local wallColor = Raycast.Instance.Color or Color3.fromRGB(150, 150, 150)
+		Base.WallRunDust(Character, Raycast.Position, Raycast.Normal, wallColor)
 
 		elapsed += dt
 	end)
 end
 
 function Sliding:End()
+end
+
+function Sliding:TryAirDash()
+	local Character: Model = self.Character
+	local RootPart: BasePart = Character.HumanoidRootPart
+	local Humanoid: Humanoid = Character.Humanoid
+
+	-- Check if we can air dash (just wall jumped and in air)
+	if not self.JustWallJumped then
+		return
+	end
+
+	if Humanoid.FloorMaterial ~= Enum.Material.Air then
+		return
+	end
+
+	-- Get camera direction (full 3D, including up/down)
+	local Camera = workspace.CurrentCamera
+	local cameraLookVector = Camera.CFrame.LookVector
+
+	-- Use the full camera look vector for true directional dashing
+	local dashDirection = cameraLookVector.Unit
+
+	-- Apply velocity in camera direction
+	local dashSpeed = 70
+	local dashVelocity = dashDirection * dashSpeed
+
+	RootPart.AssemblyLinearVelocity = dashVelocity
+
+	-- Play forward dash animation (WDash)
+	local ReplicatedStorage = game:GetService('ReplicatedStorage')
+	local Library = require(ReplicatedStorage.Modules.Library)
+	Library.PlayAnimation(Character, ReplicatedStorage.Assets.Animations.Dashes.Forward)
+
+	-- Reset the wall jump flag so we can only dash once per wall jump
+	self.JustWallJumped = false
+
+	print("Air dashing in camera direction:", dashDirection)
 end
 
 return Sliding

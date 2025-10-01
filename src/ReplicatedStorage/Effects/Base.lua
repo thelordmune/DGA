@@ -93,6 +93,29 @@ function Base.CriticalIndicator(Character: Model)
 			end
 		end
 	end
+
+	-- Add red highlight effect
+	local highlight = Instance.new("Highlight")
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+	highlight.FillColor = Color3.fromRGB(255, 0, 0)
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0.3
+	highlight.OutlineColor = Color3.fromRGB(255, 50, 50)
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.Parent = Character
+
+	local TInfo = TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut, 0)
+
+	task.delay(0.1, function()
+		local hTween = TweenService:Create(highlight, TInfo, {
+			OutlineTransparency = 1,
+			FillTransparency = 1,
+		})
+		hTween:Play()
+		hTween.Completed:Connect(function()
+			highlight:Destroy()
+		end)
+	end)
 end
 
 function Base.Clash(Character: Model, Enemy: Model)
@@ -265,6 +288,97 @@ function Base.EndDashFX(Character: Model)
 		Table.Instance.Anchored = true
 
 		Base[Character.Name .. "DashVFX"] = nil
+	end
+end
+
+function Base.WallSlideDust(wall: BasePart, duration: number)
+	-- Clone the dash particles to use for wall sliding
+	local DashVFX = Replicated.Assets.VFX.DashFX:Clone()
+	DashVFX.Parent = workspace.World.Visuals
+	DashVFX.Anchored = true
+	DashVFX.CanCollide = false
+
+	-- Position at the wall
+	DashVFX.CFrame = wall.CFrame
+
+	-- Color the particles based on wall color
+	for _, particleEmitter in ipairs(DashVFX:GetDescendants()) do
+		if particleEmitter:IsA("ParticleEmitter") then
+			particleEmitter.Color = ColorSequence.new(wall.Color)
+			particleEmitter.Enabled = true
+		end
+	end
+
+	-- Track the wall and emit particles as it moves
+	local startTime = os.clock()
+	local connection
+	connection = game:GetService("RunService").Heartbeat:Connect(function()
+		local elapsed = os.clock() - startTime
+		if elapsed >= duration or not wall or not wall.Parent then
+			-- Stop emitting and clean up
+			for _, particleEmitter in ipairs(DashVFX:GetDescendants()) do
+				if particleEmitter:IsA("ParticleEmitter") then
+					particleEmitter.Enabled = false
+				end
+			end
+			connection:Disconnect()
+			Debris:AddItem(DashVFX, 2)
+			return
+		end
+
+		-- Update position to follow the wall
+		DashVFX.CFrame = wall.CFrame
+	end)
+end
+
+function Base.WallRunDust(Character: Model, wallPosition: Vector3, wallNormal: Vector3, wallColor: Color3)
+	-- Create a unique key for this character's wall run dust
+	local dustKey = Character.Name .. "WallRunDust"
+
+	-- If dust already exists, just update its position
+	if Base[dustKey] then
+		Base[dustKey].CFrame = CFrame.new(wallPosition, wallPosition + wallNormal)
+		return Base[dustKey]
+	end
+
+	-- Clone the dash particles to use for wall running
+	local DashVFX = Replicated.Assets.VFX.DashFX:Clone()
+	DashVFX.Parent = workspace.World.Visuals
+	DashVFX.Anchored = true
+	DashVFX.CanCollide = false
+	DashVFX.Size = Vector3.new(1, 1, 1)
+	DashVFX.Transparency = 1
+
+	-- Position at the wall contact point
+	DashVFX.CFrame = CFrame.new(wallPosition, wallPosition + wallNormal)
+
+	-- Color the particles based on wall color
+	for _, particleEmitter in ipairs(DashVFX:GetDescendants()) do
+		if particleEmitter:IsA("ParticleEmitter") then
+			particleEmitter.Color = ColorSequence.new(wallColor)
+			particleEmitter.Enabled = true
+		end
+	end
+
+	Base[dustKey] = DashVFX
+
+	return DashVFX
+end
+
+function Base.StopWallRunDust(Character: Model)
+	local dustKey = Character.Name .. "WallRunDust"
+
+	if Base[dustKey] then
+		-- Stop emitting particles
+		for _, particleEmitter in ipairs(Base[dustKey]:GetDescendants()) do
+			if particleEmitter:IsA("ParticleEmitter") then
+				particleEmitter.Enabled = false
+			end
+		end
+
+		-- Clean up after particles fade
+		Debris:AddItem(Base[dustKey], 2)
+		Base[dustKey] = nil
 	end
 end
 
