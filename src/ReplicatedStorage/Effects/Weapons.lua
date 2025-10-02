@@ -739,7 +739,7 @@ function Weapons.DropKick(Character: Model, Frame: string)
     if Frame == "Start" then
         local eff = VFX.DropKick.grndemit:Clone()
         eff.Parent = workspace.World.Visuals
-        eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5)
+        eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
         for _, v in eff:GetDescendants() do
             if v:IsA("ParticleEmitter") then
                 v:Emit(v:GetAttribute("EmitCount"))
@@ -1044,7 +1044,8 @@ local ActiveCameraEffects = {}
 function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: boolean)
 	local color = Variant == "BF" and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(97, 174, 239)
 
-	local eff = VFX.DropKick.lasthit:Clone()
+	-- Use Blackflash effect for BF variant, otherwise use lasthit
+	local eff = Variant == "BF" and VFX.DropKick.Blackflash:Clone() or VFX.DropKick.lasthit:Clone()
 	eff.Parent = workspace.World.Visuals
 	eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
 
@@ -1055,7 +1056,7 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 			if v:GetAttribute("Color") then
 				v.Color = ColorSequence.new(color)
 				if Variant == "BF" then
-					v.LightEmission = -2.5
+					v.LightEmission = -6
 				end
 			end
 			v:Emit(v:GetAttribute("EmitCount"))
@@ -1065,14 +1066,14 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 
 	dkimpactmesh(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
 
-	-- If we should freeze particles, store them and tween timescale to 0
+	-- If we should freeze particles, store them and tween timescale to very slow
 	if FreezeParticles then
 		ActiveDKImpactParticles[Character] = particles
 
-		-- Tween all particles to timescale 0 over 0.5 seconds
+		-- Tween all particles to slower timescale (0.3 = 30% speed) over 0.5 seconds
 		for _, particle in ipairs(particles) do
 			local tween = TweenService:Create(particle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				TimeScale = 0
+				TimeScale = 0.3  -- Slowed down but still visible motion
 			})
 			tween:Play()
 		end
@@ -1096,52 +1097,59 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 			-- Get character root part
 			local rootPart = Character.HumanoidRootPart
 
-			-- Create color correction for flash effect
+			-- Create color correction for flash effect with inversion
 			local colorCorrection = Instance.new("ColorCorrectionEffect")
 			colorCorrection.Parent = game:GetService("Lighting")
 			colorCorrection.Saturation = 0
 			colorCorrection.TintColor = Color3.fromRGB(255, 255, 255)
 			colorCorrection.Brightness = 0
 
-			-- Multiple quick flashes followed by slow fade
-			-- Flash 1: Quick white flash
-			local flash1 = TweenService:Create(colorCorrection, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Brightness = 0.5,
-				Saturation = -0.5
-			})
-
-			-- Flash 2: Quick red tint flash
-			local flash2 = TweenService:Create(colorCorrection, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Brightness = 0,
+			-- Fast snappy flash effect - JJK Black Flash style
+			-- Flash 1: Instant bright white flash
+			local flash1 = TweenService:Create(colorCorrection, TweenInfo.new(0.03, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Brightness = 0, -- Bright white flash
 				Saturation = -1,
-				TintColor = Color3.fromRGB(255, 80, 80)
+				Contrast = -30,
+				TintColor = Color3.fromRGB(255,255,255)
 			})
 
-			-- Flash 3: Stronger red flash
-			local flash3 = TweenService:Create(colorCorrection, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Brightness = 0.4,
+			-- Flash 2: Quick invert with red
+			local flash2 = TweenService:Create(colorCorrection, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Brightness = -0.3, -- Inversion
+				Saturation = -1, -- High saturation
+				Contrast = -1,
+				TintColor = Color3.fromRGB(255,255,255) -- Red tint
+			})
+
+			-- Flash 3: Quick fade out
+			local flash3 = TweenService:Create(colorCorrection, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 				Saturation = -1,
-				TintColor = Color3.fromRGB(255, 100, 100)
-			})
-
-			-- Final slow fade out
-			local flashFadeOut = TweenService:Create(colorCorrection, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				Saturation = 0,
-				Brightness = 0,
+				Brightness = -0.3,
+				Contrast = -2,
 				TintColor = Color3.fromRGB(255, 255, 255)
 			})
 
-			-- Chain the flashes
+			-- Store shake offset that will be applied in pan loop
+			local shakeOffset = CFrame.new()
+
+			-- Chain the flashes (fast JJK-style)
 			flash1:Play()
 			flash1.Completed:Connect(function()
 				flash2:Play()
 				flash2.Completed:Connect(function()
 					flash3:Play()
 					flash3.Completed:Connect(function()
-						flashFadeOut:Play()
-						flashFadeOut.Completed:Connect(function()
-							colorCorrection:Destroy()
+						-- Start camera shake immediately after flash
+						print("camera shake starting after flash...")
+
+						-- Create shake that updates the offset
+						local camShake = CameraShakeModule.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
+							shakeOffset = shakeCf
 						end)
+						camShake:Start()
+						camShake:ShakeOnce(7, 14, 0, 0.8, Vector3.new(1.5, 2, 1.5), Vector3.new(0.34, 0.25, 0.34))
+
+						colorCorrection:Destroy()
 					end)
 				end)
 			end)
@@ -1190,8 +1198,9 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 					* CFrame.Angles(verticalAngle, horizontalAngle, 0) -- Added vertical angle
 					* CFrame.new(0, baseHeight, distance)
 
-				-- Look at character's upper body
-				Camera.CFrame = CFrame.lookAt(offset.Position, currentCharPos + Vector3.new(0, 2, 0))
+				-- Look at character's upper body, then apply shake offset if active
+				local baseCFrame = CFrame.lookAt(offset.Position, currentCharPos + Vector3.new(0, 2, 0))
+				Camera.CFrame = baseCFrame * shakeOffset
 			end)
 
 			-- Store cleanup data
@@ -1206,7 +1215,7 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 		end
 	end
 
-	task.delay(3, function()
+	task.delay(5, function()
 		eff:Destroy()
 	end)
 end

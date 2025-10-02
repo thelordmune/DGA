@@ -168,7 +168,16 @@ local Table = {
 			LightKnockback = false,
 			M2 = false,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.8, -- Increased from 0.4 to 0.8 for better NPC stun
+			Stun = 1.5, -- Stun target and prevent attacks
+            },
+			["BFDamageTable"] = {
+			BlockBreak = true, -- BF variant breaks block
+			Damage = 15, -- Increased damage for BF variant
+			PostureDamage = 35, -- Increased posture damage
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.RunningHit.Attachment,
+			Stun = 2.5, -- Longer stun for BF variant
             },
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTime"] = {20/189, 47/189, 90/189, 113/189, 55/189, 73/189}

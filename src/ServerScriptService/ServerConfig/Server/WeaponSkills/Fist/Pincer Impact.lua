@@ -3,6 +3,7 @@ local Replicated = game:GetService("ReplicatedStorage")
 local Library = require(Replicated.Modules.Library)
 local Skills = require(ServerStorage.Stats._Skills)
 local RunService = game:GetService("RunService")
+local SFX = Replicated:WaitForChild("Assets").SFX
 
 local Global = require(Replicated.Modules.Shared.Global)
 return function(Player, Data, Server)
@@ -41,22 +42,24 @@ return function(Player, Data, Server)
 
 		-- Calculate keyframe times (assuming 60 FPS animation)
 		local fps = 60
-		-- TESTING: Expanded window from keyframes 98-107 to 90-115 (25 frames instead of 9)
-		local keyframe98Time = (90 / fps)  -- Was 98
-		local keyframe107Time = (115 / fps)  -- Was 107
+		-- Input window from keyframes 98-107 (9 frames)
+		local keyframe98Time = (98 / fps)
+		local keyframe107Time = (107 / fps)
 
-		print(`[PINCER IMPACT] Input window: {keyframe98Time}s to {keyframe107Time}s (duration: {keyframe107Time - keyframe98Time}s)`)
-		print(`[PINCER IMPACT] PlayerObject exists: {PlayerObject ~= nil}`)
-		print(`[PINCER IMPACT] PlayerObject.Keys exists: {PlayerObject and PlayerObject.Keys ~= nil}`)
-		if PlayerObject and PlayerObject.Keys then
-			print("[PINCER IMPACT] 📋 All available keys in PlayerObject.Keys:")
-			for key, value in pairs(PlayerObject.Keys) do
-				print(`  - {key} = {value}`)
-			end
-		end
+		-- print(`[PINCER IMPACT] Input window: {keyframe98Time}s to {keyframe107Time}s (duration: {keyframe107Time - keyframe98Time}s)`)
+		-- print(`[PINCER IMPACT] PlayerObject exists: {PlayerObject ~= nil}`)
+		-- print(`[PINCER IMPACT] PlayerObject.Keys exists: {PlayerObject and PlayerObject.Keys ~= nil}`)
+		-- if PlayerObject and PlayerObject.Keys then
+		-- 	-- print("[PINCER IMPACT] 📋 All available keys in PlayerObject.Keys:")
+		-- 	for key, value in pairs(PlayerObject.Keys) do
+		-- 		-- print(`  - {key} = {value}`)
+		-- 	end
+		-- end
 
-		print(tostring(hittimes[1]))
+		-- print(tostring(hittimes[1]))
         task.delay(hittimes[1], function()
+
+            Server.Library.PlaySound(Char, SFX.PI.Start)
             Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
 					Module = "Base",
 					Function = "AlchemicAssault",
@@ -71,23 +74,23 @@ return function(Player, Data, Server)
             Server.Library.TimedState(Char.Speeds, "AlcSpeed-6", Move.Length - hittimes[1])
         end)
 
-        print(tostring(hittimes[3]-hittimes[2]) .. "this is the ptbvel 1 duration")
+        -- print(tostring(hittimes[3]-hittimes[2]) .. "this is the ptbvel 1 duration")
 
         task.delay(hittimes[2], function()
             Server.Packets.Bvel.sendTo({Character = Char, Name = "PIBvel"}, Player)
         end)
 
-        print(tostring(hittimes[4]-hittimes[3]) .. "this is the ptbvel 2 duration")
+        -- print(tostring(hittimes[4]-hittimes[3]) .. "this is the ptbvel 2 duration")
 
         task.delay(hittimes[3], function()
-            Server.Library.TimedState(Char.Stuns, "NoRotate", hittimes[4])
+            Server.Library.PlaySound(Char, SFX.PI.Leap)
             Server.Packets.Bvel.sendTo({Character = Char, Name = "PIBvel2"}, Player)
         end)
 
-		-- Start input window at keyframe 90 (TESTING - was 98)
+		-- Start input window at keyframe 98
 		task.delay(keyframe98Time, function()
 			inputWindowActive = true
-			print("[PINCER IMPACT] ✅ Input window OPENED at keyframe 90 (TESTING)")
+			-- print("[PINCER IMPACT] ✅ Input window OPENED at keyframe 98")
 
 			-- Show highlight to indicate input window
 			Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
@@ -97,10 +100,10 @@ return function(Player, Data, Server)
 			})
 		end)
 
-		-- End input window at keyframe 115 (TESTING - was 107)
+		-- End input window at keyframe 107
 		task.delay(keyframe107Time, function()
 			inputWindowActive = false
-			print("[PINCER IMPACT] ❌ Input window CLOSED at keyframe 115 (TESTING)")
+			-- print("[PINCER IMPACT] ❌ Input window CLOSED at keyframe 107")
 
 			-- Remove highlight
 			Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
@@ -113,39 +116,39 @@ return function(Player, Data, Server)
 		-- Listen for M1 input during the window
 		local m1Connection
 		local frameCount = 0
-		local printedKeys = false
+		local -- printedKeys = false
 		m1Connection = RunService.Heartbeat:Connect(function()
 			if not Char or not Char.Parent then
-				print("[PINCER IMPACT] ⚠️ Character missing, disconnecting M1 listener")
+				-- print("[PINCER IMPACT] ⚠️ Character missing, disconnecting M1 listener")
 				m1Connection:Disconnect()
 				return
 			end
 
-			-- Debug: Print all keys once when window opens
-			if inputWindowActive and not printedKeys then
-				printedKeys = true
-				print("[PINCER IMPACT] 📋 Keys during window:")
-				if PlayerObject.Keys then
-					for key, value in pairs(PlayerObject.Keys) do
-						print(`  - {key} = {value}`)
-					end
-				end
-			end
+			-- Debug: -- print all keys once when window opens
+			-- if inputWindowActive and not -- printedKeys then
+			-- 	-- printedKeys = true
+			-- 	-- print("[PINCER IMPACT] 📋 Keys during window:")
+			-- 	if PlayerObject.Keys then
+			-- 		for key, value in pairs(PlayerObject.Keys) do
+			-- 			-- print(`  - {key} = {value}`)
+			-- 		end
+			-- 	end
+			-- end
 
-			-- Debug: Print status every 10 frames during window
+			-- Debug: -- print status every 10 frames during window
 			if inputWindowActive then
 				frameCount = frameCount + 1
 				if frameCount % 10 == 0 then
 					-- Check the Attack key (M1 is called "Attack" in PlayerObject.Keys)
 					local attackState = PlayerObject.Keys and PlayerObject.Keys.Attack
-					print(`[PINCER IMPACT] 🔍 Checking... Window Active: {inputWindowActive}, Attack key: {attackState}`)
+					-- print(`[PINCER IMPACT] 🔍 Checking... Window Active: {inputWindowActive}, Attack key: {attackState}`)
 				end
 			end
 
 			-- Check if player is pressing Attack (M1) during the input window
 			if inputWindowActive and PlayerObject.Keys and PlayerObject.Keys.Attack then
 				pressedM1 = true
-				print("[PINCER IMPACT] 🎯 SUCCESS! Attack key pressed during input window! Will use BF variant.")
+				-- print("[PINCER IMPACT] 🎯 SUCCESS! Attack key pressed during input window! Will use BF variant.")
 				m1Connection:Disconnect()
 			end
 		end)
@@ -162,9 +165,9 @@ return function(Player, Data, Server)
 			local variant = pressedM1 and "BF" or "None"
 
 			if pressedM1 then
-				print(`[PINCER IMPACT] 💥 Sending DKImpact with variant: {variant} (RED - Player hit the timing!)`)
+				-- print(`[PINCER IMPACT] 💥 Sending DKImpact with variant: {variant} (RED - Player hit the timing!)`)
 			else
-				print(`[PINCER IMPACT] 💨 Sending DKImpact with variant: {variant} (BLUE - Player missed the timing)`)
+				-- print(`[PINCER IMPACT] 💨 Sending DKImpact with variant: {variant} (BLUE - Player missed the timing)`)
 			end
 
 			-- Create hitbox at impact
@@ -181,26 +184,80 @@ return function(Player, Data, Server)
 
 				local hitSomeone = false
 				local hitTargets = {}
+
+				-- Choose damage table based on variant
+				local damageTable = pressedM1 and Skills[Weapon][script.Name]["BFDamageTable"] or Skills[Weapon][script.Name]["DamageTable"]
+
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Char and Target:IsA("Model") then
-						Server.Modules.Damage.Tag(Char, Target, Skills[Weapon][script.Name]["DamageTable"])
-						print("Pincer Impact hit:", Target.Name)
+						Server.Modules.Damage.Tag(Char, Target, damageTable)
+						-- print(`Pincer Impact hit: {Target.Name} with variant: {variant}`)
 						hitSomeone = true
 						table.insert(hitTargets, Target)
+
+						-- Stun target and prevent attacks for both variants
+						Server.Library.TimedState(Target.Actions, "PincerImpactStun", damageTable.Stun)
+						Server.Library.TimedState(Target.Stuns, "NoAttack", damageTable.Stun)
 					end
 				end
 
-				-- If hit someone, pause animation and slow particles
-				if hitSomeone then
-					print("[PINCER IMPACT] 🎯 Hit detected! Pausing animation and particles...")
+				-- If hit someone with BF variant, do cinematic cutscene
+				if hitSomeone and pressedM1 then
+                    Server.Library.PlaySound(Char, SFX.PI.Hit)
+                    Server.Library.PlaySound(Char, SFX.PI.Impact)
+                    Server.Library.PlaySound(Char, SFX.PI.Impact2)
+                    Server.Library.PlaySound(Char, SFX.PI.Impact3)
+                    task.delay(.2, function()
+                    Server.Library.PlaySound(Char, SFX.PI.Impact4)
+                end)
+					-- print("[PINCER IMPACT] 🎯 BF Hit detected! Starting cinematic cutscene...")
+
+					-- Lock attacker's rotation and position
+					local attackerCFrame = Char.HumanoidRootPart.CFrame
+					local attackerAnchor = Instance.new("BodyPosition")
+					attackerAnchor.Position = attackerCFrame.Position
+					attackerAnchor.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+					attackerAnchor.P = 10000
+					attackerAnchor.D = 500
+					attackerAnchor.Parent = Char.HumanoidRootPart
+
+					local attackerGyro = Instance.new("BodyGyro")
+					attackerGyro.CFrame = attackerCFrame
+					attackerGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+					attackerGyro.P = 10000
+					attackerGyro.D = 500
+					attackerGyro.Parent = Char.HumanoidRootPart
+
+					-- Add NoRotate stun during freeze
+					Server.Library.TimedState(Char.Stuns, "NoRotate", 1)
 
 					-- Pause attacker's animation by setting speed to 0
 					Move:AdjustSpeed(0)
 
-					-- Pause all hit targets' animations
+					-- Pause all hit targets' animations and lock them in place
 					local targetAnimTracks = {}
+					local targetLocks = {}
 					for _, Target in ipairs(hitTargets) do
 						if Target:FindFirstChild("Humanoid") and Target.Humanoid:FindFirstChild("Animator") then
+							-- Lock target position and rotation
+							local targetCFrame = Target.HumanoidRootPart.CFrame
+							local targetAnchor = Instance.new("BodyPosition")
+							targetAnchor.Position = targetCFrame.Position
+							targetAnchor.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+							targetAnchor.P = 10000
+							targetAnchor.D = 500
+							targetAnchor.Parent = Target.HumanoidRootPart
+
+							local targetGyro = Instance.new("BodyGyro")
+							targetGyro.CFrame = targetCFrame
+							targetGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+							targetGyro.P = 10000
+							targetGyro.D = 500
+							targetGyro.Parent = Target.HumanoidRootPart
+
+							targetLocks[Target] = {anchor = targetAnchor, gyro = targetGyro}
+
+							-- Pause animations
 							local tracks = Target.Humanoid.Animator:GetPlayingAnimationTracks()
 							targetAnimTracks[Target] = {}
 							for _, track in ipairs(tracks) do
@@ -222,8 +279,22 @@ return function(Player, Data, Server)
 					-- Wait 1 second (increased from 0.5)
 					task.wait(1)
 
+					-- Remove attacker's position/rotation locks
+					attackerAnchor:Destroy()
+					attackerGyro:Destroy()
+
 					-- Resume attacker's animation
 					Move:AdjustSpeed(1)
+
+					-- Remove target locks and resume animations
+					for _, locks in pairs(targetLocks) do
+						if locks.anchor then
+							locks.anchor:Destroy()
+						end
+						if locks.gyro then
+							locks.gyro:Destroy()
+						end
+					end
 
 					-- Resume all hit targets' animations
 					for _, tracks in pairs(targetAnimTracks) do
@@ -240,6 +311,14 @@ return function(Player, Data, Server)
 						Function = "DKImpactResume",
 						Arguments = { Char },
 					})
+				elseif hitSomeone and not pressedM1 then
+					-- Hit with None variant - just play VFX, no cutscene
+					-- print("[PINCER IMPACT] 💨 None variant hit - no cutscene")
+					Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
+						Module = "Weapons",
+						Function = "DKImpact",
+						Arguments = { Char, variant, false}, -- false = don't freeze
+					})
 				else
 					-- No hit, just play normal VFX
 					Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
@@ -252,6 +331,7 @@ return function(Player, Data, Server)
         end)
 
         task.delay(hittimes[5], function()
+            Server.Library.PlaySound(Char, SFX.PI.Left)
             Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
 					Module = "Weapons",
 					Function = "DropKick",
@@ -259,6 +339,7 @@ return function(Player, Data, Server)
 				})
         end)
         task.delay(hittimes[6], function()
+            Server.Library.PlaySound(Char, SFX.PI.Right)
             Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
 					Module = "Weapons",
 					Function = "DropKick",
