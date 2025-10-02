@@ -1,6 +1,6 @@
 return {
 	--// Information
-	["Weapon"] = "Spear",
+	["Weapon"] = "Fist",
 	["Alchemy"] = "Flame",
 	["Inventory"] = {},
 	["Emotes"] = {},

@@ -1,6 +1,6 @@
 local ServerStorage = game:GetService("ServerStorage")
 local Replicated = game:GetService("ReplicatedStorage")
-local Server 
+local Server
 local Utilities = require(Replicated.Modules.Utilities)
 local Library = require(Replicated.Modules.Library)
 local Packets = require(Replicated.Modules.Packets)
@@ -11,7 +11,8 @@ local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 
-local NetworkModule = {}; local Server = require(script.Parent.Parent);
+local NetworkModule = {}
+local Server = require(script.Parent.Parent)
 NetworkModule.__index = NetworkModule
 local self = setmetatable({}, NetworkModule)
 
@@ -32,12 +33,14 @@ end
 
 local function getFloorMaterial(character)
 	local root = character:FindFirstChild("HumanoidRootPart")
-	if not root then return nil, nil end
+	if not root then
+		return nil, nil
+	end
 
 	local rayOrigin = root.Position
 	local rayDirection = Vector3.new(0, -10, 0)
 	local raycastParams = RaycastParams.new()
-	raycastParams.FilterDescendantsInstances = {character}
+	raycastParams.FilterDescendantsInstances = { character }
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 
 	local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
@@ -52,18 +55,22 @@ NetworkModule.EndPoint = function(Player, Data)
 	print("fired construction wall")
 	local Character = Player.Character
 
-	if not Character or not Character:GetAttribute("Equipped") then return end
+	if not Character or not Character:GetAttribute("Equipped") then
+		return
+	end
 
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Misc.Alchemy
 
-	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then return end
+	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then
+		return
+	end
 
 	if PlayerObject and PlayerObject.Keys and not Server.Library.CheckCooldown(Character, "Construct") then
 		PlayerObject.Keys["Construct"] = not Data.Held
 		if not Data.Held then
 			cleanUp()
-			Server.Library.SetCooldown(Character,"Construct",5)
+			Server.Library.SetCooldown(Character, "Construct", 5)
 			Server.Library.StopAllAnims(Character)
 
 			local Alchemy = Library.PlayAnimation(Character, Animation)
@@ -99,16 +106,16 @@ NetworkModule.EndPoint = function(Player, Data)
 
 					-- Visual effects
 					Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-						Module = "Base", 
-						Function = "Clap", 
-						Arguments = {Character, Data.Duration}
+						Module = "Base",
+						Function = "Clap",
+						Arguments = { Character, Data.Duration },
 					})
 
 					if Data.Duration and Data.Duration >= 0.2 then
 						Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-							Module = "Base", 
-							Function = "Stall", 
-							Arguments = {Character, Data.Duration}
+							Module = "Base",
+							Function = "Stall",
+							Arguments = { Character, Data.Duration },
 						})
 						Alchemy:AdjustSpeed(0)
 						task.delay(Data.Duration, function()
@@ -126,9 +133,9 @@ NetworkModule.EndPoint = function(Player, Data)
 					Debris:AddItem(s, s.TimeLength)
 
 					Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-						Module = "Base", 
-						Function = "Transmute", 
-						Arguments = {Character}
+						Module = "Base",
+						Function = "Transmute",
+						Arguments = { Character },
 					})
 
 					-- Create wall effect
@@ -136,7 +143,7 @@ NetworkModule.EndPoint = function(Player, Data)
 					part.Name = "AbilityWall_" .. os.time()
 					part.Anchored = true
 					part.CanCollide = true
-					part.Transparency = 1  -- Start fully transparent
+					part.Transparency = 1 -- Start fully transparent
 					part.Material = wallMaterial -- Use floor material
 					part.Color = wallColor
 					part:SetAttribute("Id", HttpService:GenerateGUID(false))
@@ -153,25 +160,31 @@ NetworkModule.EndPoint = function(Player, Data)
 					playerLookVector = Vector3.new(playerLookVector.X, 0, playerLookVector.Z).Unit
 					local spawnDistance = 5
 					local spawnOffset = Vector3.new(0, -3, 0)
-					local targetPos = Character.HumanoidRootPart.Position + (playerLookVector * spawnDistance) + spawnOffset
-					local startPos = targetPos - Vector3.new(0, height + 2, 0)  -- Start below ground
+					local targetPos = Character.HumanoidRootPart.Position
+						+ (playerLookVector * spawnDistance)
+						+ spawnOffset
+					local startPos = targetPos - Vector3.new(0, height + 2, 0) -- Start below ground
+
+					local vfx = Replicated.Assets.VFX.WallVFX:Clone()
+					for _, v in vfx:GetChildren() do
+						if v:IsA("ParticleEmitter") then
+							v.Parent = part
+						end
+					end
 
 					-- Set initial position (fully hidden)
-					part.CFrame = CFrame.new(startPos) * CFrame.fromMatrix(
-						Vector3.new(),
-						Vector3.new(playerLookVector.Z, 0, -playerLookVector.X),
-						Vector3.new(0, 1, 0),
-						playerLookVector
-					)
-					part.Parent = workspace  -- Parent before animation starts
+					part.CFrame = CFrame.new(startPos)
+						* CFrame.fromMatrix(
+							Vector3.new(),
+							Vector3.new(playerLookVector.Z, 0, -playerLookVector.X),
+							Vector3.new(0, 1, 0),
+							playerLookVector
+						)
+					part.Parent = workspace -- Parent before animation starts
 
 					-- Use TweenService for smoother animation
-					local riseTime = 0.8  -- seconds
-					local tweenInfo = TweenInfo.new(
-						riseTime,
-						Enum.EasingStyle.Quad,
-						Enum.EasingDirection.Out
-					)
+					local riseTime = 0.8 -- seconds
+					local tweenInfo = TweenInfo.new(riseTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 					local tween = TweenService:Create(part, tweenInfo, {
 						CFrame = CFrame.new(targetPos) * CFrame.fromMatrix(
@@ -180,10 +193,18 @@ NetworkModule.EndPoint = function(Player, Data)
 							Vector3.new(0, 1, 0),
 							playerLookVector
 						),
-						Transparency = 0  -- Fully opaque at end
+						Transparency = 0, -- Fully opaque at end
 					})
 
 					tween:Play()
+					task.delay(1, function()
+						for _, v in part:GetChildren() do
+							if v:IsA("ParticleEmitter") then
+								v:Emit(v:GetAttribute("EmitCount"))
+							end
+						end
+					end)
+
 					table.insert(activeTweens, tween)
 
 					-- Move to transmutables folder when done
@@ -195,9 +216,12 @@ NetworkModule.EndPoint = function(Player, Data)
 
 					-- Camera shake effect
 					Server.Visuals.FireClient(Player, {
-						Module = "Base", 
-						Function = "Shake", 
-						Arguments = {"Once", { 6, 11, 0, 0.7, Vector3.new(1.1, 2, 1.1), Vector3.new(0.34, 0.25, 0.34) }}
+						Module = "Base",
+						Function = "Shake",
+						Arguments = {
+							"Once",
+							{ 6, 11, 0, 0.7, Vector3.new(1.1, 2, 1.1), Vector3.new(0.34, 0.25, 0.34) },
+						},
 					})
 				end
 			end)

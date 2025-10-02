@@ -160,6 +160,19 @@ local Table = {
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTime"] = {24/49}
         },
+		["Pincer Impact"] = {
+			["DamageTable"] = {
+			BlockBreak = false,
+			Damage = 9,
+			PostureDamage = 20,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.RunningHit.Attachment,
+			Stun = 0.8, -- Increased from 0.4 to 0.8 for better NPC stun
+            },
+            Description = "Lunge yourself at the enemy piercing your blade through their skin.",
+            ["HitTime"] = {20/189, 47/189, 90/189, 113/189, 55/189, 73/189}
+		}
     }
 }
 

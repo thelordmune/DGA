@@ -114,6 +114,102 @@ NetworkModule["FistRunningBvel"] = function(Character)
 		attachment:Destroy()
 	end)
 end
+NetworkModule["PIBvel"] = function(Character)
+	if not Character or not Character.PrimaryPart then
+		warn("PIBvel: Character or PrimaryPart is nil")
+		return
+	end
+
+	local lv = Instance.new("LinearVelocity")
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = Character.PrimaryPart
+
+	local rootPart = Character.PrimaryPart
+	local speed = 40
+	local duration = .71
+	local startTime = os.clock()
+
+	lv.MaxForce = math.huge
+	lv.Attachment0 = attachment
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	lv.Parent = rootPart
+
+	-- Connection to update velocity every frame
+	local conn
+	conn = RunService.Heartbeat:Connect(function()
+		-- Calculate remaining duration (0 to 1)
+		local elapsed = os.clock() - startTime
+		local progress = math.clamp(1 - (elapsed / duration), 0, 1)
+
+		-- Cubic ease out for smoother stop at the end
+		-- This makes the deceleration more gradual near the end
+		local easedProgress = 1 - (1 - progress) ^ 3
+
+		-- Get current forward direction (flattened to prevent going into ground)
+		local forwardVector = rootPart.CFrame.LookVector
+		forwardVector = Vector3.new(forwardVector.X, 0, forwardVector.Z).Unit
+
+		-- Apply velocity with smooth decay (no downward component)
+		lv.VectorVelocity = forwardVector * speed * easedProgress
+	end)
+
+	-- Cleanup after duration seconds
+	task.delay(duration, function()
+		conn:Disconnect()
+		lv:Destroy()
+		attachment:Destroy()
+	end)
+end
+NetworkModule["PIBvel2"] = function(Character)
+	if not Character or not Character.PrimaryPart then
+		warn("PIBvel2: Character or PrimaryPart is nil")
+		return
+	end
+
+	local lv = Instance.new("LinearVelocity")
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = Character.PrimaryPart
+
+	local rootPart = Character.PrimaryPart
+	local speed = 45
+	local duration = .3
+	local startTime = os.clock()
+
+	lv.MaxForce = math.huge
+	lv.Attachment0 = attachment
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	lv.Parent = rootPart
+
+	-- Connection to update velocity every frame
+	local conn
+	conn = RunService.Heartbeat:Connect(function()
+		-- Calculate remaining duration (0 to 1)
+		local elapsed = os.clock() - startTime
+		local progress = math.clamp(1 - (elapsed / duration), 0, 1)
+
+		-- Smooth easing (quadratic ease out)
+		local easedProgress = 1 - (1 - progress) ^ 2
+
+		-- Get current forward direction (flattened)
+		local forwardVector = rootPart.CFrame.LookVector
+		forwardVector = Vector3.new(forwardVector.X, 0, forwardVector.Z).Unit
+
+		-- Add small upward component for a slight hop
+		-- Starts at 8 studs/sec upward, decays with progress
+		local verticalComponent = 8 * easedProgress
+
+		-- Apply velocity with smooth decay and slight upward motion
+		lv.VectorVelocity = forwardVector * speed * easedProgress + Vector3.new(0, verticalComponent, 0)
+	end)
+
+	-- Cleanup after duration seconds
+	task.delay(duration, function()
+		conn:Disconnect()
+		lv:Destroy()
+		attachment:Destroy()
+	end)
+end
+
 NetworkModule["FistBvel"] = function(Character: Model)
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.Attachment0 = Character.PrimaryPart.RootAttachment

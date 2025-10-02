@@ -484,8 +484,11 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		end
 		-- Allow damage through for states like "RecentlyAttacked", "Damaged", etc.
 	else
-		-- For players, maintain original behavior - block all IFrame states
-		if Library.StateCount(Target.IFrames) then
+		-- For players, check IFrames but allow damage through for combo victims
+		if Library.StateCheck(Target.IFrames, "StrategistComboVictim") then
+			-- Allow damage through - victim is locked in combo and should take damage
+		elseif Library.StateCount(Target.IFrames) then
+			-- Block damage for all other IFrame states
 			return
 		end
 	end

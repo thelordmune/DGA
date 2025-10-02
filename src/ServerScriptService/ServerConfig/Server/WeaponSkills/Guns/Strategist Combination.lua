@@ -61,8 +61,8 @@ return function(Player, Data, Server)
 						Server.Library.TimedState(Target.Speeds, "AlcSpeed-0", animlength)
 						Server.Library.TimedState(Target.Stuns, "NoRotate", animlength)
 
-						-- Add invincibility to victim during the entire move
-						Server.Library.TimedState(Target.IFrames, "StrategistCombo", animlength)
+						-- Add invincibility to victim (but allow damage from attacker via special check in Damage.lua)
+						Server.Library.TimedState(Target.IFrames, "StrategistComboVictim", animlength)
 
 						-- Anchor victim's position
 						local victimRoot = Target:FindFirstChild("HumanoidRootPart")
@@ -129,8 +129,14 @@ return function(Player, Data, Server)
 
 				-- Fire hits (12 rapid hits - hittimes 5 through 16)
                 for i = 5, 16 do
-                    task.delay(hittimes[i] - hittimes[1], function()
-                        local fireType = (i % 2 == 1) and "LFire" or "RFire"
+					local hitIndex = i  -- Capture the current value of i
+					local delayTime = hittimes[hitIndex] - hittimes[1]
+					local fireType = (hitIndex % 2 == 1) and "LFire" or "RFire"
+
+					print(`Scheduling fire hit {hitIndex} at delay {delayTime} with type {fireType}`)
+
+                    task.delay(delayTime, function()
+						print(`Executing fire hit {hitIndex} with type {fireType}`)
                         Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
                             Module = "Base",
                             Function = "SC",
