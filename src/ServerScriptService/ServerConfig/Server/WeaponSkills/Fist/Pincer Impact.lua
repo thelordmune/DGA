@@ -127,6 +127,9 @@ return function(Player, Data, Server)
 		-- Listen for M1 input during the window
 		local m1Connection
 		local frameCount = 0
+		local hasAttempted = false -- Track if player has already pressed M1 (prevents spam)
+		local lastAttackState = false -- Track previous Attack key state for edge detection
+
 		m1Connection = RunService.Heartbeat:Connect(function()
 			if not Char or not Char.Parent then
 				-- print("[PINCER IMPACT] ⚠️ Character missing, disconnecting M1 listener")
@@ -155,12 +158,26 @@ return function(Player, Data, Server)
 				end
 			end
 
-			-- Check if player is pressing Attack (M1) during the input window
-			if inputWindowActive and PlayerObject.Keys and PlayerObject.Keys.Attack then
+			-- Get current Attack key state
+			local currentAttackState = PlayerObject.Keys and PlayerObject.Keys.Attack or false
+
+			-- Detect rising edge (key was just pressed, not held)
+			local justPressed = currentAttackState and not lastAttackState
+
+			-- Only register ONE attempt during the input window
+			if inputWindowActive and justPressed and not hasAttempted then
+				hasAttempted = true -- Mark that player has used their one chance
 				pressedM1 = true
 				-- print("[PINCER IMPACT] 🎯 SUCCESS! Attack key pressed during input window! Will use BF variant.")
 				m1Connection:Disconnect()
+			elseif justPressed and not inputWindowActive and not hasAttempted then
+				-- Player pressed too early or too late - mark as attempted (failed)
+				hasAttempted = true
+				-- print("[PINCER IMPACT] ❌ FAILED! Attack key pressed outside input window.")
 			end
+
+			-- Update last state for next frame
+			lastAttackState = currentAttackState
 		end)
 
 		-- Clean up connection when animation ends

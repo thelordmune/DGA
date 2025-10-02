@@ -45,7 +45,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.7,
+			Stun = 0.45,
 		},
 
 		["Critical"] = {
@@ -240,7 +240,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.7,
+			Stun = 0.35,
 		},
 
 		["Critical"] = {
@@ -251,7 +251,7 @@ local Table = {
 				LightKnockback = true,
 				M2 = true,
 				FX = Replicated.Assets.VFX.RunningHit.Attachment,
-				Stun = 0.7,
+				Stun = 0.5,
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 20 / 60,
@@ -657,81 +657,6 @@ local Table = {
 
 		["Exception"] = true,
 	},
-	-- ["Guns"] = {
-	-- 	["MaxCombo"] = 3,
-	-- 	["Endlag"] = { 22 / 60, 25 / 60, 30 / 60, 35 / 60, 30 / 60 },
-	-- 	["HitTimes"] = { 20 / 60, 22 / 60, 28 / 60, 26 / 60, 31 / 60 },
-	-- 	["SoundTimes"] = {},
-	-- 	["Hitboxes"] = {
-	-- 		[1] = {
-	-- 			["HitboxSize"] = Vector3.new(5, 7, 8),
-	-- 			["HitboxOffset"] = CFrame.new(0, 0, -4),
-	-- 		},
-
-	-- 		[2] = {
-	-- 			["HitboxSize"] = Vector3.new(5, 7, 8),
-	-- 			["HitboxOffset"] = CFrame.new(0, 0, -4),
-	-- 		},
-
-	-- 		[3] = {
-	-- 			["HitboxSize"] = Vector3.new(5, 7, 8),
-	-- 			["HitboxOffset"] = CFrame.new(0, 0, -4),
-	-- 		},
-
-	-- 		[4] = {
-	-- 			["HitboxSize"] = Vector3.new(5, 7, 8),
-	-- 			["HitboxOffset"] = CFrame.new(0, 0, -4),
-	-- 		},
-	-- 	},
-	-- 	["M1Table"] = {
-	-- 		Damage = 10,
-	-- 		PostureDamage = 20,
-	-- 		LightKnockback = true,
-	-- 		M1 = true,
-	-- 		FX = Replicated.Assets.VFX.RunningHit.Attachment,
-	-- 		Stun = 0.7,
-	-- 		SFX = "Guns",
-	-- 	},
-	-- 	["Critical"] = {
-	-- 		["DamageTable"] = {
-	-- 			BlockBreak = true,
-	-- 			Damage = 10,
-	-- 			PostureDamage = 20,
-	-- 			LightKnockback = true,
-	-- 			M2 = true,
-	-- 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-	-- 			Stun = 0.7,
-	-- 		},
-	-- 		["HitTable"] = {},
-	-- 		["WaitTime"] = 20 / 60,
-	-- 		["Endlag"] = 1,
-	-- 		["Velocity"] = true,
-	-- 	},
-	-- 	["LastTable"] = {
-	-- 		Damage = 10,
-	-- 		PostureDamage = 20,
-	-- 		LightKnockback = true,
-	-- 		M1 = true,
-	-- 	},
-	-- 	["RunningAttack"] = {
-	-- 		Linger = 2 / 60,
-	-- 		StartVelocity = 0 / 60,
-	-- 		EndVelocity = 25 / 60,
-	-- 		TweenTime = 15 / 60,
-	-- 		DelayToTween = 10 / 60,
-	-- 		HitTime = 50 / 60,
-	-- 		Endlag = 57 / 60,
-	-- 	},
-	-- 	["RATable"] = {
-	-- 		Damage = 15,
-	-- 		PostureDamage = 20,
-	-- 		Knockback = true,
-	-- 		FX = Replicated.Assets.VFX.RunningHit.Attachment,
-	-- 		Stun = 0.7,
-	-- 	},
-	-- 	["Exception"] = true,
-	-- 	["Speed"] = 1.75,
-	-- },
 	["Stone"] = {
 		["MaxCombo"] = 4,
 		["Endlag"] = { 32 / 60, 28 / 60, 32 / 60, 35 / 60, 30 / 60 },
@@ -853,7 +778,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.7,
+			Stun = 0.44,
 			SFX = "Guns",
 		},
 		["LastTable"] = {

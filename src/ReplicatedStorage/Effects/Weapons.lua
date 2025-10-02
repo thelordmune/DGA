@@ -1312,7 +1312,7 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 							shakeOffset = shakeCf
 						end)
 						camShake:Start()
-						camShake:ShakeOnce(7, 14, 0, 0.8, Vector3.new(1.5, 2, 1.5), Vector3.new(0.34, 0.25, 0.34))
+						camShake:ShakeOnce(7, 14, 0, 1.3, Vector3.new(1.5, 2, 1.5), Vector3.new(0.34, 0.25, 0.34))
 
 						colorCorrection:Destroy()
 					end)
