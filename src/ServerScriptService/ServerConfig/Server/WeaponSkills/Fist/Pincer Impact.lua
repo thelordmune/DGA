@@ -81,7 +81,6 @@ return function(Player, Data, Server)
             Server.Packets.Bvel.sendTo({Character = Char, Name = "PIBvel"}, Player)
         end)
 
-        -- print(tostring(hittimes[4]-hittimes[3]) .. "this is the ptbvel 2 duration")
 
         task.delay(hittimes[3], function()
             Server.Library.PlaySound(Char, SFX.PI.Leap)
@@ -122,6 +121,7 @@ return function(Player, Data, Server)
 			-- 	Function = "InputWindowHighlight",
 			-- 	Arguments = { Char, "Stop" },
 			-- })
+
 		end)
 
 		-- Listen for M1 input during the window
