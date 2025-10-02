@@ -222,13 +222,28 @@ function EntityClass:Initialize()
     end
 
     self:LoadWeapon(self.Character)
-    
-    local function Remove() 
-        debugPrint("Remove function called for:", self.Character.Name)
-        self.Remove(self.Character) 
+
+    local function RemoveOnDeath()
+        warn(`[ENTITY REMOVAL] Humanoid died for {self.Character.Name}! Removing entity...`)
+        self.Remove(self.Character)
     end
-    self.Character:GetPropertyChangedSignal("PrimaryPart"):Once(Remove)
-    self.Character:WaitForChild("Humanoid").Died:Once(Remove)
+
+    -- Only remove entity when PrimaryPart becomes nil (character being destroyed)
+    -- Don't remove on any PrimaryPart change (which can happen during ragdoll)
+    local primaryPartConnection
+    primaryPartConnection = self.Character:GetPropertyChangedSignal("PrimaryPart"):Connect(function()
+        if not self.Character.PrimaryPart then
+            warn(`[ENTITY REMOVAL] PrimaryPart is nil for {self.Character.Name}! Character being destroyed, removing entity...`)
+            if primaryPartConnection then
+                primaryPartConnection:Disconnect()
+            end
+            self.Remove(self.Character)
+        else
+            debugPrint(`[ENTITY] PrimaryPart changed for {self.Character.Name} but still exists, not removing`)
+        end
+    end)
+
+    self.Character:WaitForChild("Humanoid").Died:Once(RemoveOnDeath)
     
     debugPrint("Character initialization complete:", self.Character.Name)
 end
@@ -302,64 +317,16 @@ local WeaponName = self.Weapon
 end
 
 function EntityClass:GetCFrame(TimeStamp: number) : CFrame
-    TimeStamp = TimeStamp and TimeStamp or workspace:GetServerTimeNow()
-
-    if self and self.Snapshots and self.Character then
-        local CurrentCF = self.Character.PrimaryPart.CFrame;
-
-        -- NPCs don't have snapshots, just return current position
-        if self.Character:GetAttribute("IsNPC") or #self.Snapshots == 0 then
-            return CurrentCF
-        end
-
-        -- Skip position reconciliation if character is performing an action (skill/ability)
-        -- This prevents teleporting during skills that apply velocity (Needle Thrust, Downslam Kick, etc.)
-        local Library = require(Server.Service.ReplicatedStorage.Modules.Library)
-        if Library.StateCount(self.Character.Actions) then
-            return CurrentCF
-        end
-
-        -- Also skip reconciliation if character has high velocity (likely from a skill)
-        -- This prevents teleporting when velocity is applied before action state is set
-        local root = self.Character.PrimaryPart
-        if root and root.AssemblyLinearVelocity.Magnitude > 40 then
-            return CurrentCF
-        end
-
-        -- Skip reconciliation if there are any LinearVelocity movers (from skills/dashes)
-        if root then
-            for _, child in ipairs(root:GetChildren()) do
-                if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") then
-                    return CurrentCF
-                end
-            end
-        end
-
-        local LatestSnapshot;
-        local PreviousSnapshot;
-
-        for i = #self.Snapshots - 1, 1, -1 do
-            if self.Snapshots[i].Time < TimeStamp then
-                PreviousSnapshot = self.Snapshots[i]
-                LatestSnapshot = self.Snapshots[i + 1]
-            end
-        end
-
-        if not PreviousSnapshot then
-            return CurrentCF;
-        end
-
-        local Percentage = (TimeStamp - PreviousSnapshot.Time) / (LatestSnapshot.Time - PreviousSnapshot.Time)
-        local Prediction = PreviousSnapshot.CFrame:Lerp(LatestSnapshot.CFrame, Percentage);
-
-        if (CurrentCF.Position - Prediction.Position).Magnitude <= 12 then --> 12 is the sanity distance check
-            CurrentCF = Prediction
-        end
-
-        return CurrentCF;
-    else
+    -- DISABLED: Snapshot reconciliation system completely disabled to prevent rubberbanding
+    -- The anti-exploit system was causing players to rubberband when hit with knockback/velocity
+    -- Just return current position for all characters
+    if self and self.Character and self.Character.PrimaryPart then
+        return self.Character.PrimaryPart.CFrame
+    elseif self and self.Character and self.Character.HumanoidRootPart then
         return self.Character.HumanoidRootPart.CFrame
     end
+
+    return CFrame.new()
 end
 
 Server.Utilities:AddToCoreLoop(function(DeltaTime)

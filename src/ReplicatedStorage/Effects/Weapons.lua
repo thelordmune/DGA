@@ -93,9 +93,9 @@ function Weapons.GrandCleave(Character: Model, Frame: string, duration: number?)
 end
 
 local function startdkmesh(CF: CFrame, Parent: Instance)
-    	
+  
 	-- Base Setup 
-	
+
 	if CF then
 		if typeof(CF) == "Vector3" then
 			CF = CFrame.new(CF)
@@ -103,7 +103,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 			CF = nil
 		end
 	end
-	
+
 	if not Parent then
 		local cache = workspace:FindFirstChild("MeshCache")
 		if not cache then
@@ -113,22 +113,22 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 		end
 		Parent = cache
 	end
-	
+
 	local Main_CFrame = CF or CFrame.new(0,0,0)
-	
+
 	-- Settings
-	
+
 	local Visual_Directory = {
-		["uhenable"] = VFX.DropKick.Firstmeshwoosh.uhenable,
-		["WindShockwaveenable"] = VFX.DropKick.Firstmeshwoosh.WindShockwaveenable,
-		["Shockwave2"] = VFX.DropKick.Firstmeshwoosh.Shockwave2,
-		["Mesh1"] = VFX.DropKick.Firstmeshwoosh.Mesh1,
-		["WindWave2"] = VFX.DropKick.Firstmeshwoosh.WindWave2,
-		["Mesh2"] = VFX.DropKick.Firstmeshwoosh.Mesh2,
-		["WindShockwave"] = VFX.DropKick.Firstmeshwoosh.WindShockwave,
-		["WindCoolSwirlenable"] = VFX.DropKick.Firstmeshwoosh.WindCoolSwirlenable
+		["uhenable"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.uhenable,
+		["WindShockwaveenable"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.WindShockwaveenable,
+		["Shockwave2"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.Shockwave2,
+		["Mesh1"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.Mesh1,
+		["WindWave2"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.WindWave2,
+		["Mesh2"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.Mesh2,
+		["WindShockwave"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.WindShockwave,
+		["WindCoolSwirlenable"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.WindCoolSwirlenable
 	} :: {[string] : Instance}
-	
+
 	local Visual_Data = {
 		[Visual_Directory["Mesh1"]] = {
 			General = {
@@ -136,7 +136,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				Tween_Duration = 0.6,
 				Transparency = 0.45,
 			},
-			
+
 			Features = {-- !CheckForFeature!
 			},-- !CheckForFeature!
 			-- !CheckForFeature!
@@ -152,7 +152,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -183,7 +183,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				Tween_Duration = 0.4,
 				Transparency = 0.5,
 			},
-			
+
 			Features = {-- !CheckForFeature!
 			},-- !CheckForFeature!
 			-- !CheckForFeature!
@@ -199,7 +199,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -230,7 +230,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				Tween_Duration = 2,
 				Transparency = 0.43,
 			},
-			
+
 			Features = {-- !CheckForFeature!
 			},-- !CheckForFeature!
 			-- !CheckForFeature!
@@ -246,7 +246,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Quad,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -277,7 +277,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				Tween_Duration = 3,
 				Transparency = 0.9,
 			},
-			
+
 			Features = {-- !CheckForFeature!
 			},-- !CheckForFeature!
 			-- !CheckForFeature!
@@ -293,7 +293,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -324,10 +324,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				Tween_Duration = 2,
 				Transparency = 0.5,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(5.486605644226074, 2.274979591369629, 5.486605644226074),
@@ -340,7 +337,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -368,13 +365,10 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 		[Visual_Directory["WindShockwaveenable"]] = {
 			General = {
 				Offset = CFrame.new(0, -4.08930111, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-				Tween_Duration = 2,
+				Tween_Duration = 1,
 				Transparency = 0.5,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(5.486605644226074, 2.274979591369629, 5.486605644226074),
@@ -387,7 +381,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -395,8 +389,8 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					VertexColor = Vector3.new(1, 1, 1),
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 
@@ -406,8 +400,8 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 		},
@@ -415,13 +409,10 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 		[Visual_Directory["WindWave2"]] = {
 			General = {
 				Offset = CFrame.new(0, -3.49129868, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-				Tween_Duration = 3,
+				Tween_Duration = 0.5,
 				Transparency = 0.7,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(0.8497866988182068, 0.8497866988182068, 0.8497866988182068),
@@ -431,10 +422,10 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				},
 				Tween = {
 					Easing_Direction = Enum.EasingDirection. Out,
-					Easing_Style = Enum.EasingStyle.Quad,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -442,8 +433,8 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					VertexColor = Vector3.new(1, 1, 1),
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 
@@ -453,8 +444,8 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 		},
@@ -462,13 +453,10 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 		[Visual_Directory["uhenable"]] = {
 			General = {
 				Offset = CFrame.new(0, -3.75195026, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1),
-				Tween_Duration = 0.5,
-				Transparency = 0,
+				Tween_Duration = 0.4,
+				Transparency = 0.98,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(1.1273804903030396, 0.1283242106437683, 0.5636902451515198),
@@ -477,11 +465,11 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -489,8 +477,8 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					VertexColor = Vector3.new(10, 10, 10),
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 
@@ -500,19 +488,19 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 		},
 
 	}
-	
+
 	for Origin : any, Data in pairs(Visual_Data) do
 		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
-		
+
 		-- Build
-		
+
 		local function Emit()
 			local Visual = Origin.Start:Clone()
 			Visual.Name = Origin.Name
@@ -525,25 +513,27 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 			Visual.Locked = true
 			Visual.CFrame = Main_CFrame * Data.General.Offset
 			Visual.Parent = Parent
-			
+
 			-- Initialize
-			
+
 			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
 			if Data.Decal then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("Decal"), TweenInfo.new(Data.General.Tween_Duration, Data.Decal.Tween.Easing_Style, Data.Decal.Tween.Easing_Direction), Data.Decal.Property):Play() end
 			if Data.Mesh then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("SpecialMesh"), TweenInfo.new(Data.General.Tween_Duration, Data.Mesh.Tween.Easing_Style, Data.Mesh.Tween.Easing_Direction), Data.Mesh.Property):Play() end
-			
+
 			-- Clean Up
-			
+
 			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
 		end
-		
+
 		task.spawn(Emit)
 	end
+
 end
 
 local function jumpdkmesh(CF: CFrame, Parent: Instance)
-    	-- Base Setup 
-	
+ 
+	-- Base Setup 
+
 	if CF then
 		if typeof(CF) == "Vector3" then
 			CF = CFrame.new(CF)
@@ -551,7 +541,7 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 			CF = nil
 		end
 	end
-	
+
 	if not Parent then
 		local cache = workspace:FindFirstChild("MeshCache")
 		if not cache then
@@ -561,18 +551,18 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 		end
 		Parent = cache
 	end
-	
+
 	local Main_CFrame = CF or CFrame.new(0,0,0)
-	
+
 	-- Settings
-	
+
 	local Visual_Directory = {
-		["dramatic"] = VFX.DropKick.Jump.out.dramatic,
-		["Hmm3"] = VFX.DropKick.Jump.out.Hmm3,
-		["Wind"] = VFX.DropKick.Jump.out.Wind,
-		["ShootMesh"] = VFX.DropKick.Jump.out.ShootMesh
+		["dramatic"] = Replicated.Assets.VFX.DropKick.Jump.out.dramatic,
+		["Hmm3"] = Replicated.Assets.VFX.DropKick.Jump.out.Hmm3,
+		["Wind"] = Replicated.Assets.VFX.DropKick.Jump.out.Wind,
+		["ShootMesh"] = Replicated.Assets.VFX.DropKick.Jump.out.ShootMesh
 	} :: {[string] : Instance}
-	
+
 	local Visual_Data = {
 		[Visual_Directory["Hmm3"]] = {
 			General = {
@@ -580,10 +570,7 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 				Tween_Duration = 0.25,
 				Transparency = 0.95,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(12.603195190429688, 15, 12.603195190429688),
@@ -596,7 +583,7 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 		},
 
 		[Visual_Directory["ShootMesh"]] = {
@@ -605,10 +592,7 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 				Tween_Duration = 0.15,
 				Transparency = 0.6,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(1.585519790649414, 29.075138092041016, 1.493143081665039),
@@ -621,7 +605,7 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 		},
 
 		[Visual_Directory["Wind"]] = {
@@ -630,10 +614,7 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 				Tween_Duration = 1.2,
 				Transparency = 0.98,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(29.16249656677246, 4.267792224884033, 28.24770736694336),
@@ -646,7 +627,7 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 		},
 
 		[Visual_Directory["dramatic"]] = {
@@ -655,10 +636,7 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 				Tween_Duration = 0.1,
 				Transparency = 0.9,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(2.551072120666504, 19.071107864379883, 2.551072120666504),
@@ -671,16 +649,16 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 		},
 
 	}
-	
+
 	for Origin : any, Data in pairs(Visual_Data) do
 		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
-		
+
 		-- Build
-		
+
 		local function Emit()
 			local Visual = Origin.Start:Clone()
 			Visual.Name = Origin.Name
@@ -693,18 +671,19 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 			Visual.Locked = true
 			Visual.CFrame = Main_CFrame * Data.General.Offset
 			Visual.Parent = Parent
-			
+
 			-- Initialize
-			
+
 			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
-			
+
 			-- Clean Up
-			
+
 			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
 		end
-		
+
 		task.spawn(Emit)
 	end
+
 end
 function Weapons.DropKick(Character: Model, Frame: string)
     if Frame == "StepL" then
@@ -753,9 +732,9 @@ function Weapons.DropKick(Character: Model, Frame: string)
 end
 
 local function dkimpactmesh(CF: CFrame, Parent: Instance)
-    	
+ 
 	-- Base Setup 
-	
+
 	if CF then
 		if typeof(CF) == "Vector3" then
 			CF = CFrame.new(CF)
@@ -763,7 +742,7 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 			CF = nil
 		end
 	end
-	
+
 	if not Parent then
 		local cache = workspace:FindFirstChild("MeshCache")
 		if not cache then
@@ -773,30 +752,27 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 		end
 		Parent = cache
 	end
-	
+
 	local Main_CFrame = CF or CFrame.new(0,0,0)
-	
+
 	-- Settings
-	
+
 	local Visual_Directory = {
-		["Hit"] = VFX.DropKick.Expo.Hit,
-		["Wind2Impact"] = VFX.DropKick.Expo.Wind2Impact,
-		["Hmm"] = VFX.DropKick.Expo.Hmm,
-		["Wabius"] = VFX.DropKick.Expo.Wabius,
-		["Impact"] = VFX.DropKick.Expo.Impact
+		["Hit"] = Replicated.Assets.VFX.DropKick.Expo.Hit,
+		["Wind2Impact"] = Replicated.Assets.VFX.DropKick.Expo.Wind2Impact,
+		["Hmm"] = Replicated.Assets.VFX.DropKick.Expo.Hmm,
+		["Wabius"] = Replicated.Assets.VFX.DropKick.Expo.Wabius,
+		["Impact"] = Replicated.Assets.VFX.DropKick.Expo.Impact
 	} :: {[string] : Instance}
-	
+
 	local Visual_Data = {
 		[Visual_Directory["Hit"]] = {
 			General = {
 				Offset = CFrame.new(2.17189991e-05, -4.03909416e-06, -8.70697021, -2.1130063e-08, -1.00000012, -2.98023224e-08, -1.3202083e-08, -2.98023224e-08, -1, 1, 2.1130063e-08, 1.3202083e-08),
-				Tween_Duration = 1.65,
+				Tween_Duration = 0.2,
 				Transparency = 0.83,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(4.946621417999268, 9.642217636108398, 9.755118370056152),
@@ -805,11 +781,11 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -817,8 +793,8 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					VertexColor = Vector3.new(1, 1, 1),
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 
@@ -828,8 +804,8 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 		},
@@ -837,13 +813,10 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 		[Visual_Directory["Hmm"]] = {
 			General = {
 				Offset = CFrame.new(1.9835823e-05, -9.57533302e-07, -11.5791931, 1.00000012, -2.1130063e-08, 0, 2.98023224e-08, -1.32411373e-07, -1.00000024, -2.1130063e-08, 1.00000012, -1.06007263e-07),
-				Tween_Duration = 1.32,
+				Tween_Duration = 0.3,
 				Transparency = 0.93,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(14.12632942199707, 25.388097763061523, 14.642675399780273),
@@ -852,23 +825,20 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 		},
 
 		[Visual_Directory["Impact"]] = {
 			General = {
 				Offset = CFrame.new(0.940451801, -2.95042992e-06, -10.5965281, -0.861130595, 2.17288488e-07, -0.508384168, -0.508384228, -8.47667081e-07, 0.861130357, -2.135111e-07, 1, 7.74233797e-07),
-				Tween_Duration = 0.12,
-				Transparency = 0,
+				Tween_Duration = 0.3,
+				Transparency = 0.5,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(15.719278335571289, 2.602825403213501, 7.8596391677856445),
@@ -877,11 +847,11 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 1.746412992477417, 0),
@@ -889,8 +859,8 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					VertexColor = Vector3.new(1, 1, 1),
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 
@@ -900,8 +870,8 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 		},
@@ -909,13 +879,10 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 		[Visual_Directory["Wabius"]] = {
 			General = {
 				Offset = CFrame.new(2.20491256e-05, -4.57930128e-06, -8.20346069, -2.1130063e-08, 1.00000012, 2.98023224e-08, -1.3202083e-08, 2.98023224e-08, 1, 1, -2.1130063e-08, -1.3202083e-08),
-				Tween_Duration = 0.77,
-				Transparency = 0,
+				Tween_Duration = 0.3,
+				Transparency = 0.5,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(10.199556350708008, 12.77884292602539, 12.792318344116211),
@@ -924,11 +891,11 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -936,8 +903,8 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					VertexColor = Vector3.new(1, 1, 1),
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 
@@ -947,8 +914,8 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 		},
@@ -956,13 +923,10 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 		[Visual_Directory["Wind2Impact"]] = {
 			General = {
 				Offset = CFrame.new(5.25439282e-06, 3.7327427e-06, 2.91195679, -2.1130063e-08, 2.98023224e-08, -1.00000012, -1.3202083e-08, 1, -2.98023224e-08, 1, -1.3202083e-08, 2.1130063e-08),
-				Tween_Duration = 0.1,
-				Transparency = 0,
+				Tween_Duration = 0.3,
+				Transparency = 0.5,
 			},
-			
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
-			-- !CheckForFeature!
+
 			BasePart = {
 				Property = {
 					Size = Vector3.new(14.776262283325195, 30.17328643798828, 30.17328643798828),
@@ -971,11 +935,11 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-			
+
 			Mesh = {
 				Property = {
 					Offset = Vector3.new(0, 0, 0),
@@ -983,8 +947,8 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					VertexColor = Vector3.new(1, 1, 1),
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 
@@ -994,19 +958,19 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection.InOut,
-					Easing_Style = Enum.EasingStyle.Linear,
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
 		},
 
 	}
-	
+
 	for Origin : any, Data in pairs(Visual_Data) do
 		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
-		
+
 		-- Build
-		
+
 		local function Emit()
 			local Visual = Origin.Start:Clone()
 			Visual.Name = Origin.Name
@@ -1019,23 +983,223 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 			Visual.Locked = true
 			Visual.CFrame = Main_CFrame * Data.General.Offset
 			Visual.Parent = Parent
-			
+
 			-- Initialize
-			
+
 			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
 			if Data.Decal then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("Decal"), TweenInfo.new(Data.General.Tween_Duration, Data.Decal.Tween.Easing_Style, Data.Decal.Tween.Easing_Direction), Data.Decal.Property):Play() end
 			if Data.Mesh then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("SpecialMesh"), TweenInfo.new(Data.General.Tween_Duration, Data.Mesh.Tween.Easing_Style, Data.Mesh.Tween.Easing_Direction), Data.Mesh.Property):Play() end
-			
+
 			-- Clean Up
-			
+
 			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
 		end
-		
+
 		task.spawn(Emit)
 	end
-	
+
 end
 
+local function slamfunction(CF: Model, Parent: Instance)
+    
+	-- Base Setup 
+
+	if CF then
+		if typeof(CF) == "Vector3" then
+			CF = CFrame.new(CF)
+		elseif typeof(CF) ~= "CFrame" then
+			CF = nil
+		end
+	end
+
+	if not Parent then
+		local cache = workspace:FindFirstChild("MeshCache")
+		if not cache then
+			cache = Instance.new("Folder")
+			cache.Name = "MeshCache"
+			cache.Parent = workspace
+		end
+		Parent = cache
+	end
+
+	local Main_CFrame = CF or CFrame.new(0,0,0)
+
+	-- Settings
+
+	local Visual_Directory = {
+		["Mesh3"] = Replicated.Assets.VFX.DropKick.Slam.Mesh3,
+		["Mesh2"] = Replicated.Assets.VFX.DropKick.Slam.Mesh2,
+		["Mesh1"] = Replicated.Assets.VFX.DropKick.Slam.Mesh1
+	} :: {[string] : Instance}
+
+	local Visual_Data = {
+		[Visual_Directory["Mesh1"]] = {
+			General = {
+				Offset = CFrame.new(-0.50005126, 1.30590403, 5.06259155, -1.00000048, -1.25807901e-07, -3.57627869e-07, 3.87430191e-07, -7.61742669e-09, 0.999999821, 1.55610195e-07, 1, -5.75477976e-09),
+				Tween_Duration = 0.2,
+				Transparency = 0.9,
+			},
+
+			BasePart = {
+				Property = {
+					Size = Vector3.new(2.576066017150879, 0.18496616184711456, 1.2872881889343262),
+					CFrame = Main_CFrame * CFrame.new(-0.223380089, 0.0401297025, 0.0192566067, -0.342042476, -1.25807901e-07, -0.939685106, -0.939683914, -7.61742669e-09, 0.342042983, 6.9798304e-08, 1, 1.47214109e-07),
+					Color = Color3.new(0.639216, 0.635294, 0.647059),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Mesh = {
+				Property = {
+					Offset = Vector3.new(0, 0, 0),
+					Scale = Vector3.new(-0.06441166996955872, -0.05582752823829651, -0.06441166996955872),
+					VertexColor = Vector3.new(1, 1, 1),
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Decal = {
+				Property = {
+					Color3 = Color3.new(3.92157, 3.92157, 3.92157),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+		},
+
+		[Visual_Directory["Mesh2"]] = {
+			General = {
+				Offset = CFrame.new(0.0965180695, 0.397031188, 2.94351196, -1.00000036, -9.60055573e-08, -2.68220901e-07, 2.68220901e-07, -7.61743379e-09, 0.999999762, 9.60055573e-08, 1, -7.61743379e-09),
+				Tween_Duration = 0.15,
+				Transparency = 0.9,
+			},
+
+			BasePart = {
+				Property = {
+					Size = Vector3.new(2.05979061126709, 0.07920259237289429, 1.0288686752319336),
+					CFrame = Main_CFrame * CFrame.new(0.11617212, 0.0453350432, -5.08432007, -0.499959409, -9.60055573e-08, -0.86604923, -0.866048455, -7.61743379e-09, 0.499959588, 5.4595958e-08, 1, 7.93370845e-08),
+					Color = Color3.new(0.639216, 0.635294, 0.647059),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Mesh = {
+				Property = {
+					Offset = Vector3.new(0, 0, 0),
+					Scale = Vector3.new(-0.0515027791261673, -0.02390671707689762, -0.05150279402732849),
+					VertexColor = Vector3.new(1, 1, 1),
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Decal = {
+				Property = {
+					Color3 = Color3.new(3.92157, 3.92157, 3.92157),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+		},
+
+		[Visual_Directory["Mesh3"]] = {
+			General = {
+				Offset = CFrame.new(0.477027118, 0.349785596, 0.986083984, -1.00000036, -9.60055573e-08, -2.68220901e-07, 2.68220901e-07, -7.61743379e-09, 0.999999762, 9.60055573e-08, 1, -7.61743379e-09),
+				Tween_Duration = 0.2,
+				Transparency = 0.9,
+			},
+
+			BasePart = {
+				Property = {
+					Size = Vector3.new(2.7944533824920654, 0.07262186706066132, 1.3958337306976318),
+					CFrame = Main_CFrame * CFrame.new(-0.0669433251, -0.183822751, -5.25750732, -1.00000036, -9.60055573e-08, -2.68220901e-07, 2.68220901e-07, -7.61743379e-09, 0.999999762, 9.60055573e-08, 1, -7.61743379e-09),
+					Color = Color3.new(0.639216, 0.635294, 0.647059),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Mesh = {
+				Property = {
+					Offset = Vector3.new(0, 0, 0),
+					Scale = Vector3.new(-0.06987220793962479, -0.021920373663306236, -0.06987222284078598),
+					VertexColor = Vector3.new(1, 1, 1),
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Decal = {
+				Property = {
+					Color3 = Color3.new(3.92157, 3.92157, 3.92157),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+		},
+
+	}
+
+	for Origin : any, Data in pairs(Visual_Data) do
+		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
+
+		-- Build
+
+		local function Emit()
+			local Visual = Origin.Start:Clone()
+			Visual.Name = Origin.Name
+			Visual.Transparency = Data.General.Transparency
+			if Visual:FindFirstChildOfClass("Decal") then Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency Visual.Transparency = 1 end
+			Visual.Anchored = true
+			Visual.CanCollide = false
+			Visual.CanQuery = false
+			Visual.CanTouch = false
+			Visual.Locked = true
+			Visual.CFrame = Main_CFrame * Data.General.Offset
+			Visual.Parent = Parent
+
+			-- Initialize
+
+			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
+			if Data.Decal then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("Decal"), TweenInfo.new(Data.General.Tween_Duration, Data.Decal.Tween.Easing_Style, Data.Decal.Tween.Easing_Direction), Data.Decal.Property):Play() end
+			if Data.Mesh then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("SpecialMesh"), TweenInfo.new(Data.General.Tween_Duration, Data.Mesh.Tween.Easing_Style, Data.Mesh.Tween.Easing_Direction), Data.Mesh.Property):Play() end
+
+			-- Clean Up
+
+			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
+		end
+
+		task.spawn(Emit)
+	end
+
+end
 
 -- Store active particle effects for freezing
 local ActiveDKImpactParticles = {}
@@ -1065,6 +1229,7 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 	end
 
 	dkimpactmesh(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
+    slamfunction(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
 
 	-- If we should freeze particles, store them and tween timescale to very slow
 	if FreezeParticles then
@@ -1308,6 +1473,49 @@ function Weapons.InputWindowHighlight(Character: Model, Action: string)
 			highlight:Destroy()
 		end
 	end
+end
+
+-- Apply ragdoll and knockback effect (client-side visual)
+function Weapons.BFKnockback(Target: Model, AttackerPosition: Vector3)
+	-- This is the client-side visual effect
+	-- The actual ragdoll state is managed by the server via CollectionService tags
+
+	local humanoid = Target:FindFirstChild("Humanoid")
+	local rootPart = Target:FindFirstChild("HumanoidRootPart")
+
+	if not humanoid or not rootPart then
+		return
+	end
+
+	-- Calculate knockback direction (opposite of hit direction)
+	local direction = (rootPart.Position - AttackerPosition).Unit
+	-- Create arc motion: horizontal knockback + upward velocity
+	local horizontalPower = 50 -- Horizontal knockback strength
+	local upwardPower = 30 -- Upward arc strength
+
+	-- Create attachment for LinearVelocity if it doesn't exist
+	local attachment = rootPart:FindFirstChild("RootAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "RootAttachment"
+		attachment.Parent = rootPart
+	end
+
+	-- Apply LinearVelocity for smooth arc motion
+	local linearVelocity = Instance.new("LinearVelocity")
+	linearVelocity.VectorVelocity = Vector3.new(
+		direction.X * horizontalPower,
+		upwardPower, -- Upward component for arc
+		direction.Z * horizontalPower
+	)
+	linearVelocity.MaxForce = math.huge
+	linearVelocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	linearVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+	linearVelocity.Attachment0 = attachment
+	linearVelocity.Parent = rootPart
+
+	-- Clean up LinearVelocity after arc completes
+	game:GetService("Debris"):AddItem(linearVelocity, 0.8)
 end
 
 return Weapons

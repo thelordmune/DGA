@@ -1,0 +1,60 @@
+--[[
+    Server-side Bvel module for NPCs and non-player characters
+    Mirrors the client-side Bvel functions
+--]]
+
+local ServerBvel = {}
+
+-- BF Knockback (for Pincer Impact Black Flash variant)
+ServerBvel.BFKnockback = function(Character, direction, horizontalPower, upwardPower)
+    local rootPart = Character.PrimaryPart
+    if not rootPart then
+        warn("[ServerBvel] No PrimaryPart found for BFKnockback")
+        return
+    end
+
+    -- Clean up ALL existing BodyMovers and LinearVelocities that might interfere with knockback
+    for _, child in ipairs(rootPart:GetChildren()) do
+        if child:IsA("BodyPosition") or child:IsA("BodyGyro") or child:IsA("BodyVelocity") or child:IsA("LinearVelocity") then
+            child:Destroy()
+            print(`[ServerBvel] Removed interfering {child.ClassName} from {Character.Name}`)
+        end
+    end
+
+    -- Create attachment
+    local attachment = rootPart:FindFirstChild("BFKnockbackAttachment")
+    if not attachment then
+        attachment = Instance.new("Attachment")
+        attachment.Name = "BFKnockbackAttachment"
+        attachment.Parent = rootPart
+    end
+
+    -- Calculate velocity vector (horizontal + upward arc)
+    local horizontalDir = Vector3.new(direction.X, 0, direction.Z).Unit
+    local velocity = Vector3.new(
+        horizontalDir.X * horizontalPower,
+        upwardPower,
+        horizontalDir.Z * horizontalPower
+    )
+
+    -- Create LinearVelocity
+    local lv = Instance.new("LinearVelocity")
+    lv.Name = "BFKnockbackVelocity"
+    lv.MaxForce = math.huge
+    lv.VectorVelocity = velocity
+    lv.Attachment0 = attachment
+    lv.RelativeTo = Enum.ActuatorRelativeTo.World
+    lv.Parent = rootPart
+
+    print(`[ServerBvel] Applied BFKnockback to {Character.Name}: H={horizontalPower}, U={upwardPower}`)
+
+    -- Clean up after duration (only destroy LinearVelocity, not attachment)
+    task.delay(0.65, function()
+        if lv and lv.Parent then
+            lv:Destroy()
+        end
+    end)
+end
+
+return ServerBvel
+

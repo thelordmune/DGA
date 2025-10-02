@@ -16,7 +16,11 @@ type Entity = {
 }
 
 NetworkModule.EndPoint = function(Player, Data)
-	NetworkModule[Data.Name](Data.Character, Data.Targ)
+	if Data.Name == "BFKnockback" then
+		NetworkModule[Data.Name](Data.Character, Data.Direction, Data.HorizontalPower, Data.UpwardPower)
+	else
+		NetworkModule[Data.Name](Data.Character, Data.Targ)
+	end
 end
 
 NetworkModule["M1Bvel"] = function(Character) -- // Linear Version
@@ -78,6 +82,49 @@ NetworkModule["Bone GauntletsRunningBvel"] = function(Character)
 		{ VectorVelocity = Vector3.new(0, 0, 0) }
 	):Play()
 end
+NetworkModule["BFKnockback"] = function(Character, direction, horizontalPower, upwardPower)
+	local rootPart = Character.PrimaryPart
+	if not rootPart then return end
+
+	-- Create attachment
+	local attachment = rootPart:FindFirstChild("BFKnockbackAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "BFKnockbackAttachment"
+		attachment.Parent = rootPart
+	end
+
+	-- Remove any existing knockback velocity
+	local oldLV = rootPart:FindFirstChild("BFKnockbackVelocity")
+	if oldLV then
+		oldLV:Destroy()
+	end
+
+	-- Calculate velocity vector (horizontal + upward arc)
+	local horizontalDir = Vector3.new(direction.X, 0, direction.Z).Unit
+	local velocity = Vector3.new(
+		horizontalDir.X * horizontalPower,
+		upwardPower,
+		horizontalDir.Z * horizontalPower
+	)
+
+	-- Create LinearVelocity
+	local lv = Instance.new("LinearVelocity")
+	lv.Name = "BFKnockbackVelocity"
+	lv.MaxForce = math.huge
+	lv.VectorVelocity = velocity
+	lv.Attachment0 = attachment
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	lv.Parent = rootPart
+
+	-- Clean up after duration (only destroy LinearVelocity, not attachment)
+	task.delay(0.65, function()
+		if lv and lv.Parent then
+			lv:Destroy()
+		end
+	end)
+end
+
 NetworkModule["FistRunningBvel"] = function(Character)
 	local lv = Instance.new("LinearVelocity")
 	local attachment = Instance.new("Attachment")

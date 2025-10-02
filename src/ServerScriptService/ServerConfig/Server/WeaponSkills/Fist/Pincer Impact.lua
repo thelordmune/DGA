@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local SFX = Replicated:WaitForChild("Assets").SFX
 
 local Global = require(Replicated.Modules.Shared.Global)
+local LooseRagdoll = require(Replicated.Modules.Utils.LooseRagdoll)
 return function(Player, Data, Server)
     local Char = Player.Character
 
@@ -84,6 +85,16 @@ return function(Player, Data, Server)
 
         task.delay(hittimes[3], function()
             Server.Library.PlaySound(Char, SFX.PI.Leap)
+            Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
+					Module = "Base",
+					Function = "AlchemicAssault",
+					Arguments = { Char, "Jump" },
+				})
+                Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
+					Module = "Weapons",
+					Function = "DropKick",
+					Arguments = { Char, "Start" },
+				})
             Server.Packets.Bvel.sendTo({Character = Char, Name = "PIBvel2"}, Player)
         end)
 
@@ -93,11 +104,11 @@ return function(Player, Data, Server)
 			-- print("[PINCER IMPACT] ✅ Input window OPENED at keyframe 98")
 
 			-- Show highlight to indicate input window
-			Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
-				Module = "Weapons",
-				Function = "InputWindowHighlight",
-				Arguments = { Char, "Start" },
-			})
+			-- Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
+			-- 	Module = "Weapons",
+			-- 	Function = "InputWindowHighlight",
+			-- 	Arguments = { Char, "Start" },
+			-- })
 		end)
 
 		-- End input window at keyframe 107
@@ -106,17 +117,16 @@ return function(Player, Data, Server)
 			-- print("[PINCER IMPACT] ❌ Input window CLOSED at keyframe 107")
 
 			-- Remove highlight
-			Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
-				Module = "Weapons",
-				Function = "InputWindowHighlight",
-				Arguments = { Char, "Stop" },
-			})
+			-- Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
+			-- 	Module = "Weapons",
+			-- 	Function = "InputWindowHighlight",
+			-- 	Arguments = { Char, "Stop" },
+			-- })
 		end)
 
 		-- Listen for M1 input during the window
 		local m1Connection
 		local frameCount = 0
-		local -- printedKeys = false
 		m1Connection = RunService.Heartbeat:Connect(function()
 			if not Char or not Char.Parent then
 				-- print("[PINCER IMPACT] ⚠️ Character missing, disconnecting M1 listener")
@@ -311,6 +321,32 @@ return function(Player, Data, Server)
 						Function = "DKImpactResume",
 						Arguments = { Char },
 					})
+
+					-- NOW apply ragdoll + knockback AFTER freeze ends (BodyPosition/BodyGyro are destroyed)
+					for _, Target in ipairs(hitTargets) do
+						local targetHumanoid = Target:FindFirstChild("Humanoid")
+						local targetRoot = Target:FindFirstChild("HumanoidRootPart")
+
+						-- Check if target is still alive and valid
+						if targetHumanoid and targetRoot and targetHumanoid.Health > 0 and Target.Parent then
+							print(`[PINCER IMPACT BF] Applying ragdoll + knockback to {Target.Name} (Health: {targetHumanoid.Health})`)
+
+							-- Apply ragdoll effect (BallSocketConstraints)
+							local ragdollDuration = 2 -- Ragdoll lasts 2 seconds
+							LooseRagdoll.Ragdoll(Target, ragdollDuration)
+
+							-- Calculate knockback direction (away from attacker)
+							local direction = (targetRoot.Position - Char.HumanoidRootPart.Position).Unit
+							local horizontalPower = 50 -- Horizontal knockback strength
+							local upwardPower = 30 -- Upward arc strength
+
+							-- Always apply on server (works for all character types)
+							-- Players can't apply physics to other players on client due to network ownership
+							Server.Modules.ServerBvel.BFKnockback(Target, direction, horizontalPower, upwardPower)
+
+							print(`[PINCER IMPACT BF] ✅ Ragdoll + Knockback applied to {Target.Name}`)
+						end
+					end
 				elseif hitSomeone and not pressedM1 then
 					-- Hit with None variant - just play VFX, no cutscene
 					-- print("[PINCER IMPACT] 💨 None variant hit - no cutscene")
