@@ -116,7 +116,7 @@ NetworkModule.EndPoint = function(Player, Data)
 			local nearestTarget = nil
 			local nearestDistance = math.huge
 
-			for _, entity in pairs(workspace.World.Live:GetChildren()) do
+			for _, entity in pairs(workspace.World.Live:GetDescendants()) do
 				if entity:IsA("Model") and entity ~= Character and entity:FindFirstChild("Humanoid") and entity:FindFirstChild("HumanoidRootPart") then
 					local targetRoot = entity.HumanoidRootPart
 					local distance = (targetRoot.Position - root.Position).Magnitude
@@ -247,7 +247,63 @@ NetworkModule.EndPoint = function(Player, Data)
 					end
 				end)
 
-				Debris:AddItem(sl, 2)
+				task.delay(2.5, function()
+					if sl and sl.Parent then
+						local wedgeSize = sl.Size
+						local wedgeColor = sl.Color
+						local wedgeMaterial = sl.Material
+						local wedgeCFrame = sl.CFrame
+
+						local numShards = math.random(12, 18)
+
+						for _ = 1, numShards do
+							local shard = Instance.new("WedgePart")
+							shard.Size = Vector3.new(
+								math.random(wedgeSize.X * 0.1, wedgeSize.X * 0.3),
+								math.random(wedgeSize.Y * 0.2, wedgeSize.Y * 0.5),
+								math.random(wedgeSize.Z * 0.1, wedgeSize.Z * 0.3)
+							)
+							shard.Color = wedgeColor
+							shard.Material = wedgeMaterial
+							shard.Anchored = false
+							shard.CanCollide = true
+
+							local randomOffset = Vector3.new(
+								(math.random() - 0.5) * wedgeSize.X * 0.8,
+								(math.random() - 0.5) * wedgeSize.Y * 0.5,
+								(math.random() - 0.5) * wedgeSize.Z * 0.8
+							)
+
+							shard.CFrame = wedgeCFrame * CFrame.new(randomOffset) * CFrame.Angles(
+								math.rad(math.random(0, 360)),
+								math.rad(math.random(0, 360)),
+								math.rad(math.random(0, 360))
+							)
+
+							shard.Parent = workspace.World.Visuals
+
+							local randomDir = Vector3.new(
+								(math.random() - 0.5) * 2,
+								math.random() * 0.8 + 0.2,
+								(math.random() - 0.5) * 2
+							).Unit
+
+							local velocity = Instance.new("BodyVelocity")
+							velocity.Velocity = randomDir * math.random(12, 20)
+							velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+							velocity.Parent = shard
+
+							local fadeInfo = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+							local fadeTween = TweenService:Create(shard, fadeInfo, {Transparency = 1})
+							fadeTween:Play()
+
+							Debris:AddItem(velocity, 0.4)
+							Debris:AddItem(shard, 2.5)
+						end
+
+						sl:Destroy()
+					end
+				end)
 			end)
 		end)
 	end

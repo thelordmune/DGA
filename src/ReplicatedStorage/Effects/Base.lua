@@ -1854,8 +1854,15 @@ function Base.TransmutationCircle(Character: Model, Destination: CFrame?)
 			end
 		end
 	end)
+
+	local fadeInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	task.delay(3, function()
+		TweenService:Create(eff.Decal, fadeInfo, {Transparency = 1}):Play()
+	end)
+
+	task.delay(5, function()
 		eff:Destroy()
+		emits:Destroy()
 	end)
 end
 
