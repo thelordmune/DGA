@@ -55,6 +55,13 @@ return ByteNet.defineNamespace("Networking", function()
 				Duration = ByteNet.int8
 			})
 		});
+		["Stone Lance"] = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Held = ByteNet.bool,
+				Air = ByteNet.bool,
+			})
+		});
 		["Rock Skewer"] = ByteNet.definePacket({
 			reliabilityType = "reliable";
 			value = ByteNet.struct({

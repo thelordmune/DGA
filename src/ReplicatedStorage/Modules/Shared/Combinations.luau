@@ -11,8 +11,8 @@
 
 return {
     -- BASIC ALCHEMY (All Types)
-    ["Construct"] = "DU",              -- Down -> Up (foundation \building)
-
+    ["Construct"] = "D",              -- Down -> Up (foundation \building)
+    ["Stone Lance"] = "DU",
     -- STONE ALCHEMY
     ["Cascade"] = "DLR",               -- Down -> Left -> Right (falling rocks)
     ["Rock Skewer"] = "UDUD",          -- Up -> Down -> Up -> Down (spikes from ground)
@@ -22,7 +22,7 @@ return {
     ["Cinder"] = "LRU",                -- Left -> Right -> Up (spreading embers)
     ["Firestorm"] = "RLUD",            -- Right -> Left -> Up -> Down (chaotic flames)
 
-    ["Deconstruct"] = "UD",            -- Up -> Down (opposite of construct)
+    ["Deconstruct"] = "U",            -- Up -> Down (opposite of construct)
     ["AlchemicAssault"] = "DULR",      -- Down -> Up -> Left -> Right (complex attack)
 
 }

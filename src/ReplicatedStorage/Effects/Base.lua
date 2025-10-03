@@ -1839,4 +1839,26 @@ function Base.Downslam(Character: Model, Frame: string)
 	end
 end
 
+function Base.TransmutationCircle(Character: Model, Destination: CFrame?)
+	local eff = Replicated.Assets.VFX.TransmutationCircle:Clone()
+	eff.CFrame = Destination * CFrame.new(0,-1.5,0) or Character.HumanoidRootPart.CFrame * CFrame.new(0,-1.5,0)
+	eff.Parent = workspace.World.Visuals
+	TweenService:Create(eff.Decal, TInfo, {Transparency = 0}):Play()
+	local emits = Replicated.Assets.VFX.Construct:Clone()
+	emits.CFrame = Destination or Character.HumanoidRootPart.CFrame
+	emits.Parent = workspace.World.Visuals
+	task.delay(.35, function()
+		for _, v in emits:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+	end)
+	task.delay(3, function()
+		eff:Destroy()
+	end)
+end
+
+
+
 return Base

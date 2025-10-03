@@ -34,6 +34,20 @@ local Table = {
 			Stun = 0.2,
 		},
 	},
+
+	["Stone Lance"] = {
+		["DamageTable"] = {
+			BlockBreak = true,
+			Damage = 10,
+			PostureDamage = 25,
+			LightKnockback = false,
+			Launch = "High",
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.6,
+			["Hittimes"] = {17/72, 46/72}
+		},
+	},
 	["Flame"] = {
 		["DamageTable1"] = {
 			BlockBreak = false,
