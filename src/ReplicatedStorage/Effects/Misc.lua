@@ -121,4 +121,70 @@ function Misc.CameraShake(State)
 	camShake:Shake(CameraShaker.Presets[State])
 end
 
+-- Hyperarmor visual indicator system
+function Misc.StartHyperarmor(Character: Model)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+
+	-- Remove any existing hyperarmor highlight
+	local existingHighlight = Character:FindFirstChild("HyperarmorHighlight")
+	if existingHighlight then
+		existingHighlight:Destroy()
+	end
+
+	-- Create white highlight for hyperarmor
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "HyperarmorHighlight"
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.FillColor = Color3.fromRGB(255, 255, 255) -- Start white
+	highlight.OutlineColor = Color3.fromRGB(200, 200, 200)
+	highlight.FillTransparency = 0.3
+	highlight.OutlineTransparency = 0
+	highlight.Parent = Character
+
+	print("Hyperarmor visual started for", Character.Name)
+end
+
+function Misc.UpdateHyperarmor(Character: Model, damagePercent: number)
+	if not Character then return end
+
+	local highlight = Character:FindFirstChild("HyperarmorHighlight")
+	if not highlight then return end
+
+	-- Interpolate color from white (0% damage) to red (100% damage)
+	local white = Color3.fromRGB(255, 255, 255)
+	local red = Color3.fromRGB(255, 0, 0)
+	local currentColor = white:Lerp(red, damagePercent)
+
+	-- Update highlight color
+	highlight.FillColor = currentColor
+	highlight.OutlineColor = currentColor
+
+	-- Increase intensity as damage increases
+	highlight.FillTransparency = 0.3 - (damagePercent * 0.2) -- Gets more opaque as damage increases
+
+	print(string.format("Hyperarmor visual updated for %s: %.0f%% damage (Color: R%.0f G%.0f B%.0f)",
+		Character.Name, damagePercent * 100, currentColor.R * 255, currentColor.G * 255, currentColor.B * 255))
+end
+
+function Misc.RemoveHyperarmor(Character: Model)
+	if not Character then return end
+
+	local highlight = Character:FindFirstChild("HyperarmorHighlight")
+	if highlight then
+		-- Fade out the highlight
+		local TweenService = game:GetService("TweenService")
+		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+		local tween = TweenService:Create(highlight, tweenInfo, {
+			FillTransparency = 1,
+			OutlineTransparency = 1
+		})
+		tween:Play()
+		tween.Completed:Connect(function()
+			highlight:Destroy()
+		end)
+
+		print("Hyperarmor visual removed for", Character.Name)
+	end
+end
+
 return Misc

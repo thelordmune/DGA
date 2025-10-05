@@ -79,11 +79,77 @@ return function(Player, Data, Server)
 			)
 
 			if #HitTargets > 0 then
-				-- Hit detected, play victim animation and continue
+				-- Hit detected, check for block/parry before starting combo
 				local Target = nil
 				for _, HitTarget in pairs(HitTargets) do
 					if HitTarget ~= Character then
 						Target = HitTarget
+
+						-- Check if target is blocking or parrying
+						local isBlocking = Server.Library.StateCheck(Target.Frames, "Blocking")
+						local isParrying = Server.Library.StateCheck(Target.Frames, "Parry")
+
+						-- Check if block is valid (not from behind)
+						local isBehind = (Target.HumanoidRootPart.CFrame:Inverse() * Character.HumanoidRootPart.CFrame).Z > 1
+
+						if isParrying then
+							-- Target parried the attack - cancel combo and stun attacker
+							print(string.format("[Strategist Combination] %s PARRIED by %s - combo cancelled!", Character.Name, Target.Name))
+
+							-- Stop attacker's animation and states
+							Server.Library.StopAllAnims(Character)
+							Server.Library.RemoveState(Character.Actions, script.Name)
+							Server.Library.RemoveState(Character.Speeds, "AlcSpeed-0")
+							Server.Library.RemoveState(Character.Stuns, "NoRotate")
+							Server.Library.RemoveState(Character.IFrames, "StrategistCombo")
+							Server.Library.RemoveState(Character.Stuns, "StrategistComboLock")
+
+							-- Apply parry stun to attacker
+							Server.Library.TimedState(Character.Speeds, "ParrySpeedSet4", 1.2)
+							Server.Library.TimedState(Character.Stuns, "ParryStun", 1.2)
+
+							-- Reset parry cooldown for defender
+							Server.Library.ResetCooldown(Target, "Parry")
+
+							-- Play parry effects
+							Server.Library.PlaySound(
+								Target,
+								Replicated.Assets.SFX.Parries:GetChildren()[math.random(1, #Replicated.Assets.SFX.Parries:GetChildren())]
+							)
+							Server.Visuals.Ranged(
+								Target.HumanoidRootPart.Position,
+								300,
+								{ Module = "Base", Function = "Parry", Arguments = { Target, Character, 5 } }
+							)
+
+							return -- Cancel the combo
+						elseif isBlocking and not isBehind then
+							-- Target blocked the attack - cancel combo
+							print(string.format("[Strategist Combination] %s BLOCKED by %s - combo cancelled!", Character.Name, Target.Name))
+
+							-- Stop attacker's animation and states
+							Server.Library.StopAllAnims(Character)
+							Server.Library.RemoveState(Character.Actions, script.Name)
+							Server.Library.RemoveState(Character.Speeds, "AlcSpeed-0")
+							Server.Library.RemoveState(Character.Stuns, "NoRotate")
+							Server.Library.RemoveState(Character.IFrames, "StrategistCombo")
+							Server.Library.RemoveState(Character.Stuns, "StrategistComboLock")
+
+							-- Play block effects
+							local BlockedSounds = Replicated.Assets.SFX.Weapons[Weapon]:FindFirstChild("Blocked")
+							if BlockedSounds then
+								Server.Library.PlaySound(Target, BlockedSounds:GetChildren()[math.random(1, #BlockedSounds:GetChildren())])
+							end
+
+							-- Apply chip damage to blocker's posture
+							if Target:FindFirstChild("Posture") then
+								Target.Posture.Value = Target.Posture.Value + 10 -- Chip damage
+							end
+
+							return -- Cancel the combo
+						end
+
+						-- No block/parry - continue with combo
 						Library.PlayAnimation(Target, VictimAnimation)
 
 						-- Lock victim in place during the combo

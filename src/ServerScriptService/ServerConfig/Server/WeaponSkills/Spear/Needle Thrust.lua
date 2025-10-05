@@ -53,6 +53,32 @@ return function(Player, Data, Server)
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
 
+		-- Initialize hyperarmor tracking for this move
+		Character:SetAttribute("HyperarmorDamage", 0)
+		Character:SetAttribute("HyperarmorMove", script.Name)
+
+		-- Start hyperarmor visual indicator (white highlight)
+		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+			Module = "Misc",
+			Function = "StartHyperarmor",
+			Arguments = { Character }
+		})
+
+		-- Clean up hyperarmor data and visual when move ends
+		task.delay(Move.Length, function()
+			if Character and Character.Parent then
+				Character:SetAttribute("HyperarmorDamage", nil)
+				Character:SetAttribute("HyperarmorMove", nil)
+
+				-- Remove hyperarmor visual
+				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+					Module = "Misc",
+					Function = "RemoveHyperarmor",
+					Arguments = { Character }
+				})
+			end
+		end)
+
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
 			hittimes[i] = fraction * animlength

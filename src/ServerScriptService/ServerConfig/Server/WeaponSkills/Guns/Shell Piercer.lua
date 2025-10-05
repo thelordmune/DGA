@@ -31,6 +31,7 @@ return function(Player, Data, Server)
 
 	-- WEAPON CHECK: This skill requires Guns weapon
 	if Weapon ~= "Guns" then
+		warn(string.format("[Shell Piercer] BLOCKED: %s has weapon '%s' but needs 'Guns'", Character.Name, Weapon))
 		return -- Character doesn't have the correct weapon for this skill
 	end
 

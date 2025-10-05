@@ -124,6 +124,14 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				local accumulatedDamage = Target:GetAttribute("HyperarmorDamage") or 0
 				local threshold = 50 -- Damage threshold before hyperarmor breaks
 
+				-- Update hyperarmor visual indicator (white → red based on damage)
+				local damagePercent = math.clamp(accumulatedDamage / threshold, 0, 1)
+				Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {
+					Module = "Misc",
+					Function = "UpdateHyperarmor",
+					Arguments = { Target, damagePercent }
+				})
+
 				if accumulatedDamage >= threshold then
 					-- Break hyperarmor - cancel the move
 					print("Hyperarmor broken for", Target.Name, "- took", accumulatedDamage, "damage during", currentAction)
@@ -131,6 +139,13 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					Library.StopAllAnims(Target)
 					Target:SetAttribute("HyperarmorDamage", nil)
 					Target:SetAttribute("HyperarmorMove", nil)
+
+					-- Remove hyperarmor visual
+					Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {
+						Module = "Misc",
+						Function = "RemoveHyperarmor",
+						Arguments = { Target }
+					})
 
 					-- Apply stun normally
 					if not Table.NoStunAnim then

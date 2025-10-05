@@ -408,11 +408,16 @@ function MainConfig.performAction(action, ...)
 		Name = character.Name,
 	}
 
+	-- DEBUG: Log NPC weapon and action
+	local npcWeapon = character:GetAttribute("Weapon")
+	print(string.format("[NPC %s] Attempting action: %s (Weapon: %s)", character.Name, action, npcWeapon or "NONE"))
+
 	-- Check if it's a weapon skill first
 	local weaponSkillHandler = weaponSkillHandlers[action]
 	if weaponSkillHandler then
 		-- Execute the weapon skill using the same function players use
 		-- Weapon skills signature: function(Player, Data, Server)
+		print(string.format("[NPC %s] Executing weapon skill: %s", character.Name, action))
 		weaponSkillHandler(fakePlayer, {}, Server)
 		return true
 	end

@@ -272,18 +272,9 @@ return function(actor: Actor, mainConfig: table)
 
     -- print("Guard", npc.Name, "executing attack pattern - AggressiveMode:", mainConfig.States.AggressiveMode)
 
-    -- Ensure guard has a weapon equipped
-    local weapon = npc:GetAttribute("Weapon")
+    -- Get the guard's weapon (DO NOT reassign - weapon is set at spawn time)
+    local weapon = npc:GetAttribute("Weapon") or "Fist"
     local equipped = npc:GetAttribute("Equipped")
-
-    if not weapon or weapon == "Fist" then
-        -- Set a weapon from the weapon list if available
-        if mainConfig.Weapons and mainConfig.Weapons.WeaponList and #mainConfig.Weapons.WeaponList > 0 then
-            weapon = mainConfig.Weapons.WeaponList[math.random(1, #mainConfig.Weapons.WeaponList)]
-            npc:SetAttribute("Weapon", weapon)
-            -- print("Guard", npc.Name, "assigned weapon:", weapon)
-        end
-    end
 
     if not equipped and weapon and weapon ~= "Fist" then
         -- Equip the weapon using the same system as players

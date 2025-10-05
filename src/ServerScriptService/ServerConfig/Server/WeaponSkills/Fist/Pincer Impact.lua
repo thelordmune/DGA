@@ -60,11 +60,52 @@ return function(Player, Data, Server)
 		Char:SetAttribute("HyperarmorDamage", 0)
 		Char:SetAttribute("HyperarmorMove", script.Name)
 
-		-- Clean up hyperarmor data when move ends
+		-- Start hyperarmor visual indicator (white highlight)
+		Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
+			Module = "Misc",
+			Function = "StartHyperarmor",
+			Arguments = { Char }
+		})
+
+		-- Add forward movement for NPCs (players have animation root motion)
+		local forwardVelocity = nil
+		if isNPC then
+			local rootPart = Char:FindFirstChild("HumanoidRootPart")
+			if rootPart then
+				local attachment = rootPart:FindFirstChild("RootAttachment")
+				if not attachment then
+					attachment = Instance.new("Attachment")
+					attachment.Name = "RootAttachment"
+					attachment.Parent = rootPart
+				end
+
+				forwardVelocity = Instance.new("LinearVelocity")
+				forwardVelocity.Name = "PincerImpactVelocity"
+				forwardVelocity.MaxForce = math.huge
+				forwardVelocity.VectorVelocity = rootPart.CFrame.LookVector * 30 -- Move forward at 30 studs/sec
+				forwardVelocity.Attachment0 = attachment
+				forwardVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+				forwardVelocity.Parent = rootPart
+			end
+		end
+
+		-- Clean up hyperarmor data, visual, and velocity when move ends
 		task.delay(Move.Length, function()
 			if Char and Char.Parent then
 				Char:SetAttribute("HyperarmorDamage", nil)
 				Char:SetAttribute("HyperarmorMove", nil)
+
+				-- Remove hyperarmor visual
+				Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
+					Module = "Misc",
+					Function = "RemoveHyperarmor",
+					Arguments = { Char }
+				})
+
+				-- Clean up forward velocity for NPCs
+				if forwardVelocity and forwardVelocity.Parent then
+					forwardVelocity:Destroy()
+				end
 			end
 		end)
 
@@ -73,7 +114,7 @@ return function(Player, Data, Server)
 			hittimes[i] = fraction * animlength
 		end
 
-		-- Track if player pressed M1 during the input window
+		-- Track if player pressed M1 during the input window (only for players, not NPCs)
 		local pressedM1 = false
 		local inputWindowActive = false
 
@@ -82,18 +123,6 @@ return function(Player, Data, Server)
 		-- Input window from keyframes 98-107 (9 frames)
 		local keyframe98Time = (98 / fps)
 		local keyframe107Time = (107 / fps)
-
-		-- print(`[PINCER IMPACT] Input window: {keyframe98Time}s to {keyframe107Time}s (duration: {keyframe107Time - keyframe98Time}s)`)
-		-- print(`[PINCER IMPACT] PlayerObject exists: {PlayerObject ~= nil}`)
-		-- print(`[PINCER IMPACT] PlayerObject.Keys exists: {PlayerObject and PlayerObject.Keys ~= nil}`)
-		-- if PlayerObject and PlayerObject.Keys then
-		-- 	-- print("[PINCER IMPACT] 📋 All available keys in PlayerObject.Keys:")
-		-- 	for key, value in pairs(PlayerObject.Keys) do
-		-- 		-- print(`  - {key} = {value}`)
-		-- 	end
-		-- end
-
-		-- print(tostring(hittimes[1]))
         task.delay(hittimes[1], function()
 
             Server.Library.PlaySound(Char, SFX.PI.Start)
@@ -133,95 +162,57 @@ return function(Player, Data, Server)
             Server.Packets.Bvel.sendTo({Character = Char, Name = "PIBvel2"}, Player)
         end)
 
-		-- Start input window at keyframe 98
-		task.delay(keyframe98Time, function()
-			inputWindowActive = true
-			-- print("[PINCER IMPACT] ✅ Input window OPENED at keyframe 98")
+		-- Only set up M1 input detection for players (not NPCs)
+		if not isNPC and PlayerObject and PlayerObject.Keys then
+			-- Start input window at keyframe 98
+			task.delay(keyframe98Time, function()
+				inputWindowActive = true
+			end)
 
-			-- Show highlight to indicate input window
-			-- Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
-			-- 	Module = "Weapons",
-			-- 	Function = "InputWindowHighlight",
-			-- 	Arguments = { Char, "Start" },
-			-- })
-		end)
+			-- End input window at keyframe 107
+			task.delay(keyframe107Time, function()
+				inputWindowActive = false
+			end)
 
-		-- End input window at keyframe 107
-		task.delay(keyframe107Time, function()
-			inputWindowActive = false
-			-- print("[PINCER IMPACT] ❌ Input window CLOSED at keyframe 107")
+			-- Listen for M1 input during the window
+			local m1Connection
+			local frameCount = 0
+			local hasAttempted = false -- Track if player has already pressed M1 (prevents spam)
+			local lastAttackState = false -- Track previous Attack key state for edge detection
 
-			-- Remove highlight
-			-- Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
-			-- 	Module = "Weapons",
-			-- 	Function = "InputWindowHighlight",
-			-- 	Arguments = { Char, "Stop" },
-			-- })
-
-		end)
-
-		-- Listen for M1 input during the window
-		local m1Connection
-		local frameCount = 0
-		local hasAttempted = false -- Track if player has already pressed M1 (prevents spam)
-		local lastAttackState = false -- Track previous Attack key state for edge detection
-
-		m1Connection = RunService.Heartbeat:Connect(function()
-			if not Char or not Char.Parent then
-				-- print("[PINCER IMPACT] ⚠️ Character missing, disconnecting M1 listener")
-				m1Connection:Disconnect()
-				return
-			end
-
-			-- Debug: -- print all keys once when window opens
-			-- if inputWindowActive and not -- printedKeys then
-			-- 	-- printedKeys = true
-			-- 	-- print("[PINCER IMPACT] 📋 Keys during window:")
-			-- 	if PlayerObject.Keys then
-			-- 		for key, value in pairs(PlayerObject.Keys) do
-			-- 			-- print(`  - {key} = {value}`)
-			-- 		end
-			-- 	end
-			-- end
-
-			-- Debug: -- print status every 10 frames during window
-			if inputWindowActive then
-				frameCount = frameCount + 1
-				if frameCount % 10 == 0 then
-					-- Check the Attack key (M1 is called "Attack" in PlayerObject.Keys)
-					local attackState = PlayerObject.Keys and PlayerObject.Keys.Attack
-					-- print(`[PINCER IMPACT] 🔍 Checking... Window Active: {inputWindowActive}, Attack key: {attackState}`)
+			m1Connection = RunService.Heartbeat:Connect(function()
+				if not Char or not Char.Parent then
+					m1Connection:Disconnect()
+					return
 				end
-			end
 
-			-- Get current Attack key state
-			local currentAttackState = PlayerObject.Keys and PlayerObject.Keys.Attack or false
+				-- Get current Attack key state
+				local currentAttackState = PlayerObject.Keys and PlayerObject.Keys.Attack or false
 
-			-- Detect rising edge (key was just pressed, not held)
-			local justPressed = currentAttackState and not lastAttackState
+				-- Detect rising edge (key was just pressed, not held)
+				local justPressed = currentAttackState and not lastAttackState
 
-			-- Only register ONE attempt during the input window
-			if inputWindowActive and justPressed and not hasAttempted then
-				hasAttempted = true -- Mark that player has used their one chance
-				pressedM1 = true
-				-- print("[PINCER IMPACT] 🎯 SUCCESS! Attack key pressed during input window! Will use BF variant.")
-				m1Connection:Disconnect()
-			elseif justPressed and not inputWindowActive and not hasAttempted then
-				-- Player pressed too early or too late - mark as attempted (failed)
-				hasAttempted = true
-				-- print("[PINCER IMPACT] ❌ FAILED! Attack key pressed outside input window.")
-			end
+				-- Only register ONE attempt during the input window
+				if inputWindowActive and justPressed and not hasAttempted then
+					hasAttempted = true -- Mark that player has used their one chance
+					pressedM1 = true
+					m1Connection:Disconnect()
+				elseif justPressed and not inputWindowActive and not hasAttempted then
+					-- Player pressed too early or too late - mark as attempted (failed)
+					hasAttempted = true
+				end
 
-			-- Update last state for next frame
-			lastAttackState = currentAttackState
-		end)
+				-- Update last state for next frame
+				lastAttackState = currentAttackState
+			end)
 
-		-- Clean up connection when animation ends
-		task.delay(Move.Length, function()
-			if m1Connection then
-				m1Connection:Disconnect()
-			end
-		end)
+			-- Clean up connection when animation ends
+			task.delay(Move.Length, function()
+				if m1Connection then
+					m1Connection:Disconnect()
+				end
+			end)
+		end
 
         task.delay(hittimes[4], function()
 			-- Send "BF" variant if M1 was pressed, otherwise "None"
