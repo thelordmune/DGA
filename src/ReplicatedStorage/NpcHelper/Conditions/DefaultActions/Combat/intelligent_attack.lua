@@ -87,7 +87,8 @@ local function getAvailableSkills(npc, mainConfig)
         table.insert(availableSkills, "Construct")
         table.insert(availableSkills, "Deconstruct")
         table.insert(availableSkills, "AlchemicAssault")
-        
+        table.insert(availableSkills, "Stone Lance")
+
         -- Type-specific alchemy
         if alchemy == "Stone" then
             table.insert(availableSkills, "Cascade")
@@ -97,7 +98,7 @@ local function getAvailableSkills(npc, mainConfig)
             table.insert(availableSkills, "Firestorm")
         end
     end
-    
+
     return availableSkills
 end
 

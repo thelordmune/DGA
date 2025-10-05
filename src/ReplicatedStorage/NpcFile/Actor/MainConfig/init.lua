@@ -370,10 +370,10 @@ local function loadAlchemySkills()
 		if networkPath then
 			networkPath = networkPath:FindFirstChild("Network")
 			if networkPath then
-				-- Alchemy skills: Cascade, Cinder, Firestorm, Rock Skewer, Construct, Deconstruct, AlchemicAssault
+				-- Alchemy skills: Cascade, Cinder, Firestorm, Rock Skewer, Construct, Deconstruct, AlchemicAssault, Stone Lance
 				local alchemySkills = {
 					"Cascade", "Cinder", "Firestorm", "Rock Skewer",
-					"Construct", "Deconstruct", "AlchemicAssault"
+					"Construct", "Deconstruct", "AlchemicAssault", "Stone Lance"
 				}
 
 				for _, skillName in alchemySkills do

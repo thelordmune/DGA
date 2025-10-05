@@ -7,10 +7,26 @@ local Global = require(Replicated.Modules.Shared.Global)
 return function(Player, Data, Server)
 	local Character = Player.Character
 
-	if not Character or not Character:GetAttribute("Equipped") then
+	if not Character then
 		return
 	end
-	local Weapon = Global.GetData(Player).Weapon
+
+	-- Check if this is an NPC (no Player instance) or a real player
+	local isNPC = typeof(Player) ~= "Instance" or not Player:IsA("Player")
+
+	-- For players, check equipped status
+	if not isNPC and not Character:GetAttribute("Equipped") then
+		return
+	end
+
+	-- Get weapon - for NPCs use attribute, for players use Global.GetData
+	local Weapon
+	if isNPC then
+		Weapon = Character:GetAttribute("Weapon") or "Guns"
+	else
+		Weapon = Global.GetData(Player).Weapon
+	end
+
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
 	local VictimAnimation = Replicated.Assets.Animations.Skills.Weapons[Weapon]["Victim"]
@@ -19,7 +35,10 @@ return function(Player, Data, Server)
 		return
 	end
 
-	if PlayerObject and PlayerObject.Keys and not Server.Library.CheckCooldown(Character, script.Name) then
+	-- For NPCs, skip the PlayerObject.Keys check
+	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
+
+	if canUseSkill and not Server.Library.CheckCooldown(Character, script.Name) then
 		Server.Library.SetCooldown(Character, script.Name, 2.5)
 		Server.Library.StopAllAnims(Character)
 

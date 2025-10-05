@@ -379,6 +379,23 @@ CombatProperties["Rock Skewer"] = {
     SkillPriority = 11, -- High priority ground attack
 }
 
+CombatProperties["Stone Lance"] = {
+    SkillType = "Offensive",
+    RangeType = "Medium",
+    TargetingProperties = {
+        MinRange = 5,
+        MaxRange = 30,
+        OptimalRange = 15,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = true,
+        FollowupWindow = 0.8,
+    },
+    DashProperty = nil,
+    SkillPriority = 13, -- High priority - targets nearest enemy with stone spike
+}
+
 -- FLAME ALCHEMY
 CombatProperties["Cinder"] = {
     SkillType = "Offensive",

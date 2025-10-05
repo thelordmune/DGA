@@ -213,23 +213,21 @@ NetworkModule.EndPoint = function(Player, Data)
 									v.Anchored = false
 									v.CanCollide = true
 
-									-- Get direction from player to debris piece
 									local direction = (v.Position - root.Position).Unit
 
-									-- Add some randomness to the direction
 									local randomSpread = Vector3.new(
-										(math.random() - 0.5) * 0.5, -- X spread (-0.25 to 0.25)
-										math.random() * 0.5, -- Y spread (0 to 0.5)
-										(math.random() - 0.5) * 0.5 -- Z spread (-0.25 to 0.25)
+										(math.random() - 0.5) * 0.5,
+										math.random() * 0.5,
+										(math.random() - 0.5) * 0.5
 									)
 
-									-- Combine forward force with random spread
 									local combinedDirection = (playerForward + randomSpread).Unit
+									local velocityVector = combinedDirection * 120
 
-									-- Calculate velocity - stronger forward force
+									v.AssemblyLinearVelocity = velocityVector
+
 									local debrisVelocity = Instance.new("BodyVelocity")
-									debrisVelocity.Velocity = combinedDirection * 120 -- Increased base speed
-
+									debrisVelocity.Velocity = velocityVector
 									debrisVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 									debrisVelocity.Parent = v
 

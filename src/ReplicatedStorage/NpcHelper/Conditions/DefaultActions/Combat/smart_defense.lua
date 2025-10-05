@@ -178,15 +178,21 @@ local function executeDefense(npc, defenseType, mainConfig)
 
     elseif defenseType == "Dodge" then
         -- Perform dodge (if NPC has dodge capability)
+        local npcRoot = npc:FindFirstChild("HumanoidRootPart")
+        if not npcRoot then
+            return false
+        end
 
-        -- Get a random dodge direction
+        -- Get a random dodge direction relative to NPC's orientation
         local dodgeDirections = {
-            Vector3.new(1, 0, 0),   -- Right
-            Vector3.new(-1, 0, 0),  -- Left
-            Vector3.new(0, 0, -1),  -- Back
+            {name = "Right", vector = npcRoot.CFrame.RightVector},
+            {name = "Left", vector = -npcRoot.CFrame.RightVector},
+            {name = "Back", vector = -npcRoot.CFrame.LookVector},
         }
 
-        local randomDirection = dodgeDirections[math.random(1, #dodgeDirections)]
+        local randomDodge = dodgeDirections[math.random(1, #dodgeDirections)]
+        local dodgeVector = randomDodge.vector
+        local dodgeDirection = randomDodge.name
 
         -- Manually apply dodge for NPCs (since Dodge.EndPoint expects a Player)
         local Entity = Server.Modules.Entities.Get(npc)
@@ -199,11 +205,58 @@ local function executeDefense(npc, defenseType, mainConfig)
                 end)
             end
 
+            -- Create smooth velocity for dodge (same as player system)
+            local TweenService = game:GetService("TweenService")
+
+            -- Clean up any existing dodge velocities
+            for _, bodyMover in pairs(npcRoot:GetChildren()) do
+                if bodyMover.Name == "NPCDodge" then
+                    bodyMover:Destroy()
+                end
+            end
+
+            local Velocity = Instance.new("LinearVelocity")
+            Velocity.Name = "NPCDodge"
+            Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+            Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+            Velocity.ForceLimitsEnabled = true
+            Velocity.MaxAxesForce = Vector3.new(4e4, 0, 4e4)
+            Velocity.VectorVelocity = dodgeVector * 60 -- Dash speed
+
+            -- Create attachment if it doesn't exist
+            local attachment = npcRoot:FindFirstChild("RootAttachment")
+            if not attachment then
+                attachment = Instance.new("Attachment")
+                attachment.Name = "RootAttachment"
+                attachment.Parent = npcRoot
+            end
+
+            Velocity.Attachment0 = attachment
+            Velocity.RelativeTo = Enum.ActuatorRelativeTo.World
+            Velocity.Parent = npcRoot
+
+            -- Create smooth deceleration tween - gradually slow down instead of stopping abruptly
+            local TweenDuration = 0.3
+            local SlowdownSpeed = 60 * 0.15  -- End at 15% of original speed for smooth transition
+            local DashTween = TweenService:Create(
+                Velocity,
+                TweenInfo.new(TweenDuration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+                {VectorVelocity = dodgeVector * SlowdownSpeed}
+            )
+            DashTween:Play()
+
+            -- Final cleanup - remove velocity completely after tween
+            DashTween.Completed:Connect(function()
+                if Velocity and Velocity.Parent then
+                    Velocity:Destroy()
+                end
+            end)
+
             -- Play dodge VFX
-            Server.Visuals.Ranged(npc.HumanoidRootPart.Position, 300, {
+            Server.Visuals.Ranged(npcRoot.Position, 300, {
                 Module = "Base",
                 Function = "DashFX",
-                Arguments = {npc, randomDirection}
+                Arguments = {npc, dodgeDirection}
             })
 
             return true

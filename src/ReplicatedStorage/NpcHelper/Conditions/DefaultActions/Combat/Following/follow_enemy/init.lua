@@ -134,14 +134,24 @@ end
 return function(actor: Actor, mainConfig: table )
 	local npc = actor:FindFirstChildOfClass("Model")
 	if not npc then
-		return false 
+		return false
 	end
 
 	local root,humanoid = npc:FindFirstChild("HumanoidRootPart"),npc:FindFirstChild("Humanoid")
 	if not root
 		or not humanoid
-	then 
-		return false 
+	then
+		return false
+	end
+
+	-- Check if NPC is performing an action - if so, stop movement to prevent choppy behavior
+	local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
+	local actions = npc:FindFirstChild("Actions")
+	if actions and Server.Library.StateCount(actions) then
+		-- NPC is performing an action (attacking, using skill, etc.) - stop movement
+		humanoid:Move(Vector3.new(0, 0, 0))
+		clearAlignOrientation(npc)
+		return true -- Return true so behavior tree knows we're still following, just paused
 	end
 
 	local victim = mainConfig.getTarget()

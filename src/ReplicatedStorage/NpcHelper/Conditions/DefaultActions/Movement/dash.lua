@@ -47,19 +47,47 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		dashVector = root.CFrame.LookVector
 	end
 
+	-- Clean up any existing dash velocities
+	for _, bodyMover in pairs(root:GetChildren()) do
+		if bodyMover.Name == "NPCDash" then
+			bodyMover:Destroy()
+		end
+	end
+
 	-- Create velocity for dash (same as player dash system)
+	local TweenService = game:GetService("TweenService")
 	local Velocity = Instance.new("LinearVelocity")
+	Velocity.Name = "NPCDash"
 	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
 	Velocity.ForceLimitsEnabled = true
 	Velocity.MaxAxesForce = Vector3.new(4e4, 0, 4e4)
 	Velocity.VectorVelocity = dashVector * 60 -- Dash speed
-	Velocity.Attachment0 = root:FindFirstChild("RootAttachment")
+
+	-- Create attachment if it doesn't exist
+	local attachment = root:FindFirstChild("RootAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "RootAttachment"
+		attachment.Parent = root
+	end
+
+	Velocity.Attachment0 = attachment
 	Velocity.RelativeTo = Enum.ActuatorRelativeTo.World
 	Velocity.Parent = root
 
-	-- Clean up velocity after dash duration
-	task.delay(0.3, function()
+	-- Create smooth deceleration tween - gradually slow down instead of stopping abruptly
+	local TweenDuration = 0.3
+	local SlowdownSpeed = 60 * 0.15  -- End at 15% of original speed for smooth transition
+	local DashTween = TweenService:Create(
+		Velocity,
+		TweenInfo.new(TweenDuration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+		{VectorVelocity = dashVector * SlowdownSpeed}
+	)
+	DashTween:Play()
+
+	-- Final cleanup - remove velocity completely after tween
+	DashTween.Completed:Connect(function()
 		if Velocity and Velocity.Parent then
 			Velocity:Destroy()
 		end

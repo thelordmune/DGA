@@ -56,7 +56,15 @@ end
 NetworkModule.EndPoint = function(Player, Data)
 	local Character = Player.Character
 
-	if not Character or not Character:GetAttribute("Equipped") then
+	if not Character then
+		return
+	end
+
+	-- Check if this is an NPC (no Player instance) or a real player
+	local isNPC = typeof(Player) ~= "Instance" or not Player:IsA("Player")
+
+	-- For players, check equipped status
+	if not isNPC and not Character:GetAttribute("Equipped") then
 		return
 	end
 
@@ -67,7 +75,10 @@ NetworkModule.EndPoint = function(Player, Data)
 		return
 	end
 
-	if PlayerObject and PlayerObject.Keys and not Server.Library.CheckCooldown(Character, script.Name) then
+	-- For NPCs, skip the PlayerObject.Keys check
+	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
+
+	if canUseSkill and not Server.Library.CheckCooldown(Character, script.Name) then
 		cleanUp()
 		Server.Library.SetCooldown(Character, script.Name, 5)
 		Server.Library.StopAllAnims(Character)
@@ -227,6 +238,11 @@ NetworkModule.EndPoint = function(Player, Data)
 									direction.Z * horizontalPower
 								)
 
+								local targetHumanoid = Target:FindFirstChild("Humanoid")
+								if targetHumanoid then
+									targetHumanoid.PlatformStand = true
+								end
+
 								local lv = Instance.new("LinearVelocity")
 								lv.Name = "StoneLaunchVelocity"
 								lv.MaxForce = math.huge
@@ -240,6 +256,9 @@ NetworkModule.EndPoint = function(Player, Data)
 								task.delay(0.8, function()
 									if lv and lv.Parent then
 										lv:Destroy()
+									end
+									if targetHumanoid then
+										targetHumanoid.PlatformStand = false
 									end
 								end)
 							end
@@ -288,8 +307,12 @@ NetworkModule.EndPoint = function(Player, Data)
 								(math.random() - 0.5) * 2
 							).Unit
 
+							local velocityVector = randomDir * math.random(12, 20)
+
+							shard.AssemblyLinearVelocity = velocityVector
+
 							local velocity = Instance.new("BodyVelocity")
-							velocity.Velocity = randomDir * math.random(12, 20)
+							velocity.Velocity = velocityVector
 							velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 							velocity.Parent = shard
 
