@@ -49,7 +49,7 @@ return function(npc: Model, mainConfig: NpcData)
 		{
 			condition = function(): boolean return true end,
 			action = function(): string?
-				return `{hasSpecialAnimationType and `{mainConfig.Setting.SpecialAnimationType}NormalBlock` or "NormalBlock"}` 
+				return `{hasSpecialAnimationType and `{mainConfig.Setting.SpecialAnimationType}Block` or "Block"}` 
 			end
 		}
 	}
@@ -60,5 +60,5 @@ return function(npc: Model, mainConfig: NpcData)
 		end
 	end
 		
-	return "NormalBlock"
+	return "Block"
 end

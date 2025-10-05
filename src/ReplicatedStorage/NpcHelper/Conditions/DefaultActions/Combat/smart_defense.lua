@@ -200,13 +200,15 @@ local function executeDefense(npc, defenseType, mainConfig)
             -- Add dodge IFrame
             if Entity.Character:FindFirstChild("IFrames") then
                 Library.AddState(Entity.Character.IFrames, "Dodge")
-                task.delay(0.3, function()
+                task.delay(0.5, function()
                     Library.RemoveState(Entity.Character.IFrames, "Dodge")
                 end)
             end
 
-            -- Create smooth velocity for dodge (same as player system)
+            -- Create smooth velocity for dodge (match player dodge system exactly)
             local TweenService = game:GetService("TweenService")
+            local Speed = 135  -- Match player dodge speed
+            local Duration = 0.5  -- Match player dodge duration
 
             -- Clean up any existing dodge velocities
             for _, bodyMover in pairs(npcRoot:GetChildren()) do
@@ -220,8 +222,8 @@ local function executeDefense(npc, defenseType, mainConfig)
             Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
             Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
             Velocity.ForceLimitsEnabled = true
-            Velocity.MaxAxesForce = Vector3.new(4e4, 0, 4e4)
-            Velocity.VectorVelocity = dodgeVector * 60 -- Dash speed
+            Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)  -- Match player force
+            Velocity.VectorVelocity = dodgeVector * Speed
 
             -- Create attachment if it doesn't exist
             local attachment = npcRoot:FindFirstChild("RootAttachment")
@@ -236,11 +238,10 @@ local function executeDefense(npc, defenseType, mainConfig)
             Velocity.Parent = npcRoot
 
             -- Create smooth deceleration tween - gradually slow down instead of stopping abruptly
-            local TweenDuration = 0.3
-            local SlowdownSpeed = 60 * 0.15  -- End at 15% of original speed for smooth transition
+            local SlowdownSpeed = Speed * 0.15  -- End at 15% of original speed for smooth transition
             local DashTween = TweenService:Create(
                 Velocity,
-                TweenInfo.new(TweenDuration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+                TweenInfo.new(Duration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
                 {VectorVelocity = dodgeVector * SlowdownSpeed}
             )
             DashTween:Play()

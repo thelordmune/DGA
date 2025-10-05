@@ -80,7 +80,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Character, script.Name) then
 		cleanUp()
-		Server.Library.SetCooldown(Character, script.Name, 5)
+		Server.Library.SetCooldown(Character, script.Name, 8) -- Increased from 5 to 8 seconds
 		Server.Library.StopAllAnims(Character)
 
 		local Alchemy = Library.PlayAnimation(Character, Animation)

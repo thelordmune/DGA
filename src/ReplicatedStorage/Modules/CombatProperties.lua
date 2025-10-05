@@ -222,6 +222,23 @@ CombatProperties["Axe Kick"] = {
     SkillPriority = 11, -- High priority - guard break
 }
 
+CombatProperties["Pincer Impact"] = {
+    SkillType = "Offensive",
+    RangeType = "Close",
+    TargetingProperties = {
+        MinRange = 0,
+        MaxRange = 8,
+        OptimalRange = 5,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = true,
+        FollowupWindow = 0.8,
+    },
+    DashProperty = nil,
+    SkillPriority = 13, -- High priority - powerful combo skill
+}
+
 -- BOXING SKILLS
 CombatProperties["Jab Rush"] = {
     SkillType = "Offensive",

@@ -37,7 +37,15 @@ end
 NetworkModule.EndPoint = function(Player, Data)
 	local Character = Player.Character
 
-	if not Character or not Character:GetAttribute("Equipped") then
+	if not Character then
+		return
+	end
+
+	-- Check if this is an NPC (no Player instance) or a real player
+	local isNPC = typeof(Player) ~= "Instance" or not Player:IsA("Player")
+
+	-- For players, check equipped status
+	if not isNPC and not Character:GetAttribute("Equipped") then
 		return
 	end
 
@@ -52,11 +60,14 @@ NetworkModule.EndPoint = function(Player, Data)
 		return
 	end
 
-	if PlayerObject and PlayerObject.Keys and not Server.Library.CheckCooldown(Character, "Cinder") then
+	-- For NPCs, skip the PlayerObject.Keys check
+	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
+
+	if canUseSkill and not Server.Library.CheckCooldown(Character, "Cinder") then
 		Server.Packets.Bvel.sendTo({Character = Character, Name = "RemoveBvel"},Player)
 		print("removing bvel bro bro")
 		cleanUp()
-		Server.Library.SetCooldown(Character, "Cinder", 3)
+		Server.Library.SetCooldown(Character, "Cinder", 8) -- Increased from 3 to 8 seconds
 		Server.Library.StopAllAnims(Character)
 
 		local Alchemy = Library.PlayAnimation(Character, Animation)

@@ -219,6 +219,38 @@ function EntityClass:Initialize()
 
         -- Inventory and weapon skills are now handled in playerloader.luau
         -- This ensures components are initialized before skills are added
+    else
+        -- NPC initialization
+        debugPrint("Initializing NPC frames for:", self.Character.Name)
+
+        -- Ensure all character frames are properly initialized for NPCs
+        task.wait(0.1) -- Wait for frames to be cloned
+        if self.Character:FindFirstChild("Actions") then
+            self.Character.Actions.Value = "[]"
+            debugPrint("Initialized Actions frame for NPC")
+        end
+        if self.Character:FindFirstChild("Stuns") then
+            self.Character.Stuns.Value = "[]"
+            debugPrint("Initialized Stuns frame for NPC")
+        end
+        if self.Character:FindFirstChild("Speeds") then
+            self.Character.Speeds.Value = "[]"
+            debugPrint("Initialized Speeds frame for NPC")
+        end
+        if self.Character:FindFirstChild("Status") then
+            self.Character.Status.Value = "[]"
+            debugPrint("Initialized Status frame for NPC")
+        end
+        if self.Character:FindFirstChild("IFrames") then
+            self.Character.IFrames.Value = "[]"
+            debugPrint("Initialized IFrames frame for NPC")
+        end
+        if self.Character:FindFirstChild("Frames") then
+            self.Character.Frames.Value = "[]"
+            debugPrint("Initialized Frames frame for NPC")
+        end
+
+        debugPrint("Finished initializing NPC frames for:", self.Character.Name)
     end
 
     self:LoadWeapon(self.Character)

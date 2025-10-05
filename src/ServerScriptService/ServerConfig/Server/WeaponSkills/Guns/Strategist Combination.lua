@@ -27,6 +27,11 @@ return function(Player, Data, Server)
 		Weapon = Global.GetData(Player).Weapon
 	end
 
+	-- WEAPON CHECK: This skill requires Guns weapon
+	if Weapon ~= "Guns" then
+		return -- Character doesn't have the correct weapon for this skill
+	end
+
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
 	local VictimAnimation = Replicated.Assets.Animations.Skills.Weapons[Weapon]["Victim"]
@@ -39,19 +44,25 @@ return function(Player, Data, Server)
 	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Character, script.Name) then
-		Server.Library.SetCooldown(Character, script.Name, 2.5)
+		-- Different cooldowns for NPCs vs Players
+		local cooldown = isNPC and 14 or 7 -- NPCs: 14 seconds, Players: 7 seconds
+		Server.Library.SetCooldown(Character, script.Name, cooldown)
 		Server.Library.StopAllAnims(Character)
 
 		local Move = Library.PlayAnimation(Character, Animation)
 		-- Move:Play()
 		local animlength = Move.Length
+		local endlag = 0.5 -- Endlag after animation completes
 
-		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
-		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
-		Server.Library.TimedState(Character.Stuns, "NoRotate", Move.Length)
+		Server.Library.TimedState(Character.Actions, script.Name, Move.Length + endlag)
+		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length + endlag)
+		Server.Library.TimedState(Character.Stuns, "NoRotate", Move.Length + endlag)
 
 		-- Add invincibility to attacker during the entire move
 		Server.Library.TimedState(Character.IFrames, "StrategistCombo", Move.Length)
+
+		-- Prevent attacker from using other moves during combo (including endlag)
+		Server.Library.TimedState(Character.Stuns, "StrategistComboLock", Move.Length + endlag)
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTimes do
@@ -86,8 +97,16 @@ return function(Player, Data, Server)
 						-- Anchor victim's position
 						local victimRoot = Target:FindFirstChild("HumanoidRootPart")
 						if victimRoot then
+							-- Clean up any existing body movers first
+							for _, child in ipairs(victimRoot:GetChildren()) do
+								if child:IsA("BodyPosition") or child:IsA("BodyGyro") or child:IsA("BodyVelocity") or child:IsA("LinearVelocity") then
+									child:Destroy()
+								end
+							end
+
 							local originalCFrame = victimRoot.CFrame
 							local positionLock = Instance.new("BodyPosition")
+							positionLock.Name = "StrategistComboLock"
 							positionLock.Position = originalCFrame.Position
 							positionLock.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 							positionLock.P = 10000
@@ -98,6 +117,15 @@ return function(Player, Data, Server)
 							task.delay(animlength, function()
 								if positionLock and positionLock.Parent then
 									positionLock:Destroy()
+								end
+
+								-- Extra cleanup - remove any lingering body movers
+								if victimRoot and victimRoot.Parent then
+									for _, child in ipairs(victimRoot:GetChildren()) do
+										if child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+											child:Destroy()
+										end
+									end
 								end
 							end)
 						end

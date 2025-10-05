@@ -10,10 +10,31 @@ local LooseRagdoll = require(Replicated.Modules.Utils.LooseRagdoll)
 return function(Player, Data, Server)
     local Char = Player.Character
 
-	if not Char or not Char:GetAttribute("Equipped") then
+	if not Char then
 		return
 	end
-	local Weapon = Global.GetData(Player).Weapon
+
+	-- Check if this is an NPC (no Player instance) or a real player
+	local isNPC = typeof(Player) ~= "Instance" or not Player:IsA("Player")
+
+	-- For players, check equipped status
+	if not isNPC and not Char:GetAttribute("Equipped") then
+		return
+	end
+
+	-- Get weapon - for NPCs use attribute, for players use Global.GetData
+	local Weapon
+	if isNPC then
+		Weapon = Char:GetAttribute("Weapon") or "Fist"
+	else
+		Weapon = Global.GetData(Player).Weapon
+	end
+
+	-- WEAPON CHECK: This skill requires Fist weapon
+	if Weapon ~= "Fist" then
+		return -- Character doesn't have the correct weapon for this skill
+	end
+
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
 
@@ -21,8 +42,11 @@ return function(Player, Data, Server)
 		return
 	end
 
-	if PlayerObject and PlayerObject.Keys and not Server.Library.CheckCooldown(Char, script.Name) then
-		Server.Library.SetCooldown(Char, script.Name, 2.5)
+	-- For NPCs, skip the PlayerObject.Keys check
+	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
+
+	if canUseSkill and not Server.Library.CheckCooldown(Char, script.Name) then
+		Server.Library.SetCooldown(Char, script.Name, 5) -- Increased from 2.5 to 5 seconds
 		Server.Library.StopAllAnims(Char)
 
 		local Move = Library.PlayAnimation(Char, Animation)
@@ -31,6 +55,18 @@ return function(Player, Data, Server)
 
 		Server.Library.TimedState(Char.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Char.Speeds, "AlcSpeed-0", Move.Length)
+
+		-- Initialize hyperarmor tracking for this move
+		Char:SetAttribute("HyperarmorDamage", 0)
+		Char:SetAttribute("HyperarmorMove", script.Name)
+
+		-- Clean up hyperarmor data when move ends
+		task.delay(Move.Length, function()
+			if Char and Char.Parent then
+				Char:SetAttribute("HyperarmorDamage", nil)
+				Char:SetAttribute("HyperarmorMove", nil)
+			end
+		end)
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do

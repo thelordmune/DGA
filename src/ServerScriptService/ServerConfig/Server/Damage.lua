@@ -26,9 +26,21 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	-- Check if target is a destructible object
 	if not TargetEntity and Target:IsA("BasePart") and Target:GetAttribute("Destroyable") == true then
-		-- Handle destructible object destruction
-		DamageService.HandleDestructibleObject(Invoker, Target, Table)
-		return
+		-- SAFETY CHECK: Only destroy if part is in Map or Transmutables folder
+		-- This prevents character accessories (hair, hats, etc.) from being destroyed
+		local isInMap = workspace:FindFirstChild("Map") and Target:IsDescendantOf(workspace.Map)
+		local isInTransmutables = workspace:FindFirstChild("Transmutables") and Target:IsDescendantOf(workspace.Transmutables)
+
+		if isInMap or isInTransmutables then
+			-- Handle destructible object destruction
+			DamageService.HandleDestructibleObject(Invoker, Target, Table)
+			return
+		else
+			-- Part has Destroyable attribute but is not in Map/Transmutables
+			-- This is likely a character accessory - do NOT destroy it
+			warn("Attempted to destroy part with Destroyable attribute that is not in Map/Transmutables:", Target:GetFullName())
+			return
+		end
 	end
 
 	if not TargetEntity then
@@ -81,6 +93,78 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	-- end
 
 	local function DealStun()
+		-- Check for hyperarmor moves (Pincer Impact, Needle Thrust)
+		local actions = Target:FindFirstChild("Actions")
+		if actions then
+			local currentAction = nil
+			local allStates = Library.GetAllStates(actions)
+
+			-- Find the current action
+			for stateName, _ in pairs(allStates) do
+				if stateName == "Pincer Impact" or stateName == "Needle Thrust" then
+					currentAction = stateName
+					break
+				end
+			end
+
+			if currentAction then
+				-- Hyperarmor move is active - track damage instead of cancelling
+				local hyperarmorData = Target:GetAttribute("HyperarmorData")
+				if not hyperarmorData then
+					-- Initialize hyperarmor tracking
+					Target:SetAttribute("HyperarmorDamage", Table.Damage or 0)
+					Target:SetAttribute("HyperarmorMove", currentAction)
+				else
+					-- Accumulate damage
+					local currentDamage = Target:GetAttribute("HyperarmorDamage") or 0
+					Target:SetAttribute("HyperarmorDamage", currentDamage + (Table.Damage or 0))
+				end
+
+				-- Check if damage exceeds threshold
+				local accumulatedDamage = Target:GetAttribute("HyperarmorDamage") or 0
+				local threshold = 50 -- Damage threshold before hyperarmor breaks
+
+				if accumulatedDamage >= threshold then
+					-- Break hyperarmor - cancel the move
+					print("Hyperarmor broken for", Target.Name, "- took", accumulatedDamage, "damage during", currentAction)
+					Library.RemoveState(actions, currentAction)
+					Library.StopAllAnims(Target)
+					Target:SetAttribute("HyperarmorDamage", nil)
+					Target:SetAttribute("HyperarmorMove", nil)
+
+					-- Apply stun normally
+					if not Table.NoStunAnim then
+						Library.PlayAnimation(
+							Target,
+							Replicated.Assets.Animations.Hit:GetChildren()[Random.new():NextInteger(
+								1,
+								#Replicated.Assets.Animations.Hit:GetChildren()
+							)]
+						)
+					end
+
+					local stunDuration = Table.Stun
+					Library.TimedState(Target.Stuns, "DamageStun", stunDuration)
+					Library.TimedState(Target.Speeds, "DamageSpeedSet4", stunDuration)
+				else
+					-- Hyperarmor holds - don't apply stun, just play hit animation
+					print("Hyperarmor active for", Target.Name, "-", accumulatedDamage, "/", threshold, "damage taken during", currentAction)
+					if not Table.NoStunAnim then
+						Library.PlayAnimation(
+							Target,
+							Replicated.Assets.Animations.Hit:GetChildren()[Random.new():NextInteger(
+								1,
+								#Replicated.Assets.Animations.Hit:GetChildren()
+							)]
+						)
+					end
+					-- Don't apply DamageStun - hyperarmor prevents cancellation
+				end
+				return
+			end
+		end
+
+		-- Normal stun (no hyperarmor)
 		if not Table.NoStunAnim then
 			Library.PlayAnimation(
 				Target,

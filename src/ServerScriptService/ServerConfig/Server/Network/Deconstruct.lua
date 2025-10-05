@@ -38,7 +38,15 @@ end
 NetworkModule.EndPoint = function(Player, Data)
 	local Character = Player.Character
 
-	if not Character or not Character:GetAttribute("Equipped") then
+	if not Character then
+		return
+	end
+
+	-- Check if this is an NPC (no Player instance) or a real player
+	local isNPC = typeof(Player) ~= "Instance" or not Player:IsA("Player")
+
+	-- For players, check equipped status
+	if not isNPC and not Character:GetAttribute("Equipped") then
 		return
 	end
 
@@ -58,7 +66,10 @@ NetworkModule.EndPoint = function(Player, Data)
 		return
 	end
 
-	if PlayerObject and PlayerObject.Keys and not Data.Air and not Server.Library.CheckCooldown(Character, "Deconstruct") then
+	-- For NPCs, skip the PlayerObject.Keys check and Data.Air check
+	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys and not Data.Air)
+
+	if canUseSkill and not Server.Library.CheckCooldown(Character, "Deconstruct") then
 		cleanUp()
 		Server.Library.SetCooldown(Character,"Deconstruct",2.5)
 		Server.Library.StopAllAnims(Character)

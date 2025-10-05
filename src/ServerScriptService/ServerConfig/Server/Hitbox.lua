@@ -22,9 +22,21 @@ function CheckValidTarget(TargetPart, Entity)
 			Valid = true
 
 			-- Check for destructible objects (barrels, trees, etc.)
+			-- IMPORTANT: Only allow destruction if the part is in Map or Transmutables folder
+			-- This prevents character accessories (hair, hats) from being destroyed
 		elseif TargetPart:GetAttribute("Destroyable") == true then
-			print("youre attempting to attack a destructible object:", TargetPart.Name)
-			Valid = true
+			-- Check if part is in the Map folder or Transmutables folder
+			local isInMap = TargetPart:IsDescendantOf(workspace.Map or workspace.Transmutables)
+			local isInTransmutables = workspace:FindFirstChild("Transmutables") and TargetPart:IsDescendantOf(workspace.Transmutables)
+
+			if isInMap or isInTransmutables then
+				print("youre attempting to attack a destructible object:", TargetPart.Name)
+				Valid = true
+			else
+				-- Part has Destroyable attribute but is not in Map/Transmutables (probably a character accessory)
+				-- Do NOT mark as valid target
+				Valid = false
+			end
 		end
 	end
 
@@ -47,7 +59,7 @@ end
 Hitbox.SpatialQuery = function(Entity: Model, BoxSize: Vector3, BoxCFrame: CFrame, Visualize: boolean?)
 	local PotentialTargets = {}
 
-	-- First check for entities
+	-- First check for entities (characters/NPCs)
 	local EntityParams = OverlapParams.new()
 	EntityParams.FilterDescendantsInstances = { workspace.World.Live }
 	EntityParams.FilterType = Enum.RaycastFilterType.Include
@@ -59,29 +71,16 @@ Hitbox.SpatialQuery = function(Entity: Model, BoxSize: Vector3, BoxCFrame: CFram
 	WallParams.FilterType = Enum.RaycastFilterType.Include
 	WallParams.CollisionGroup = "Default"
 
-	-- Check for destructible objects (in Map folder)
-	local DestructibleParams = OverlapParams.new()
-	if workspace:FindFirstChild("Map") then
-		DestructibleParams.FilterDescendantsInstances = { workspace.Map }
-		DestructibleParams.FilterType = Enum.RaycastFilterType.Include
-		DestructibleParams.CollisionGroup = "Default"
-	end
+	-- NOTE: Removed destructible objects from regular hitbox queries
+	-- Destructibles should only be destroyed by specific attacks (like environmental damage)
+	-- Regular combat (M1, M2, skills) should NOT destroy barrels, crates, etc.
 
 	-- Combine results from all queries
 	local HitParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, EntityParams)
 	local WallParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, WallParams)
-	local DestructibleParts = {}
 
-	if workspace:FindFirstChild("Map") then
-		DestructibleParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, DestructibleParams)
-	end
-
-	-- Merge all the tables
+	-- Merge wall parts into hit parts
 	for _, part in ipairs(WallParts) do
-		table.insert(HitParts, part)
-	end
-
-	for _, part in ipairs(DestructibleParts) do
 		table.insert(HitParts, part)
 	end
 

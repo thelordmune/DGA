@@ -51,7 +51,15 @@ local function isSkillOnCooldown(npc, skillName, mainConfig)
         end
     end
 
-    return Server.Library.CheckCooldown(npc, skillName)
+    local onCooldown = Server.Library.CheckCooldown(npc, skillName)
+
+    -- Debug: Print cooldown status for skills (not M1 to avoid spam)
+    if onCooldown and skillName ~= "M1" and skillName ~= "M2" and skillName ~= "Critical" then
+        local remainingTime = Server.Library.GetCooldownTime(npc, skillName)
+        print(string.format("[NPC %s] Skill '%s' on cooldown: %.1fs remaining", npc.Name, skillName, remainingTime))
+    end
+
+    return onCooldown
 end
 
 -- Helper function to get available skills for NPC
@@ -79,6 +87,7 @@ local function getAvailableSkills(npc, mainConfig)
     elseif weapon == "Fist" then
         table.insert(availableSkills, "Downslam Kick")
         table.insert(availableSkills, "Axe Kick")
+        table.insert(availableSkills, "Pincer Impact")
     end
     
     -- Alchemy skills

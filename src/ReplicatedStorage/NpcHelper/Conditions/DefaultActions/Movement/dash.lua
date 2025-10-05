@@ -26,6 +26,15 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		return false
 	end
 
+	-- Check if NPC is in Actions or Stuns state (e.g., during Strategist Combination)
+	local actions = npc:FindFirstChild("Actions")
+	local stuns = npc:FindFirstChild("Stuns")
+
+	if (actions and Library.StateCount(actions)) or (stuns and Library.StateCount(stuns)) then
+		-- NPC is performing an action or stunned, cannot dash
+		return false
+	end
+
 	-- Check dash cooldown
 	local lastDash = mainConfig.States.LastDash or 0
 	local dashCooldown = 1.5 -- Cooldown between dashes
@@ -54,15 +63,18 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		end
 	end
 
-	-- Create velocity for dash (same as player dash system)
+	-- Create velocity for dash (match player dash system exactly)
 	local TweenService = game:GetService("TweenService")
+	local Speed = 135  -- Match player dash speed
+	local Duration = 0.5  -- Match player dash duration
+
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.Name = "NPCDash"
 	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
 	Velocity.ForceLimitsEnabled = true
-	Velocity.MaxAxesForce = Vector3.new(4e4, 0, 4e4)
-	Velocity.VectorVelocity = dashVector * 60 -- Dash speed
+	Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)  -- Match player force
+	Velocity.VectorVelocity = dashVector * Speed
 
 	-- Create attachment if it doesn't exist
 	local attachment = root:FindFirstChild("RootAttachment")
@@ -77,11 +89,10 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	Velocity.Parent = root
 
 	-- Create smooth deceleration tween - gradually slow down instead of stopping abruptly
-	local TweenDuration = 0.3
-	local SlowdownSpeed = 60 * 0.15  -- End at 15% of original speed for smooth transition
+	local SlowdownSpeed = Speed * 0.15  -- End at 15% of original speed for smooth transition
 	local DashTween = TweenService:Create(
 		Velocity,
-		TweenInfo.new(TweenDuration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+		TweenInfo.new(Duration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
 		{VectorVelocity = dashVector * SlowdownSpeed}
 	)
 	DashTween:Play()

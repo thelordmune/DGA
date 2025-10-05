@@ -27,6 +27,11 @@ return function(Player, Data, Server)
 		Weapon = Global.GetData(Player).Weapon
 	end
 
+	-- WEAPON CHECK: This skill requires Spear weapon
+	if Weapon ~= "Spear" then
+		return -- Character doesn't have the correct weapon for this skill
+	end
+
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
 
@@ -38,7 +43,7 @@ return function(Player, Data, Server)
 	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Character, script.Name) then
-		Server.Library.SetCooldown(Character, script.Name, 2.5)
+		Server.Library.SetCooldown(Character, script.Name, 6) -- Increased from 2.5 to 6 seconds
 		Server.Library.StopAllAnims(Character)
 
 		local Move = Library.PlayAnimation(Character, Animation)

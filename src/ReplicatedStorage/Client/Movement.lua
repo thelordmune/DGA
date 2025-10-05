@@ -117,6 +117,13 @@ Movement.Dodge = function()
     local TweenDuration = Duration  -- Match tween to velocity duration
     Client.Dodging = true
 
+    -- Clean up any existing velocities and body movers to prevent interference
+    for _, child in ipairs(Client.Root:GetChildren()) do
+        if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+            child:Destroy()
+        end
+    end
+
     local Velocity = Instance.new("LinearVelocity")
     Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
     Velocity.ForceLimitsEnabled = true

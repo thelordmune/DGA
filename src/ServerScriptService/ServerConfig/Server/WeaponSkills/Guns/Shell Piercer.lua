@@ -29,6 +29,11 @@ return function(Player, Data, Server)
 		Weapon = Global.GetData(Player).Weapon
 	end
 
+	-- WEAPON CHECK: This skill requires Guns weapon
+	if Weapon ~= "Guns" then
+		return -- Character doesn't have the correct weapon for this skill
+	end
+
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
 
@@ -40,7 +45,7 @@ return function(Player, Data, Server)
 	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Character, script.Name) then
-		Server.Library.SetCooldown(Character, script.Name, 2.5)
+		Server.Library.SetCooldown(Character, script.Name, 6) -- Increased from 2.5 to 6 seconds
 		Server.Library.StopAllAnims(Character)
 
 		local Move = Library.PlayAnimation(Character, Animation)
@@ -148,8 +153,16 @@ return function(Player, Data, Server)
 
 			-- Create overlap params to detect walls (parts with Destroyable attribute)
 			local overlapParams = OverlapParams.new()
-			overlapParams.FilterType = Enum.RaycastFilterType.Exclude
-			overlapParams.FilterDescendantsInstances = {Character, workspace.World.Live, workspace.World.Visuals, workspace.World.Map} -- Only check map parts
+			overlapParams.FilterType = Enum.RaycastFilterType.Include
+
+			-- Only include workspace.Transmutables - this ensures we ONLY hit transmutable walls
+			-- and never hit characters, accessories, or any other objects
+			local filterList = {}
+			if workspace:FindFirstChild("Transmutables") then
+				table.insert(filterList, workspace.Transmutables)
+			end
+
+			overlapParams.FilterDescendantsInstances = filterList
 
 			print("Shell Piercer: Calling VoxBreaker:CreateHitbox...")
 

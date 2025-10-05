@@ -345,6 +345,13 @@ NetworkModule["FistBvel"] = function(Character: Model)
 end
 
 NetworkModule["BaseBvel"] = function(Character: Model)
+	-- Clean up any existing velocities and body movers to prevent flinging
+	for _, child in ipairs(Character.PrimaryPart:GetChildren()) do
+		if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+			child:Destroy()
+		end
+	end
+
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.Attachment0 = Character.PrimaryPart.RootAttachment
 	Velocity.ForceLimitsEnabled = true
@@ -519,6 +526,13 @@ end
 NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model | Entity)
 	local root = Character.HumanoidRootPart
 	local eroot = Targ.HumanoidRootPart
+
+	-- Clean up any existing velocities and body movers to prevent flinging
+	for _, child in ipairs(eroot:GetChildren()) do
+		if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+			child:Destroy()
+		end
+	end
 
 	local direction = (eroot.Position - root.Position).Unit
 	local power = 60
