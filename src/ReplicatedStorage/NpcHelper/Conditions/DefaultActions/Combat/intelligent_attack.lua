@@ -87,7 +87,7 @@ local function getAvailableSkills(npc, mainConfig)
     elseif weapon == "Fist" then
         table.insert(availableSkills, "Downslam Kick")
         table.insert(availableSkills, "Axe Kick")
-        table.insert(availableSkills, "Pincer Impact")
+        -- Pincer Impact removed - too complex for NPCs
     end
     
     -- Alchemy skills

@@ -13,10 +13,10 @@ local Table = {
 
 	["Fist"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 25.6 / 60, 22.4 / 60, 25.6 / 60, 28 / 60, 24 / 60 },  -- Adjusted for 1.25x speed (25% faster)
-		["HitTimes"] = { 20 / 60, 20 / 60, 22.4 / 60, 24.8 / 60, 19.2 / 60 },  -- Adjusted for 1.25x speed (25% faster)
+		["Endlag"] = { 27.8 / 60, 24.3 / 60, 27.8 / 60, 30.4 / 60, 26.1 / 60 },  -- Adjusted for 1.15x speed
+		["HitTimes"] = { 21.7 / 60, 21.7 / 60, 24.3 / 60, 26.9 / 60, 20.9 / 60 },  -- Adjusted for 1.15x speed
 		["SoundTimes"] = {},
-		["Speed"] = 1.25,  -- Increased fist M1 speed from default 1.0 to 1.25
+		["Speed"] = 1.15,  -- Reduced from 1.25 to 1.15 (slightly slower)
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(3,5,5),

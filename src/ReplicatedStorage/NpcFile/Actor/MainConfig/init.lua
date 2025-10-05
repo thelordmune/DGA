@@ -684,7 +684,7 @@ function MainConfig.InitiateBlock(ShouldBlock: boolean)
 				Library.PlayAnimation(npc, blockAnimation)
 			end,
 			[`false`] = function()
-				Library.StopAnimation(npc, blockAnimation, {FadeTime = 0.25})
+				Library.StopAnimation(npc, blockAnimation, 0.25) -- Pass fade time as number, not table
 			end,
 		}
 		config[tostring(ShouldBlock)]()
