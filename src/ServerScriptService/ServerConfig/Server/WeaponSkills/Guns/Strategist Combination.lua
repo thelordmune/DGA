@@ -97,6 +97,7 @@ return function(Player, Data, Server)
 							print(string.format("[Strategist Combination] %s PARRIED by %s - combo cancelled!", Character.Name, Target.Name))
 
 							-- Stop attacker's animation and states
+							Move:Stop(0.1) -- Immediately stop the animation
 							Server.Library.StopAllAnims(Character)
 							Server.Library.RemoveState(Character.Actions, script.Name)
 							Server.Library.RemoveState(Character.Speeds, "AlcSpeed-0")
@@ -128,6 +129,7 @@ return function(Player, Data, Server)
 							print(string.format("[Strategist Combination] %s BLOCKED by %s - combo cancelled!", Character.Name, Target.Name))
 
 							-- Stop attacker's animation and states
+							Move:Stop(0.1) -- Immediately stop the animation
 							Server.Library.StopAllAnims(Character)
 							Server.Library.RemoveState(Character.Actions, script.Name)
 							Server.Library.RemoveState(Character.Speeds, "AlcSpeed-0")
@@ -264,11 +266,19 @@ return function(Player, Data, Server)
                     end)
                 end
 			else
-				-- No hit, cancel attacker animation
-				Move:Stop()
+				-- No hit, cancel attacker animation and reduce recovery time
+				Move:Stop(0.1) -- Immediately stop the animation
+				Server.Library.StopAllAnims(Character)
 				Server.Library.RemoveState(Character.Actions, script.Name)
 				Server.Library.RemoveState(Character.Speeds, "AlcSpeed-0")
 				Server.Library.RemoveState(Character.Stuns, "NoRotate")
+				Server.Library.RemoveState(Character.IFrames, "StrategistCombo")
+				Server.Library.RemoveState(Character.Stuns, "StrategistComboLock")
+
+				-- Add short recovery time on miss (much shorter than full combo)
+				local missRecovery = 0.8 -- Short recovery on miss
+				Server.Library.TimedState(Character.Actions, script.Name .. "Miss", missRecovery)
+				Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", missRecovery)
 			end
 		end)
 	end

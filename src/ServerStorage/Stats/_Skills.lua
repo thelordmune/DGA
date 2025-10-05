@@ -65,6 +65,7 @@ local Table = {
         ["Strategist Combination"] = {
             ["Sweep"] = {
             BlockBreak = false,
+			NoBlock = false, -- Cannot be blocked during combo
 			Damage = 3.5,
 			PostureDamage = 5,
 			LightKnockback = false,
@@ -74,6 +75,7 @@ local Table = {
             },
             ["Up"] = {
             BlockBreak = false,
+			NoBlock = true, -- Cannot be blocked during combo
 			Damage = 3.5,
 			PostureDamage = 5,
 			LightKnockback = false,
@@ -83,6 +85,7 @@ local Table = {
             },
             ["Down"] = {
             BlockBreak = false,
+			NoBlock = true, -- Cannot be blocked during combo
 			Damage = 3.5,
 			PostureDamage = 5,
 			LightKnockback = false,
@@ -92,6 +95,7 @@ local Table = {
             },
             ["groundye"] = {
             BlockBreak = false,
+			NoBlock = true, -- Cannot be blocked during combo
 			Damage = 3.5,
 			PostureDamage = 5,
 			LightKnockback = false,
@@ -101,6 +105,7 @@ local Table = {
             },
             ["LFire"] = {
             BlockBreak = false,
+			NoBlock = true,
 			Damage = .5,
 			PostureDamage = 5,
 			LightKnockback = false,
@@ -110,6 +115,7 @@ local Table = {
             },
             ["RFire"] = {
             BlockBreak = false,
+			NoBlock = true,
 			Damage = .5,
 			PostureDamage = 5,
 			LightKnockback = false,

@@ -98,7 +98,7 @@ Movement.Dodge = function()
 
 	-- Set cooldown when out of charges
 	if Client.DodgeCharges <= 0 then
-		Client.Library.SetCooldown(Client.Character, "Dodge", 2.5)
+		Client.Library.SetCooldown(Client.Character, "Dodge", 2)
 		print("Dodge cooldown set")
 	end
     

@@ -29,9 +29,13 @@ InputModule.InputBegan = function(_, Client)
 	
 	if Client.Library.StateCount(Client.Actions) then
 		Client.Packets.Attack.send({Type = "None", Held = true})
-	elseif Client.RunAtk and not Client.Library.CheckCooldown(Client.Character, "Running Attack") then
+	elseif Client.RunAtk and not Client.Library.CheckCooldown(Client.Character, "RunningAttack") then
 		Client.Packets.Attack.send({Type = "Running", Held = true})
 	else
+		-- If running attack is on cooldown, stop running and do normal M1
+		if Client.RunAtk and Client.Library.CheckCooldown(Client.Character, "RunningAttack") then
+			Client.Modules['Movement'].Run(false)
+		end
 		Client.Packets.Attack.send({Type = "Normal", Held = true, State = Client.InAir})
 	end
 end

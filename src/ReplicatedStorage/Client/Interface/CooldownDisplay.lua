@@ -380,7 +380,7 @@ local function getSkillCooldownDuration(skillName: string): number
 		Block = 0,
 		Parry = 0.5,
 		Dash = 1.75,
-		Dodge = 2.5,
+		Dodge = 2, -- Updated to match actual cooldown
 	}
 
 	return defaultCooldowns[skillName] or 1

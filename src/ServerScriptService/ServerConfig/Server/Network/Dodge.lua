@@ -33,10 +33,10 @@ NetworkModule.EndPoint = function(Player, Data)
     -- Use a charge
     charges = math.max(0, charges - 1)  -- Prevent negative charges
     Character:SetAttribute("DodgeCharges", charges)
-    
+
     -- Set cooldown when out of charges
     if charges <= 0 then
-        Library.SetCooldown(Character, "Dodge", 2.5)
+        Library.SetCooldown(Character, "Dodge", 2)
     end
 
     -- Always process VFX if we got here

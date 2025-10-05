@@ -53,10 +53,10 @@ local function isSkillOnCooldown(npc, skillName, mainConfig)
 
     local onCooldown = Server.Library.CheckCooldown(npc, skillName)
 
-    -- Debug: Print cooldown status for skills (not M1 to avoid spam)
+    -- Debug: -- print cooldown status for skills (not M1 to avoid spam)
     if onCooldown and skillName ~= "M1" and skillName ~= "M2" and skillName ~= "Critical" then
         local remainingTime = Server.Library.GetCooldownTime(npc, skillName)
-        print(string.format("[NPC %s] Skill '%s' on cooldown: %.1fs remaining", npc.Name, skillName, remainingTime))
+        -- print(string.format("[NPC %s] Skill '%s' on cooldown: %.1fs remaining", npc.Name, skillName, remainingTime))
     end
 
     return onCooldown
@@ -184,21 +184,21 @@ end
 
 -- Main intelligent attack function
 return function(actor: Actor, mainConfig: table)
-    -- print("=== INTELLIGENT_ATTACK CALLED ===")
+    -- -- print("=== INTELLIGENT_ATTACK CALLED ===")
 
     local npc = actor:FindFirstChildOfClass("Model")
     if not npc then
-        -- print("intelligent_attack: No NPC found")
+        -- -- print("intelligent_attack: No NPC found")
         return false
     end
 
     local target = mainConfig.getTarget()
     if not target then
-        -- print("intelligent_attack:", npc.Name, "- No target found")
+        -- -- print("intelligent_attack:", npc.Name, "- No target found")
         return false
     end
 
-    -- print("intelligent_attack:", npc.Name, "has target:", target.Name)
+    -- -- print("intelligent_attack:", npc.Name, "has target:", target.Name)
     
     -- Check if target is valid
     local targetHumanoid = target:FindFirstChild("Humanoid")
@@ -270,7 +270,7 @@ return function(actor: Actor, mainConfig: table)
     end
     
     -- Execute the best skill using the same Combat system players use
-    -- print("NPC", npc.Name, "using intelligent attack:", bestSkill, "with score:", bestScore, "at distance:", math.floor(distance))
+    -- -- print("NPC", npc.Name, "using intelligent attack:", bestSkill, "with score:", bestScore, "at distance:", math.floor(distance))
 
     -- Face the target
     local npcRoot = npc:FindFirstChild("HumanoidRootPart")

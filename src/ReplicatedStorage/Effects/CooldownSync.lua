@@ -13,13 +13,13 @@ local CooldownSync = {}
 function CooldownSync.Update(cooldownData)
 	local character = player.Character
 	if not character then return end
-	
+
 	-- Apply each cooldown to the client-side Library
 	for skillName, data in pairs(cooldownData) do
-		-- Set the cooldown on the client side so the UI can see it
-		-- We use the endTime from the server to stay in sync
+		-- Set the cooldown on the client side using remaining time
+		-- Convert server's remaining time to client's endTime using client's os.clock()
 		local cooldowns = Library.GetCooldowns(character)
-		cooldowns[skillName] = data.endTime
+		cooldowns[skillName] = os.clock() + data.remaining
 	end
 end
 
