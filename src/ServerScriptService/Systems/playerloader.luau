@@ -252,13 +252,27 @@ playerConnections[player] = player.CharacterAdded:Connect(function(rig)
 
             -- Give weapon skills AFTER components are initialized
             local InventorySetup = require(ReplicatedStorage.Modules.Utils.InventorySetup)
+
+            -- Wait for weapon attribute to be set (with timeout)
             local weapon = player:GetAttribute("Weapon")
+            local maxWaitTime = 5 -- Maximum 5 seconds to wait
+            local waitStartTime = os.clock()
+
+            while not weapon and (os.clock() - waitStartTime) < maxWaitTime do
+                task.wait(0.1)
+                weapon = player:GetAttribute("Weapon")
+            end
+
             if weapon then
                 print(`[Character] Giving weapon skills for {player.Name}, Weapon: {weapon}, Entity: {e}`)
                 InventorySetup.GiveWeaponSkills(e, weapon, player)
                 print(`[Character] Finished giving weapon skills to {player.Name}`)
             else
-                warn(`[Character] No weapon attribute found for {player.Name}`)
+                warn(`[Character] No weapon attribute found for {player.Name} after {maxWaitTime} seconds - defaulting to Fist`)
+                -- Default to Fist if no weapon attribute is set
+                weapon = "Fist"
+                player:SetAttribute("Weapon", weapon)
+                InventorySetup.GiveWeaponSkills(e, weapon, player)
             end
                         print(`[Character] Preloading assets for {rig.Name}`)
             -- preloadCharacterAssets(rig)

@@ -18,6 +18,8 @@ type Entity = {
 NetworkModule.EndPoint = function(Player, Data)
 	if Data.Name == "BFKnockback" then
 		NetworkModule[Data.Name](Data.Character, Data.Direction, Data.HorizontalPower, Data.UpwardPower)
+	elseif Data.Name == "StoneLaunchVelocity" or Data.Name == "PincerForwardVelocity" or Data.Name == "RemovePincerForwardVelocity" then
+		NetworkModule[Data.Name](Data.Character, Data)
 	else
 		NetworkModule[Data.Name](Data.Character, Data.Targ)
 	end
@@ -669,6 +671,87 @@ NetworkModule["GunsRunningBvel"] = function(Character)
 		lv:Destroy()
 		attachment:Destroy()
 	end)
+end
+
+-- Stone Lance launch velocity for targets
+NetworkModule["StoneLaunchVelocity"] = function(Character, Data)
+	if not Character or not Character.PrimaryPart then
+		warn("StoneLaunchVelocity: Character or PrimaryPart is nil")
+		return
+	end
+
+	local hitTargetRoot = Character.PrimaryPart
+	local attachment = hitTargetRoot:FindFirstChild("StoneLanceAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "StoneLanceAttachment"
+		attachment.Parent = hitTargetRoot
+	end
+
+	-- Clean up old velocity
+	local oldLV = hitTargetRoot:FindFirstChild("StoneLaunchVelocity")
+	if oldLV then
+		oldLV:Destroy()
+	end
+
+	local velocity = Data.Velocity or Vector3.new(0, 30, 0)
+
+	local lv = Instance.new("LinearVelocity")
+	lv.Name = "StoneLaunchVelocity"
+	lv.MaxForce = math.huge
+	lv.VectorVelocity = velocity
+	lv.Attachment0 = attachment
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	lv.Parent = hitTargetRoot
+
+	task.delay(0.8, function()
+		if lv and lv.Parent then
+			lv:Destroy()
+		end
+	end)
+end
+
+-- Pincer Impact forward velocity
+NetworkModule["PincerForwardVelocity"] = function(Character)
+	if not Character or not Character.PrimaryPart then
+		warn("PincerForwardVelocity: Character or PrimaryPart is nil")
+		return
+	end
+
+	local rootPart = Character.PrimaryPart
+	local attachment = rootPart:FindFirstChild("RootAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "RootAttachment"
+		attachment.Parent = rootPart
+	end
+
+	-- Clean up old velocity
+	local oldVel = rootPart:FindFirstChild("PincerImpactVelocity")
+	if oldVel then
+		oldVel:Destroy()
+	end
+
+	local forwardVelocity = Instance.new("LinearVelocity")
+	forwardVelocity.Name = "PincerImpactVelocity"
+	forwardVelocity.MaxForce = math.huge
+	forwardVelocity.VectorVelocity = rootPart.CFrame.LookVector * 30
+	forwardVelocity.Attachment0 = attachment
+	forwardVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+	forwardVelocity.Parent = rootPart
+end
+
+-- Remove Pincer Impact forward velocity
+NetworkModule["RemovePincerForwardVelocity"] = function(Character)
+	if not Character or not Character.PrimaryPart then
+		return
+	end
+
+	local rootPart = Character.PrimaryPart
+	local forwardVelocity = rootPart:FindFirstChild("PincerImpactVelocity")
+	if forwardVelocity then
+		forwardVelocity:Destroy()
+	end
 end
 
 return NetworkModule

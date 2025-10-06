@@ -92,7 +92,8 @@ NetworkModule.EndPoint = function(Player, Data)
 		
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
 
-		Server.Packets.Bvel.sendTo({Character = Character, Name = "AABvel" }, Player)
+		-- Send to player (they have network ownership)
+		Server.Packets.Bvel.sendTo({Character = Character, Name = "AABvel", Targ = Character }, Player)
 
 				local kfConn
 		kfConn = Alchemy.KeyframeReached:Connect(function(key)

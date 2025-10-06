@@ -79,13 +79,21 @@ return function(Player, Data, Server)
 					attachment.Parent = rootPart
 				end
 
+				-- Create LinearVelocity on server for physics
 				forwardVelocity = Instance.new("LinearVelocity")
 				forwardVelocity.Name = "PincerImpactVelocity"
 				forwardVelocity.MaxForce = math.huge
-				forwardVelocity.VectorVelocity = rootPart.CFrame.LookVector * 30 -- Move forward at 30 studs/sec
+				forwardVelocity.VectorVelocity = rootPart.CFrame.LookVector * 30
 				forwardVelocity.Attachment0 = attachment
 				forwardVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
 				forwardVelocity.Parent = rootPart
+
+				-- Also replicate to all clients for visual sync
+				Server.Packets.Bvel.sendToAll({
+					Character = Char,
+					Name = "PincerForwardVelocity",
+					Targ = Char
+				})
 			end
 		end
 
@@ -105,6 +113,15 @@ return function(Player, Data, Server)
 				-- Clean up forward velocity for NPCs
 				if forwardVelocity and forwardVelocity.Parent then
 					forwardVelocity:Destroy()
+				end
+
+				-- Also remove on clients
+				if isNPC then
+					Server.Packets.Bvel.sendToAll({
+						Character = Char,
+						Name = "RemovePincerForwardVelocity",
+						Targ = Char
+					})
 				end
 			end
 		end)
@@ -143,7 +160,8 @@ return function(Player, Data, Server)
         -- print(tostring(hittimes[3]-hittimes[2]) .. "this is the ptbvel 1 duration")
 
         task.delay(hittimes[2], function()
-            Server.Packets.Bvel.sendTo({Character = Char, Name = "PIBvel"}, Player)
+			-- Send to player (they have network ownership)
+            Server.Packets.Bvel.sendTo({Character = Char, Name = "PIBvel", Targ = Char}, Player)
         end)
 
 
@@ -159,7 +177,8 @@ return function(Player, Data, Server)
 					Function = "DropKick",
 					Arguments = { Char, "Start" },
 				})
-            Server.Packets.Bvel.sendTo({Character = Char, Name = "PIBvel2"}, Player)
+			-- Send to player (they have network ownership)
+            Server.Packets.Bvel.sendTo({Character = Char, Name = "PIBvel2", Targ = Char}, Player)
         end)
 
 		-- Only set up M1 input detection for players (not NPCs)

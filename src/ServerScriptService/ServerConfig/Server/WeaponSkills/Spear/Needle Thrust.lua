@@ -88,7 +88,8 @@ return function(Player, Data, Server)
 
         Server.Modules.Combat.Trail(Character, true)
 
-		Server.Packets.Bvel.sendTo({ Character = Character, duration = hittimes[1], Name = "NTBvel" }, Player)
+		-- Send to player (they have network ownership)
+		Server.Packets.Bvel.sendTo({ Character = Character, duration = hittimes[1], Name = "NTBvel", Targ = Character }, Player)
 
         Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 						Module = "Base", 

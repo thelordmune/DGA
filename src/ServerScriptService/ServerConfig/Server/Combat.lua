@@ -427,18 +427,17 @@ Combat.RunningAttack = function(Character)
 		local SwingAnimation = Character.Humanoid.Animator:LoadAnimation(Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon]["Running Attack"])
 		SwingAnimation:Play()
 		
+		-- Send Bvel to the player (they have network ownership of their character)
 		if Player then
-			
 			if Stats["RunningAttack"]["DelayedBvel"] then
 				task.delay(Stats["RunningAttack"]["DelayedBvel"],function()
 					if not Cancel then
-						Server.Packets.Bvel.sendTo({Character = Character, Name = Weapon.."RunningBvel"}, Player)
+						Server.Packets.Bvel.sendTo({Character = Character, Name = Weapon.."RunningBvel", Targ = Character}, Player)
 					end
 				end)
 			else
-				Server.Packets.Bvel.sendTo({Character = Character, Name = Weapon.."RunningBvel"}, Player)
+				Server.Packets.Bvel.sendTo({Character = Character, Name = Weapon.."RunningBvel", Targ = Character}, Player)
 			end
-			
 		end
 		
 		Entity["SwingConnection"] = SwingAnimation.Stopped:Once(function()
@@ -469,7 +468,7 @@ Combat.RunningAttack = function(Character)
 			end
 			
 			if Player then
-				Server.Packets.Bvel.sendTo({Character = Character, Name = "RemoveBvel"},Player)
+				Server.Packets.Bvel.sendTo({Character = Character, Name = "RemoveBvel", Targ = Character}, Player)
 			end
 			
 			--Sound:Stop()

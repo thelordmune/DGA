@@ -152,7 +152,12 @@ return ByteNet.defineNamespace("Networking", function()
 			value = ByteNet.struct({
 				Character = ByteNet.inst;
 				Name = ByteNet.string;
-				Targ = ByteNet.inst;
+				Targ = ByteNet.optional(ByteNet.inst);
+				Velocity = ByteNet.optional(ByteNet.vec3);
+				Direction = ByteNet.optional(ByteNet.vec3);
+				HorizontalPower = ByteNet.optional(ByteNet.float32);
+				UpwardPower = ByteNet.optional(ByteNet.float32);
+				duration = ByteNet.optional(ByteNet.float32);
 			})
 		});
 		

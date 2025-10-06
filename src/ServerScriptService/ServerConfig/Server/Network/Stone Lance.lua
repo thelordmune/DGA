@@ -216,18 +216,6 @@ NetworkModule.EndPoint = function(Player, Data)
 
 							local hitTargetRoot = Target:FindFirstChild("HumanoidRootPart")
 							if hitTargetRoot then
-								local attachment = hitTargetRoot:FindFirstChild("StoneLanceAttachment")
-								if not attachment then
-									attachment = Instance.new("Attachment")
-									attachment.Name = "StoneLanceAttachment"
-									attachment.Parent = hitTargetRoot
-								end
-
-								local oldLV = hitTargetRoot:FindFirstChild("StoneLaunchVelocity")
-								if oldLV then
-									oldLV:Destroy()
-								end
-
 								local direction = (hitTargetRoot.Position - root.Position).Unit
 								local horizontalPower = 10
 								local upwardPower = 30
@@ -243,20 +231,57 @@ NetworkModule.EndPoint = function(Player, Data)
 									targetHumanoid.PlatformStand = true
 								end
 
-								local lv = Instance.new("LinearVelocity")
-								lv.Name = "StoneLaunchVelocity"
-								lv.MaxForce = math.huge
-								lv.VectorVelocity = velocity
-								lv.Attachment0 = attachment
-								lv.RelativeTo = Enum.ActuatorRelativeTo.World
-								lv.Parent = hitTargetRoot
+								-- Check if target is a player or NPC
+								local targetPlayer = game.Players:GetPlayerFromCharacter(Target)
+
+								if targetPlayer then
+									-- For players: Send to that player's client (they have network ownership)
+									Packets.Bvel.sendTo({
+										Character = Target,
+										Name = "StoneLaunchVelocity",
+										Targ = Target,
+										Velocity = velocity
+									}, targetPlayer)
+								else
+									-- For NPCs: Create on server AND send to all clients for visual sync
+									local attachment = hitTargetRoot:FindFirstChild("StoneLanceAttachment")
+									if not attachment then
+										attachment = Instance.new("Attachment")
+										attachment.Name = "StoneLanceAttachment"
+										attachment.Parent = hitTargetRoot
+									end
+
+									local oldLV = hitTargetRoot:FindFirstChild("StoneLaunchVelocity")
+									if oldLV then
+										oldLV:Destroy()
+									end
+
+									local lv = Instance.new("LinearVelocity")
+									lv.Name = "StoneLaunchVelocity"
+									lv.MaxForce = math.huge
+									lv.VectorVelocity = velocity
+									lv.Attachment0 = attachment
+									lv.RelativeTo = Enum.ActuatorRelativeTo.World
+									lv.Parent = hitTargetRoot
+
+									-- Also send to all clients for visual sync
+									Packets.Bvel.sendToAll({
+										Character = Target,
+										Name = "StoneLaunchVelocity",
+										Targ = Target,
+										Velocity = velocity
+									})
+
+									task.delay(0.8, function()
+										if lv and lv.Parent then
+											lv:Destroy()
+										end
+									end)
+								end
 
 								LooseRagdoll.Ragdoll(Target, 1.5)
 
 								task.delay(0.8, function()
-									if lv and lv.Parent then
-										lv:Destroy()
-									end
 									if targetHumanoid then
 										targetHumanoid.PlatformStand = false
 									end
