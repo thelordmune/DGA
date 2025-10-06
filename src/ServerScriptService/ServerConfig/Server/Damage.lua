@@ -113,20 +113,14 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 			if currentAction then
 				-- Hyperarmor move is active - track damage instead of cancelling
-				local hyperarmorData = Target:GetAttribute("HyperarmorData")
-				if not hyperarmorData then
-					-- Initialize hyperarmor tracking
-					Target:SetAttribute("HyperarmorDamage", Table.Damage or 0)
-					Target:SetAttribute("HyperarmorMove", currentAction)
-				else
-					-- Accumulate damage
-					local currentDamage = Target:GetAttribute("HyperarmorDamage") or 0
-					Target:SetAttribute("HyperarmorDamage", currentDamage + (Table.Damage or 0))
-				end
+				-- Accumulate damage
+				local currentDamage = Target:GetAttribute("HyperarmorDamage") or 0
+				local newDamage = currentDamage + (Table.Damage or 0)
+				Target:SetAttribute("HyperarmorDamage", newDamage)
 
 				-- Check if damage exceeds threshold
-				local accumulatedDamage = Target:GetAttribute("HyperarmorDamage") or 0
-				local threshold = 50 -- Damage threshold before hyperarmor breaks
+				local accumulatedDamage = newDamage
+				local threshold = 15 -- Damage threshold before hyperarmor breaks
 
 				-- Update hyperarmor visual indicator (white → red based on damage)
 				local damagePercent = math.clamp(accumulatedDamage / threshold, 0, 1)

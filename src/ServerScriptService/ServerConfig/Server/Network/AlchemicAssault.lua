@@ -151,7 +151,8 @@ NetworkModule.EndPoint = function(Player, Data)
 						Arguments = {"Once", { 3, 5, 0, 0.3, Vector3.new(1.1, 2, 1.1), Vector3.new(0.34, 0.25, 0.34) }}
 					})
                     local part = Instance.new("Part")
-                    part.Name = "AbilityWall_" .. os.time()
+                    -- Use GUID for unique name to prevent conflicts when multiple players use simultaneously
+                    part.Name = "AbilityWall_" .. HttpService:GenerateGUID(false)
                     part.Anchored = true
                     part.CanCollide = true
                     part.Transparency = 0
@@ -160,12 +161,6 @@ NetworkModule.EndPoint = function(Player, Data)
                     part.Color = Color3.fromRGB(100, 150, 255)
                     part:SetAttribute("Id", HttpService:GenerateGUID(false))
 
-					Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-						Module = "Base", 
-						Function = "WallErupt", 
-						Arguments = {part, Character}
-					})
-                    
                     -- Randomize wall dimensions slightly
                     local baseSize = math.random(6, 10)
                     local variation = math.random() * 0.5 + 0.75
@@ -173,20 +168,27 @@ NetworkModule.EndPoint = function(Player, Data)
                     local height = baseSize * 2
                     local depth = baseSize * variation
                     part.Size = Vector3.new(width, height, depth)
-                    
+
                     -- Calculate position (further out for each subsequent wall)
                     local spawnDistance = baseDistance + (distanceIncrement * (i-1))
                     local spawnOffset = Vector3.new(0, -3, 0) -- Height offset
                     local startPos = root.Position + (playerLookVector * spawnDistance) + spawnOffset
-                    
+
                     -- Create wall CFrame (facing same direction as player)
                     local wallCFrame = CFrame.new(startPos)
                         * CFrame.fromEulerAnglesYXZ(0, math.atan2(playerLookVector.Z, playerLookVector.X), 0)
-                    
+
                     -- Start position (below ground)
                     local belowGroundOffset = height + 2
                     part.CFrame = wallCFrame * CFrame.new(0, -belowGroundOffset, 0) * CFrame.Angles(0, math.rad(120), 0)
                     part.Parent = workspace.Transmutables
+
+					-- Spawn VFX after part is positioned and parented
+					Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+						Module = "Base",
+						Function = "WallErupt",
+						Arguments = {part, Character}
+					})
                     
                     -- Tween the wall up
                     local tweenInfo = TweenInfo.new(

@@ -13,6 +13,7 @@ return {
     -- BASIC ALCHEMY (All Types)
     ["Construct"] = "D",              -- Down -> Up (foundation \building)
     ["Stone Lance"] = "DU",
+    ["Sky Arc"] = "UD",          -- Up -> Up -> Down (arcing bridge)
     -- STONE ALCHEMY
     ["Cascade"] = "DLR",               -- Down -> Left -> Right (falling rocks)
     ["Rock Skewer"] = "UDUD",          -- Up -> Down -> Up -> Down (spikes from ground)

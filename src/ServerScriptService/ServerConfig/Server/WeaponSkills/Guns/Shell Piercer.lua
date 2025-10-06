@@ -102,57 +102,8 @@ return function(Player, Data, Server)
 			local hitboxSize = Vector3.new(4, 5, 14) -- Wide and deep hitbox for shell piercing
 			local hitboxCFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10) -- In front of player
 
-			print("Shell Piercer: Creating wall destruction hitbox at position:", hitboxCFrame.Position)
-			print("Shell Piercer: Hitbox size:", hitboxSize)
-			print("Shell Piercer: Checking for transmutable parts in workspace.Transmutables")
-
-			-- Check if workspace.Transmutables exists
-			if not workspace:FindFirstChild("Transmutables") then
-				print("Shell Piercer: WARNING - workspace.Transmutables folder not found!")
-				return
-			end
-
-			-- First, let's manually check what parts are in the area
-			local testPart = Instance.new("Part")
-			testPart.Size = hitboxSize
-			testPart.CFrame = hitboxCFrame
-			testPart.Anchored = true
-			testPart.CanCollide = false
-			testPart.Transparency = 1
-			testPart.Color = Color3.fromRGB(255, 0, 0)
-			testPart.Parent = workspace
-
-			local partsInArea = workspace:GetPartsInPart(testPart)
-			print("Shell Piercer: Found", #partsInArea, "total parts in hitbox area")
-
-			for i, part in pairs(partsInArea) do
-				print("Shell Piercer: Part", i, ":", part.Name, "Parent:", part.Parent and part.Parent.Name or "nil")
-				print("  - Has Destroyable attribute:", part:GetAttribute("Destroyable"))
-				print("  - Is in Transmutables:", workspace.Transmutables and part:IsDescendantOf(workspace.Transmutables) or false)
-				print("  - Part size:", part.Size)
-				print("  - Part material:", part.Material)
-			end
-
-			-- If no parts found, let's try a different approach - set Destroyable on nearby parts
-			if #partsInArea == 0 then
-				print("Shell Piercer: No parts found in area, trying larger search...")
-				-- testPart.Size = Vector3.new(20, 20, 40) -- Much larger
-				-- partsInArea = workspace:GetPartsInPart(testPart)
-				-- print("Shell Piercer: Found", #partsInArea, "parts in larger area")
-			else
-				-- Try to make the parts destroyable if they aren't already
-				for _, part in pairs(partsInArea) do
-					if not part:GetAttribute("Destroyable") then
-						print("Shell Piercer: Setting Destroyable=true on part:", part.Name)
-						part:SetAttribute("Destroyable", true)
-					end
-				end
-			end
-
-			-- Clean up test part
-			Debris:AddItem(testPart, 5) -- Keep it longer for debugging
-
 			-- Create overlap params to detect walls (parts with Destroyable attribute)
+			-- VoxBreaker only works on parts that already have Destroyable=true attribute
 			local overlapParams = OverlapParams.new()
 			overlapParams.FilterType = Enum.RaycastFilterType.Include
 
@@ -165,9 +116,8 @@ return function(Player, Data, Server)
 
 			overlapParams.FilterDescendantsInstances = filterList
 
-			print("Shell Piercer: Calling VoxBreaker:CreateHitbox...")
-
 			-- Use VoxBreaker to create hitbox and destroy walls
+			-- NOTE: This only works on parts that have Destroyable=true attribute already set
 			local destroyedParts = VoxBreaker:CreateHitbox(
 				hitboxSize,
 				hitboxCFrame,
@@ -176,8 +126,6 @@ return function(Player, Data, Server)
 				15, -- Time to reset (15 seconds)
 				overlapParams
 			)
-
-			print("Shell Piercer: VoxBreaker returned", #destroyedParts, "destroyed parts")
 
 			-- Fling the destroyed parts forward
 			if #destroyedParts > 0 then

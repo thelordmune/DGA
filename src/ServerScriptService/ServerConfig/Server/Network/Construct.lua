@@ -154,7 +154,8 @@ NetworkModule.EndPoint = function(Player, Data)
 
 					-- Create wall effect
 					local part = Instance.new("Part")
-					part.Name = "AbilityWall_" .. os.time()
+					-- Use GUID for unique name to prevent conflicts when multiple players use simultaneously
+					part.Name = "AbilityWall_" .. HttpService:GenerateGUID(false)
 					part.Anchored = true
 					part.CanCollide = true
 					part.Transparency = 1 -- Start fully transparent

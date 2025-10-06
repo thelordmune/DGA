@@ -53,10 +53,20 @@ local function handleCastingComplete(Client, baseSequence, modifierSequence, isM
 
 		-- Send the alchemy move to server
 		if Client.Packets[matchedMove] then
+			-- Get mouse position for moves that need it
+			local mousePos = Vector3.zero
+			if matchedMove == "Sky Arc" or matchedMove == "Rock Skewer" then
+				local mouse = Client.Player:GetMouse()
+				if mouse.Hit then
+					mousePos = mouse.Hit.Position
+				end
+			end
+
 			Client.Packets[matchedMove].send({
 				Held = false,
 				Air = Client.InAir,
-				Duration = 0
+				Duration = 0,
+				MousePosition = mousePos
 				-- Sequence = baseSequence,
 				-- Modifier = modifierSequence,
 				-- Advanced = isAdvanced

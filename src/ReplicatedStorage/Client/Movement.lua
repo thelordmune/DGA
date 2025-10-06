@@ -78,7 +78,7 @@ Movement.Dodge = function()
 	end
 	if Client.Library.StateCount(Client.Actions) or
 		Client.Library.StateCount(Client.Stuns) or
-		Client.Library.StateCheck(Client.Speeds, "M1Speed8") then
+		Client.Library.StateCheck(Client.Speeds, "M1Speed12") then
 		print("Dodge blocked: Character has active states")
 		return
 	end

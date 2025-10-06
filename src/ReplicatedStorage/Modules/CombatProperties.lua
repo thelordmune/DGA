@@ -327,6 +327,23 @@ CombatProperties["Construct"] = {
     SkillPriority = 9, -- Medium priority - defensive wall
 }
 
+CombatProperties["Sky Arc"] = {
+    SkillType = "Utility",
+    RangeType = "Medium",
+    TargetingProperties = {
+        MinRange = 10,
+        MaxRange = 40,
+        OptimalRange = 25,
+    },
+    ComboProperties = {
+        IsComboStarter = false,
+        IsComboEnder = false,
+        FollowupWindow = 0.5,
+    },
+    DashProperty = nil,
+    SkillPriority = 8, -- Medium priority - mobility/utility
+}
+
 CombatProperties["Deconstruct"] = {
     SkillType = "Offensive",
     RangeType = "Medium",

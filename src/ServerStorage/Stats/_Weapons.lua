@@ -13,7 +13,7 @@ local Table = {
 
 	["Fist"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 27.8 / 60, 24.3 / 60, 27.8 / 60, 30.4 / 60, 26.1 / 60 },  -- Adjusted for 1.15x speed
+		["Endlag"] = { 22 / 60, 19 / 60, 22 / 60, 24 / 60, 21 / 60 },  -- Reduced by ~20% for faster combat
 		["HitTimes"] = { 21.7 / 60, 21.7 / 60, 24.3 / 60, 26.9 / 60, 20.9 / 60 },  -- Adjusted for 1.15x speed
 		["SoundTimes"] = {},
 		["Speed"] = 1.15,  -- Reduced from 1.25 to 1.15 (slightly slower)
@@ -60,7 +60,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 20 / 60,
-			["Endlag"] = 1,
+			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
 			["Velocity"] = true,
 			["OldCustomFunction"] = function(Character: Model, Entity)
 				local Player: Player
@@ -152,7 +152,7 @@ local Table = {
 
 				Library.SetCooldown(Character, "Critical", 5)
 
-				Library.TimedState(Character.Speeds, "M2SpeedSet0", 27 / 60)
+				Library.TimedState(Character.Speeds, "M2SpeedSet6", 27 / 60) -- Changed from 0 to 6 for faster combat
 
 				if Player then
 					Visuals.FireClient(Player, { Module = "Misc", Function = "CameraShake", Arguments = { "Small" } })
@@ -205,7 +205,7 @@ local Table = {
 
 	["Spear"] = {
 		["MaxCombo"] = 5,
-		["Endlag"] = { 32 / 60, 28 / 60, 32 / 60, 35 / 60, 30 / 60, 25/60 },
+		["Endlag"] = { 26 / 60, 22 / 60, 26 / 60, 28 / 60, 24 / 60, 20/60 }, -- Reduced by ~20% for faster combat
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60, 25/60 },
 		["SoundTimes"] = {},
 		["Hitboxes"] = {
@@ -235,7 +235,7 @@ local Table = {
 		},
 
 		["M1Table"] = {
-			Damage = 10,
+			Damage = 8, -- Nerfed from 10 to 8
 			PostureDamage = 50,
 			LightKnockback = true,
 			M1 = true,
@@ -255,7 +255,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 20 / 60,
-			["Endlag"] = 1,
+			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
 			["Velocity"] = true,
 			["OldCustomFunction"] = function(Character: Model, Entity)
 				local Player: Player
@@ -347,7 +347,7 @@ local Table = {
 
 				Library.SetCooldown(Character, "Critical", 5)
 
-				Library.TimedState(Character.Speeds, "M2SpeedSet0", 27 / 60)
+				Library.TimedState(Character.Speeds, "M2SpeedSet6", 27 / 60) -- Changed from 0 to 6 for faster combat
 
 				if Player then
 					Visuals.FireClient(Player, { Module = "Misc", Function = "CameraShake", Arguments = { "Small" } })
@@ -400,7 +400,7 @@ local Table = {
 
 	["Augment"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 29 / 60, 29 / 60, 29 / 60, 32 / 60 },
+		["Endlag"] = { 23 / 60, 23 / 60, 23 / 60, 26 / 60 }, -- Reduced by ~20% for faster combat
 		["HitTimes"] = { 24 / 60, 24 / 60, 24 / 60, 24 / 60 },
 		["SoundTimes"] = {},
 		["Hitboxes"] = {
@@ -538,7 +538,7 @@ local Table = {
 
 				Library.SetCooldown(Character, "Critical", 5)
 
-				Library.TimedState(Character.Speeds, "M2SpeedSet0", 27 / 60)
+				Library.TimedState(Character.Speeds, "M2SpeedSet6", 27 / 60) -- Changed from 0 to 6 for faster combat
 
 				if Player then
 					Visuals.FireClient(Player, { Module = "Misc", Function = "CameraShake", Arguments = { "Small" } })
@@ -581,7 +581,7 @@ local Table = {
 
 	["Flame"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 32 / 60, 28 / 60, 32 / 60, 35 / 60, 30 / 60 },
+		["Endlag"] = { 26 / 60, 22 / 60, 26 / 60, 28 / 60, 24 / 60 }, -- Reduced by ~20% for faster combat
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60 },
 		["SoundTimes"] = {},
 		["Hitboxes"] = {
@@ -627,7 +627,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 20 / 60,
-			["Endlag"] = 1,
+			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
 			["Velocity"] = true,
 		},
 
@@ -659,7 +659,7 @@ local Table = {
 	},
 	["Stone"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 32 / 60, 28 / 60, 32 / 60, 35 / 60, 30 / 60 },
+		["Endlag"] = { 26 / 60, 22 / 60, 26 / 60, 28 / 60, 24 / 60 }, -- Reduced by ~20% for faster combat
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60 },
 		["SoundTimes"] = {},
 		["Hitboxes"] = {
@@ -705,7 +705,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 30 / 60,
-			["Endlag"] = 1,
+			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
 			["Velocity"] = true,
 			["Sfx"] = {
 				[1] = Replicated.Assets.SFX.Skills.StoneCrit.Smash,
@@ -745,11 +745,11 @@ local Table = {
 
 	["Guns"] = {
 		["MaxCombo"] = 3,
-		["Endlag"] = { 29.3 / 60, 33.3 / 60, 40 / 60, 46.7 / 60, 40 / 60 },  -- Adjusted for 0.75x speed (25% slower)
-		["HitTimes"] = { 20 / 60, 21.3 / 60, 26.7 / 60, 34.7 / 60, 41.3 / 60 },  -- Adjusted for 0.75x speed (25% slower)
+		["Endlag"] = { 20 / 60, 24 / 60, 28 / 60, 32 / 60, 28 / 60 },  -- Reduced by ~30% for faster combat
+		["HitTimes"] = { 16 / 60, 18 / 60, 22 / 60, 28 / 60, 32 / 60 },  -- Adjusted for 1.0x speed
 		["SoundTimes"] = {},
 		["Exception"] = true,
-		["Speed"] = 0.75,  -- Nerfed gun M1 speed from 1.0 to 0.75
+		["Speed"] = 1.0,  -- Increased from 0.75 to 1.0 for faster gun combat
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(5, 7, 8),
@@ -801,7 +801,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 20 / 60,
-			["Endlag"] = 1,
+			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
 			["Velocity"] = true,
 		},
 	},

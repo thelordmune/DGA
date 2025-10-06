@@ -55,6 +55,14 @@ return ByteNet.defineNamespace("Networking", function()
 				Duration = ByteNet.int8
 			})
 		});
+		["Sky Arc"] = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Held = ByteNet.bool,
+				Air = ByteNet.bool,
+				MousePosition = ByteNet.vec3,  -- Mouse hit position for bridge endpoint
+			})
+		});
 		["Stone Lance"] = ByteNet.definePacket({
 			reliabilityType = "reliable";
 			value = ByteNet.struct({

@@ -34,8 +34,8 @@ local CONFIG = {
 		SIZE = UDim2.fromOffset(200, 200),
 		CENTER_SIZE = UDim2.fromOffset(10, 10),
 		TRIANGLE_SIZE = UDim2.fromOffset(40, 40),
-		DEAD_ZONE = 50, -- Reduced from 70 to make directions easier to reach
-		MOUSE_SENSITIVITY = 5
+		DEAD_ZONE = 30, -- Reduced from 50 to make alchemy easier in shift lock
+		MOUSE_SENSITIVITY = 8 -- Increased from 5 for better shift lock responsiveness
 	},
 	CAMERA = {
 		CASTING_SENSITIVITY = 0.36 -- Reduce camera sensitivity to 20% during casting

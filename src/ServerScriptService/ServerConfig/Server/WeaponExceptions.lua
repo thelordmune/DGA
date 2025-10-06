@@ -16,8 +16,8 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 	local Hitbox = Server.Modules.Hitbox
 	if Stats then
 		if Entity["SwingConnection"] then
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
-				Server.Library.RemoveState(Character.Speeds, "M1Speed8")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
+				Server.Library.RemoveState(Character.Speeds, "M1Speed12")
 			end
 
 			Entity["SwingConnection"]:Disconnect()
@@ -38,7 +38,7 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 		end
 
 		Server.Library.TimedState(Character.Actions, "M1" .. Combo, Stats["Endlag"][Combo])
-		Server.Library.AddState(Character.Speeds, "M1Speed8")
+		Server.Library.AddState(Character.Speeds, "M1Speed12") -- Changed from 8 to 12 for faster combat
 
 		local Swings = Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Swings
 
@@ -436,8 +436,8 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
     local Hitbox = Server.Modules.Hitbox
     if Stats then
         if Entity["SwingConnection"] then
-            if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
-                Server.Library.RemoveState(Character.Speeds, "M1Speed8")
+            if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
+                Server.Library.RemoveState(Character.Speeds, "M1Speed12")
             end
             Entity["SwingConnection"]:Disconnect()
             Entity["SwingConnection"] = nil
@@ -451,7 +451,7 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
 
         -- Check if this is the last hit (combo 4)
         local IsDoubleHit = Combo == 4
-        
+
         if IsDoubleHit then
             Entity.Combo = 0  -- Reset combo after the double hit
             Max = true
@@ -463,7 +463,7 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
         -- Use different endlag for double hit
         local endlagIndex = IsDoubleHit and 4 or Combo
         Server.Library.TimedState(Character.Actions, "M1" .. Combo, Stats["Endlag"][endlagIndex])
-        Server.Library.AddState(Character.Speeds, "M1Speed8")
+        Server.Library.AddState(Character.Speeds, "M1Speed12") -- Changed from 8 to 12 for faster combat
 
         local Swings = Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Swings
         local SwingAnimation = Character.Humanoid.Animator:LoadAnimation(Swings:FindFirstChild(Combo))
