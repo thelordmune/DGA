@@ -1,5 +1,6 @@
 local function getSystemsFolders() : table
  	local folders = {}
+	local addedFolders = {} -- Track which folders we've already added to prevent duplicates
 
 	if game:GetService("RunService"):IsServer() then
 		-- Server loads from ServerScriptService
@@ -7,35 +8,30 @@ local function getSystemsFolders() : table
 		local serverSystems = ServerScriptService:WaitForChild("Systems", 10)
 		if serverSystems then
 			table.insert(folders, { folder = serverSystems, context = "server" })
+			addedFolders[serverSystems] = true
 			print("Server systems folder found:", serverSystems:GetFullName())
 		end
 	end
-
-    if game:GetService("RunService"):IsClient() then
-			-- Client loads from ReplicatedStorage
-			local ReplicatedStorage = game:GetService("ReplicatedStorage")
-			local modules = ReplicatedStorage:WaitForChild("Modules", 10)
-			if modules then
-				local clientSystems = modules:FindFirstChild("Systems")
-				if not clientSystems then
-					clientSystems = Instance.new("Folder")
-					clientSystems.Name = "Systems"
-					clientSystems.Parent = modules
-					warn("Created missing client Systems folder")
-				end
-				table.insert(folders, { folder = clientSystems, context = "client" })
-				print("Client systems folder found:", clientSystems:GetFullName())
-			end
-		end
 
 	-- Both server and client load shared systems from ReplicatedStorage
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local modules = ReplicatedStorage:WaitForChild("Modules", 10)
 	if modules then
 		local sharedSystems = modules:FindFirstChild("Systems")
-		if sharedSystems then
-			table.insert(folders, { folder = sharedSystems, context = "shared" })
-			print("Shared systems folder found:", sharedSystems:GetFullName())
+		if not sharedSystems then
+			-- Create the folder if it doesn't exist
+			sharedSystems = Instance.new("Folder")
+			sharedSystems.Name = "Systems"
+			sharedSystems.Parent = modules
+			print("Created Systems folder in ReplicatedStorage.Modules")
+		end
+
+		-- Only add if we haven't already added this folder
+		if sharedSystems and not addedFolders[sharedSystems] then
+			local context = game:GetService("RunService"):IsClient() and "client" or "shared"
+			table.insert(folders, { folder = sharedSystems, context = context })
+			addedFolders[sharedSystems] = true
+			print(`{context == "client" and "Client" or "Shared"} systems folder found:`, sharedSystems:GetFullName())
 		end
 	end
 

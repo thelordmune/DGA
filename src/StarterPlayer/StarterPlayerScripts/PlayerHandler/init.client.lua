@@ -27,29 +27,38 @@ end
 -- CRITICAL: Start ECS systems FIRST before loading any client modules
 -- This ensures the client entity exists before InventoryHandler tries to use it
 print("🔧 Starting client ECS systems before loading modules...")
-local ecsStartSuccess = false
-local ecsRetryCount = 0
-local maxECSRetries = 5
+print("🔍 Checking for Systems folder...")
 
-while not ecsStartSuccess and ecsRetryCount < maxECSRetries do
-	-- Pass nil to let the scheduler auto-detect client systems from ReplicatedStorage.Modules.Systems
-	local success, err = pcall(start, nil)
-	if success then
-		print("✅ Client ECS systems started successfully")
-		ecsStartSuccess = true
-		active = true
-	else
-		warn("❌ Failed to start client ECS systems (attempt", ecsRetryCount + 1, "):", err)
-		ecsRetryCount = ecsRetryCount + 1
-		if ecsRetryCount < maxECSRetries then
-			print("⏳ Retrying in 1 second...")
-			task.wait(1)
+-- Ensure the Systems folder exists before starting
+local modules = Replicated:WaitForChild("Modules", 10)
+if not modules then
+	error("❌ CRITICAL: ReplicatedStorage.Modules not found!")
+end
+
+local systemsFolder = modules:FindFirstChild("Systems")
+if not systemsFolder then
+	systemsFolder = Instance.new("Folder")
+	systemsFolder.Name = "Systems"
+	systemsFolder.Parent = modules
+	print("📁 Created Systems folder in ReplicatedStorage.Modules")
+else
+	print("📁 Systems folder found:", systemsFolder:GetFullName())
+	print("📊 Systems in folder:", #systemsFolder:GetChildren())
+	for _, system in systemsFolder:GetChildren() do
+		if system:IsA("ModuleScript") then
+			print("  - " .. system.Name)
 		end
 	end
 end
 
-if not ecsStartSuccess then
-	error("❌ CRITICAL: Failed to start client ECS systems after " .. maxECSRetries .. " attempts!")
+-- Start ECS with a single attempt (no retries to avoid duplicate loading)
+print("🚀 Starting ECS systems...")
+local success, err = pcall(start, nil)
+if success then
+	print("✅ Client ECS systems started successfully")
+	active = true
+else
+	error("❌ CRITICAL: Failed to start client ECS systems: " .. tostring(err))
 end
 
 -- CRITICAL: Load Events module FIRST to set up packet listeners before anything else
@@ -152,9 +161,33 @@ local DisabledStateTypes = {
 	"Climbing",
 }
 
-local pent = ref.get("local_player")  -- No second parameter needed for local_player
+-- Listen for entity sync from server
+Bridges.ECSClient:Connect(function(data)
+	if data.Module == "EntitySync" and data.Action == "SetPlayerEntity" then
+		local entityId = data.EntityId
+		print(`[ECS] 🔗 Received synced entity ID from server: {entityId}`)
 
--- Ensure Dialogue component exists on player entity
+		-- Store the synced entity using network_id
+		-- This ensures client uses the same entity ID as the server
+		ref.define("network_id", Players.LocalPlayer.UserId, entityId)
+
+		-- Also set it as the local player entity for convenience
+		local player = Players.LocalPlayer
+		ref.define("player", player, entityId)
+
+		print(`[ECS] ✅ Entity {entityId} synced for local player`)
+
+		-- Ensure Dialogue component exists on player entity
+		if not world:get(entityId, comps.Dialogue) then
+			print("🔧 Initializing Dialogue component for player entity")
+			world:set(entityId, comps.Dialogue, { npc = nil, name = "none", inrange = false, state = "interact" })
+		end
+	end
+end)
+
+local pent = ref.get("local_player")  -- This will now use the synced entity from server
+
+-- Ensure Dialogue component exists on player entity (fallback if sync hasn't happened yet)
 if pent and not world:get(pent, comps.Dialogue) then
 	print("🔧 Initializing Dialogue component for player entity")
 	world:set(pent, comps.Dialogue, { npc = nil, name = "none", inrange = false, state = "interact" })

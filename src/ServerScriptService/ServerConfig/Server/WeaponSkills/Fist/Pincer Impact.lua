@@ -397,7 +397,7 @@ return function(Player, Data, Server)
 							print(`[PINCER IMPACT BF] Applying ragdoll + knockback to {Target.Name} (Health: {targetHumanoid.Health})`)
 
 							-- Apply ragdoll effect
-							local ragdollDuration = 2 -- Ragdoll lasts 2 seconds
+							local ragdollDuration = 3.5 -- Ragdoll lasts 2 seconds
 							Ragdoll.Ragdoll(Target, ragdollDuration)
 
 							-- Calculate knockback direction (away from attacker)

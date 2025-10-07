@@ -3,6 +3,7 @@ local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
+local Bridges = require(ReplicatedStorage.Modules.Bridges)
 -- local global = require(ReplicatedStorage.Global)
 local Player = comps.Player
 local Character = comps.Character
@@ -111,6 +112,14 @@ return {
         world:set(e, Player, player)
         print(`[PlayerLoader] Player joined: {player.Name} (Entity: {e})`)
 
+        -- Sync entity ID to client so client and server use the same entity
+        print(`[PlayerLoader] Syncing entity ID {e} to client for {player.Name}`)
+        Bridges.ECSClient:Fire(player, {
+            Module = "EntitySync",
+            Action = "SetPlayerEntity",
+            EntityId = e
+        })
+
         -- Cleanup old connections
         if playerConnections[player] then
             print(`[PlayerLoader] Cleaning up old connection for {player.Name}`)
@@ -119,36 +128,80 @@ return {
         end
 
         print(`[PlayerLoader] Setting up CharacterAdded connection for {player.Name}`)
-playerConnections[player] = player.CharacterAdded:Connect(function(rig)
+playerConnections[player] = player.CharacterAdded:Connect(function(initialRig)
     -- Debug the initial state
-    print(`[Character] Initial state - Name: {rig.Name}, Parent: {rig.Parent and rig.Parent:GetFullName() or "nil"}`)
-    
+    print(`[Character] Initial spawn - Name: {initialRig.Name}, Parent: {initialRig.Parent and initialRig.Parent:GetFullName() or "nil"}`)
+
+    -- Wait for character to stabilize (detect if it gets respawned)
+    local startTime = os.clock()
+    local MAX_WAIT_TIME = 60
+    local STABLE_WAIT = 5 -- Wait 5 seconds to see if character gets destroyed/respawned
+    local checkInterval = 0.1
+    local checksPerformed = 0
+    local maxChecks = STABLE_WAIT / checkInterval
+
+    print(`[Character] Monitoring character stability for {player.Name} (checking every {checkInterval}s for {STABLE_WAIT}s)...`)
+
+    -- Monitor the character during the stabilization period
+    local currentRig = initialRig
+    local rigChanged = false
+
+    while checksPerformed < maxChecks do
+        task.wait(checkInterval)
+        checksPerformed = checksPerformed + 1
+
+        -- Check if the original character was destroyed OR if player.Character changed
+        if not currentRig or not currentRig.Parent or player.Character ~= currentRig then
+            if player.Character ~= currentRig then
+                warn(`[Character] player.Character changed at check {checksPerformed}/{maxChecks}`)
+            else
+                warn(`[Character] Character destroyed at check {checksPerformed}/{maxChecks}`)
+            end
+
+            -- Wait for the NEW character to spawn
+            local newCharacter = player.Character or player.CharacterAdded:Wait()
+            print(`[Character] New character detected for {player.Name}: {newCharacter.Name}`)
+
+            currentRig = newCharacter
+            rigChanged = true
+
+            -- Reset the check counter to monitor the new character
+            checksPerformed = 0
+            print(`[Character] Restarting stability monitoring for new character...`)
+        elseif checksPerformed % 10 == 0 then
+            -- Progress update every second
+            print(`[Character] Stability check {checksPerformed}/{maxChecks} - Character still exists`)
+        end
+    end
+
+    print(`[Character] ✅ Character stabilized after {STABLE_WAIT}s for {player.Name}`)
+    local rig = currentRig
+
     -- Track ancestry changes
     local ancestryConnection
     ancestryConnection = rig.AncestryChanged:Connect(function(child, newParent)
         print(`[Character] Parent changed for {rig.Name}: {newParent and newParent:GetFullName() or "nil"}`)
     end)
 
-    -- Wait for stable location in Entities
-    local startTime = os.clock()
-    local MAX_WAIT_TIME = 60 -- Increased timeout to 60 seconds
-    local STABLE_CHECKS = 5 -- Need 5 consecutive stable checks
-    
+    -- Wait for stable location in workspace.World.Live
+    local STABLE_CHECKS = 3 -- Need 3 consecutive stable checks
     local stableCount = 0
-    local lastValidParent = rig.Parent
-    
+
     while os.clock() - startTime < MAX_WAIT_TIME do
         -- Check if character still exists
         if not rig or not rig.Parent then
             warn(`[Character] {rig and rig.Name or "Character"} was destroyed during initialization`)
-            break
+            if ancestryConnection then
+                ancestryConnection:Disconnect()
+            end
+            return
         end
-        
+
         -- Check current location
         if rig:IsDescendantOf(workspace.World.Live) then
             stableCount = stableCount + 1
-            print(`[Character] Stable check {stableCount}/{STABLE_CHECKS} in Entities`)
-            
+            print(`[Character] Stable check {stableCount}/{STABLE_CHECKS} in workspace.World.Live`)
+
             if stableCount >= STABLE_CHECKS then
                 break
             end
@@ -156,30 +209,30 @@ playerConnections[player] = player.CharacterAdded:Connect(function(rig)
             stableCount = 0
             print(`[Character] Currently in: {rig.Parent:GetFullName()}`)
         end
-        
-        task.wait(0.5) -- Longer wait between checks
+
+        task.wait(0.5)
     end
-    
+
     -- Clean up connection
     if ancestryConnection then
         ancestryConnection:Disconnect()
     end
-    
+
     -- Final verification
     if not rig or not rig.Parent then
         warn(`[Character] ERROR: {player.Name}'s character was destroyed before initialization completed`)
         return
     end
-    
+
     if not rig:IsDescendantOf(workspace.World.Live) then
-        warn(`[Character] ERROR: {rig.Name} never stabilized in Entities (final location: {rig.Parent:GetFullName()})`)
-        
-        -- Debug output of the Entities folder contents
-        print("[Debug] Current contents of workspace.Entities:")
+        warn(`[Character] ERROR: {rig.Name} never stabilized in workspace.World.Live (final location: {rig.Parent:GetFullName()})`)
+
+        -- Debug output of the workspace.World.Live folder contents
+        print("[Debug] Current contents of workspace.World.Live:")
         for _, child in ipairs(workspace.World.Live:GetChildren()) do
             print(`- {child:GetFullName()}`)
         end
-        
+
         return
     end
             

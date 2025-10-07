@@ -18,7 +18,7 @@ end
 
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
-params.FilterDescendantsInstances = { workspace.Entities, workspace.World.Visuals, workspace.Interactables }
+params.FilterDescendantsInstances = { workspace.Entities, workspace.World.Visuals}
 
 local RockMod = {
 	State = {

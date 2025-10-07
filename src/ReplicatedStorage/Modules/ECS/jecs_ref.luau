@@ -56,12 +56,20 @@ ref.get = (
 					local Players = game:GetService("Players")
 					local localPlayer = Players.LocalPlayer
 					if localPlayer then
-						-- Get the player's unique entity from player_refs
-						local_player_entity = player_refs[`{localPlayer.UserId}`]
-						if not local_player_entity then
-							-- Create unique entity for this client if not found
-							local_player_entity = world:entity()
-							player_refs[`{localPlayer.UserId}`] = local_player_entity
+						-- First check if we have a synced entity from server via network_id
+						local syncedEntity = network_id_refs[localPlayer.UserId]
+						if syncedEntity then
+							local_player_entity = syncedEntity
+							-- Also store in player_refs for consistency
+							player_refs[`{localPlayer.UserId}`] = syncedEntity
+						else
+							-- Fallback: Get the player's entity from player_refs
+							local_player_entity = player_refs[`{localPlayer.UserId}`]
+							if not local_player_entity then
+								-- Create unique entity for this client if not found
+								local_player_entity = world:entity()
+								player_refs[`{localPlayer.UserId}`] = local_player_entity
+							end
 						end
 					end
 				else

@@ -21,7 +21,7 @@ for _, e in world:query(comps.Character, comps.Mob) do
     end
 end
 
-for _, v in workspace.World.Live:GetChildren() do
+for _, v in workspace.World.Live:GetDescendants() do
     if v:IsA("Model") and not Players:GetPlayerFromCharacter(v) and not proccessedNPCs[v] then
         local char = v
         local e = world:entity()
