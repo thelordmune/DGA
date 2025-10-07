@@ -24,10 +24,24 @@ if not Success then
 	return
 end
 
+-- CRITICAL: Load Events module FIRST to set up packet listeners before anything else
+local EventsModule = Replicated:WaitForChild("Client"):WaitForChild("Events")
+local Success, EventsReq = xpcall(function()
+	return require(EventsModule)
+end, function(Error)
+	print("Client - Failed Require: Events\n" .. Error)
+end)
+
+if Success and EventsReq then
+	Client.Modules["Events"] = EventsReq
+	print("✅ Events module loaded - Bvel and other packet listeners are now active")
+end
+
+-- Now load all other modules
 local Modules = Replicated:WaitForChild("Client"):GetChildren()
 for __ = 1, #Modules do
 	local Module = Modules[__]
-	if Module:IsA("ModuleScript") then
+	if Module:IsA("ModuleScript") and Module ~= EventsModule then -- Skip Events since we already loaded it
 		local Req
 		local Success, Error = xpcall(function()
 			Req = require(Module)

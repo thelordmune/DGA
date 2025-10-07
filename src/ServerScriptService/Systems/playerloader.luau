@@ -251,30 +251,34 @@ playerConnections[player] = player.CharacterAdded:Connect(function(rig)
             print(`[Character] Finished initializing {rig.Name} for {player.Name}`)
 
             -- Give weapon skills AFTER components are initialized
-            local InventorySetup = require(ReplicatedStorage.Modules.Utils.InventorySetup)
+            -- Use task.defer to ensure all components are fully set before giving skills
+            task.defer(function()
+                local InventorySetup = require(ReplicatedStorage.Modules.Utils.InventorySetup)
 
-            -- Wait for weapon attribute to be set (with timeout)
-            local weapon = player:GetAttribute("Weapon")
-            local maxWaitTime = 5 -- Maximum 5 seconds to wait
-            local waitStartTime = os.clock()
+                -- Wait for weapon attribute to be set (with timeout)
+                local weapon = player:GetAttribute("Weapon")
+                local maxWaitTime = 5 -- Maximum 5 seconds to wait
+                local waitStartTime = os.clock()
 
-            while not weapon and (os.clock() - waitStartTime) < maxWaitTime do
-                task.wait(0.1)
-                weapon = player:GetAttribute("Weapon")
-            end
+                while not weapon and (os.clock() - waitStartTime) < maxWaitTime do
+                    task.wait(0.1)
+                    weapon = player:GetAttribute("Weapon")
+                end
 
-            if weapon then
-                print(`[Character] Giving weapon skills for {player.Name}, Weapon: {weapon}, Entity: {e}`)
-                InventorySetup.GiveWeaponSkills(e, weapon, player)
-                print(`[Character] Finished giving weapon skills to {player.Name}`)
-            else
-                warn(`[Character] No weapon attribute found for {player.Name} after {maxWaitTime} seconds - defaulting to Fist`)
-                -- Default to Fist if no weapon attribute is set
-                weapon = "Fist"
-                player:SetAttribute("Weapon", weapon)
-                InventorySetup.GiveWeaponSkills(e, weapon, player)
-            end
-                        print(`[Character] Preloading assets for {rig.Name}`)
+                if weapon then
+                    print(`[Character] Giving weapon skills for {player.Name}, Weapon: {weapon}, Entity: {e}`)
+                    InventorySetup.GiveWeaponSkills(e, weapon, player)
+                    print(`[Character] Finished giving weapon skills to {player.Name}`)
+                else
+                    warn(`[Character] No weapon attribute found for {player.Name} after {maxWaitTime} seconds - defaulting to Fist`)
+                    -- Default to Fist if no weapon attribute is set
+                    weapon = "Fist"
+                    player:SetAttribute("Weapon", weapon)
+                    InventorySetup.GiveWeaponSkills(e, weapon, player)
+                end
+            end)
+
+            print(`[Character] Preloading assets for {rig.Name}`)
             -- preloadCharacterAssets(rig)
             
             print(`[Character] Initializing physics for {rig.Name}`)

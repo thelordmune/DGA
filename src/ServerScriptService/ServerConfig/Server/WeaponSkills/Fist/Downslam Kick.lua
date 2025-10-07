@@ -62,6 +62,11 @@ return function(Player, Data, Server)
 		print(tostring(hittimes[1]))
 
 		task.delay(hittimes[1], function()
+			-- Safety check - make sure character still exists
+			if not Character or not Character.PrimaryPart then
+				return
+			end
+
 			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Base",
 				Function = "Downslam",
@@ -83,6 +88,24 @@ return function(Player, Data, Server)
 			local startTime = os.clock()
 			local launchDuration = hittimes[2] - hittimes[1]
 
+			-- Safety cleanup function
+			local function cleanup()
+				if lv and lv.Parent then
+					lv.VectorVelocity = Vector3.zero
+					task.wait(0.05)
+					lv:Destroy()
+				end
+				if attachment and attachment.Parent then
+					attachment:Destroy()
+				end
+			end
+
+			-- Cleanup if character dies
+			local humanoid = Character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.Died:Once(cleanup)
+			end
+
 			-- Smooth arc motion using heartbeat
 			local conn
 			conn = RunService.Heartbeat:Connect(function()
@@ -103,6 +126,14 @@ return function(Player, Data, Server)
 					-- Start descent phase
 					local descentConn
 					descentConn = RunService.Heartbeat:Connect(function()
+						-- Check if velocity still exists
+						if not lv or not lv.Parent then
+							if descentConn then
+								descentConn:Disconnect()
+							end
+							return
+						end
+
 						-- Gradually slow down the descent
 						local currentVelocity = lv.VectorVelocity
 						lv.VectorVelocity = Vector3.new(
@@ -113,11 +144,16 @@ return function(Player, Data, Server)
 
 						local raycast = workspace:Raycast(Character.PrimaryPart.Position, Vector3.new(0, -20, 0))
 						if raycast and raycast.Distance < 8 then
-							-- Close to ground - unpause animation and remove velocity
+							-- Close to ground - STOP velocity before destroying
+							lv.VectorVelocity = Vector3.zero
+							task.wait(0.05) -- Brief pause to ensure velocity is applied
+
+							-- Unpause animation and remove velocity
 							Move:AdjustSpeed(1)
 							lv:Destroy()
 							attachment:Destroy()
 							descentConn:Disconnect()
+
 							Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 								Module = "Base",
 								Function = "Downslam",

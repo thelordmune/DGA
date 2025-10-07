@@ -16,8 +16,6 @@ type Entity = {
 }
 
 NetworkModule.EndPoint = function(Player, Data)
-	print("[Bvel EndPoint] Received packet:", Data.Name, "for character:", Data.Character and Data.Character.Name or "nil")
-
 	if Data.Name == "BFKnockback" then
 		NetworkModule[Data.Name](Data.Character, Data.Direction, Data.HorizontalPower, Data.UpwardPower)
 	elseif Data.Name == "StoneLaunchVelocity" or Data.Name == "PincerForwardVelocity" or Data.Name == "RemovePincerForwardVelocity" then
@@ -169,8 +167,6 @@ NetworkModule["FistRunningBvel"] = function(Character)
 	end)
 end
 NetworkModule["PIBvel"] = function(Character)
-	print("[PIBvel] Called for character:", Character and Character.Name or "nil")
-
 	if not Character or not Character.PrimaryPart then
 		warn("PIBvel: Character or PrimaryPart is nil")
 		return
@@ -189,8 +185,6 @@ NetworkModule["PIBvel"] = function(Character)
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
-
-	print("[PIBvel] Created velocity for", Character.Name, "- Speed:", speed, "Duration:", duration)
 
 	-- Connection to update velocity every frame
 	local conn

@@ -72,18 +72,31 @@ function InventorySetup.addItemFromDatabase(entity, itemName, quantity)
 end
 
 function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
+    print("========================================")
+    print("[GiveWeaponSkills] CALLED - Weapon:", WeaponName, "Entity:", entity, "Player:", player and player.Name or "nil")
+    print("========================================")
+
     local WeaponDirectory = require(ServerStorage.Stats._Skills)
     local WeaponSkills = WeaponDirectory[WeaponName]
 
     if not WeaponSkills then
-        warn("No skills found weapon:", WeaponName)
+        warn("[GiveWeaponSkills] No skills found for weapon:", WeaponName)
         return
     end
+
+    print("[GiveWeaponSkills] Found", #WeaponSkills, "skills for weapon:", WeaponName)
 
     -- Get player from entity if on server
     if RunService:IsServer() then
         local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
         local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+
+        -- Verify entity exists in world
+        if not world:contains(entity) then
+            warn("[GiveWeaponSkills] Entity does not exist in world! Cannot give skills.")
+            return
+        end
+
         if world:has(entity, comps.Player) then
             player = world:get(entity, comps.Player)
         end
@@ -92,17 +105,34 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
         if not world:has(entity, comps.Inventory) then
             warn("[GiveWeaponSkills] Entity missing Inventory component! Initializing...")
             InventoryManager.initializeInventory(entity, 50)
+            -- Wait a frame for initialization to complete
+            task.wait()
         end
         if not world:has(entity, comps.Hotbar) then
             warn("[GiveWeaponSkills] Entity missing Hotbar component! Initializing...")
             InventoryManager.initializeInventory(entity, 50)
+            -- Wait a frame for initialization to complete
+            task.wait()
         end
+
+        -- Double-check components exist after initialization
+        if not world:has(entity, comps.Inventory) or not world:has(entity, comps.Hotbar) then
+            warn("[GiveWeaponSkills] Failed to initialize components! Aborting.")
+            return
+        end
+
+        -- Clear existing inventory and hotbar before giving new skills
+        print("[GiveWeaponSkills] Clearing inventory and hotbar for weapon change")
+        InventoryManager.clearInventory(entity)
+        InventoryManager.clearHotbar(entity)
     end
 
     -- Track hotbar slot assignment
     local currentHotbarSlot = 1
+    local skillsAdded = 0
 
     for skillName, skillData in WeaponSkills do
+        -- addItem returns (success: boolean, inventorySlot: number)
         local success, inventorySlot = InventoryManager.addItem(
             entity,
             skillName,
@@ -113,8 +143,9 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
             "rbxassetid://123456789"
         )
 
-        if success then
+        if success and inventorySlot then
             print("[GiveWeaponSkills] Added skill:", skillName, "to inventory slot:", inventorySlot)
+            skillsAdded = skillsAdded + 1
 
             -- Assign to hotbar (max 7 skills on hotbar)
             if currentHotbarSlot <= 7 then
@@ -126,6 +157,8 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
             warn("[GiveWeaponSkills] Failed to add skill:", skillName)
         end
     end
+
+    print("[GiveWeaponSkills] Successfully added", skillsAdded, "skills for weapon:", WeaponName)
 
     -- Verify the inventory was actually updated
     if RunService:IsServer() then
