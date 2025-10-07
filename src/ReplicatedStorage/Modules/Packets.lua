@@ -154,7 +154,7 @@ return ByteNet.defineNamespace("Networking", function()
 				Name = ByteNet.string;
 				Targ = ByteNet.optional(ByteNet.inst);
 				Velocity = ByteNet.optional(ByteNet.vec3);
-				Direction = ByteNet.optional(ByteNet.vec3);
+				Direction = ByteNet.optional(ByteNet.string); -- Changed from vec3 to string for dash direction names
 				HorizontalPower = ByteNet.optional(ByteNet.float32);
 				UpwardPower = ByteNet.optional(ByteNet.float32);
 				duration = ByteNet.optional(ByteNet.float32);

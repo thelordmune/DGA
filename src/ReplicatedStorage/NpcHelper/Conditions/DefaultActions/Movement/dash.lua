@@ -56,24 +56,33 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		dashVector = root.CFrame.LookVector
 	end
 
-	-- Clean up any existing dash velocities
+	-- Clean up any existing dash/dodge velocities to prevent conflicts
 	for _, bodyMover in pairs(root:GetChildren()) do
-		if bodyMover.Name == "NPCDash" then
-			bodyMover:Destroy()
+		if bodyMover:IsA("LinearVelocity") or bodyMover:IsA("BodyVelocity") then
+			if bodyMover.Name == "NPCDash" or bodyMover.Name == "NPCDodge" then
+				bodyMover:Destroy()
+			end
 		end
 	end
 
-	-- Create velocity for dash (match player dash system exactly)
-	local TweenService = game:GetService("TweenService")
-	local Speed = 135  -- Match player dash speed
-	local Duration = 0.5  -- Match player dash duration
+	-- Also clear AlignOrientation during dash for smoother movement
+	local existingAlign = root:FindFirstChild("AlignOrient")
+	if existingAlign then
+		existingAlign:Destroy()
+	end
 
+	-- Create velocity for dash with smoother settings
+	local TweenService = game:GetService("TweenService")
+	local Speed = 100  -- Reduced from 135 for smoother movement
+	local Duration = 0.4  -- Slightly faster for responsiveness
+
+	-- SERVER-SIDE: Create velocity for physics (NPCs are server-owned)
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.Name = "NPCDash"
 	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
 	Velocity.ForceLimitsEnabled = true
-	Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)  -- Match player force
+	Velocity.MaxAxesForce = Vector3.new(80000, 0, 80000)  -- Reduced force for smoother acceleration
 	Velocity.VectorVelocity = dashVector * Speed
 
 	-- Create attachment if it doesn't exist
@@ -89,10 +98,10 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	Velocity.Parent = root
 
 	-- Create smooth deceleration tween - gradually slow down instead of stopping abruptly
-	local SlowdownSpeed = Speed * 0.15  -- End at 15% of original speed for smooth transition
+	local SlowdownSpeed = Speed * 0.2  -- End at 20% of original speed for smooth transition
 	local DashTween = TweenService:Create(
 		Velocity,
-		TweenInfo.new(Duration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+		TweenInfo.new(Duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),  -- Sine for smoother easing
 		{VectorVelocity = dashVector * SlowdownSpeed}
 	)
 	DashTween:Play()
@@ -103,6 +112,28 @@ return function(actor: Actor, mainConfig: table, direction: string)
 			Velocity:Destroy()
 		end
 	end)
+
+	-- Safety cleanup in case tween doesn't complete
+	task.delay(Duration + 0.1, function()
+		if Velocity and Velocity.Parent then
+			Velocity:Destroy()
+		end
+	end)
+
+	-- CLIENT-SIDE: Send to all clients for smooth visual replication
+	local success, err = pcall(function()
+		local Packets = require(ReplicatedStorage.Modules.Packets)
+		Packets.Bvel.sendToAll({
+			Character = npc,
+			Name = "NPCDash",
+			Direction = direction, -- Direction name (string): "Forward", "Back", "Left", "Right"
+			Velocity = dashVector  -- Dash vector (Vector3) for velocity
+		})
+	end)
+
+	if not success then
+		warn(`[NPC Dash] Failed to send Bvel packet: {err}`)
+	end
 
 	-- Play dash animation
 	local dashAnimName = direction == "Back" and "Backward" or

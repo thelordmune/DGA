@@ -88,7 +88,7 @@ function Sliding:Start()
 
 		-- Mark that we just wall jumped to enable air dash
 		self.JustWallJumped = true
-		self.WallJumpTime = tick()
+		self.WallJumpTime = os.clock()
 
 		-- Reset the flag after a short window
 		task.delay(1.5, function()

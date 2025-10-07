@@ -354,6 +354,10 @@ function Initialize(Character: Model)
 	ClientThread.Spawn()
 end
 
+-- Initialize ragdoll handling system (only once)
+local RagdollHandling = require(Replicated.Client.Events.RagdollHandling)
+RagdollHandling.Init()
+
 local ID = false
 local active = false
 local maxRetries = 5

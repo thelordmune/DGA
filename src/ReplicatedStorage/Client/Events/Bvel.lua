@@ -16,10 +16,15 @@ type Entity = {
 }
 
 NetworkModule.EndPoint = function(Player, Data)
+	print("[Bvel EndPoint] Received packet:", Data.Name, "for character:", Data.Character and Data.Character.Name or "nil")
+
 	if Data.Name == "BFKnockback" then
 		NetworkModule[Data.Name](Data.Character, Data.Direction, Data.HorizontalPower, Data.UpwardPower)
 	elseif Data.Name == "StoneLaunchVelocity" or Data.Name == "PincerForwardVelocity" or Data.Name == "RemovePincerForwardVelocity" then
 		NetworkModule[Data.Name](Data.Character, Data)
+	elseif Data.Name == "NPCDash" then
+		-- Pass both direction name and velocity vector
+		NetworkModule[Data.Name](Data.Character, Data.Direction, Data.Velocity)
 	else
 		NetworkModule[Data.Name](Data.Character, Data.Targ)
 	end
@@ -164,6 +169,8 @@ NetworkModule["FistRunningBvel"] = function(Character)
 	end)
 end
 NetworkModule["PIBvel"] = function(Character)
+	print("[PIBvel] Called for character:", Character and Character.Name or "nil")
+
 	if not Character or not Character.PrimaryPart then
 		warn("PIBvel: Character or PrimaryPart is nil")
 		return
@@ -182,6 +189,8 @@ NetworkModule["PIBvel"] = function(Character)
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
+
+	print("[PIBvel] Created velocity for", Character.Name, "- Speed:", speed, "Duration:", duration)
 
 	-- Connection to update velocity every frame
 	local conn
@@ -633,6 +642,72 @@ NetworkModule["FlameRunningBvel"] = function(Character)
 		conn:Disconnect()
 		lv:Destroy()
 		attachment:Destroy()
+	end)
+end
+
+-- NPC Dash - Client-side replication for smooth visual movement
+NetworkModule["NPCDash"] = function(Character, Direction, DashVector)
+	if not Character or not Character.PrimaryPart then
+		warn("NPCDash: Character or PrimaryPart is nil")
+		return
+	end
+
+	local root = Character.PrimaryPart
+
+	-- Clean up any existing dash velocities
+	for _, bodyMover in pairs(root:GetChildren()) do
+		if bodyMover:IsA("LinearVelocity") or bodyMover:IsA("BodyVelocity") then
+			if bodyMover.Name == "NPCDash" or bodyMover.Name == "NPCDodge" then
+				bodyMover:Destroy()
+			end
+		end
+	end
+
+	-- Create smooth client-side velocity
+	local Speed = 100
+	local Duration = 0.4
+
+	local Velocity = Instance.new("LinearVelocity")
+	Velocity.Name = "NPCDash"
+	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	Velocity.ForceLimitsEnabled = true
+	Velocity.MaxAxesForce = Vector3.new(80000, 0, 80000)
+	Velocity.VectorVelocity = DashVector * Speed
+	Velocity.RelativeTo = Enum.ActuatorRelativeTo.World
+
+	-- Create attachment if it doesn't exist
+	local attachment = root:FindFirstChild("RootAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "RootAttachment"
+		attachment.Parent = root
+	end
+
+	Velocity.Attachment0 = attachment
+	Velocity.Parent = root
+
+	-- Smooth deceleration tween
+	local SlowdownSpeed = Speed * 0.2
+	local DashTween = TweenService:Create(
+		Velocity,
+		TweenInfo.new(Duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+		{VectorVelocity = DashVector * SlowdownSpeed}
+	)
+	DashTween:Play()
+
+	-- Cleanup
+	DashTween.Completed:Connect(function()
+		if Velocity and Velocity.Parent then
+			Velocity:Destroy()
+		end
+	end)
+
+	-- Safety cleanup
+	task.delay(Duration + 0.1, function()
+		if Velocity and Velocity.Parent then
+			Velocity:Destroy()
+		end
 	end)
 end
 

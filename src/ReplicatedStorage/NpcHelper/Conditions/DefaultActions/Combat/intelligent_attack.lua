@@ -126,13 +126,13 @@ local function scoreSkill(skillName, distance, mainConfig, npc, target)
     end
 
     local score = properties.SkillPriority
-    
-    -- Distance scoring
+
+    -- Distance scoring - STRICT range enforcement
     local targetProps = properties.TargetingProperties
     if distance < targetProps.MinRange then
-        score = score * 0.3 -- Too close
+        return 0 -- Completely reject if too close
     elseif distance > targetProps.MaxRange then
-        score = score * 0.1 -- Too far
+        return 0 -- Completely reject if too far - don't use skills out of range!
     elseif math.abs(distance - targetProps.OptimalRange) < 3 then
         score = score * 1.5 -- Perfect range!
     elseif distance >= targetProps.MinRange and distance <= targetProps.MaxRange then
@@ -209,6 +209,15 @@ return function(actor: Actor, mainConfig: table)
     
     -- Get distance to target
     local distance = getDistanceToTarget(npc, target)
+
+    -- Don't attack if we're pathfinding (obstacle in the way)
+    local AiFolder = mainConfig.getMimic()
+    if AiFolder and AiFolder:FindFirstChild("PathState") then
+        if AiFolder.PathState.Value == 2 then
+            -- Currently pathfinding around an obstacle - don't try to attack
+            return false
+        end
+    end
 
     -- Check if player is blocking
     local targetActions = target:FindFirstChild("Actions")

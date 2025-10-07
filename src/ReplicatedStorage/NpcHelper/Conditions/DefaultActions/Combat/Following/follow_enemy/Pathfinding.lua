@@ -26,18 +26,12 @@ return function(npc: Model, mainConfig, target: Model | Vector3, Folder)
 		AgentMaxSlope = 45,
 		WaypointSpacing = 4,
 	})
-	local FinishedId = math.random(1,9999)
-	local Conn: RBXScriptConnection; Conn = Hum.MoveToFinished:Connect(function(reached)
-		if reached == true then
-			FinishedId = math.random(1,9999)
-		end
-	end)
 	task.spawn(function()
 		while Folder.StateId.Value == StateId and Folder.PathState.Value == 2 and Root ~= nil do
 			local Position = (typ == "Vector3" and target) or (target:IsA("Model") and target:GetPivot().Position)
 			local RootPos = Root.Position
 
-			if (RootPos-Position).Magnitude <= 2 then
+			if (RootPos-Position).Magnitude <= 3 then
 				break
 			end
 			local terminated = false;
@@ -57,27 +51,45 @@ return function(npc: Model, mainConfig, target: Model | Vector3, Folder)
 				end;
 				if i == 1 then continue end; --skip first waypoint
 				cur_index = i
-				local Continue = false;
-				Hum:MoveTo(v.Position)
-				local CurId = FinishedId
+
+				-- Use Humanoid:Move() instead of MoveTo() to prevent conflicts with other movement systems
 				local Started = os.clock()
-				repeat 
-					local Time = Hum.WalkSpeed/16*2
+				local waypointReached = false
+
+				while not waypointReached and (Folder.StateId.Value == StateId and Folder.PathState.Value == 2 and Root ~= nil and not terminated) do
+					local currentPos = Root.Position
+					local waypointPos = Vector3.new(v.Position.X, currentPos.Y, v.Position.Z) -- Ignore Y for distance check
+					local direction = (waypointPos - currentPos).Unit
+
+					-- Use Humanoid:Move() for smooth pathfinding that doesn't conflict with other systems
+					Hum:Move(direction)
+
 					if v.Action == Enum.PathWaypointAction.Jump then
 						Hum.Jump = true;
 					end
-					if os.clock()-Started >= Time then
-						terminated = true;
-					end    
-					task.wait() 
-				until Folder.StateId.Value ~= StateId or Folder.PathState.Value ~= 2 or Root == nil or CurId ~= FinishedId
+
+					-- Check if we've reached the waypoint (horizontal distance only)
+					if (currentPos - waypointPos).Magnitude <= 2 then
+						waypointReached = true
+					end
+
+					-- Timeout if stuck
+					if os.clock() - Started > 3 then
+						terminated = true
+						break
+					end
+
+					task.wait()
+				end
 			end
 			task.wait(.15)
 		end
-		if Conn then
-			Conn:Disconnect()
-			Conn = nil;
+
+		-- Stop movement when pathfinding ends
+		if Hum then
+			Hum:Move(Vector3.new(0, 0, 0))
 		end
+
 		if blockedconnect ~= nil then
 			blockedconnect:Disconnect()
 			blockedconnect = nil;

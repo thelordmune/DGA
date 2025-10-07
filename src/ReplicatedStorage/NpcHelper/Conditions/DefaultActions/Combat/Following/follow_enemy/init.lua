@@ -38,15 +38,15 @@ local function updateMovementPattern(mainConfig)
 	then
 
 
-		--[[ adds up all current weight in table and stores cumulative weight as denominator/max weight. 
+		--[[ adds up all current weight in table and stores cumulative weight as denominator/max weight.
 			While numerator being specific weight for that pattern]]
 
 		local patterns = {
-			{name = "Direct",weight = 6}, --3/6 -> 50%
-			{name = "Strafe",weight = 2}, --1/6 -> 17%
-			{name = "SideApproach",weight = 8}, --2/6 -> 33%
-			--{name="CircleStrafe", weight = 1},
-			--{name = "ZigZag",Weight = 1},		
+			{name = "Direct",weight = 3}, -- 3/18 -> 17%
+			{name = "Strafe",weight = 3}, -- 3/18 -> 17%
+			{name = "SideApproach",weight = 4}, -- 4/18 -> 22%
+			{name = "CircleStrafe", weight = 6}, -- 6/18 -> 33%
+			{name = "ZigZag", weight = 2}, -- 2/18 -> 11%
 		}
 
 
@@ -151,6 +151,16 @@ return function(actor: Actor, mainConfig: table )
 		-- NPC is performing an action (attacking, using skill, etc.) - stop movement
 		humanoid:Move(Vector3.new(0, 0, 0))
 		clearAlignOrientation(npc)
+
+		-- Also clear any dash velocities that might be lingering
+		for _, bodyMover in pairs(root:GetChildren()) do
+			if bodyMover:IsA("LinearVelocity") or bodyMover:IsA("BodyVelocity") then
+				if bodyMover.Name == "NPCDash" or bodyMover.Name == "NPCDodge" then
+					bodyMover:Destroy()
+				end
+			end
+		end
+
 		return true -- Return true so behavior tree knows we're still following, just paused
 	end
 
@@ -262,7 +272,7 @@ return function(actor: Actor, mainConfig: table )
 				end
 			}
 
-			local DISTANCE_TO_STOP_FOLLOWING_AT: number = 6; -- Increased from 2.5 to maintain better spacing
+			local DISTANCE_TO_STOP_FOLLOWING_AT: number = 3; -- Close combat distance - NPCs should get close to attack
 			local indexType = if (mainConfig.getTargetCFrame().Position - mainConfig.getNpcCFrame().Position).Magnitude < DISTANCE_TO_STOP_FOLLOWING_AT then "Still"
 				else "Follow"
 
@@ -288,21 +298,27 @@ return function(actor: Actor, mainConfig: table )
 
 	local Pass: number = 1;
 
-	local raycastResults: RaycastResult = workspace:Raycast(RootPosition,UnitVector * MagnitudeIndex,raycastParams)
+	-- Raycast to check if there's a clear path to target
+	local raycastResults: RaycastResult = workspace:Raycast(RootPosition, UnitVector * MagnitudeIndex, raycastParams)
 	if raycastResults and raycastResults.Position then
-		local Difference: any = (raycastResults.Position-(RootPosition + (UnitVector * MagnitudeIndex))).Magnitude
-		if Difference > 5 then
-			Pass = 2;
+		-- If raycast hit something before reaching the target, we need to pathfind
+		local hitDistance = (raycastResults.Position - RootPosition).Magnitude
+		local targetDistance = Direction.Magnitude
+
+		-- If we hit something and it's significantly before the target (more than 2 studs away)
+		if hitDistance < (targetDistance - 2) then
+			Pass = 2
 		end
 	end
+
 	local AiFolder: Folder = mainConfig.getMimic()
 	if humanoid.FloorMaterial ~= Enum.Material.Air and humanoid.FloorMaterial ~= nil and Pass ~= AiFolder.PathState.Value then
 		--task.synchronize()
-		AiFolder.StateId.Value = math.random(1,9999);
-		AiFolder.PathState.Value = Pass;
+		AiFolder.StateId.Value = math.random(1,9999)
+		AiFolder.PathState.Value = Pass
 		--task.desynchronize()
-		if Pass == 2 then 
-			print(" pathfind then gang")
+		if Pass == 2 then
+			print(`[NPC Pathfinding] {npc.Name} detected obstacle, using pathfinding`)
 			config.Pathfind()
 		end
 	end

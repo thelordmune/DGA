@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 local SFX = Replicated:WaitForChild("Assets").SFX
 
 local Global = require(Replicated.Modules.Shared.Global)
-local LooseRagdoll = require(Replicated.Modules.Utils.LooseRagdoll)
+local Ragdoll = require(Replicated.Modules.Utils.Ragdoll)
 return function(Player, Data, Server)
     local Char = Player.Character
 
@@ -394,9 +394,9 @@ return function(Player, Data, Server)
 						if targetHumanoid and targetRoot and targetHumanoid.Health > 0 and Target.Parent then
 							print(`[PINCER IMPACT BF] Applying ragdoll + knockback to {Target.Name} (Health: {targetHumanoid.Health})`)
 
-							-- Apply ragdoll effect (BallSocketConstraints)
+							-- Apply ragdoll effect
 							local ragdollDuration = 2 -- Ragdoll lasts 2 seconds
-							LooseRagdoll.Ragdoll(Target, ragdollDuration)
+							Ragdoll.Ragdoll(Target, ragdollDuration)
 
 							-- Calculate knockback direction (away from attacker)
 							local direction = (targetRoot.Position - Char.HumanoidRootPart.Position).Unit

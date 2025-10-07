@@ -7,7 +7,7 @@ local Packets = require(Replicated.Modules.Packets)
 local Visuals = require(Replicated.Modules.Visuals)
 local WeaponStats = require(ServerStorage.Stats._Weapons)
 local MoveStats = require(ServerStorage.Stats._Moves)
-local LooseRagdoll = require(Replicated.Modules.Utils.LooseRagdoll)
+local Ragdoll = require(Replicated.Modules.Utils.Ragdoll)
 
 local Debris = game:GetService("Debris")
 local TweenService = game:GetService("TweenService")
@@ -279,7 +279,7 @@ NetworkModule.EndPoint = function(Player, Data)
 									end)
 								end
 
-								LooseRagdoll.Ragdoll(Target, 1.5)
+								Ragdoll.Ragdoll(Target, 1.5)
 
 								task.delay(0.8, function()
 									if targetHumanoid then

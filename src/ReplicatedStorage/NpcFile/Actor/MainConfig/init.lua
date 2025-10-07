@@ -99,7 +99,7 @@ local MainConfig = {
 
 		-- Smooth movement interpolation
 		CurrentDirection = Vector3.zero,
-		SmoothingAlpha = 0.25, -- Higher = faster response, lower = smoother (0-1)
+		SmoothingAlpha = 0.35, -- Higher = faster response, lower = smoother (0-1) - increased for more responsive movement
 
 		Patterns = {
 			Current = nil, -- Current pattern type
