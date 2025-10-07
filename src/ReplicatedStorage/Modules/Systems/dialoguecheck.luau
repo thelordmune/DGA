@@ -139,31 +139,41 @@ local function findCharacter(character): Model?
     local npcCount = #dialogueFolder:GetChildren()
     DebugPrint("Checking", npcCount, "NPCs in dialogue folder")
 
+    local foundNearbyNPC = false
+    local nearestNPC = nil
+
     for _, npc in dialogueFolder:GetChildren() do
         local npcroot = npc:FindFirstChild("HumanoidRootPart")
         if character and npcroot then
             local distance = (root.Position - npcroot.Position).Magnitude
             DebugPrint("Distance to", npc.Name, ":", math.floor(distance * 100) / 100)
-            
+
             if distance <= 10 then
-                if not character:GetAttribute("Commence") then
-                    character:SetAttribute("Commence", true)
-                    DebugPrint("Set Commence to true for", npc.Name)
-                end
+                foundNearbyNPC = true
+                nearestNPC = npc
                 DebugPrint("Found nearby NPC:", npc.Name)
-                return npc
-            end
-            if distance > 10 then
-                if character:GetAttribute("Commence") then
-                    character:SetAttribute("Commence", false)
-                    DebugPrint("Set Commence to false, too far from", npc.Name)
-                end
+                break -- Stop checking once we find one
             end
         else
             if not npcroot then
                 DebugPrint("NPC", npc.Name, "has no HumanoidRootPart")
             end
         end
+    end
+
+    -- Only update Commence attribute if the state changed
+    local currentCommence = character:GetAttribute("Commence")
+
+    if foundNearbyNPC and not currentCommence then
+        character:SetAttribute("Commence", true)
+        DebugPrint("Set Commence to true for", nearestNPC.Name)
+    elseif not foundNearbyNPC and currentCommence then
+        character:SetAttribute("Commence", false)
+        DebugPrint("Set Commence to false, no NPCs in range")
+    end
+
+    if foundNearbyNPC then
+        return nearestNPC
     end
 
     DebugPrint("No nearby NPCs found")
@@ -248,7 +258,7 @@ return {
     end,
     settings = {
         phase = "Heartbeat",
-        depends_on = { "PlayerAdded" },
+        depends_on = {},  -- Removed invalid PlayerAdded dependency (not a phase dependency)
         client_only = true,
     },
     SetDebugging = SetDebugging,

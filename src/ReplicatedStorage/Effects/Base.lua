@@ -1210,6 +1210,9 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 
 end
 
+-- Track active dialogue sessions to prevent duplicates
+local activeDialogueSessions = {}
+
 function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, state: string })
 	print("🎭 [Effects.Base] COMMENCE FUNCTION CALLED")
 	print("📋 Dialogue data received:", Dialogue)
@@ -1232,27 +1235,49 @@ function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, s
 
 	print("✅ [Effects.Base] Dialogue validation passed")
 	print("🎯 [Effects.Base] NPC:", Dialogue.name, "| In Range:", Dialogue.inrange, "| State:", Dialogue.state)
-	print("📦 [Effects.Base] Loading Fusion scope and Proximity component...")
-	local scope = scoped(Fusion, {
-		Proximity = require(Replicated.Client.Components.Proximity),
-	})
-	local start = scope:Value(false)
-	print("✅ [Effects.Base] Fusion scope created successfully")
+
+	local npcId = Dialogue.npc:GetDebugId() -- Unique identifier for this NPC instance
 
 	if Dialogue.inrange then
+		-- Check if we already have an active session for this NPC
+		if activeDialogueSessions[npcId] then
+			print("⚠️ [Effects.Base] Dialogue session already active for", Dialogue.name, "- skipping")
+			return
+		end
+
 		print("🎯 [Effects.Base] Player is in range, creating proximity UI...")
+		activeDialogueSessions[npcId] = true
 
-		local highlight = Instance.new("Highlight")
-		highlight.DepthMode = Enum.HighlightDepthMode.Occluded
-		highlight.FillTransparency = 1
-		highlight.OutlineTransparency = 1
-		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-		highlight.Parent = Dialogue.npc
-		print("✨ [Effects.Base] Highlight created and parented to NPC")
+		-- Check if highlight already exists
+		local highlight = Dialogue.npc:FindFirstChild("Highlight")
+		if not highlight then
+			print("✨ [Effects.Base] Creating new highlight for NPC")
+			highlight = Instance.new("Highlight")
+			highlight.Name = "Highlight"
+			highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+			highlight.FillTransparency = 1
+			highlight.OutlineTransparency = 1
+			highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+			highlight.Parent = Dialogue.npc
 
-		local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 0 })
-		hTween:Play()
-		print("🎬 [Effects.Base] Highlight tween started")
+			local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 0 })
+			hTween:Play()
+			print("🎬 [Effects.Base] Highlight tween started")
+		else
+			print("♻️ [Effects.Base] Highlight already exists, reusing it")
+			-- Make sure it's visible
+			if highlight.OutlineTransparency > 0.5 then
+				local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 0 })
+				hTween:Play()
+			end
+		end
+
+		print("📦 [Effects.Base] Loading Fusion scope and Proximity component...")
+		local scope = scoped(Fusion, {
+			Proximity = require(Replicated.Client.Components.Proximity),
+		})
+		local start = scope:Value(false)
+		print("✅ [Effects.Base] Fusion scope created successfully")
 
 		local Target = scope:New("ScreenGui")({
 			Name = "ScreenGui",
@@ -1280,17 +1305,26 @@ function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, s
 		task.wait(0.5)
 		print("🧹 [Effects.Base] Cleaning up scope")
 		scope:doCleanup()
+
+		-- Clear the active session
+		activeDialogueSessions[npcId] = nil
 		print("✅ [Effects.Base] Proximity effect complete")
 	else
 		print("🚫 [Effects.Base] Player not in range, removing highlight...")
+
+		-- Clear any active session
+		activeDialogueSessions[npcId] = nil
+
 		local highlight = Dialogue.npc:FindFirstChild("Highlight")
 		if highlight then
 			print("✨ [Effects.Base] Found existing highlight, fading out...")
 			local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 1 })
 			hTween:Play()
 			hTween.Completed:Connect(function()
-				highlight:Destroy()
-				print("🗑️ [Effects.Base] Highlight destroyed")
+				if highlight and highlight.Parent then
+					highlight:Destroy()
+					print("🗑️ [Effects.Base] Highlight destroyed")
+				end
 			end)
 		else
 			print("⚠️ [Effects.Base] No highlight found to remove")

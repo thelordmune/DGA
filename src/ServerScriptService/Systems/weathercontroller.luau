@@ -52,7 +52,7 @@ return {
     end,
     settings = {
         phase = "Heartbeat",
-        depends_on = {"PlayerAdded"},  -- Optional dependencies
+        depends_on = {},  -- Optional dependencies
         server_only = true
     }
 }

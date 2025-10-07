@@ -260,7 +260,7 @@ local function getWeaponSkills(): {string}
 	local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 	local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManager)
 
-	local pent = ref.get("local_player", player)
+	local pent = ref.get("local_player")  -- No second parameter needed for local_player
 	if not pent then
 		-- print("  ⚠️ Player entity not found")
 		return {}

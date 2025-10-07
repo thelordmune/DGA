@@ -24,6 +24,34 @@ if not Success then
 	return
 end
 
+-- CRITICAL: Start ECS systems FIRST before loading any client modules
+-- This ensures the client entity exists before InventoryHandler tries to use it
+print("🔧 Starting client ECS systems before loading modules...")
+local ecsStartSuccess = false
+local ecsRetryCount = 0
+local maxECSRetries = 5
+
+while not ecsStartSuccess and ecsRetryCount < maxECSRetries do
+	-- Pass nil to let the scheduler auto-detect client systems from ReplicatedStorage.Modules.Systems
+	local success, err = pcall(start, nil)
+	if success then
+		print("✅ Client ECS systems started successfully")
+		ecsStartSuccess = true
+		active = true
+	else
+		warn("❌ Failed to start client ECS systems (attempt", ecsRetryCount + 1, "):", err)
+		ecsRetryCount = ecsRetryCount + 1
+		if ecsRetryCount < maxECSRetries then
+			print("⏳ Retrying in 1 second...")
+			task.wait(1)
+		end
+	end
+end
+
+if not ecsStartSuccess then
+	error("❌ CRITICAL: Failed to start client ECS systems after " .. maxECSRetries .. " attempts!")
+end
+
 -- CRITICAL: Load Events module FIRST to set up packet listeners before anything else
 local EventsModule = Replicated:WaitForChild("Client"):WaitForChild("Events")
 local Success, EventsReq = xpcall(function()
@@ -37,7 +65,7 @@ if Success and EventsReq then
 	print("✅ Events module loaded - Bvel and other packet listeners are now active")
 end
 
--- Now load all other modules
+-- Now load all other modules (ECS is already running, so InventoryHandler will work)
 local Modules = Replicated:WaitForChild("Client"):GetChildren()
 for __ = 1, #Modules do
 	local Module = Modules[__]
@@ -124,9 +152,21 @@ local DisabledStateTypes = {
 	"Climbing",
 }
 
-local pent = ref.get("local_player", Players.LocalPlayer)
+local pent = ref.get("local_player")  -- No second parameter needed for local_player
+
+-- Ensure Dialogue component exists on player entity
+if pent and not world:get(pent, comps.Dialogue) then
+	print("🔧 Initializing Dialogue component for player entity")
+	world:set(pent, comps.Dialogue, { npc = nil, name = "none", inrange = false, state = "interact" })
+end
 
 function Initialize(Character: Model)
+	-- Set Character component on client for local player entity
+	-- This is needed for client-side ECS systems like ragdoll_impact
+	if pent then
+		world:set(pent, comps.Character, Character)
+		print("🔧 Set Character component on client player entity")
+	end
 	Client.Service["RunService"].RenderStepped:Wait()
 	Client.Character = Character
 
@@ -372,40 +412,15 @@ end
 local RagdollHandling = require(Replicated.Client.Events.RagdollHandling)
 RagdollHandling.Init()
 
+-- Initialize ragdoll impact system (crater effects when hitting ground)
+-- local RagdollImpact = require(Replicated.Client.RagdollImpact)
+-- RagdollImpact.Init()
+
 local ID = false
-local active = false
-local maxRetries = 5
-local retryCount = 0
-
-local function startECSWithRetry()
-	if active then
-		return
-	end
-
-	print("Attempting to start client ECS systems... (Attempt", retryCount + 1, ")")
-	local success, err = pcall(start)
-	if success then
-		print("Client ECS systems started successfully")
-		active = true
-		return true
-	else
-		warn("Failed to start client ECS systems:", err)
-		retryCount = retryCount + 1
-		if retryCount < maxRetries then
-			print("Retrying in 2 seconds...")
-			task.wait(2)
-			return startECSWithRetry()
-		else
-			warn("Max retries reached, ECS systems failed to start")
-			return false
-		end
-	end
-end
+-- Note: 'active' variable is now set at the top when ECS starts
 
 Players.LocalPlayer.CharacterAdded:Connect(function(Character)
 	world:set(pent, comps.Dialogue, { npc = nil, name = "none", inrange = false, state = "interact" })
-
-	-- task.spawn(startECSWithRetry)
 
 	ID = true
 	Initialize(Character)
@@ -417,9 +432,7 @@ end)
 
 if Players.LocalPlayer.Character then
 	if not ID then
-		if not active then
-			task.spawn(startECSWithRetry)
-		end
+		-- ECS already started at the top, no need to start again
 		Initialize(Players.LocalPlayer.Character)
 	end
 
@@ -428,8 +441,7 @@ if Players.LocalPlayer.Character then
 			return
 		end
 
-		local player = game.Players.LocalPlayer
-		local myEntityId = ref.get("player", player)
+		local myEntityId = ref.get("local_player")  -- Use local_player on client
 
 		if not myEntityId then
 			return

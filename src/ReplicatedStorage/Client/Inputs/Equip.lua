@@ -17,7 +17,7 @@ local comps = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_comp
 local ref = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_ref)
 local Bridges = require(Replicated.Modules.Bridges)
 
-local pent = ref.get("local_player", game:GetService("Players").LocalPlayer)
+local pent = ref.get("local_player")  -- No second parameter needed for local_player
 
 self.LastInput = os.clock()
 

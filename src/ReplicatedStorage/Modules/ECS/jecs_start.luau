@@ -87,145 +87,30 @@ local function start(systemsFolder)
     end
 
     -- Pass the systems folder to the scheduler
-    local systemsSuccess, systemsResult = pcall(scheduler.FillingSchedulerWithSystems, jabbyScheduler, systemsFolder)
+    local systemsSuccess, systemsError = pcall(scheduler.FillingSchedulerWithSystems, jabbyScheduler, systemsFolder)
     if not systemsSuccess then
-        error("failed to fill scheduler with systems")
+        error("failed to fill scheduler with systems: " .. tostring(systemsError))
     end
       
     pcall(scheduler.RegisteringWorldToJabby)
     pcall(scheduler.RegisterSchedulerToJabby, jabbyScheduler)
     
     local events = scheduler.COLLECT()
-    scheduler.BEGIN(events)
-    
-    local lastTime = os.clock()
-    local function getDeltaTime()
-        local currentTime = os.clock()
-        local delta = currentTime - lastTime
-        lastTime = currentTime
-        return math.clamp(delta, 1/60, 1/30)
-    end
-    
-    
-   local function executeSystems(phaseEntity)
-    if not world:has(phaseEntity, comps.Phase) then
-        warn("Invalid phase entity (missing Phase component):", phaseEntity)
-        return
-    end
-    local event = world:get(phaseEntity, comps.Event)
-    if not event then
-        warn("Phase missing event component:", world:get(phaseEntity, comps.Name) or phaseEntity)
-        return
-    end
+    local connections = scheduler.BEGIN(events)
 
-
-    
-   local phaseName = world:get(phaseEntity, comps.Name) or "UnknownPhase"
-    print(`Initializing systems for phase: {phaseName}`)
-    local isFrameEvent = (
-        event == RunService.Heartbeat or
-        event == RunService.Stepped or
-        event == RunService.RenderStepped
-    )
-
-    systemConnections[phaseEntity] = event:Connect(function(...)
-        local args = {...}
-        local success, err = pcall(function()
-            
-            local delta = isFrameEvent and getDeltaTime() or nil
-            
-            
-            for system in world:query(comps.System):with(pair(comps.DependsOn, phaseEntity)) do
-                local sysData = world:get(system, comps.System)
-                
-                if not sysData then
-                    warn("System entity missing data:", system)
-                    continue
-                end
-
-                
-                local systemName = sysData.name or "UnnamedSystem"
-                local startTime = os.clock()
-
-                
-                local systemArgs
-                if isFrameEvent then
-                    systemArgs = {world, delta}
-                else
-                    systemArgs = {world, table.unpack(args)}
-                end
-
-                
-                local execSuccess, execErr = pcall(function()
-                    jabbyScheduler:run(sysData.id, function()
-                        sysData.callback(table.unpack(systemArgs))
-                    end)
-                end)
-
-                
-                if not execSuccess then
-                    warn(`System '{systemName}' in phase '{phaseName}' failed: {execErr}`)
-                    warn("Arguments:", systemArgs)
-                    warn("Stack trace:", debug.traceback())
-                else
-                    
-                    local duration = os.clock() - startTime
-                    if duration > 0.1 then
-                        warn(`System '{systemName}' took {math.round(duration * 1000)}ms`)
-                    end
-                end
-            end
-        end)
-
-        if not success then
-            warn(`Phase '{phaseName}' execution failed: {err}`)
-            warn("Event args:", args)
-            warn("Stack trace:", debug.traceback())
+    print("✅ ECS system connections established")
+    print("📊 Active phases:")
+    for phaseEntity in world:query(comps.Phase):with(comps.Event) do
+        local phaseName = world:get(phaseEntity, comps.Name) or "UnknownPhase"
+        local systemCount = 0
+        for _ in world:query(comps.System):with(pair(comps.DependsOn, phaseEntity)) do
+            systemCount = systemCount + 1
         end
-    end)
-
-
-    print(`Connected phase '{phaseName}' to event {tostring(event)}`)
-end
-
-    for _, phaseEntity in pairs(validPhases) do
-        executeSystems(phaseEntity)
+        print(`  - {phaseName}: {systemCount} systems`)
     end
-    
-    local systemsFolder = RunService:IsServer() 
-        and game:GetService("ServerScriptService").Systems
-        or game:GetService("ReplicatedStorage"):FindFirstChild("Modules"):FindFirstChild("Systems")
-    
-    local function init(module)
-        -- cleanupSystem(module.Name)
-        local success, systemModule = pcall(require, module)
-        if not success then return end
-        
-        local systemFunc = systemModule.run
-        local settings = systemModule.settings or {}
-        local phaseName = settings.phase or "Heartbeat"
-        local phaseEntity = phases[phaseName] or phases.Heartbeat
-        
-        local systemId = jabbyScheduler:register_system({
-            name = module.Name,
-            phase = phaseName,
-            paused = settings.paused or false
-        })
-        
-        local systemEntity = world:entity()
-        world:set(systemEntity, comps.System, {
-            id = systemId,
-            callback = systemFunc,
-            name = module.Name,
-            phase = phaseName
-        })
-        world:add(systemEntity, pair(comps.DependsOn, phaseEntity))
-        
-        initializedSystems[module.Name] = systemId
-        print("Registered system:", module.Name)
-    end
-    
-    -- hotReloader:scan(systemsFolder, init)
+
+    -- Note: System loading is now handled by scheduler.FillingSchedulerWithSystems
+    -- The old hotReloader:scan approach has been replaced
     
     if RunService:IsClient() then
         local player = game:GetService("Players").LocalPlayer
@@ -240,7 +125,7 @@ end
         end)
     end
     
-    jabby.set_check_function(function(player) return true end)
+    jabby.set_check_function(function(_player) return true end)
 end
 
 return start

@@ -41,7 +41,7 @@ DialogueTracker.Start = function()
 
     DebugPrint("✅ Player found:", player.Name)
 
-    local pent = ref.get("local_player", player)
+    local pent = ref.get("local_player")  -- No second parameter needed for local_player
     if not pent then
         DebugPrint("❌ ERROR: Could not get player entity from ref!")
         return
@@ -78,8 +78,13 @@ DialogueTracker.Start = function()
         local currentDialogue = world:get(pent, comps.Dialogue)
         DebugPrint("📋 Current dialogue component:", currentDialogue)
 
-        if commenceValue and currentDialogue then
-            DebugPrint("🚀 Triggering dialogue commence with data:", currentDialogue)
+        if currentDialogue then
+            if commenceValue then
+                DebugPrint("🚀 Triggering dialogue commence (player in range) with data:", currentDialogue)
+            else
+                DebugPrint("🚪 Triggering dialogue commence (player left range) with data:", currentDialogue)
+            end
+
             local success, err = pcall(effmod.Commence, currentDialogue)
             if not success then
                 DebugPrint("❌ ERROR in effmod.Commence:", err)
@@ -87,7 +92,7 @@ DialogueTracker.Start = function()
                 DebugPrint("✅ Dialogue commence triggered successfully")
             end
         else
-            DebugPrint("⏸️ Commence is false or no dialogue data available")
+            DebugPrint("⏸️ No dialogue data available")
         end
     end)
 

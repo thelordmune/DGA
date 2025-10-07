@@ -65,6 +65,10 @@ return function(Player, Data, Server)
 				Arguments = { Character, "Slash1"},
 			})
 
+			-- Play Swing1 sound effect
+			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.GrandCleave.Swing1, true, 0.1)
+			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.GrandCleave.Woosh1, true, 0.1)
+
 			-- Add hitbox for Slash1
 			local Hitbox = Server.Modules.Hitbox
 			local Entity = Server.Modules["Entities"].Get(Character)
@@ -77,11 +81,18 @@ return function(Player, Data, Server)
 					false -- Don't visualize
 				)
 
+				local hitSomething = false
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Character and Target:IsA("Model") then
 						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["Slash1"])
 						print("Grand Cleave Slash1 hit:", Target.Name)
+						hitSomething = true
 					end
+				end
+
+				-- Play Hit1 sound if we hit something
+				if hitSomething then
+					Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.GrandCleave.Hit1, true, 0.1)
 				end
 			end
         end)
@@ -106,6 +117,10 @@ return function(Player, Data, Server)
 				Arguments = { Character, "Slash2"},
 			})
 
+			-- Play Swing2 sound effect
+			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.GrandCleave.Swing2, true, 0.1)
+			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.GrandCleave.Woosh2, true, 0.1)
+
 			-- Add hitbox for Slash2
 			local Hitbox = Server.Modules.Hitbox
 			local Entity = Server.Modules["Entities"].Get(Character)
@@ -118,11 +133,18 @@ return function(Player, Data, Server)
 					false -- Don't visualize
 				)
 
+				local hitSomething = false
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Character and Target:IsA("Model") then
 						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["Slash2"])
 						print("Grand Cleave Slash2 hit:", Target.Name)
+						hitSomething = true
 					end
+				end
+
+				-- Play Hit2 sound if we hit something
+				if hitSomething then
+					Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.GrandCleave.Hit2, true, 0.1)
 				end
 			end
         end)
@@ -132,6 +154,10 @@ return function(Player, Data, Server)
 				Function = "GrandCleave",
 				Arguments = { Character, "Slash3"},
 			})
+
+			-- Play Swing3 sound effect
+			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.GrandCleave.Swing3, true, 0.1)
+			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.GrandCleave.Woosh3, true, 0.1)
 
 			-- Add hitbox for Slash3 (final slash with block break)
 			local Hitbox = Server.Modules.Hitbox
@@ -145,11 +171,18 @@ return function(Player, Data, Server)
 					false -- Don't visualize
 				)
 
+				local hitSomething = false
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Character and Target:IsA("Model") then
 						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["Slash3"])
 						print("Grand Cleave Slash3 hit:", Target.Name)
+						hitSomething = true
 					end
+				end
+
+				-- Play Hit3 sound if we hit something
+				if hitSomething then
+					Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.GrandCleave.Hit3, true, 0.1)
 				end
 			end
         end)

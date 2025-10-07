@@ -78,7 +78,7 @@ for _, v in workspace.World.Live:GetChildren() do
     end
 end,
 settings = {
-        phase = "PlayerAdded",  -- Connect to PlayerAdded phase
+        phase = "Heartbeat",  -- Connect to PlayerAdded phase
         depends_on = {},
         server_only = true   -- Optional dependencies
 

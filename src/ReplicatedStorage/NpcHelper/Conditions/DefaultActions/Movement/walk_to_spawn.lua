@@ -20,8 +20,28 @@ return function(actor: Actor, mainConfig: any)
     local rootPosition: any = humanoidRootPart.Position;
     local distanceToSpawn: number = vector.magnitude(spawnPosition - rootPosition)
 
+    -- If close to spawn, use Humanoid:Move() for smooth animation
     if distanceToSpawn <= 7 then
-        humanoid:MoveTo(spawnPosition)
+        local direction = (spawnPosition - rootPosition).Unit
+
+        -- Initialize movement smoothing if not present
+        if not mainConfig.Movement then
+            mainConfig.Movement = {}
+        end
+        if not mainConfig.Movement.CurrentDirection then
+            mainConfig.Movement.CurrentDirection = Vector3.zero
+        end
+        if not mainConfig.Movement.SmoothingAlpha then
+            mainConfig.Movement.SmoothingAlpha = 0.3
+        end
+
+        -- Smooth interpolation for movement direction
+        local alpha = mainConfig.Movement.SmoothingAlpha
+        local smoothedDirection = mainConfig.Movement.CurrentDirection:Lerp(direction, alpha)
+        mainConfig.Movement.CurrentDirection = smoothedDirection
+
+        -- Use Humanoid:Move() to trigger walk animation
+        humanoid:Move(smoothedDirection)
         return true
     end
 
@@ -31,7 +51,26 @@ return function(actor: Actor, mainConfig: any)
         if aiFolder.PathState.Value == 2 then
             pathfinding(npc, mainConfig, spawnPosition, aiFolder)
         else
-            humanoid:MoveTo(spawnPosition)
+            -- Use Humanoid:Move() instead of MoveTo for walk animation
+            local direction = (spawnPosition - rootPosition).Unit
+
+            -- Initialize movement smoothing if not present
+            if not mainConfig.Movement then
+                mainConfig.Movement = {}
+            end
+            if not mainConfig.Movement.CurrentDirection then
+                mainConfig.Movement.CurrentDirection = Vector3.zero
+            end
+            if not mainConfig.Movement.SmoothingAlpha then
+                mainConfig.Movement.SmoothingAlpha = 0.3
+            end
+
+            -- Smooth interpolation for movement direction
+            local alpha = mainConfig.Movement.SmoothingAlpha
+            local smoothedDirection = mainConfig.Movement.CurrentDirection:Lerp(direction, alpha)
+            mainConfig.Movement.CurrentDirection = smoothedDirection
+
+            humanoid:Move(smoothedDirection)
         end
         return true
     end
@@ -62,7 +101,26 @@ return function(actor: Actor, mainConfig: any)
     if aiFolder.PathState.Value == 2 then
         pathfinding(npc, mainConfig, spawnPosition, aiFolder)
     else
-        humanoid:MoveTo(spawnPosition)
+        -- Use Humanoid:Move() instead of MoveTo for walk animation
+        local direction = (spawnPosition - rootPosition).Unit
+
+        -- Initialize movement smoothing if not present
+        if not mainConfig.Movement then
+            mainConfig.Movement = {}
+        end
+        if not mainConfig.Movement.CurrentDirection then
+            mainConfig.Movement.CurrentDirection = Vector3.zero
+        end
+        if not mainConfig.Movement.SmoothingAlpha then
+            mainConfig.Movement.SmoothingAlpha = 0.3
+        end
+
+        -- Smooth interpolation for movement direction
+        local alpha = mainConfig.Movement.SmoothingAlpha
+        local smoothedDirection = mainConfig.Movement.CurrentDirection:Lerp(direction, alpha)
+        mainConfig.Movement.CurrentDirection = smoothedDirection
+
+        humanoid:Move(smoothedDirection)
     end
 
     return true

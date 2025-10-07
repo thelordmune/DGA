@@ -276,12 +276,14 @@ return function(Player, Data, Server)
 
 				-- If hit someone with BF variant, do cinematic cutscene
 				if hitSomeone and pressedM1 then
-                    Server.Library.PlaySound(Char, SFX.PI.Hit)
-                    Server.Library.PlaySound(Char, SFX.PI.Impact)
-                    Server.Library.PlaySound(Char, SFX.PI.Impact2)
-                    Server.Library.PlaySound(Char, SFX.PI.Impact3)
+					Server.Library.PlaySound(Char, SFX.PI.Zoom, true)	
                     task.delay(.2, function()
-                    Server.Library.PlaySound(Char, SFX.PI.Impact4)
+                    Server.Library.PlaySound(Char, SFX.PI.Impact4, true)
+					Server.Library.PlaySound(Char, SFX.PI.Hit, true)
+                    Server.Library.PlaySound(Char, SFX.PI.Impact, true)
+                    Server.Library.PlaySound(Char, SFX.PI.Impact2, true)
+                    Server.Library.PlaySound(Char, SFX.PI.Impact3, true)
+					Server.Library.PlaySound(Char, SFX.PI.Impact5, true)
                 end)
 					-- print("[PINCER IMPACT] 🎯 BF Hit detected! Starting cinematic cutscene...")
 

@@ -253,28 +253,55 @@ playerConnections[player] = player.CharacterAdded:Connect(function(rig)
             -- Give weapon skills AFTER components are initialized
             -- Use task.defer to ensure all components are fully set before giving skills
             task.defer(function()
+                print(`[Character] 🎯 Starting weapon skills setup for {player.Name}`)
                 local InventorySetup = require(ReplicatedStorage.Modules.Utils.InventorySetup)
 
                 -- Wait for weapon attribute to be set (with timeout)
                 local weapon = player:GetAttribute("Weapon")
+                print(`[Character] 🔍 Initial weapon check for {player.Name}: {weapon or "nil"}`)
+
                 local maxWaitTime = 5 -- Maximum 5 seconds to wait
                 local waitStartTime = os.clock()
+                local attempts = 0
 
                 while not weapon and (os.clock() - waitStartTime) < maxWaitTime do
                     task.wait(0.1)
                     weapon = player:GetAttribute("Weapon")
+                    attempts = attempts + 1
+                    if attempts % 10 == 0 then
+                        print(`[Character] ⏳ Still waiting for weapon attribute for {player.Name} (attempt {attempts})`)
+                    end
                 end
 
                 if weapon then
-                    print(`[Character] Giving weapon skills for {player.Name}, Weapon: {weapon}, Entity: {e}`)
-                    InventorySetup.GiveWeaponSkills(e, weapon, player)
-                    print(`[Character] Finished giving weapon skills to {player.Name}`)
+                    print(`[Character] ✅ Weapon found for {player.Name}: {weapon}`)
+                    print(`[Character] 🎁 Giving weapon skills - Entity: {e}, Weapon: {weapon}, Player: {player.Name}`)
+
+                    local success, err = pcall(function()
+                        InventorySetup.GiveWeaponSkills(e, weapon, player)
+                    end)
+
+                    if success then
+                        print(`[Character] ✅ Successfully gave weapon skills to {player.Name}`)
+                    else
+                        warn(`[Character] ❌ ERROR giving weapon skills to {player.Name}:`, err)
+                    end
                 else
-                    warn(`[Character] No weapon attribute found for {player.Name} after {maxWaitTime} seconds - defaulting to Fist`)
+                    warn(`[Character] ⚠️ No weapon attribute found for {player.Name} after {maxWaitTime} seconds - defaulting to Fist`)
                     -- Default to Fist if no weapon attribute is set
                     weapon = "Fist"
                     player:SetAttribute("Weapon", weapon)
-                    InventorySetup.GiveWeaponSkills(e, weapon, player)
+                    print(`[Character] 🔧 Set default weapon to Fist for {player.Name}`)
+
+                    local success, err = pcall(function()
+                        InventorySetup.GiveWeaponSkills(e, weapon, player)
+                    end)
+
+                    if success then
+                        print(`[Character] ✅ Successfully gave default weapon skills to {player.Name}`)
+                    else
+                        warn(`[Character] ❌ ERROR giving default weapon skills to {player.Name}:`, err)
+                    end
                 end
             end)
 
@@ -305,7 +332,7 @@ playerConnections[player] = player.CharacterAdded:Connect(function(rig)
     end,
     
     settings = {
-        phase = "PlayerAdded",
+        phase = "PlayerAdded",  -- Changed from Heartbeat to PlayerAdded to properly receive player events
         depends_on = {},
         server_only = true
     }

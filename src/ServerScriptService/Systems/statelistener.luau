@@ -53,7 +53,7 @@ return {
     end,
     settings = {
         phase = "Heartbeat",
-        depends_on = {"PlayerAdded"},
+        depends_on = {},
         server_only = true
     }
 }

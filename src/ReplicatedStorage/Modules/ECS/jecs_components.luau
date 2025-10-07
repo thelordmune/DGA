@@ -88,6 +88,7 @@ local components: {
     Hotbar: Entity<{slots: {[number]: number?}, activeSlot: number?}>,
     InventoryChanged: Entity<number>,
     ClockTime: Entity<{timeOfDay: number, dayLength: number, startTime: number}>,
+    RagdollImpact: Entity<{lastImpactTime: number, wasInAir: boolean, lastVelocity: Vector3}>,
 } =
 	{
 		Character = world:component(),
@@ -171,6 +172,7 @@ local components: {
         Hotbar = world:component(),
         InventoryChanged = world:component(),
         ClockTime = world:component(),
+        RagdollImpact = world:component(),
 	}
 
     for name, component in components :: {[string]: jecs.Entity} do 

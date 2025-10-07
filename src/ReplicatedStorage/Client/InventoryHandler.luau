@@ -1,12 +1,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local Bridges = require(ReplicatedStorage.Modules.Bridges)
-
-local player = Players.LocalPlayer
 
 local function deserializeInventory(inventoryData)
     local inventory = {
@@ -33,14 +30,31 @@ end
 -- Handle inventory updates from server
 Bridges.Inventory:Connect(function(syncData)
     print("[InventoryHandler] Client: Received inventory update from server")
+    print("[InventoryHandler] Client: SyncData:", syncData)
 
-    local pent = ref.get("local_player", player)
+    -- Wait a bit to ensure ECS is fully initialized
+    local maxAttempts = 10
+    local attempt = 0
+    local pent = nil
+
+    while attempt < maxAttempts do
+        pent = ref.get("local_player")  -- No second parameter needed for local_player
+        if pent then
+            print("[InventoryHandler] Client: Local player entity found:", pent, "(attempt", attempt + 1, ")")
+            break
+        end
+        attempt = attempt + 1
+        warn("[InventoryHandler] Client: No local player entity found, retrying... (attempt", attempt, "/", maxAttempts, ")")
+        task.wait(0.1)
+    end
+
     if not pent then
-        warn("[InventoryHandler] Client: No local player entity found!")
+        warn("[InventoryHandler] Client: FAILED to get local player entity after", maxAttempts, "attempts!")
+        warn("[InventoryHandler] Client: Inventory sync FAILED - player entity does not exist")
         return
     end
 
-    print("[InventoryHandler] Client: Local player entity found:", pent)
+    print("[InventoryHandler] Client: Local player entity confirmed:", pent)
 
     -- Update inventory component
     local inventory = deserializeInventory(syncData.inventory)
@@ -68,14 +82,40 @@ Bridges.Inventory:Connect(function(syncData)
         print("  Hotbar", slot, "-> Inventory slot", invSlot)
     end
 
-    -- Update UI
-    local Client = require(ReplicatedStorage.Client)
-    if Client.Interface and Client.Interface.Stats then
-        print("[InventoryHandler] Client: Updating hotbar UI")
-        Client.Interface.Stats.LoadWeaponSkills()
-    else
-        warn("[InventoryHandler] Client: Could not find Stats interface to update hotbar")
-    end
+    -- Update UI with retry logic (UI might not be loaded yet)
+    task.spawn(function()
+        local Client = require(ReplicatedStorage.Client)
+        local maxUIAttempts = 20 -- Wait up to 2 seconds for UI to load
+        local uiAttempt = 0
+
+        while uiAttempt < maxUIAttempts do
+            -- Check if Interface module is loaded
+            if Client.Modules and Client.Modules["Interface"] then
+                local Interface = Client.Modules["Interface"]
+
+                -- Check if Stats module exists
+                if Interface.Modules and Interface.Modules["Stats"] then
+                    local Stats = Interface.Modules["Stats"]
+
+                    -- Check if LoadWeaponSkills function exists
+                    if Stats.LoadWeaponSkills and typeof(Stats.LoadWeaponSkills) == "function" then
+                        print("[InventoryHandler] Client: Updating hotbar UI (attempt", uiAttempt + 1, ")")
+                        Stats.LoadWeaponSkills()
+                        print("[InventoryHandler] Client: ✅ Successfully updated hotbar UI")
+                        return -- Success!
+                    end
+                end
+            end
+
+            uiAttempt = uiAttempt + 1
+            if uiAttempt < maxUIAttempts then
+                task.wait(0.1)
+            end
+        end
+
+        warn("[InventoryHandler] Client: ⚠️ Could not find Stats interface after", maxUIAttempts, "attempts")
+        warn("[InventoryHandler] Client: Hotbar UI may not be updated - try manually updating")
+    end)
 end)
 
 return {}

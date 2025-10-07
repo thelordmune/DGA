@@ -144,6 +144,12 @@ return function(actor: Actor, mainConfig: table )
 		return false
 	end
 
+	-- Check if NPC is dashing - if so, don't override the dash movement
+	if mainConfig.Movement and mainConfig.Movement.IsDashing then
+		-- NPC is dashing, let the dash system control movement
+		return true
+	end
+
 	-- Check if NPC is performing an action - if so, stop movement to prevent choppy behavior
 	local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
 	local actions = npc:FindFirstChild("Actions")

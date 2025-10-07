@@ -27,8 +27,8 @@ return function(actor: Actor, mainConfig: table)
     debugPrint("Found root part for NPC:", npc.Name)
 
     -- Check if current target is still valid
-    if mainConfig.EnemyDetection.Current and 
-        (not mainConfig.EnemyDetection.Current.Parent or 
+    if mainConfig.EnemyDetection.Current and
+        (not mainConfig.EnemyDetection.Current.Parent or
             not mainConfig.EnemyDetection.Current:FindFirstChild("Humanoid")) then
         debugPrint("Current target is invalid, cleaning up:", mainConfig.EnemyDetection.Current and mainConfig.EnemyDetection.Current.Name or "nil")
         mainConfig.cleanup(true)
@@ -49,15 +49,25 @@ return function(actor: Actor, mainConfig: table)
         if vRoot and vHum then
             local distance = (vRoot.Position - root.Position).Magnitude
             debugPrint("Distance to current target:", distance, "LetGoDistance:", mainConfig.EnemyDetection.LetGoDistance)
-            
-            if vHum.Health > 0 and distance <= mainConfig.EnemyDetection.LetGoDistance then
+
+            -- Clear target if they died (Health <= 0) or are too far away
+            if vHum.Health <= 0 then
+                debugPrint("Target died, clearing target:", victim.Name)
+                mainConfig.cleanup(true)
+                mainConfig.EnemyDetection.Current = nil
+            elseif distance <= mainConfig.EnemyDetection.LetGoDistance then
                 debugPrint("Keeping current target:", victim.Name)
-                return true 
+                return true
+            else
+                debugPrint("Target too far away, clearing target:", victim.Name)
+                mainConfig.cleanup(true)
+                mainConfig.EnemyDetection.Current = nil
             end
+        else
+            debugPrint("Lost current target (missing parts), cleaning up:", victim.Name)
+            mainConfig.cleanup(true)
+            mainConfig.EnemyDetection.Current = nil
         end
-        debugPrint("Lost current target, cleaning up:", victim.Name)
-        mainConfig.cleanup(true)
-        mainConfig.EnemyDetection.Current = nil
     end
 
     debugPrint("Current target:", mainConfig.getTarget())

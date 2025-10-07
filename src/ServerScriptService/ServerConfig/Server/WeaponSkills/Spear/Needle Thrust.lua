@@ -88,12 +88,15 @@ return function(Player, Data, Server)
 
         Server.Modules.Combat.Trail(Character, true)
 
+		-- Play NT1 sound effect (start of thrust)
+		Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.NeedleThrust.NT1, true, 0.1)
+
 		-- Send to player (they have network ownership)
 		Server.Packets.Bvel.sendTo({ Character = Character, duration = hittimes[1], Name = "NTBvel", Targ = Character }, Player)
 
         Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-						Module = "Base", 
-						Function = "NeedleThrust", 
+						Module = "Base",
+						Function = "NeedleThrust",
 						Arguments = {Character, "Start"}
 					})
 
@@ -103,6 +106,9 @@ return function(Player, Data, Server)
 						Function = "NeedleThrust",
 						Arguments = {Character, "Hit"}
 					})
+
+			-- Play NT2 sound effect (thrust impact)
+			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.NeedleThrust.NT2, true, 0.1)
 
                     Server.Modules.Combat.Trail(Character, false)
 
@@ -118,11 +124,18 @@ return function(Player, Data, Server)
                             false -- Don't visualize
                         )
 
+                        local hitSomething = false
                         for _, Target in pairs(HitTargets) do
                             if Target ~= Character and Target:IsA("Model") then
                                 Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
                                 print("Needle Thrust hit:", Target.Name)
+                                hitSomething = true
                             end
+                        end
+
+                        -- Play NT3 sound if we hit an opponent
+                        if hitSomething then
+                            Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.NeedleThrust.NT3, true, 0.1)
                         end
                     end
         end)

@@ -41,10 +41,18 @@ end
 
 -- Helper function to check if skill is on cooldown (uses Library.CheckCooldown like players)
 local function isSkillOnCooldown(npc, skillName, mainConfig)
+    -- Global attack cooldown - prevent NPCs from attacking too frequently
+    local lastAttack = mainConfig.States and mainConfig.States.LastAttack or 0
+    local globalAttackCooldown = 2.0 -- Minimum 2 seconds between ANY attacks
+
+    if os.clock() - lastAttack < globalAttackCooldown then
+        return true -- Global cooldown still active
+    end
+
     -- For M1, add manual cooldown check to prevent spam
     if skillName == "M1" then
         local lastM1 = mainConfig.States and mainConfig.States.LastM1 or 0
-        local m1Cooldown = 1.5 -- Balanced cooldown - not too fast, not too slow
+        local m1Cooldown = 2.5 -- Increased from 1.5 to 2.5 seconds
 
         if os.clock() - lastM1 < m1Cooldown then
             return true -- Still on cooldown
@@ -332,6 +340,9 @@ return function(actor: Actor, mainConfig: table)
         if not mainConfig.States then
             mainConfig.States = {}
         end
+
+        -- Track global attack time to enforce cooldown between all attacks
+        mainConfig.States.LastAttack = os.clock()
         mainConfig.States.LastSkillUsed = bestSkill
         mainConfig.States.LastAttack = os.clock()
     end
