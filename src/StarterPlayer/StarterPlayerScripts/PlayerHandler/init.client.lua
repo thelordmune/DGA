@@ -186,6 +186,13 @@ Bridges.ECSClient:Connect(function(data)
 			print("🔧 Initializing Dialogue component for player entity")
 			world:set(entityId, comps.Dialogue, { npc = nil, name = "none", inrange = false, state = "interact" })
 		end
+
+		-- Initialize leveling components on client
+		local LevelingManager = require(Replicated.Modules.Utils.LevelingManager)
+		if not world:has(entityId, comps.Level) then
+			print("🔧 Initializing leveling components on client for player entity")
+			LevelingManager.initialize(entityId)
+		end
 	end
 end)
 

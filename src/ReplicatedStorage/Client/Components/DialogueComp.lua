@@ -26,8 +26,8 @@ return function(scope, props: {})
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
 		FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
-		Position = UDim2.fromScale(0.251, 0.136),
-		Size =  UDim2.fromOffset(301, 113),
+		Position = UDim2.fromScale(0.05, 0.05), -- Position inside DialogueHolder
+		Size = UDim2.fromScale(0.9, 0.9), -- Fill DialogueHolder with padding
 		Text = "",
 		TextColor3 = Color3.fromRGB(255, 255, 255),
 		TextSize = 14,
@@ -203,8 +203,6 @@ return function(scope, props: {})
 				Size = UDim2.fromOffset(421, 144),
 			}),
 
-			text,
-
 			scope:New("TextLabel")({
 				Name = "NPCName",
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -212,9 +210,9 @@ return function(scope, props: {})
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
 				FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
-				Position = UDim2.fromScale(0.056, 0.47),
-				Size = UDim2.fromOffset(301, 113),
-				Text = "MAGNUS",
+				Position = UDim2.fromScale(0.056, 0.39), -- Below ViewportFrame (0.102 + 68/236 ≈ 0.39)
+				Size = UDim2.fromOffset(65, 23), -- Same width as ViewportFrame
+				Text = npcname or "NPC",
 				TextTransparency = scope:Tween(
 					scope:Computed(function(use)
 						return if use(framein) then 0 else 1
@@ -222,7 +220,8 @@ return function(scope, props: {})
 					TInfo
 				),
 				TextColor3 = Color3.fromRGB(255, 255, 255),
-				TextSize = 14,
+				TextSize = 12,
+				TextScaled = true,
 				TextStrokeColor3 = Color3.fromRGB(255, 255, 255),
 
 				[Children] = {
@@ -282,7 +281,7 @@ return function(scope, props: {})
 			}),
 
 			scope:New("ImageLabel")({
-				Name = "ImageLabel",
+				Name = "DialogueHolder",
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 1,
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
@@ -298,6 +297,10 @@ return function(scope, props: {})
 				ScaleType = Enum.ScaleType.Slice,
 				Size = UDim2.fromOffset(320, 129),
 				SliceCenter = Rect.new(10, 17, 561, 274),
+
+				[Children] = {
+					text, -- Add text as child of DialogueHolder
+				},
 			}),
 			scope:New("Frame")({
 				Name = "ResponseFrame",
@@ -307,12 +310,12 @@ return function(scope, props: {})
 				BorderSizePixel = 0,
 				Position = scope:Spring(
 					scope:Computed(function(use)
-						return if use(responseMode) then UDim2.fromScale(0.056, 0.801) else UDim2.fromScale(0.056, 1.2)
+						return if use(responseMode) then UDim2.fromScale(0.056, 0.75) else UDim2.fromScale(0.056, 1.2)
 					end),
 					18,
 					0.4
 				),
-				Size = UDim2.fromOffset(399, 35),
+				Size = UDim2.fromScale(0.88, 0.15), -- Use scale to stay within bounds
 
 				[Children] = {
 					scope:New("UIListLayout")({
@@ -321,25 +324,29 @@ return function(scope, props: {})
 						HorizontalAlignment = Enum.HorizontalAlignment.Right,
 						SortOrder = Enum.SortOrder.LayoutOrder,
 						VerticalAlignment = Enum.VerticalAlignment.Center,
+						Padding = UDim.new(0, 5), -- Add spacing between buttons
 					}),
 
-					scope:ForValues(responses or {}, function(us, scope, response, index)
+					scope:ForValues(responses or {}, function(_, innerScope, response, index)
 						local safeIndex = index or 1
-						return scope:New("TextButton")({
+
+						return innerScope:New("TextButton")({
 							Name = "ResponseButton" .. tostring(safeIndex),
 							BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 							BackgroundTransparency = 1,
 							BorderColor3 = Color3.fromRGB(0, 0, 0),
 							BorderSizePixel = 0,
+							AutomaticSize = Enum.AutomaticSize.X, -- Auto-size based on content
 							FontFace = Font.new(
 								"rbxasset://fonts/families/SourceSansPro.json",
 								Enum.FontWeight.Bold,
 								Enum.FontStyle.Normal
 							),
-							Size = UDim2.fromScale(1 / #(peek(responses) or { 1 }), 1),
+							Size = UDim2.fromScale(0, 1), -- Height fills parent, width auto
 							Text = response.text or "",
-							TextTransparency = scope:Tween(
-								scope:Computed(function(use)
+							TextWrapped = false,
+							TextTransparency = innerScope:Tween(
+								innerScope:Computed(function(use)
 									return if use(responseMode) then 0 else 1
 								end),
 								TInfo
@@ -349,39 +356,39 @@ return function(scope, props: {})
 							LayoutOrder = response.order or safeIndex,
 
 							[Children] = {
-								scope:New("ImageLabel")({
+								innerScope:New("ImageLabel")({
 									Name = "ImageLabel",
 									BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 									BackgroundTransparency = 1,
 									BorderColor3 = Color3.fromRGB(0, 0, 0),
 									BorderSizePixel = 0,
 									Image = "rbxassetid://80175650219598",
-									ImageTransparency = scope:Tween(
-										scope:Computed(function(use)
+									ImageTransparency = innerScope:Tween(
+										innerScope:Computed(function(use)
 											return if use(responseMode) then 0 else 1
 										end),
 										TInfo
 									),
 									ScaleType = Enum.ScaleType.Slice,
-									Size = UDim2.fromOffset(399, 35),
+									Size = UDim2.fromScale(1, 1), -- Fill button
 									SliceCenter = Rect.new(10, 17, 561, 274),
 								}),
 
-								scope:New("ImageLabel")({
+								innerScope:New("ImageLabel")({
 									Name = "Border",
 									BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 									BackgroundTransparency = 1,
 									BorderColor3 = Color3.fromRGB(0, 0, 0),
 									BorderSizePixel = 0,
 									Image = "rbxassetid://121279258155271",
-									ImageTransparency = scope:Tween(
-										scope:Computed(function(use)
+									ImageTransparency = innerScope:Tween(
+										innerScope:Computed(function(use)
 											return if use(responseMode) then 0 else 1
 										end),
 										TInfo
 									),
 									SelectionOrder = -3,
-									Size = UDim2.fromOffset(399, 35),
+									Size = UDim2.fromScale(1, 1), -- Fill button
 								}),
 							},
 						})

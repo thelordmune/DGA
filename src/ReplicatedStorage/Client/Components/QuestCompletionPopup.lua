@@ -60,28 +60,19 @@ return function(scope, props: {})
 		),
 	})
 
-	-- Rewards section
-	local rewardsContainer = scope:New("Frame")({
-		Name = "RewardsContainer",
-		BackgroundTransparency = 1,
-		Position = UDim2.fromScale(0.5, 0.6),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromScale(0.9, 0.4),
-	})
-
-	local rewardsLayout = scope:New("UIListLayout")({
-		FillDirection = Enum.FillDirection.Vertical,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		VerticalAlignment = Enum.VerticalAlignment.Top,
-		Padding = UDim.new(0, 5),
-		Parent = rewardsContainer,
-	})
-
-	local children = {}
+	-- Build children table for rewards
+	local rewardChildren = {
+		scope:New("UIListLayout")({
+			FillDirection = Enum.FillDirection.Vertical,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Top,
+			Padding = UDim.new(0, 5),
+		})
+	}
 
 	-- Experience reward
 	if experienceGained > 0 then
-		table.insert(children, scope:New("TextLabel")({
+		table.insert(rewardChildren, scope:New("TextLabel")({
 			Name = "ExperienceReward",
 			BackgroundTransparency = 1,
 			FontFace = Font.new("rbxassetid://12187373327"),
@@ -102,8 +93,8 @@ return function(scope, props: {})
 	if alignmentGained ~= 0 then
 		local alignmentColor = alignmentGained > 0 and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
 		local alignmentText = alignmentGained > 0 and string.format("+%d Alignment", alignmentGained) or string.format("%d Alignment", alignmentGained)
-		
-		table.insert(children, scope:New("TextLabel")({
+
+		table.insert(rewardChildren, scope:New("TextLabel")({
 			Name = "AlignmentReward",
 			BackgroundTransparency = 1,
 			FontFace = Font.new("rbxassetid://12187373327"),
@@ -122,7 +113,7 @@ return function(scope, props: {})
 
 	-- Level up notification
 	if leveledUp then
-		table.insert(children, scope:New("TextLabel")({
+		table.insert(rewardChildren, scope:New("TextLabel")({
 			Name = "LevelUp",
 			BackgroundTransparency = 1,
 			FontFace = Font.new("rbxassetid://16658237174", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
@@ -139,7 +130,16 @@ return function(scope, props: {})
 		}))
 	end
 
-	rewardsContainer[Children] = children
+	-- Rewards section
+	local rewardsContainer = scope:New("Frame")({
+		Name = "RewardsContainer",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromScale(0.5, 0.6),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromScale(0.9, 0.4),
+
+		[Children] = rewardChildren
+	})
 
 	-- Main frame
 	return scope:New("Frame")({

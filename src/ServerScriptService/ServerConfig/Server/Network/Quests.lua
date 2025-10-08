@@ -13,7 +13,23 @@ NetworkModule.EndPoint = function(Player, Data)
         bridges.Quests:Fire(Player, { Module = Data.Module })
 
     elseif Data.Function == "Complete" then
-        print("Completing quest: " .. Data.Module, "Choice:", Data.Arguments and Data.Arguments.choice or "none")
+        print("🎯 [Quest Complete] Received completion request")
+        print("  Full Data:", Data)
+        print("  NPC:", Data.Module)
+        print("  Arguments:", Data.Arguments)
+
+        if not Data.Arguments or #Data.Arguments < 2 then
+            warn("[Quest Complete] ❌ Invalid Arguments! Expected array with [questName, choice]")
+            warn("[Quest Complete] Received:", Data.Arguments)
+            return
+        end
+
+        -- Arguments is an array: [questName, choice]
+        local questName = Data.Arguments[1]
+        local choice = Data.Arguments[2]
+
+        print("  Quest Name:", questName)
+        print("  Choice:", choice)
 
         -- Load required modules
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,16 +39,67 @@ NetworkModule.EndPoint = function(Player, Data)
         local LevelingManager = require(ReplicatedStorage.Modules.Utils.LevelingManager)
         local QuestData = require(ReplicatedStorage.Modules.Quests)
 
-        -- Get player entity
+        -- Get player entity (server-side uses "player" key)
+        print("[Quest Complete] 🔍 Attempting to get player entity for:", Player.Name, "UserId:", Player.UserId)
+
+        -- Debug: Check ref system internals
+        local RefModule = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+        print("[Quest Complete] 🔍 Calling ref.get with Player object:", Player)
+        print("[Quest Complete] 🔍 Player.UserId:", Player.UserId)
+
         local playerEntity = ref.get("player", Player)
+        print("[Quest Complete] 🔍 ref.get returned:", playerEntity)
+
         if not playerEntity then
-            warn("[Quest Complete] No player entity found for", Player.Name)
-            return
+            warn("[Quest Complete] ❌ No player entity found for", Player.Name, "UserId:", Player.UserId)
+            warn("[Quest Complete] 🔍 Checking all player entities in world...")
+
+            -- Debug: Check what entities exist with Player component
+            local playerEntitiesFound = 0
+            for entity in world:query(comps.Player):iter() do
+                local playerComp = world:get(entity, comps.Player)
+                playerEntitiesFound = playerEntitiesFound + 1
+                print(`[Quest Complete] Found Player entity {entity} for {playerComp.Name} (UserId: {playerComp.UserId})`)
+
+                if playerComp == Player then
+                    playerEntity = entity
+                    print("[Quest Complete] ✅ Found matching player entity by Player component:", entity)
+                    break
+                end
+            end
+
+            if playerEntitiesFound == 0 then
+                warn("[Quest Complete] ⚠️ No entities with Player component found in world!")
+            end
+
+            -- Try to find the entity by searching for the player's character
+            if not playerEntity then
+                local character = Player.Character
+                if character then
+                    print("[Quest Complete] 🔍 Searching by character:", character.Name)
+                    for entity in world:query(comps.Character):iter() do
+                        local char = world:get(entity, comps.Character)
+                        if char == character then
+                            playerEntity = entity
+                            print("[Quest Complete] ✅ Found player entity by character:", entity)
+                            break
+                        end
+                    end
+                else
+                    warn("[Quest Complete] ⚠️ Player has no character!")
+                end
+            end
+
+            if not playerEntity then
+                warn("[Quest Complete] ❌ Could not find player entity at all!")
+                warn("[Quest Complete] 💡 This suggests the player entity was never created or was deleted")
+                return
+            end
+        else
+            print("[Quest Complete] ✅ Found player entity via ref.get:", playerEntity)
         end
 
-        -- Get quest data
-        local questName = Data.Arguments and Data.Arguments.questName or "Missing Pocketwatch"
-        local choice = Data.Arguments and Data.Arguments.choice or "CompleteGood"
+        -- NPC name from Module field
         local npcName = Data.Module
 
         local questInfo = QuestData[npcName] and QuestData[npcName][questName]
@@ -42,26 +109,32 @@ NetworkModule.EndPoint = function(Player, Data)
         end
 
         -- Calculate rewards based on choice
-        local experienceGained = questInfo.Rewards.Experience or 0
+        local baseExperience = questInfo.Rewards.Experience or 0
+        local baseAlignment = questInfo.Rewards.Alignment or 1
+        local experienceGained = 0
         local alignmentGained = 0
         local leveledUp = false
         local newLevel = LevelingManager.getLevel(playerEntity) or 1
 
         if choice == "CompleteGood" then
-            -- Good choice: +alignment, free level
-            alignmentGained = questInfo.Rewards.Alignment or 1
+            -- Good choice: full XP, +alignment, free level
+            experienceGained = baseExperience
+            alignmentGained = baseAlignment
+
             LevelingManager.addAlignment(playerEntity, alignmentGained)
             LevelingManager.addExperience(playerEntity, experienceGained)
 
-            -- Give free level
+            -- Give free level as bonus reward
             newLevel = newLevel + 1
             LevelingManager.setLevel(playerEntity, newLevel)
             leveledUp = true
 
-            print("[Quest Complete] Good choice - Alignment:", alignmentGained, "Free level:", newLevel)
+            print("[Quest Complete] ✅ Good choice - XP:", experienceGained, "Alignment: +" .. alignmentGained, "Free level:", newLevel)
         elseif choice == "CompleteEvil" then
-            -- Evil choice: -alignment, no free level, just XP
-            alignmentGained = -(questInfo.Rewards.Alignment or 1)
+            -- Evil choice: half XP, -alignment, no free level
+            experienceGained = math.floor(baseExperience / 2)
+            alignmentGained = -baseAlignment
+
             LevelingManager.addAlignment(playerEntity, alignmentGained)
 
             local success, levelsGained = LevelingManager.addExperience(playerEntity, experienceGained)
@@ -70,7 +143,7 @@ NetworkModule.EndPoint = function(Player, Data)
                 newLevel = LevelingManager.getLevel(playerEntity)
             end
 
-            print("[Quest Complete] Evil choice - Alignment:", alignmentGained, "XP:", experienceGained)
+            print("[Quest Complete] ❌ Evil choice - XP:", experienceGained, "(half)", "Alignment:", alignmentGained, "No free level")
         end
 
         -- Mark quest as completed and clean up quest components
@@ -93,6 +166,13 @@ NetworkModule.EndPoint = function(Player, Data)
         })
 
         -- Send completion notification to client
+        print("🔔 [Quest Complete] Sending completion notification to client:")
+        print("  Quest Name:", questName)
+        print("  Experience:", experienceGained)
+        print("  Alignment:", alignmentGained)
+        print("  Leveled Up:", leveledUp)
+        print("  New Level:", newLevel)
+
         bridges.QuestCompleted:Fire(Player, {
             questName = questName,
             experienceGained = experienceGained,
@@ -101,7 +181,7 @@ NetworkModule.EndPoint = function(Player, Data)
             newLevel = newLevel,
         })
 
-        print("[Quest Complete] Sent completion notification to client")
+        print("✅ [Quest Complete] Notification sent!")
 
     elseif Data.Function == "End" then
         print("Ending quest: " .. Data.Module)

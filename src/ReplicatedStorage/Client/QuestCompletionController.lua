@@ -82,14 +82,20 @@ end
 -- Listen for quest completion events from server
 function QuestCompletionController.Initialize()
 	print("[QuestCompletionController] Initializing...")
-	
+
 	-- Listen for quest completion bridge
 	Bridges.QuestCompleted:Connect(function(data)
-		print("[QuestCompletionController] Received quest completion:", data)
+		print("[QuestCompletionController] 🎉 Received quest completion data:")
+		print("  Quest Name:", data.questName)
+		print("  Experience Gained:", data.experienceGained)
+		print("  Alignment Gained:", data.alignmentGained)
+		print("  Leveled Up:", data.leveledUp)
+		print("  New Level:", data.newLevel)
+
 		QuestCompletionController.ShowCompletion(data)
 	end)
-	
-	print("[QuestCompletionController] Initialized!")
+
+	print("[QuestCompletionController] ✅ Initialized and listening for QuestCompleted bridge!")
 end
 
 return QuestCompletionController

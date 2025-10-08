@@ -509,14 +509,16 @@ function LoadNode(Node, Params)
 			}
 		elseif questAction == "CompleteGood" or questAction == "CompleteEvil" then
 			-- Send quest completion to server with alignment choice
-			DebugPrint("Sending quest completion to server:", questAction)
+			DebugPrint("🎯 Sending quest completion to server:")
+			DebugPrint("  NPC:", Params.name)
+			DebugPrint("  Quest Name:", questName)
+			DebugPrint("  Choice:", questAction)
+
+			-- Arguments must be an array for ByteNet
 			Client.Packets.Quests.send({
 				Module = Params.name,
 				Function = "Complete",
-				Arguments = {
-					questName = questName,
-					choice = questAction -- "CompleteGood" or "CompleteEvil"
-				},
+				Arguments = {questName, questAction}, -- Send as array: [questName, choice]
 			})
 		end
 	end
@@ -579,6 +581,15 @@ end
 function Close(Params)
 	DebugPrint("Closing dialogue")
 	if CurrentDialogueUI then
+		DebugPrint("Animating dialogue close")
+
+		-- Animate out
+		if fadein and begin then
+			fadein:set(false)
+			begin:set(false)
+			task.wait(1.2) -- Wait for animation to complete
+		end
+
 		DebugPrint("Destroying current dialogue UI")
 		CurrentDialogueUI:Destroy()
 		CurrentDialogueUI = nil
@@ -757,9 +768,12 @@ end
 
 function OnEvent(Params)
 	DebugPrint("OnEvent triggered with params: " .. tostring(Params))
+
+	-- Close existing dialogue first
 	if CurrentDialogueUI then
-		DebugPrint("Dialogue UI already active, ignoring event")
-		return
+		DebugPrint("Closing existing dialogue UI before opening new one")
+		Close(Params)
+		task.wait(0.1) -- Small delay to ensure cleanup
 	end
 
 	if not Params or not Params.name then
@@ -842,6 +856,12 @@ function OnEvent(Params)
 
 	CurrentParams = Params or {}
 	DebugPrint("Current params set: " .. tostring(CurrentParams))
+
+	-- Clear any existing responses and text
+	ClearResponses()
+	dpText:set("")
+	resp:set({})
+	respMode:set(false)
 
 	for _, Condition in pairs(DialogueTree:GetChildren()) do
 		if Condition:GetAttribute("Type") == "Condition" then

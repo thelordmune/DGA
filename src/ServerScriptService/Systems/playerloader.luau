@@ -4,11 +4,12 @@ local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
 local Bridges = require(ReplicatedStorage.Modules.Bridges)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
 -- local global = require(ReplicatedStorage.Global)
 local Player = comps.Player
 local Character = comps.Character
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 
 local Sift = require(ReplicatedStorage.Modules.Imports.Sift)
 
@@ -96,39 +97,38 @@ local function initializePhysics(character)
     print(`[Physics] Physics initialized for {character.Name}`)
 end
 
-return {
-    run = function(world, player)
-        print(`[PlayerLoader] Processing player: {player.Name}`)
-        
-        if ref.get("player", player) then 
-            print(`[PlayerLoader] {player.Name} already has an entity, skipping`)
-            return 
-        end
-        
-        print(`[PlayerLoader] Creating entity for {player.Name}`)
-        local ent = world:entity()
-        ref.define("player", player, ent)
-        local e = ref.get("player", player)
-        world:set(e, Player, player)
-        print(`[PlayerLoader] Player joined: {player.Name} (Entity: {e})`)
+local function processPlayer(world, player)
+    print(`[PlayerLoader] Processing player: {player.Name}`)
 
-        -- Sync entity ID to client so client and server use the same entity
-        print(`[PlayerLoader] Syncing entity ID {e} to client for {player.Name}`)
-        Bridges.ECSClient:Fire(player, {
-            Module = "EntitySync",
-            Action = "SetPlayerEntity",
-            EntityId = e
-        })
+    if ref.get("player", player) then
+        -- Entity already exists, skip
+        return
+    end
 
-        -- Cleanup old connections
-        if playerConnections[player] then
-            print(`[PlayerLoader] Cleaning up old connection for {player.Name}`)
-            playerConnections[player]:Disconnect()
-            playerConnections[player] = nil
-        end
+    print(`[PlayerLoader] Creating entity for {player.Name}`)
+    local ent = world:entity()
+    ref.define("player", player, ent)
+    local e = ref.get("player", player)
+    world:set(e, Player, player)
+    print(`[PlayerLoader] Player joined: {player.Name} (Entity: {e})`)
 
-        print(`[PlayerLoader] Setting up CharacterAdded connection for {player.Name}`)
-playerConnections[player] = player.CharacterAdded:Connect(function(initialRig)
+    -- Sync entity ID to client so client and server use the same entity
+    print(`[PlayerLoader] Syncing entity ID {e} to client for {player.Name}`)
+    Bridges.ECSClient:Fire(player, {
+        Module = "EntitySync",
+        Action = "SetPlayerEntity",
+        EntityId = e
+    })
+
+    -- Cleanup old connections
+    if playerConnections[player] then
+        print(`[PlayerLoader] Cleaning up old connection for {player.Name}`)
+        playerConnections[player]:Disconnect()
+        playerConnections[player] = nil
+    end
+
+    print(`[PlayerLoader] Setting up CharacterAdded connection for {player.Name}`)
+    playerConnections[player] = player.CharacterAdded:Connect(function(initialRig)
     -- Debug the initial state
     print(`[Character] Initial spawn - Name: {initialRig.Name}, Parent: {initialRig.Parent and initialRig.Parent:GetFullName() or "nil"}`)
 
@@ -370,7 +370,7 @@ playerConnections[player] = player.CharacterAdded:Connect(function(initialRig)
             -- initializePhysics(rig)
             -- cleanup()
         end)
-        
+
         -- Initialize existing character
         if player.Character and player.Character:IsDescendantOf(workspace) then
             print(`[PlayerLoader] Player {player.Name} has existing character, initializing`)
@@ -378,19 +378,46 @@ playerConnections[player] = player.CharacterAdded:Connect(function(initialRig)
         else
             print(`[PlayerLoader] Player {player.Name} has no existing character`)
         end
+end
+
+-- Track which players have been processed to avoid duplicate processing
+local processedPlayers = {}
+
+return {
+    run = function(world)
+        -- Heartbeat phase: Check all players every frame, but only process new ones
+        for _, player in ipairs(Players:GetPlayers()) do
+            if not processedPlayers[player] then
+                processedPlayers[player] = true
+                processPlayer(world, player)
+            end
+        end
     end,
-    
+
     cleanup = function(world, player)
         print(`[Cleanup] Cleaning up resources for {player.Name}`)
+
+        -- Remove from processed players tracking
+        processedPlayers[player] = nil
+
+        -- Disconnect character connection
         if playerConnections[player] then
             playerConnections[player]:Disconnect()
             playerConnections[player] = nil
             print(`[Cleanup] Disconnected CharacterAdded for {player.Name}`)
         end
+
+        -- Clean up entity reference
+        local entity = ref.get("player", player)
+        if entity then
+            print(`[Cleanup] Removing entity {entity} for {player.Name}`)
+            -- Note: Don't delete the entity, just remove the reference
+            -- The entity will be cleaned up by the ECS system
+        end
     end,
-    
+
     settings = {
-        phase = "PlayerAdded",  -- Changed from Heartbeat to PlayerAdded to properly receive player events
+        phase = "Heartbeat",  -- Use Heartbeat to catch players that joined before ECS started
         depends_on = {},
         server_only = true
     }
