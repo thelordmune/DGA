@@ -65,35 +65,87 @@ end
 Controller.LoadWeaponSkills = function()
     -- Check if we're still in loading screen
     if _G.LoadingScreenActive then
+        warn("[LoadWeaponSkills] Skipped - Loading screen is active")
         return -- Don't load weapon skills during loading screen
     end
 
     -- Check if UI is ready
     if not UI or not UI:FindFirstChild("Hotbar") then
+        warn("[LoadWeaponSkills] Skipped - UI or Hotbar not ready")
         return -- UI not ready yet, skip loading
     end
 
     local Players = game:GetService("Players")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
-    local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManager)
+
+    -- Safely require modules with error handling
+    local success, ref = pcall(require, ReplicatedStorage.Modules.ECS.jecs_ref)
+    if not success then
+        warn("[LoadWeaponSkills] Failed to load jecs_ref:", ref)
+        return
+    end
+
+    local success2, InventoryManager = pcall(require, ReplicatedStorage.Modules.Utils.InventoryManager)
+    if not success2 then
+        warn("[LoadWeaponSkills] Failed to load InventoryManager:", InventoryManager)
+        return
+    end
+
+    -- Load world and comps
+    local success3, world = pcall(require, ReplicatedStorage.Modules.ECS.jecs_world)
+    if not success3 then
+        warn("[LoadWeaponSkills] Failed to load jecs_world:", world)
+        return
+    end
+
+    local success4, comps = pcall(require, ReplicatedStorage.Modules.ECS.jecs_components)
+    if not success4 then
+        warn("[LoadWeaponSkills] Failed to load jecs_components:", comps)
+        return
+    end
 
     local pent = ref.get("local_player")  -- No second parameter needed for local_player
 
     if not pent then
-        warn("Player entity not found for weapon skills")
+        warn("[LoadWeaponSkills] Player entity not found")
         return
     end
 
+    print("[LoadWeaponSkills] Loading weapon skills for player entity:", pent)
+
+    -- Check if player has Hotbar and Inventory components
+    -- Throw errors instead of returning so retry logic knows it failed
+    if not world:has(pent, comps.Hotbar) then
+        error("[LoadWeaponSkills] Player entity has no Hotbar component yet")
+    end
+
+    if not world:has(pent, comps.Inventory) then
+        error("[LoadWeaponSkills] Player entity has no Inventory component yet")
+    end
+
+    local hotbar = world:get(pent, comps.Hotbar)
+    local inventory = world:get(pent, comps.Inventory)
+
+    print("[LoadWeaponSkills] 📋 Hotbar slots:", hotbar.slots)
+    print("[LoadWeaponSkills] 📦 Inventory items count:", inventory.items and #inventory.items or 0)
+
     -- Get weapon skills from hotbar slots 1-7
+    local skillsLoaded = 0
     for slotNumber = 1, 7 do
-        local item = InventoryManager.getHotbarItem(pent, slotNumber)
-        if item and item.typ == "skill" then
-            Controller.UpdateHotbarSlot(slotNumber, item.name)
+        local success3, item = pcall(InventoryManager.getHotbarItem, pent, slotNumber)
+        if success3 and item then
+            print("[LoadWeaponSkills] Slot", slotNumber, "- Item:", item.name, "Type:", item.typ)
+            if item.typ == "skill" then
+                Controller.UpdateHotbarSlot(slotNumber, item.name)
+                skillsLoaded = skillsLoaded + 1
+            end
         else
+            print("[LoadWeaponSkills] Slot", slotNumber, "- Empty or error:", success3 and "empty" or item)
             Controller.UpdateHotbarSlot(slotNumber, "") -- Clear slot if no skill
         end
     end
+
+    print("[LoadWeaponSkills] ✅ Loaded", skillsLoaded, "weapon skills")
 end
 
 Controller.UpdateHotbarSlot = function(slotNumber, itemName)
@@ -267,9 +319,37 @@ Controller.Hotbar = function(Order: string)
                 hotbar.Visible = true
             end
         end
+
+        -- Load alchemy moves first
         task.wait(0.1)
         Controller.LoadAlchemyMoves()
-        Controller.LoadWeaponSkills()
+
+        -- Load weapon skills LAST with retry mechanism to ensure everything is ready
+        task.wait(0.5) -- Extra delay to ensure all systems are initialized
+        local weaponSkillsLoaded = false
+        local maxAttempts = 5
+        local attempt = 0
+
+        while not weaponSkillsLoaded and attempt < maxAttempts do
+            attempt = attempt + 1
+            local success, err = pcall(function()
+                Controller.LoadWeaponSkills()
+            end)
+
+            if success then
+                weaponSkillsLoaded = true
+                print("✅ Weapon skills loaded successfully on attempt", attempt)
+            else
+                warn("⚠️ Failed to load weapon skills (attempt " .. attempt .. "/" .. maxAttempts .. "):", err)
+                if attempt < maxAttempts then
+                    task.wait(0.5) -- Wait before retry
+                end
+            end
+        end
+
+        if not weaponSkillsLoaded then
+            warn("❌ Failed to load weapon skills after", maxAttempts, "attempts")
+        end
         end)
         
         

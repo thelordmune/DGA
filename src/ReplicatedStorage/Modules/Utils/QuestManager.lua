@@ -10,14 +10,14 @@ function QuestManager.acceptQuest(player, npcname, questName)
 	local playerEntity = ref.get("local_player", player)
 
 	if not playerEntity then
-		warn("No player entity found for", player)
+		warn("[QuestManager] No player entity found for", player)
 		return
 	end
 
 	if world:has(playerEntity, comps.ActiveQuest) then
 		local activeQuest = world:get(playerEntity, comps.ActiveQuest)
 		if activeQuest.npcName == npcname and activeQuest.questName == questName then
-			warn("Quest already accepted")
+			warn("[QuestManager] Quest already accepted")
 			return
 		end
 	end
@@ -26,11 +26,23 @@ function QuestManager.acceptQuest(player, npcname, questName)
 		world:add(playerEntity, comps.QuestHolder)
 	end
 
+	-- Set ActiveQuest directly on client for immediate UI updates
+	-- Server will also set this when it processes QuestAccepted
+	world:set(playerEntity, comps.ActiveQuest, {
+		npcName = npcname,
+		questName = questName,
+		startTime = os.clock(),
+		progress = {},
+	})
+
+	-- Also set QuestAccepted so server knows to process it
 	world:set(playerEntity, comps.QuestAccepted, {
 		npcName = npcname,
 		questName = questName,
 		acceptedAt = os.clock(),
 	})
+
+	print("[QuestManager] Quest accepted on client:", npcname, questName)
 end
 
 function QuestManager.getActiveQuests(player)

@@ -23,10 +23,10 @@ local uidisable = PlayerGui:FindFirstChild("ScreenGui")
 local Client = require(ReplicatedStorage.Client)
 
 -- Debug settings
-local DEBUG_ENABLED = false
+local DEBUG_ENABLED = true -- ENABLED FOR DEBUGGING
 local function DebugPrint(message, ...)
 	if DEBUG_ENABLED then
-		print("[Dialogue Debug] " .. message, ...)
+		print("[Dialogue]", message, ...)
 	end
 end
 
@@ -78,8 +78,14 @@ end
 
 function GetNodeFromValue(Value)
 	DebugPrint("Getting node from value: " .. tostring(Value))
+	-- If Value is already a Configuration, return it directly
+	if Value:IsA("Configuration") then
+		DebugPrint("Found node (direct): " .. tostring(Value))
+		return Value
+	end
+	-- Otherwise, try to find Configuration ancestor (old system)
 	local node = Value:FindFirstAncestorWhichIsA("Configuration")
-	DebugPrint("Found node: " .. tostring(node))
+	DebugPrint("Found node (ancestor): " .. tostring(node))
 	return node
 end
 
@@ -87,8 +93,20 @@ function GetOutputNodes(InputNode)
 	DebugPrint("Getting output nodes from: " .. tostring(InputNode))
 	local Nodes = {}
 
+	-- Debug: Show what's in the node
+	local outputsFolder = InputNode:FindFirstChild("Outputs")
+	if outputsFolder then
+		DebugPrint("Outputs folder found, children:", #outputsFolder:GetChildren())
+		for _, child in ipairs(outputsFolder:GetChildren()) do
+			DebugPrint("  Output child:", child.Name, child.ClassName, "Value:", child:IsA("ObjectValue") and child.Value or "N/A")
+		end
+	else
+		DebugPrint("No Outputs folder found in node!")
+	end
+
 	for _, Output in pairs(InputNode:GetDescendants()) do
 		if Output.Parent.Name == "Outputs" and Output.Value ~= nil then
+			DebugPrint("Processing output:", Output.Name, "Value type:", typeof(Output.Value))
 			local Node = GetNodeFromValue(Output.Value)
 			if not table.find(Nodes, Node) then
 				table.insert(Nodes, Node)
@@ -261,26 +279,76 @@ function RunCommands(Node, Params)
 end
 
 function CheckForCondition(Node)
-	DebugPrint("Checking conditions for node: " .. tostring(Node))
+	DebugPrint("Checking conditions for node: " .. Node.Name)
+	local inputNodes = GetInputNodes(Node)
+	DebugPrint("  Found " .. #inputNodes .. " input nodes")
+
 	local conditionCount = 0
-	for _, InputNode in pairs(GetInputNodes(Node)) do
-		if InputNode:GetAttribute("Type") == "Condition" and InputNode:FindFirstChildWhichIsA("ModuleScript") then
+	for _, InputNode in pairs(inputNodes) do
+		local inputType = InputNode:GetAttribute("Type")
+		DebugPrint("  Input node: " .. InputNode.Name .. " (Type: " .. tostring(inputType) .. ")")
+
+		if inputType == "Condition" then
 			if #GetInputs(InputNode) <= 0 then
-				local Function = require(InputNode:FindFirstChildWhichIsA("ModuleScript"))
-				DebugPrint("Checking condition: " .. tostring(InputNode:FindFirstChildWhichIsA("ModuleScript")))
-				if Function.Run then
-					local result = Function.Run()
-					DebugPrint("Condition result: " .. tostring(result))
-					if result ~= Node:GetAttribute("Priority") then
-						DebugPrint("Condition failed, skipping node")
-						return true
+				local conditionPassed = false
+
+				-- Check for ModuleScript-based condition (old system)
+				local moduleScript = InputNode:FindFirstChildWhichIsA("ModuleScript")
+				if moduleScript then
+					local Function = require(moduleScript)
+					DebugPrint("  Checking condition (ModuleScript): " .. tostring(moduleScript))
+					if Function.Run then
+						local result = Function.Run()
+						DebugPrint("  Condition result: " .. tostring(result))
+						conditionPassed = result
 					end
+				-- Check for attribute-based condition (new module system)
+				elseif InputNode:GetAttribute("ModuleName") then
+					local moduleName = InputNode:GetAttribute("ModuleName")
+					local argsString = InputNode:GetAttribute("Args") or ""
+					DebugPrint("  Checking condition (Attribute): " .. moduleName .. " with args: " .. argsString)
+
+					-- Load the condition module
+					local conditionModule = ReplicatedStorage.Modules.Utils.DialogueConditions:FindFirstChild(moduleName)
+					if conditionModule then
+						local success, Function = pcall(require, conditionModule)
+						if success and Function.Run then
+							-- Parse args from attribute
+							local args = {}
+							if argsString ~= "" then
+								args = string.split(argsString, ",")
+								-- Trim whitespace from args
+								for i, arg in ipairs(args) do
+									args[i] = arg:match("^%s*(.-)%s*$")
+								end
+							end
+
+							-- Call the condition with args
+							DebugPrint("  Calling condition with args:", table.concat(args, ", "))
+							local result = Function.Run(table.unpack(args))
+							DebugPrint("  ✅ Condition result: " .. tostring(result))
+							conditionPassed = result
+						else
+							warn("[Dialogue] Failed to load condition module:", moduleName)
+						end
+					else
+						warn("[Dialogue] Condition module not found:", moduleName)
+					end
+				else
+					DebugPrint("  ⚠️ Condition node has no ModuleScript or ModuleName attribute")
 				end
+
+				-- If condition failed, skip this node
+				if not conditionPassed then
+					DebugPrint("  ❌ Condition failed for node: " .. Node.Name)
+					return true
+				end
+
 				conditionCount = conditionCount + 1
 			end
 		end
 	end
-	DebugPrint("Checked " .. conditionCount .. " conditions, all passed")
+	DebugPrint("  ✅ Checked " .. conditionCount .. " conditions, all passed for node: " .. Node.Name)
 	return false
 end
 
@@ -425,15 +493,42 @@ function LoadNode(Node, Params)
 		return
 	end
 
-	if Node.Name == "Accept" and Params then
-			QuestManager.acceptQuest(Player, Params.name, "Missing Pocketwatch")
+	-- Handle quest actions
+	local questFolder = Node:FindFirstChild("Quest")
+	if questFolder then
+		local questAction = questFolder:GetAttribute("Action")
+		local questName = questFolder:GetAttribute("QuestName")
 
+		DebugPrint("Quest action found:", questAction, questName)
+
+		if questAction == "Accept" and Params then
+			QuestManager.acceptQuest(Player, Params.name, questName)
 			pendingQuest = {
 				npcName = Params.name,
-				questName = "Missing Pocketwatch",
+				questName = questName,
 			}
-			
+		elseif questAction == "CompleteGood" or questAction == "CompleteEvil" then
+			-- Send quest completion to server with alignment choice
+			DebugPrint("Sending quest completion to server:", questAction)
+			Client.Packets.Quests.send({
+				Module = Params.name,
+				Function = "Complete",
+				Arguments = {
+					questName = questName,
+					choice = questAction -- "CompleteGood" or "CompleteEvil"
+				},
+			})
 		end
+	end
+
+	-- Legacy support for old Accept node name
+	if Node.Name == "Accept" and Params and not questFolder then
+		QuestManager.acceptQuest(Player, Params.name, "Missing Pocketwatch")
+		pendingQuest = {
+			npcName = Params.name,
+			questName = "Missing Pocketwatch",
+		}
+	end
 
 	if Type == "Response" then
 		DebugPrint("Loading response node")
@@ -537,22 +632,67 @@ function LoadNodes(Nodes, Params)
 		DebugPrint("No nodes to load, closing dialogue")
 		Close(Params)
 	else
+		-- Filter nodes by conditions and priority
+		local validNodes = {}
+		local promptNodes = {}
 		local responseNodes = {}
+
 		for _, Node in Nodes do
-			if Node:GetAttribute("Type") == "Response" then
-				table.insert(responseNodes, Node)
+			local nodeType = Node:GetAttribute("Type")
+
+			-- Check if node passes its condition
+			local passesCondition = not CheckForCondition(Node)
+
+			if passesCondition and not IsLocked(Node) then
+				table.insert(validNodes, Node)
+
+				if nodeType == "Prompt" then
+					table.insert(promptNodes, Node)
+				elseif nodeType == "Response" then
+					table.insert(responseNodes, Node)
+				end
+
+				DebugPrint("Valid node: " .. Node.Name .. " (Type: " .. nodeType .. ", Priority: " .. (Node:GetAttribute("Priority") or 0) .. ")")
+			else
+				DebugPrint("Skipping node (failed condition or locked): " .. Node.Name)
 			end
 		end
-		resp:set(GetResponses(responseNodes))
 
-		if not peek(respMode) then
-			print("Setting response mode to true")
-			respMode:set(true)
+		-- If we have prompt nodes, pick the highest priority one
+		if #promptNodes > 0 then
+			local chosenPrompt = GetHighestPriorityNode(promptNodes)
+			if chosenPrompt then
+				DebugPrint("Loading highest priority prompt: " .. chosenPrompt.Name)
+				LoadNode(chosenPrompt, Params)
+				return
+			end
 		end
 
-		ClearResponses()
-		for _, Node in pairs(Nodes) do
-			LoadNode(Node, Params)
+		-- If we have response nodes, show them all
+		if #responseNodes > 0 then
+			resp:set(GetResponses(responseNodes))
+
+			if not peek(respMode) then
+				print("Setting response mode to true")
+				respMode:set(true)
+			end
+
+			ClearResponses()
+			for _, Node in pairs(responseNodes) do
+				LoadNode(Node, Params)
+			end
+			return
+		end
+
+		-- Fallback: load all valid nodes
+		if #validNodes > 0 then
+			ClearResponses()
+			for _, Node in pairs(validNodes) do
+				LoadNode(Node, Params)
+			end
+		else
+			DebugPrint("No valid nodes found, closing dialogue")
+			Close(Params)
 		end
 	end
 end
@@ -628,10 +768,32 @@ function OnEvent(Params)
 	end
 
 	DebugPrint("Looking for dialogue tree: " .. Params.name)
-	local DialogueTree = ReplicatedStorage.Dialogues:FindFirstChild(tostring(Params.name))
+
+	-- Check if Dialogues folder exists
+	local dialoguesFolder = ReplicatedStorage:FindFirstChild("Dialogues")
+	if not dialoguesFolder then
+		warn("[Dialogue] ❌ Dialogues folder not found! Building dialogues...")
+		-- Try to build dialogues
+		local DialogueBuilder = ReplicatedStorage.Modules.Utils:FindFirstChild("DialogueBuilder")
+		if DialogueBuilder then
+			local success, builder = pcall(require, DialogueBuilder)
+			if success then
+				builder.BuildAll()
+				dialoguesFolder = ReplicatedStorage:FindFirstChild("Dialogues")
+			end
+		end
+
+		if not dialoguesFolder then
+			warn("[Dialogue] ❌ Failed to build dialogues! Cannot show dialogue.")
+			return
+		end
+	end
+
+	local DialogueTree = dialoguesFolder:FindFirstChild(tostring(Params.name))
 
 	if not DialogueTree then
 		DebugPrint("ERROR: Dialogue tree not found: " .. Params.name)
+		warn("[Dialogue] ❌ Available dialogues:", dialoguesFolder:GetChildren())
 		return
 	end
 

@@ -36,15 +36,16 @@ local function questsystem(world)
 
 		print("Active quest:", activeQuest.npcName, activeQuest.questName)
 
+		-- Auto-complete quest after 10 seconds for testing (sets QuestItemCollected, not CompletedQuest)
 		if os.clock() - activeQuest.startTime > 10 then
-			world:set(entity, comps.CompletedQuest, {
+			world:set(entity, comps.QuestItemCollected, {
 				npcName = activeQuest.npcName,
 				questName = activeQuest.questName,
-				completedTime = os.clock(),
+				itemName = "Pocketwatch",
+				collectedTime = os.clock(),
 			})
-			world:remove(entity, comps.ActiveQuest)
-			world:remove(entity, comps.QuestData)
-			print("Quest completed for entity", entity, activeQuest.npcName, activeQuest.questName)
+			-- Keep ActiveQuest component so player can still turn in the quest
+			print("Quest item collected for entity", entity, activeQuest.npcName, activeQuest.questName)
 		end
 	end
 end

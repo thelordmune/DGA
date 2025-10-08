@@ -119,6 +119,10 @@ Client.Packets.Visuals.listen(function(Packet)
     end
 end)
 
+-- Signal that the visuals listener is ready
+_G.VisualsListenerReady = true
+print("✅ Visuals listener is ready - dialogue check system can now start")
+
 function ConvertToNumber(String)
 	local Number = string.match(String, "%d+$")
 	local IsNegative = string.match(String, "[-]%d+$") ~= nil
@@ -430,6 +434,9 @@ function Initialize(Character: Model)
 	local QuestEvents = require(Replicated.Modules.Utils.QuestEvents)
 	QuestEvents.Connect()
 
+	local QuestCompletionController = require(Replicated.Client.QuestCompletionController)
+	QuestCompletionController.Initialize()
+
 	--// Clean Up
 	Humanoid.Died:Once(Remove)
 	Character:GetPropertyChangedSignal("PrimaryPart"):Once(function()
@@ -439,6 +446,56 @@ function Initialize(Character: Model)
 	end)
 
 	ClientThread.Spawn()
+
+	-- Load weapon skills LAST after everything else is initialized
+	-- This ensures all dependencies (ECS, inventory, UI) are ready
+	task.spawn(function()
+		task.wait(1) -- Wait for all other systems to initialize
+
+		print("🎯 Loading weapon skills (final initialization step)...")
+		local weaponSkillsLoaded = false
+		local maxAttempts = 5
+		local attempt = 0
+
+		while not weaponSkillsLoaded and attempt < maxAttempts do
+			attempt = attempt + 1
+
+			-- Check if all dependencies are ready
+			if Client.Modules and Client.Modules["Interface"] and Client.Modules["Interface"].Modules and Client.Modules["Interface"].Modules["Stats"] then
+				local Stats = Client.Modules["Interface"].Modules["Stats"]
+
+				if Stats.LoadWeaponSkills and typeof(Stats.LoadWeaponSkills) == "function" then
+					local success, err = pcall(function()
+						Stats.LoadWeaponSkills()
+					end)
+
+					if success then
+						weaponSkillsLoaded = true
+						print("✅ Weapon skills loaded successfully on attempt", attempt)
+					else
+						warn("⚠️ Failed to load weapon skills (attempt " .. attempt .. "/" .. maxAttempts .. "):", err)
+						if attempt < maxAttempts then
+							task.wait(0.5) -- Wait before retry
+						end
+					end
+				else
+					warn("⚠️ LoadWeaponSkills function not found (attempt " .. attempt .. "/" .. maxAttempts .. ")")
+					if attempt < maxAttempts then
+						task.wait(0.5)
+					end
+				end
+			else
+				warn("⚠️ Interface/Stats modules not ready (attempt " .. attempt .. "/" .. maxAttempts .. ")")
+				if attempt < maxAttempts then
+					task.wait(0.5)
+				end
+			end
+		end
+
+		if not weaponSkillsLoaded then
+			warn("❌ Failed to load weapon skills after", maxAttempts, "attempts")
+		end
+	end)
 end
 
 -- Initialize ragdoll handling system (only once)

@@ -11,6 +11,7 @@ local bridgeTree = {
 	Inventory = bridgeNet2.ReferenceBridge("Inventory"),
 	Quests = bridgeNet2.ReferenceBridge("Quests"),
 	UpdateHotbar = bridgeNet2.ReferenceBridge("UpdateHotbar"),
+	QuestCompleted = bridgeNet2.ReferenceBridge("QuestCompleted"),
 }
 
 return bridgeTree

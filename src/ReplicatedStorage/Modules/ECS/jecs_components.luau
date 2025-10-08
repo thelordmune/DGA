@@ -89,6 +89,10 @@ local components: {
     InventoryChanged: Entity<number>,
     ClockTime: Entity<{timeOfDay: number, dayLength: number, startTime: number}>,
     RagdollImpact: Entity<{lastImpactTime: number, wasInAir: boolean, lastVelocity: Vector3}>,
+    Level: Entity<{current: number, max: number}>,
+    Experience: Entity<{current: number, required: number, total: number}>,
+    Alignment: Entity<{value: number, min: number, max: number}>,
+    QuestItemCollected: Entity<{npcName: string, questName: string, itemName: string, collectedTime: number}>,
 } =
 	{
 		Character = world:component(),
@@ -173,6 +177,10 @@ local components: {
         InventoryChanged = world:component(),
         ClockTime = world:component(),
         RagdollImpact = world:component(),
+        Level = world:component(),
+        Experience = world:component(),
+        Alignment = world:component(),
+        QuestItemCollected = world:component(),
 	}
 
     for name, component in components :: {[string]: jecs.Entity} do 

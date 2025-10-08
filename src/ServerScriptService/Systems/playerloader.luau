@@ -278,6 +278,11 @@ playerConnections[player] = player.CharacterAdded:Connect(function(initialRig)
             world:set(e, comps.LastHit, 0)
             world:set(e, comps.CritCD, {duration = 0, value = false})
             world:set(e, comps.Heavy, {duration = 0, value = false})
+
+            -- Initialize leveling components
+            local LevelingManager = require(ReplicatedStorage.Modules.Utils.LevelingManager)
+            LevelingManager.initialize(e)
+            print(`[Character] Initialized leveling components for {player.Name}`)
             world:set(e, comps.IgnoreParry, {duration = 0, value = false})
             world:set(e, comps.NoHurt, {duration = 0, value = false})
             world:set(e, comps.Damage, 0)

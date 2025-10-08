@@ -2,22 +2,7 @@ local InputModule = {}
 InputModule.__index = InputModule
 local self = setmetatable({}, InputModule)
 
-local Player = game:GetService("Players").LocalPlayer
-
-type Dia = {
-	npc: Model,
-	name: string,
-	inrange: boolean,
-	state: string,
-	currentnode: Configuration,
-}
 local Replicated = game:GetService("ReplicatedStorage")
-local world = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_world)
-local comps = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_components)
-local ref = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_ref)
-local Bridges = require(Replicated.Modules.Bridges)
-
-local pent = ref.get("local_player")  -- No second parameter needed for local_player
 
 self.LastInput = os.clock()
 
@@ -28,10 +13,24 @@ local dialogueController = require(Replicated.Client.Dialogue)
 InputModule.InputBegan = function(_, Client)
 	if Client.Character:GetAttribute("Commence") == true then
 		print("commencing bro bro")
-		local Dialogue: Dia = world:get(pent, comps.Dialogue)
-		if Dialogue then
-			print("firing dialogue interaction")
-			dialogueController:Start(Dialogue)
+
+		-- Get NPC name from character attribute (set by DialogueProximity)
+		local npcName = Client.Character:GetAttribute("NearbyNPC")
+
+		if npcName then
+			print("firing dialogue interaction for NPC:", npcName)
+
+			-- Find the NPC model in workspace
+			local dialogueFolder = workspace.World:FindFirstChild("Dialogue")
+			local npcModel = dialogueFolder and dialogueFolder:FindFirstChild(npcName)
+
+			-- Pass the correct params format that OnEvent expects
+			dialogueController:Start({
+				name = npcName,
+				npc = npcModel
+			})
+		else
+			warn("No NearbyNPC attribute found on character")
 		end
 		return
 	end
