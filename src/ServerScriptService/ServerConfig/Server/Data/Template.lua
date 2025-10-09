@@ -59,6 +59,8 @@ return {
 	["Clan"] = "",
 	["FL_Name"] = { ["First"] = "", ["Last"] = "" },
 	["Level"] = 1,
+	["Experience"] = 0,
+	["TotalExperience"] = 0,
 	["Alignment"] = 0,
 	["Denomination"] = "",
 	["Title"] = "Civilian",

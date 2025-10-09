@@ -279,10 +279,12 @@ local function processPlayer(world, player)
             world:set(e, comps.CritCD, {duration = 0, value = false})
             world:set(e, comps.Heavy, {duration = 0, value = false})
 
-            -- Initialize leveling components
+            -- Initialize leveling components with saved data
             local LevelingManager = require(ReplicatedStorage.Modules.Utils.LevelingManager)
-            LevelingManager.initialize(e)
-            print(`[Character] Initialized leveling components for {player.Name}`)
+            local Global = require(ReplicatedStorage.Modules.Shared.Global)
+            local playerData = Global.GetData(player)
+            LevelingManager.initialize(e, playerData)
+            print(`[Character] Initialized leveling components for {player.Name} - Level: {playerData and playerData.Level or 1}, XP: {playerData and playerData.Experience or 0}`)
             world:set(e, comps.IgnoreParry, {duration = 0, value = false})
             world:set(e, comps.NoHurt, {duration = 0, value = false})
             world:set(e, comps.Damage, 0)

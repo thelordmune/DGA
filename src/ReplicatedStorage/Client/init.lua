@@ -86,6 +86,8 @@ System.Settings = {
 		Hotbar8 = Enum.KeyCode.Eight;
 		Hotbar9 = Enum.KeyCode.Nine;
 		Hotbar0 = Enum.KeyCode.Zero;
+
+		Leaderboard = Enum.KeyCode.Period;
 	}
 }
 

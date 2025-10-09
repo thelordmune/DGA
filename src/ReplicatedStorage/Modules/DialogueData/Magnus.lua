@@ -61,7 +61,7 @@ return {
 			Text = "Did you find my pocketwatch yet? Check the market stalls in the central plaza!",
 			Condition = {
 				Module = "HasActiveQuest",
-				Args = {"Magnus"}
+				Args = {script.Name}
 			},
 			Outputs = {"StillLookingResponse1", "StillLookingResponse2"}
 		},

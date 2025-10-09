@@ -38,38 +38,45 @@ function LevelingManager.calculateRequiredXP(level)
 end
 
 -- Initialize leveling components for a player entity
-function LevelingManager.initialize(entity)
+-- If playerData is provided, loads from saved data; otherwise uses defaults
+function LevelingManager.initialize(entity, playerData)
 	if not entity or not world:contains(entity) then
 		warn("[LevelingManager] Invalid entity")
 		return false
 	end
-	
+
+	-- Load from saved data or use defaults
+	local savedLevel = (playerData and playerData.Level) or 1
+	local savedExperience = (playerData and playerData.Experience) or 0
+	local savedTotalExperience = (playerData and playerData.TotalExperience) or 0
+	local savedAlignment = (playerData and playerData.Alignment) or 0
+
 	-- Initialize Level component
 	if not world:has(entity, comps.Level) then
 		world:set(entity, comps.Level, {
-			current = 1,
+			current = savedLevel,
 			max = LevelingManager.MAX_LEVEL
 		})
 	end
-	
+
 	-- Initialize Experience component
 	if not world:has(entity, comps.Experience) then
 		world:set(entity, comps.Experience, {
-			current = 0,
-			required = LevelingManager.calculateRequiredXP(1),
-			total = 0
+			current = savedExperience,
+			required = LevelingManager.calculateRequiredXP(savedLevel),
+			total = savedTotalExperience
 		})
 	end
-	
+
 	-- Initialize Alignment component
 	if not world:has(entity, comps.Alignment) then
 		world:set(entity, comps.Alignment, {
-			value = 0,
+			value = savedAlignment,
 			min = LevelingManager.MIN_ALIGNMENT,
 			max = LevelingManager.MAX_ALIGNMENT
 		})
 	end
-	
+
 	return true
 end
 
@@ -79,19 +86,19 @@ function LevelingManager.addExperience(entity, amount)
 		warn("[LevelingManager] Invalid entity")
 		return false
 	end
-	
+
 	if not world:has(entity, comps.Experience) or not world:has(entity, comps.Level) then
 		warn("[LevelingManager] Entity missing Experience or Level component")
 		return false
 	end
-	
+
 	local exp = world:get(entity, comps.Experience)
 	local level = world:get(entity, comps.Level)
-	
+
 	-- Add experience
 	exp.current = exp.current + amount
 	exp.total = exp.total + amount
-	
+
 	-- Check for level up
 	local levelsGained = 0
 	while exp.current >= exp.required and level.current < level.max do
@@ -100,11 +107,20 @@ function LevelingManager.addExperience(entity, amount)
 		levelsGained = levelsGained + 1
 		exp.required = LevelingManager.calculateRequiredXP(level.current)
 	end
-	
+
 	-- Update components
 	world:set(entity, comps.Experience, exp)
 	world:set(entity, comps.Level, level)
-	
+
+	-- Auto-save to DataStore if on server
+	if game:GetService("RunService"):IsServer() then
+		-- Get the Player instance from the entity
+		local player = world:has(entity, comps.Player) and world:get(entity, comps.Player) or nil
+		if player then
+			LevelingManager.saveToDataStore(player, entity)
+		end
+	end
+
 	return true, levelsGained
 end
 
@@ -114,24 +130,33 @@ function LevelingManager.setLevel(entity, newLevel)
 		warn("[LevelingManager] Invalid entity")
 		return false
 	end
-	
+
 	if not world:has(entity, comps.Level) or not world:has(entity, comps.Experience) then
 		warn("[LevelingManager] Entity missing Level or Experience component")
 		return false
 	end
-	
+
 	newLevel = math.clamp(newLevel, LevelingManager.MIN_LEVEL, LevelingManager.MAX_LEVEL)
-	
+
 	local level = world:get(entity, comps.Level)
 	local exp = world:get(entity, comps.Experience)
-	
+
 	level.current = newLevel
 	exp.current = 0
 	exp.required = LevelingManager.calculateRequiredXP(newLevel)
-	
+
 	world:set(entity, comps.Level, level)
 	world:set(entity, comps.Experience, exp)
-	
+
+	-- Auto-save to DataStore if on server
+	if game:GetService("RunService"):IsServer() then
+		-- Get the Player instance from the entity
+		local player = world:has(entity, comps.Player) and world:get(entity, comps.Player) or nil
+		if player then
+			LevelingManager.saveToDataStore(player, entity)
+		end
+	end
+
 	return true
 end
 
@@ -141,16 +166,25 @@ function LevelingManager.addAlignment(entity, amount)
 		warn("[LevelingManager] Invalid entity")
 		return false
 	end
-	
+
 	if not world:has(entity, comps.Alignment) then
 		warn("[LevelingManager] Entity missing Alignment component")
 		return false
 	end
-	
+
 	local alignment = world:get(entity, comps.Alignment)
 	alignment.value = math.clamp(alignment.value + amount, alignment.min, alignment.max)
 	world:set(entity, comps.Alignment, alignment)
-	
+
+	-- Auto-save to DataStore if on server
+	if game:GetService("RunService"):IsServer() then
+		-- Get the Player instance from the entity
+		local player = world:has(entity, comps.Player) and world:get(entity, comps.Player) or nil
+		if player then
+			LevelingManager.saveToDataStore(player, entity)
+		end
+	end
+
 	return true, alignment.value
 end
 
@@ -220,17 +254,67 @@ function LevelingManager.getProgressPercent(entity)
 	if not entity or not world:contains(entity) then
 		return 0
 	end
-	
+
 	if not world:has(entity, comps.Experience) then
 		return 0
 	end
-	
+
 	local exp = world:get(entity, comps.Experience)
 	if exp.required == 0 then
 		return 100 -- Max level
 	end
-	
+
 	return (exp.current / exp.required) * 100
+end
+
+-- Save leveling data to player's DataStore profile
+-- This should be called whenever Level, Experience, or Alignment changes
+function LevelingManager.saveToDataStore(player, entity)
+	if not game:GetService("RunService"):IsServer() then
+		warn("[LevelingManager] saveToDataStore can only be called on the server")
+		return false
+	end
+
+	if not player or not player:IsA("Player") then
+		warn("[LevelingManager] Invalid player")
+		return false
+	end
+
+	if not entity or not world:contains(entity) then
+		warn("[LevelingManager] Invalid entity")
+		return false
+	end
+
+	-- Get the Global module for data access
+	local success, Global = pcall(function()
+		return require(ReplicatedStorage.Modules.Shared.Global)
+	end)
+
+	if not success or not Global then
+		warn("[LevelingManager] Could not load Global module")
+		return false
+	end
+
+	-- Get current component values
+	local level = world:has(entity, comps.Level) and world:get(entity, comps.Level) or nil
+	local exp = world:has(entity, comps.Experience) and world:get(entity, comps.Experience) or nil
+	local alignment = world:has(entity, comps.Alignment) and world:get(entity, comps.Alignment) or nil
+
+	if not level or not exp or not alignment then
+		warn("[LevelingManager] Entity missing leveling components")
+		return false
+	end
+
+	-- Update the player's data
+	Global.SetData(player, function(data)
+		data.Level = level.current
+		data.Experience = exp.current
+		data.TotalExperience = exp.total
+		data.Alignment = alignment.value
+		return data
+	end)
+
+	return true
 end
 
 return LevelingManager

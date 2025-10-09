@@ -299,6 +299,12 @@ function Initialize(Character: Model)
 		print("Initialized cooldown display")
 	end
 
+	-- Initialize leaderboard
+	if Client.Modules["Interface"].InitLeaderboard then
+		Client.Modules["Interface"].InitLeaderboard()
+		print("Initialized leaderboard")
+	end
+
 	safeConnect(Humanoid, "HealthChanged", function(Health)
 		Client.Modules["Interface"].UpdateStats("Health", Health, Humanoid.MaxHealth)
 	end)

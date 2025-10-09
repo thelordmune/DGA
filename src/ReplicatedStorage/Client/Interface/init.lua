@@ -34,4 +34,13 @@ end
 -- Expose CooldownDisplay module
 Interface.CooldownDisplay = self.Modules["CooldownDisplay"]
 
+-- Initialize Leaderboard
+Interface.InitLeaderboard = function()
+	if self.Modules["Leaderboard"] and self.Modules["Leaderboard"].new then
+		local leaderboard = self.Modules["Leaderboard"].new()
+		leaderboard:Initialize()
+		return leaderboard
+	end
+end
+
 return Interface
