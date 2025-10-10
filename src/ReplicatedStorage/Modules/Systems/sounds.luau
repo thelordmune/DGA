@@ -6,11 +6,7 @@ local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 
 local player = players.LocalPlayer
--- local global = require(game:GetService("ReplicatedStorage").Global)
 
-local ref = require(replicatedStorage.Modules.ECS.jecs_ref)
-local comps = require(replicatedStorage.Modules.ECS.jecs_components)
-local world = require(replicatedStorage.Modules.ECS.jecs_world)
 local playing = false
 local Debris = game:GetService("Debris")
 
@@ -19,6 +15,11 @@ local humanoid = character:WaitForChild("Humanoid")
 
 local currentSound = nil
 local currentThemeType = nil -- Track what type of theme is playing ("day", "night", "combat")
+
+-- Initialize global combat state tracker if it doesn't exist
+if not _G.PlayerInCombat then
+    _G.PlayerInCombat = false
+end
 
 repeat task.wait() until game:IsLoaded()
 
@@ -43,16 +44,9 @@ local function stopCurrentSound()
 end
 
 local function sound()
-    local pentity = ref.get("player", player)
-    if not pentity then return end
-
-    -- Check if player is in combat
-    local inCombatData = world:get(pentity, comps.InCombat)
-    local isInCombat = inCombatData and inCombatData.value == true
-
-    -- Determine what theme should be playing
+    -- Determine what theme should be playing based on combat state and time
     local desiredThemeType
-    if isInCombat then
+    if _G.PlayerInCombat then
         desiredThemeType = "combat"
     elseif isNightTime() then
         desiredThemeType = "night"

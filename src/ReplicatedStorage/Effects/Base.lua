@@ -848,6 +848,10 @@ function Base.InCombat(Plr: Player, value: boolean)
 	local incombat = scope:Value(value)
 	local started = scope:Value(false)
 
+	-- Update global combat state for sound system
+	_G.PlayerInCombat = value
+	print("[InCombat] Combat state changed to:", value)
+
 	local observer = scope:Observer(incombat)
 
 	observer:onBind(function()

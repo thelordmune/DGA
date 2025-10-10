@@ -101,8 +101,14 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	-- end
 
 	local function DealStun()
-		-- Check for hyperarmor moves (Pincer Impact, Needle Thrust)
+		-- Check if target is victim of Strategist Combination - if so, skip all stun logic
 		local actions = Target:FindFirstChild("Actions")
+		if actions and Library.StateCheck(actions, "StrategistVictim") then
+			-- Target is locked in Strategist Combination - don't apply any stun or animations
+			return
+		end
+
+		-- Check for hyperarmor moves (Pincer Impact, Needle Thrust)
 		if actions then
 			local currentAction = nil
 			local allStates = Library.GetAllStates(actions)

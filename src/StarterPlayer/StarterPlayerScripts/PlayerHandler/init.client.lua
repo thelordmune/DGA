@@ -451,7 +451,12 @@ function Initialize(Character: Model)
 	QuestCompletionController.Initialize()
 
 	--// Clean Up
-	Humanoid.Died:Once(Remove)
+	Humanoid.Died:Once(function()
+		-- Clear combat state on death
+		_G.PlayerInCombat = false
+		print("[Death] Cleared combat state")
+		Remove()
+	end)
 	Character:GetPropertyChangedSignal("PrimaryPart"):Once(function()
 		if not Character.PrimaryPart then
 			Remove()
