@@ -279,7 +279,7 @@ NetworkModule.EndPoint = function(Player, Data)
 									end)
 								end
 
-								Ragdoll.Ragdoll(Target, 1.5)
+								Ragdoll.Ragdoll(Target, 2.5)
 
 								task.delay(0.8, function()
 									if targetHumanoid then

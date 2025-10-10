@@ -22,6 +22,9 @@ local keyToSlot = {
     [Enum.KeyCode.Seven] = 7,
 }
 
+-- Track currently held skill per hotbar slot
+local heldSkills = {}
+
 InputModule.InputBegan = function(input, Client)
     local hotbarSlot = keyToSlot[input.KeyCode]
     if not hotbarSlot then return end
@@ -33,18 +36,38 @@ InputModule.InputBegan = function(input, Client)
         print("No item in hotbar slot:", hotbarSlot)
         return
     end
-    
+
     print("Using item:", item.name, "from hotbar slot:", hotbarSlot)
-    
-    -- Send to server to use item
+
+    -- Store the item for InputEnded
+    heldSkills[hotbarSlot] = item
+
+    -- Send to server to use item (InputBegan)
     Client.Packets.UseItem.send({
         itemName = item.name,
-        hotbarSlot = hotbarSlot
+        hotbarSlot = hotbarSlot,
+        inputType = "began" -- Track input type
     })
 end
 
 InputModule.InputEnded = function(input, Client)
-    -- Handle any release logic if needed
+    local hotbarSlot = keyToSlot[input.KeyCode]
+    if not hotbarSlot then return end
+
+    local item = heldSkills[hotbarSlot]
+    if not item then return end
+
+    print("Hotbar slot released:", hotbarSlot, "Item:", item.name)
+
+    -- Send to server (InputEnded)
+    Client.Packets.UseItem.send({
+        itemName = item.name,
+        hotbarSlot = hotbarSlot,
+        inputType = "ended" -- Track input type
+    })
+
+    -- Clear held skill
+    heldSkills[hotbarSlot] = nil
 end
 
 InputModule.InputChanged = function()

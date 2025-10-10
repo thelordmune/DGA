@@ -10,6 +10,10 @@ local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManage
 
 local self = setmetatable({}, NetworkModule)
 
+-- Track held weapon skills per player
+-- Format: {[Player] = {skillName, skillInstance, character}}
+local heldWeaponSkills = {}
+
 NetworkModule.EndPoint = function(Player, Data)
     local Weapon = Player:GetAttribute("Weapon")
 
@@ -74,11 +78,37 @@ NetworkModule.EndPoint = function(Player, Data)
             print("Switched to weapon:", usedItem.name)
         elseif usedItem.typ == "skill" then
             -- Activate skill
-            print("Activated skill:", usedItem.name, "for weapon:", Weapon)
+            print("Activated skill:", usedItem.name, "for weapon:", Weapon, "InputType:", Data.inputType or "began")
             local skillPath = script.Parent.Parent.WeaponSkills[Weapon]
             if skillPath and skillPath:FindFirstChild(usedItem.name) then
-                local skill = require(skillPath[usedItem.name])
-                skill(Player, Data, Server)
+                local skillModule = skillPath[usedItem.name]
+                local skill = require(skillModule)
+
+                -- Check if skill is a WeaponSkillHold instance (has OnInputBegan method)
+                if type(skill) == "table" and skill.OnInputBegan then
+                    -- NEW HOLD SYSTEM
+                    if Data.inputType == "began" then
+                        -- Store skill for InputEnded
+                        heldWeaponSkills[Player] = {
+                            skillName = usedItem.name,
+                            skillInstance = skill,
+                            character = Player.Character
+                        }
+
+                        -- Call OnInputBegan
+                        skill:OnInputBegan(Player, Player.Character)
+                    elseif Data.inputType == "ended" then
+                        -- Call OnInputEnded
+                        local heldData = heldWeaponSkills[Player]
+                        if heldData and heldData.skillName == usedItem.name then
+                            skill:OnInputEnded(Player)
+                            heldWeaponSkills[Player] = nil
+                        end
+                    end
+                else
+                    -- OLD SYSTEM (function-based skills)
+                    skill(Player, Data, Server)
+                end
             else
                 warn("Skill not found:", usedItem.name, "for weapon:", Weapon)
             end
@@ -87,5 +117,10 @@ NetworkModule.EndPoint = function(Player, Data)
         warn("Failed to use item:", Data.itemName)
     end
 end
+
+-- Cleanup when player leaves
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+    heldWeaponSkills[player] = nil
+end)
 
 return NetworkModule
