@@ -33,6 +33,20 @@ local heldSkills = {} -- {[player]: {skill, track, startTime, character}}
 -- Cooldown tracking
 local cooldowns = {} -- {[userId]: {[skillName]: expiryTime}}
 
+-- Set up collision group for ghost clones (no collision with anything)
+local PhysicsService = game:GetService("PhysicsService")
+local hasGhostGroup = pcall(function()
+	PhysicsService:GetCollisionGroupId("GhostClone")
+end)
+
+if not hasGhostGroup then
+	pcall(function()
+		PhysicsService:CreateCollisionGroup("GhostClone")
+		-- Set GhostClone to not collide with anything
+		PhysicsService:CollisionGroupSetCollidable("GhostClone", "Default", false)
+	end)
+end
+
 function WeaponSkillHold.new(skillData)
 	local self = setmetatable({}, WeaponSkillHold)
 	
@@ -87,64 +101,117 @@ function WeaponSkillHold:OnInputBegan(player, character)
 	
 	-- Load animation
 	local animTrack = animator:LoadAnimation(self.animation)
-	
-	-- Play animation
+
+	-- Play animation very slowly (5% speed)
 	animTrack:Play()
-	
-	-- Immediately pause at 0.1 seconds (10% of animation)
-	task.wait(0.1)
-	
-	-- Check if player still exists and is holding
-	if not player or not player.Parent then
-		animTrack:Stop()
-		return
-	end
-	
-	animTrack:AdjustSpeed(0) -- Freeze animation
-	
+	animTrack:AdjustSpeed(0.05) -- Very slowly play animation until release
+
 	-- Store held skill data
 	heldSkills[player] = {
 		skill = self,
 		track = animTrack,
 		startTime = tick(),
-		character = character
+		character = character,
+		isHolding = true, -- Track if still holding
+		effectsApplied = false -- Track if visual effects have been applied
 	}
-	
-	-- Visual feedback: Glow effect while holding
-	self:ApplyHoldEffect(character, true)
-	
-	print(`[WeaponSkillHold] {player.Name} is holding {self.skillName}`)
+
+	-- Start monitoring for stuns/interruptions
+	task.spawn(function()
+		self:MonitorForInterruptions(player, character)
+	end)
+
+	-- Delay visual effects to avoid showing them on quick taps
+	task.delay(0.3, function()
+		local heldData = heldSkills[player]
+		if heldData and heldData.isHolding and heldData.skill == self then
+			-- Still holding after 0.3s, apply visual effects
+			self:ApplyHoldEffect(character, true)
+
+			-- Create ghost clone showing the skill preview
+			local ghostClone = self:CreateGhostClone(character, animTrack)
+			if ghostClone then
+				heldData.ghostClone = ghostClone
+				print(`[WeaponSkillHold] Ghost clone created`)
+			else
+				warn(`[WeaponSkillHold] Failed to create ghost clone`)
+			end
+
+			heldData.effectsApplied = true
+			print(`[WeaponSkillHold] {player.Name} is holding {self.skillName} - effects applied`)
+		end
+	end)
+
+	print(`[WeaponSkillHold] {player.Name} started holding {self.skillName}`)
 end
 
 function WeaponSkillHold:OnInputEnded(player)
 	local heldData = heldSkills[player]
-	
+
 	-- Check if this player is holding this specific skill
 	if not heldData or heldData.skill ~= self then
 		return
 	end
-	
+
 	local holdDuration = tick() - heldData.startTime
-	
+
+	-- Minimum hold time to activate hold system (0.3 seconds)
+	-- If released too quickly, just execute immediately without hold effects
+	if holdDuration < 0.3 then
+		print(`[WeaponSkillHold] {player.Name} tapped {self.skillName} (too quick for hold)`)
+
+		-- Mark as no longer holding (prevents effects from being applied)
+		heldData.isHolding = false
+
+		-- Stop slow animation
+		if heldData.track then
+			heldData.track:Stop()
+		end
+
+		-- Only remove effects if they were applied
+		if heldData.effectsApplied then
+			self:ApplyHoldEffect(heldData.character, false)
+		end
+
+		-- Execute immediately with 0 hold duration
+		self:ExecuteImmediately(player, heldData.character)
+
+		-- Cleanup
+		heldSkills[player] = nil
+		return
+	end
+
+	-- Mark as no longer holding (stops interruption monitoring)
+	heldData.isHolding = false
+
 	-- Validate character still exists
 	if not heldData.character or not heldData.character.Parent then
 		self:CleanupHeldSkill(player)
 		return
 	end
-	
-	-- Resume animation
-	heldData.track:AdjustSpeed(1)
-	
-	-- Remove hold effect
-	self:ApplyHoldEffect(heldData.character, false)
-	
-	-- Execute skill
-	self:Execute(player, heldData.character, holdDuration)
-	
-	-- Cleanup
-	heldSkills[player] = nil
-	
+
 	print(`[WeaponSkillHold] {player.Name} released {self.skillName} after {holdDuration}s`)
+
+	-- Only remove effects if they were applied
+	if heldData.effectsApplied then
+		self:ApplyHoldEffect(heldData.character, false)
+
+		-- Fade out and remove ghost clone
+		if heldData.ghostClone then
+			self:FadeOutGhostClone(heldData.ghostClone)
+		end
+	end
+
+	-- Stop the slow animation (the skill will play its own animation)
+	if heldData.track then
+		heldData.track:Stop()
+	end
+
+	-- Cleanup held skill data
+	heldSkills[player] = nil
+
+	-- Execute skill with hold duration (skill handles its own animation)
+	self:Execute(player, heldData.character, holdDuration)
 end
 
 function WeaponSkillHold:Execute(player, character, holdDuration)
@@ -194,54 +261,367 @@ end
 
 function WeaponSkillHold:ApplyHoldEffect(character, isHolding)
 	-- Visual feedback while holding WEAPON skills
+	local TweenService = game:GetService("TweenService")
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local Library = require(ReplicatedStorage.Modules.Library)
+
 	local primaryPart = character.PrimaryPart or character:FindFirstChild("HumanoidRootPart")
 	if not primaryPart then return end
-	
+
 	if isHolding then
-		-- Create glow effect (weapon-themed)
-		local glow = Instance.new("PointLight")
-		glow.Name = "WeaponSkillHoldGlow"
-		glow.Brightness = 2
-		glow.Range = 10
-		glow.Color = Color3.fromRGB(200, 200, 255) -- Blue-ish for weapons
-		glow.Parent = primaryPart
-		
-		-- Particle effect
-		local particles = Instance.new("ParticleEmitter")
-		particles.Name = "WeaponSkillHoldParticles"
-		particles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-		particles.Rate = 20
-		particles.Lifetime = NumberRange.new(0.5, 1)
-		particles.Speed = NumberRange.new(2, 4)
-		particles.Color = ColorSequence.new(Color3.fromRGB(200, 200, 255))
-		particles.Parent = primaryPart
+		-- Lock position using Library state manager
+		if character:FindFirstChild("Actions") then
+			Library.TimedState(character.Actions, "WeaponSkillHold", 999) -- Long duration, will be manually removed
+		end
+
+		-- Lock movement speeds
+		if character:FindFirstChild("Speeds") then
+			Library.TimedState(character.Speeds, "WeaponSkillHoldSpeed", 999)
+		end
+
+		-- Make player invisible (fade out over 0.3s)
+		-- Store original transparencies for restoration
+		local transparencyStorage = Instance.new("Configuration")
+		transparencyStorage.Name = "WeaponSkillHoldTransparencies"
+		transparencyStorage.Parent = character
+
+		for _, part in pairs(character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				-- Store original transparency
+				local value = Instance.new("NumberValue")
+				value.Name = part:GetFullName()
+				value.Value = part.Transparency
+				value.Parent = transparencyStorage
+
+				-- Fade to invisible
+				local fadeOut = TweenService:Create(
+					part,
+					TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{Transparency = 1}
+				)
+				fadeOut:Play()
+			elseif part:IsA("Decal") or part:IsA("Texture") then
+				-- Store and fade out decals
+				local value = Instance.new("NumberValue")
+				value.Name = part:GetFullName()
+				value.Value = part.Transparency
+				value.Parent = transparencyStorage
+
+				local fadeOut = TweenService:Create(
+					part,
+					TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{Transparency = 1}
+				)
+				fadeOut:Play()
+			end
+		end
+
 	else
-		-- Remove effects
-		local glow = primaryPart:FindFirstChild("WeaponSkillHoldGlow")
-		if glow then glow:Destroy() end
-		
-		local particles = primaryPart:FindFirstChild("WeaponSkillHoldParticles")
-		if particles then particles:Destroy() end
+		-- Remove position lock using Library state manager
+		if character:FindFirstChild("Actions") then
+			Library.RemoveState(character.Actions, "WeaponSkillHold")
+			print("[WeaponSkillHold] Removed Actions state")
+		end
+
+		-- Remove speed lock
+		if character:FindFirstChild("Speeds") then
+			Library.RemoveState(character.Speeds, "WeaponSkillHoldSpeed")
+			print("[WeaponSkillHold] Removed Speeds state")
+		end
+
+		-- Restore player visibility (fade in over 0.2s)
+		local transparencyStorage = character:FindFirstChild("WeaponSkillHoldTransparencies")
+		if transparencyStorage then
+			-- Create a lookup table for easier access
+			local transparencyLookup = {}
+			for _, value in pairs(transparencyStorage:GetChildren()) do
+				if value:IsA("NumberValue") then
+					transparencyLookup[value.Name] = value.Value
+				end
+			end
+
+			-- Restore all parts and decals
+			for _, part in pairs(character:GetDescendants()) do
+				local fullName = part:GetFullName()
+				local originalTransparency = transparencyLookup[fullName]
+
+				if originalTransparency and (part:IsA("BasePart") or part:IsA("Decal") or part:IsA("Texture")) then
+					-- Fade back to original transparency
+					local fadeIn = TweenService:Create(
+						part,
+						TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+						{Transparency = originalTransparency}
+					)
+					fadeIn:Play()
+				end
+			end
+
+			-- Remove storage after restoring
+			task.delay(0.2, function()
+				transparencyStorage:Destroy()
+			end)
+
+			print("[WeaponSkillHold] Restoring player visibility")
+		end
+
+		print("[WeaponSkillHold] All hold effects removed")
+	end
+end
+
+function WeaponSkillHold:CreateGhostClone(character, originalTrack)
+	-- Create a transparent clone of the character showing the skill preview
+
+	print("[WeaponSkillHold] CreateGhostClone called")
+	print("[WeaponSkillHold] Character:", character)
+	print("[WeaponSkillHold] Character.Parent:", character and character.Parent)
+
+	-- Validate character
+	if not character or not character.Parent then
+		warn("[WeaponSkillHold] Cannot create ghost clone - invalid character")
+		return nil
+	end
+
+	-- Temporarily enable Archivable to allow cloning
+	local originalArchivable = character.Archivable
+	character.Archivable = true
+
+	-- Clone the character
+	print("[WeaponSkillHold] Attempting to clone character...")
+	local success, result = pcall(function()
+		return character:Clone()
+	end)
+
+	-- Restore original Archivable setting
+	character.Archivable = originalArchivable
+
+	print("[WeaponSkillHold] Clone success:", success)
+	print("[WeaponSkillHold] Clone result:", result)
+	print("[WeaponSkillHold] Clone result type:", type(result))
+
+	if not success then
+		warn("[WeaponSkillHold] Failed to clone character:", result)
+		return nil
+	end
+
+	local clone = result
+	if not clone then
+		warn("[WeaponSkillHold] Clone is nil - character.Archivable was likely false")
+		return nil
+	end
+
+	print("[WeaponSkillHold] Clone created successfully, type:", typeof(clone))
+
+	-- Store original transparencies for fade-in effect
+	local partTransparencies = {}
+
+	-- Remove scripts and other non-visual components FIRST
+	for _, obj in pairs(clone:GetDescendants()) do
+		if obj:IsA("Script") or obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
+			obj:Destroy()
+		elseif obj:IsA("Sound") or obj:IsA("ParticleEmitter") or obj:IsA("Fire") or obj:IsA("Smoke") then
+			obj:Destroy()
+		end
+	end
+
+	-- Make clone look exactly like the player (solid, not transparent)
+	for _, part in pairs(clone:GetDescendants()) do
+		if part:IsA("BasePart") then
+			-- Store original transparency
+			partTransparencies[part] = part.Transparency
+
+			-- Start fully transparent for fade-in (will fade to original transparency)
+			part.Transparency = 1
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+
+			-- Only anchor the root part, leave other parts unanchored for animation
+			if part.Name == "HumanoidRootPart" then
+				part.Anchored = true
+			else
+				part.Anchored = false
+			end
+
+			-- Set collision group to prevent any collision
+			part.CollisionGroup = "GhostClone"
+
+			-- Keep original color and material (looks exactly like player)
+			-- Don't change color or material
+		elseif part:IsA("Decal") or part:IsA("Texture") then
+			-- Store original transparency for decals too
+			partTransparencies[part] = part.Transparency
+			-- Start invisible for fade-in
+			part.Transparency = 1
+		end
+	end
+
+	-- Configure humanoid for animation playback only
+	local cloneHumanoid = clone:FindFirstChildOfClass("Humanoid")
+	if cloneHumanoid then
+		cloneHumanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		cloneHumanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+	end
+
+	-- Position clone slightly in front of the character
+	local charRootPart = character:FindFirstChild("HumanoidRootPart")
+	if charRootPart and clone.PrimaryPart then
+		clone:SetPrimaryPartCFrame(charRootPart.CFrame * CFrame.new(0, 0, -3)) -- 3 studs in front
+	end
+
+	-- Parent to workspace
+	clone.Parent = workspace
+
+	-- Play the animation using the existing humanoid
+	local humanoid = clone:FindFirstChildOfClass("Humanoid")
+	print("[WeaponSkillHold] Ghost humanoid found:", humanoid)
+
+	if humanoid then
+		local animator = humanoid:FindFirstChildOfClass("Animator")
+		print("[WeaponSkillHold] Ghost animator found:", animator)
+
+		if not animator then
+			animator = Instance.new("Animator")
+			animator.Parent = humanoid
+			print("[WeaponSkillHold] Created new animator for ghost")
+		end
+
+		print("[WeaponSkillHold] Animation object:", self.animation)
+		print("[WeaponSkillHold] Animation type:", typeof(self.animation))
+
+		-- Load and play the same animation at normal speed
+		local success, ghostTrack = pcall(function()
+			return animator:LoadAnimation(self.animation)
+		end)
+
+		if success and ghostTrack then
+			print("[WeaponSkillHold] Animation loaded successfully")
+			ghostTrack:Play()
+			ghostTrack.Looped = true -- Loop the preview
+			print("[WeaponSkillHold] Ghost clone animation playing, IsPlaying:", ghostTrack.IsPlaying)
+		else
+			warn("[WeaponSkillHold] Failed to load animation:", ghostTrack)
+		end
+	else
+		warn("[WeaponSkillHold] No humanoid found for ghost clone animation")
+	end
+
+	-- No glow - clone should look exactly like the player
+
+	-- Fade in effect (0.3 seconds) - fade to original transparency (looks exactly like player)
+	local TweenService = game:GetService("TweenService")
+	local fadeInDuration = 0.3
+
+	for part, originalTransparency in pairs(partTransparencies) do
+		if part and (part:IsA("BasePart") or part:IsA("Decal") or part:IsA("Texture")) then
+			-- Tween from 1 (invisible) to original transparency (solid)
+			local tweenInfo = TweenInfo.new(fadeInDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+			local tween = TweenService:Create(part, tweenInfo, {Transparency = originalTransparency})
+			tween:Play()
+		end
+	end
+
+	print(`[WeaponSkillHold] Created ghost clone for preview`)
+
+	return clone
+end
+
+function WeaponSkillHold:FadeOutGhostClone(clone)
+	-- Fade out the ghost clone smoothly before destroying
+	if not clone or not clone.Parent then return end
+
+	local TweenService = game:GetService("TweenService")
+	local fadeOutDuration = 0.2
+
+	-- Fade out all parts and decals
+	for _, part in pairs(clone:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local fadeOutTween = TweenService:Create(
+				part,
+				TweenInfo.new(fadeOutDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{Transparency = 1}
+			)
+			fadeOutTween:Play()
+		elseif part:IsA("Decal") or part:IsA("Texture") then
+			local fadeOutTween = TweenService:Create(
+				part,
+				TweenInfo.new(fadeOutDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{Transparency = 1}
+			)
+			fadeOutTween:Play()
+		end
+	end
+
+	-- Destroy after fade out completes
+	task.delay(fadeOutDuration, function()
+		if clone and clone.Parent then
+			clone:Destroy()
+		end
+	end)
+
+	print("[WeaponSkillHold] Fading out ghost clone")
+end
+
+function WeaponSkillHold:MonitorForInterruptions(player, character)
+	-- Monitor for stuns or other interruptions during charge
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local Library = require(ReplicatedStorage.Modules.Library)
+
+	local heldData = heldSkills[player]
+	if not heldData then return end
+
+	while heldData and heldData.isHolding do
+		-- Check if character still exists
+		if not character or not character.Parent then
+			print(`[WeaponSkillHold] Character destroyed, interrupting {self.skillName}`)
+			self:CleanupHeldSkill(player)
+			return
+		end
+
+		-- Check for stuns
+		if character:FindFirstChild("Stuns") then
+			if Library.StateCount(character.Stuns) then
+				print(`[WeaponSkillHold] Stunned, interrupting {self.skillName}`)
+				self:CleanupHeldSkill(player)
+				return
+			end
+		end
+
+		-- Check if player still exists
+		if not player or not player.Parent then
+			print(`[WeaponSkillHold] Player disconnected, interrupting {self.skillName}`)
+			self:CleanupHeldSkill(player)
+			return
+		end
+
+		task.wait(0.1) -- Check every 0.1 seconds
 	end
 end
 
 function WeaponSkillHold:CleanupHeldSkill(player)
 	local heldData = heldSkills[player]
 	if not heldData then return end
-	
+
+	-- Mark as no longer holding
+	heldData.isHolding = false
+
 	-- Stop animation
 	if heldData.track then
 		heldData.track:Stop()
 	end
-	
+
 	-- Remove effects
 	if heldData.character then
 		self:ApplyHoldEffect(heldData.character, false)
 	end
-	
+
+	-- Fade out and remove ghost clone
+	if heldData.ghostClone then
+		self:FadeOutGhostClone(heldData.ghostClone)
+	end
+
 	-- Remove from tracking
 	heldSkills[player] = nil
-	
+
 	print(`[WeaponSkillHold] Cleaned up held skill for {player.Name}`)
 end
 

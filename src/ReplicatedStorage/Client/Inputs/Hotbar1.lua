@@ -43,11 +43,13 @@ InputModule.InputBegan = function(input, Client)
     heldSkills[hotbarSlot] = item
 
     -- Send to server to use item (InputBegan)
-    Client.Packets.UseItem.send({
+    local packet = {
         itemName = item.name,
         hotbarSlot = hotbarSlot,
         inputType = "began" -- Track input type
-    })
+    }
+    print("[Hotbar1] Sending InputBegan packet:", packet.inputType)
+    Client.Packets.UseItem.send(packet)
 end
 
 InputModule.InputEnded = function(input, Client)
@@ -60,11 +62,13 @@ InputModule.InputEnded = function(input, Client)
     print("Hotbar slot released:", hotbarSlot, "Item:", item.name)
 
     -- Send to server (InputEnded)
-    Client.Packets.UseItem.send({
+    local packet = {
         itemName = item.name,
         hotbarSlot = hotbarSlot,
         inputType = "ended" -- Track input type
-    })
+    }
+    print("[Hotbar1] Sending InputEnded packet:", packet.inputType)
+    Client.Packets.UseItem.send(packet)
 
     -- Clear held skill
     heldSkills[hotbarSlot] = nil

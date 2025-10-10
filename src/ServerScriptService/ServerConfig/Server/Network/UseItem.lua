@@ -21,6 +21,7 @@ NetworkModule.EndPoint = function(Player, Data)
     print("Player:", Player.Name)
     print("Item:", Data.itemName)
     print("Hotbar Slot:", Data.hotbarSlot)
+    print("InputType:", Data.inputType or "nil")
 
     local pent = ref.get("player", Player)  -- Fixed: Use "player" on server, not "local_player"
     if not pent then
@@ -84,9 +85,14 @@ NetworkModule.EndPoint = function(Player, Data)
                 local skillModule = skillPath[usedItem.name]
                 local skill = require(skillModule)
 
+                print("[UseItem] Skill type:", type(skill))
+
                 -- Check if skill is a WeaponSkillHold instance (has OnInputBegan method)
-                if type(skill) == "table" and skill.OnInputBegan then
+                if type(skill) == "table" and type(skill.OnInputBegan) == "function" then
+                    print("[UseItem] Has OnInputBegan: true")
+                    print("[UseItem] Skill metatable:", getmetatable(skill))
                     -- NEW HOLD SYSTEM
+                    print("[UseItem] Using NEW HOLD SYSTEM for:", usedItem.name)
                     if Data.inputType == "began" then
                         -- Store skill for InputEnded
                         heldWeaponSkills[Player] = {
@@ -96,17 +102,22 @@ NetworkModule.EndPoint = function(Player, Data)
                         }
 
                         -- Call OnInputBegan
+                        print("[UseItem] Calling OnInputBegan for:", usedItem.name)
                         skill:OnInputBegan(Player, Player.Character)
                     elseif Data.inputType == "ended" then
                         -- Call OnInputEnded
+                        print("[UseItem] Calling OnInputEnded for:", usedItem.name)
                         local heldData = heldWeaponSkills[Player]
                         if heldData and heldData.skillName == usedItem.name then
                             skill:OnInputEnded(Player)
                             heldWeaponSkills[Player] = nil
+                        else
+                            print("[UseItem] No held skill data found for:", usedItem.name)
                         end
                     end
                 else
                     -- OLD SYSTEM (function-based skills)
+                    print("[UseItem] Using OLD SYSTEM (function-based) for:", usedItem.name)
                     skill(Player, Data, Server)
                 end
             else

@@ -73,12 +73,16 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		-- Only set InCombat ECS component for players (not NPCs)
 		local tentity = ref.get("player", TargetPlayer)
 		if tentity then -- Check if entity exists before using it
-			if not world:get(tentity, comps.InCombat) then
-				world:set(tentity, comps.InCombat, { value = true, duration = 40 })
+			local currentInCombat = world:get(tentity, comps.InCombat)
+			-- Reset duration to 40 seconds every time player gets hit
+			world:set(tentity, comps.InCombat, { value = true, duration = 40 })
+
+			-- Only fire client event if this is the first time entering combat
+			if not currentInCombat or not currentInCombat.value then
 				Visuals.FireClient(TargetPlayer, {
 					Module = "Base",
 					Function = "InCombat",
-					Arguments = { TargetPlayer, world:get(tentity, comps.InCombat).value },
+					Arguments = { TargetPlayer, true },
 				})
 			end
 		end

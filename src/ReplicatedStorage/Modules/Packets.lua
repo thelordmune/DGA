@@ -100,6 +100,7 @@ return ByteNet.defineNamespace("Networking", function()
 			value = ByteNet.struct({
 				itemName = ByteNet.string;
 				hotbarSlot = ByteNet.int8;
+				inputType = ByteNet.optional(ByteNet.string); -- "began" or "ended" for hold system
 			})
 		});
 		
