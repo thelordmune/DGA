@@ -103,14 +103,14 @@ Movement.Dodge = function()
 	end
     
     Client.Library.AddState(Client.Statuses, "Dodging")
-    
+
     local Direction = self.GetDirection(Client.Humanoid, Client.Root)
     local Vector = self.Vectors[Direction]
-    
+
     Client.Library.StopMovementAnimations(Client.Character)
     Client.Library.StopAllAnims(Client.Character)
     local Animation = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes[Direction])
-    
+
     -- CONSISTENT DASH PARAMETERS
     local Speed = 135  -- Consistent speed
     local Duration = 0.5  -- Consistent duration

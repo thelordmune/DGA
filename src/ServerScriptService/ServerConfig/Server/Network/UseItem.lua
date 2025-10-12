@@ -118,7 +118,13 @@ NetworkModule.EndPoint = function(Player, Data)
                 else
                     -- OLD SYSTEM (function-based skills)
                     print("[UseItem] Using OLD SYSTEM (function-based) for:", usedItem.name)
-                    skill(Player, Data, Server)
+                    -- Only execute on 'ended' input to prevent double-triggering
+                    if Data.inputType == "ended" then
+                        print("[UseItem] Executing skill on 'ended' input")
+                        skill(Player, Data, Server)
+                    else
+                        print("[UseItem] Ignoring 'began' input for old system skill")
+                    end
                 end
             else
                 warn("Skill not found:", usedItem.name, "for weapon:", Weapon)

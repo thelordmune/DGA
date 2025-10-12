@@ -858,10 +858,13 @@ function Base.InCombat(Plr: Player, value: boolean)
 		if peek(incombat) == true then
 			task.wait(1)
 			started:set(true)
+		else
+			-- Fade out when leaving combat
+			started:set(false)
 		end
 	end)
 
-	scope:New("Frame")({
+	local combatFrame = scope:New("Frame")({
 		Name = "CombatTag",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -892,6 +895,20 @@ function Base.InCombat(Plr: Player, value: boolean)
 			}),
 		},
 	})
+
+	-- Clean up the frame when combat ends and fade is complete
+	task.spawn(function()
+		while combatFrame and combatFrame.Parent do
+			if not peek(incombat) and not peek(started) then
+				task.wait(TInfo.Time) -- Wait for fade out to complete
+				if combatFrame and combatFrame.Parent then
+					scope:doCleanup()
+					break
+				end
+			end
+			task.wait(0.5)
+		end
+	end)
 end
 
 function Base.Guardbreak(Character: Model)

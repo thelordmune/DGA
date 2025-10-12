@@ -156,6 +156,9 @@ NetworkModule.EndPoint = function(Player, Data)
 			task.delay(0.3, function()
 				local sl = Replicated.Assets.VFX.SL:Clone()
 
+				-- Make the stone lance bigger (2x size)
+				sl.Size = sl.Size * 2
+
 				local wedgeHeight = sl.Size.Y
 				local startPos = CFrame.new(spawnPos) * CFrame.new(0, -wedgeHeight - 2, 0)
 				local endPos = CFrame.new(spawnPos) * CFrame.new(0, 4, 0)
@@ -165,10 +168,11 @@ NetworkModule.EndPoint = function(Player, Data)
 				sl.CanCollide = false
 				sl.Parent = workspace.World.Visuals
 
+				-- Make it come up faster (0.25 instead of 0.5)
 				local tweenInfo = TweenInfo.new(
-					0.5,
+					0.25,
 					Enum.EasingStyle.Circular,
-					Enum.EasingDirection.InOut
+					Enum.EasingDirection.Out
 				)
 
 				local tween = TweenService:Create(sl, tweenInfo, {
@@ -177,7 +181,7 @@ NetworkModule.EndPoint = function(Player, Data)
 				table.insert(activeTweens, tween)
 				tween:Play()
 
-				task.delay(0.15, function()
+				task.delay(0.1, function()
 					local vfx = Replicated.Assets.VFX.WallVFX:Clone()
 					for _, v in vfx:GetChildren() do
 						if v:IsA("ParticleEmitter") then
@@ -185,7 +189,7 @@ NetworkModule.EndPoint = function(Player, Data)
 						end
 					end
 
-					task.delay(.15, function()
+					task.delay(.1, function()
 						for _, v in sl:GetChildren() do
 							if v:IsA("ParticleEmitter") then
 								v:Emit(v:GetAttribute("EmitCount"))
@@ -194,9 +198,11 @@ NetworkModule.EndPoint = function(Player, Data)
 					end)
 				end)
 
-				task.delay(0.25, function()
+				-- Adjust hitbox timing to match faster animation (0.15 instead of 0.25)
+				task.delay(0.15, function()
 					local Hitbox = Server.Modules.Hitbox
-					local hitboxSize = sl.Size
+					-- Make hitbox even bigger than the visual (2.5x the visual size for easier hits)
+					local hitboxSize = sl.Size * 1.25
 					local hitboxCFrame = sl.CFrame * CFrame.new(0, wedgeHeight/2, 0)
 
 					local HitTargets = Hitbox.SpatialQuery(
@@ -279,7 +285,7 @@ NetworkModule.EndPoint = function(Player, Data)
 									end)
 								end
 
-								Ragdoll.Ragdoll(Target, 2.5)
+								Ragdoll.Ragdoll(Target, 4)
 
 								task.delay(0.8, function()
 									if targetHumanoid then

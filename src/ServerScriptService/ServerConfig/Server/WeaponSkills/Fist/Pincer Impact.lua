@@ -46,8 +46,16 @@ return function(Player, Data, Server)
 	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Char, script.Name) then
-		Server.Library.SetCooldown(Char, script.Name, 5) -- Increased from 2.5 to 5 seconds
+		-- Stop ALL animations first (including dash) to prevent animation root motion from interfering
 		Server.Library.StopAllAnims(Char)
+
+		-- Remove any existing body movers FIRST and wait for it to complete
+		if not isNPC then
+			Server.Packets.Bvel.sendTo({Character = Char, Name = "RemoveBvel"}, Player)
+			task.wait(0.1) -- Increased delay to ensure animations stop and RemoveBvel completes
+		end
+
+		Server.Library.SetCooldown(Char, script.Name, 5) -- Increased from 2.5 to 5 seconds
 
 		local Move = Library.PlayAnimation(Char, Animation)
 		-- Move:Play()
@@ -397,7 +405,7 @@ return function(Player, Data, Server)
 							print(`[PINCER IMPACT BF] Applying ragdoll + knockback to {Target.Name} (Health: {targetHumanoid.Health})`)
 
 							-- Apply ragdoll effect
-							local ragdollDuration = 3.5 -- Ragdoll lasts 2 seconds
+							local ragdollDuration = 5 -- Ragdoll lasts 2 seconds
 							Ragdoll.Ragdoll(Target, ragdollDuration)
 
 							-- Calculate knockback direction (away from attacker)

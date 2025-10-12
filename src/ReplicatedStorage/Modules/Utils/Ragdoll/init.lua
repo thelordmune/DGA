@@ -113,6 +113,33 @@ function Ragdoller:Enable(character: Model)
 	humanoid.AutoRotate = false
 	humanoid.RequiresNeck = false
 
+	-- Add Ragdoll state to Actions to prevent all actions/moves
+	local actions = character:FindFirstChild("Actions")
+	if not actions then
+		actions = Instance.new("StringValue")
+		actions.Name = "Actions"
+		actions.Value = "[]"
+		actions.Parent = character
+	end
+
+	-- Add Ragdoll state (will prevent all moves and actions)
+	local Library = require(game.ReplicatedStorage.Modules.Library)
+	Library.AddState(actions, "Ragdoll")
+
+	-- Set walkspeed to 0 via Speeds folder
+	local speeds = character:FindFirstChild("Speeds")
+	if not speeds then
+		speeds = Instance.new("Folder")
+		speeds.Name = "Speeds"
+		speeds.Parent = character
+	end
+
+	-- Add speed modifier that sets speed to 0
+	local ragdollSpeed = Instance.new("NumberValue")
+	ragdollSpeed.Name = "RagdollSpeed-0"
+	ragdollSpeed.Value = 0
+	ragdollSpeed.Parent = speeds
+
 	if character:FindFirstChild("NoRagdollEffect") == nil then
 		for _, v in character:GetDescendants() do
 			if (v:IsA("Motor6D") or v:IsA("Weld")) and v:GetAttribute("C0Position") == nil then
@@ -151,6 +178,22 @@ function Ragdoller:Disable(character: Model)
 	if not rootPart then return end
 
 	local old_rotation = rootPart.Orientation
+
+	-- Remove Ragdoll state from Actions
+	local actions = character:FindFirstChild("Actions")
+	if actions then
+		local Library = require(game.ReplicatedStorage.Modules.Library)
+		Library.RemoveState(actions, "Ragdoll")
+	end
+
+	-- Remove speed modifier
+	local speeds = character:FindFirstChild("Speeds")
+	if speeds then
+		local ragdollSpeed = speeds:FindFirstChild("RagdollSpeed-0")
+		if ragdollSpeed then
+			ragdollSpeed:Destroy()
+		end
+	end
 
 	for _, v in character:GetDescendants() do
 		if v:IsA("Motor6D") then

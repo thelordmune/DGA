@@ -35,8 +35,7 @@ local CONFIG = {
 		CENTER_SIZE = UDim2.fromOffset(10, 10),
 		TRIANGLE_SIZE = UDim2.fromOffset(40, 40),
 		DEAD_ZONE = 30, -- Reduced from 50 to make alchemy easier in shift lock
-		MOUSE_SENSITIVITY = 8, -- Increased from 5 for better shift lock responsiveness
-		SHOW_HITBOX_ZONES = true -- Toggle to show/hide hitbox visualization
+		MOUSE_SENSITIVITY = 8 -- Increased from 5 for better shift lock responsiveness
 	},
 	CAMERA = {
 		CASTING_SENSITIVITY = 0.36 -- Reduce camera sensitivity to 20% during casting
@@ -47,13 +46,7 @@ local CONFIG = {
 		active = Color3.fromRGB(0, 255, 0),
 		modifier = Color3.fromRGB(255, 0, 0),
 		modifierHover = Color3.fromRGB(255, 100, 100),
-		background = Color3.fromRGB(0, 100, 200),
-		-- Hitbox zone colors
-		upZone = Color3.fromRGB(100, 100, 255),
-		downZone = Color3.fromRGB(255, 100, 100),
-		leftZone = Color3.fromRGB(100, 255, 100),
-		rightZone = Color3.fromRGB(255, 255, 100),
-		deadZone = Color3.fromRGB(50, 50, 50)
+		background = Color3.fromRGB(0, 100, 200)
 	},
 	ANIMATION = {
 		DURATION = 0.2,
@@ -90,9 +83,11 @@ function DirectionalCasting.new(character)
 	self.modifierSequence = {}
 	self.savedBaseSequence = {}
 	self.currentTriangle = nil
-	self.lastDirection = nil -- Track last valid direction to prevent dead zone issues
-	self.accumulatedMouseDelta = Vector2.new(0, 0) -- Accumulated mouse delta for virtual position
-	
+	self.accumulatedMouseDelta = Vector2.new(0, 0) -- For shift-lock mode mouse reset
+	self.lastRegisteredDirection = nil -- Track last registered direction to prevent repeats
+	self.inDeadZone = false -- Track if currently in dead zone
+	self.deadZoneEnterTime = 0 -- Time when entered dead zone
+
 	-- UI Components
 	self.screenGui = nil
 	self.container = nil
@@ -143,18 +138,13 @@ function DirectionalCasting:_createUI()
 	self.center.BackgroundTransparency = 1
 	self.center.Visible = false
 	self.center.Parent = self.container
-
+	
 	local centerCorner = Instance.new("UICorner")
 	centerCorner.CornerRadius = UDim.new(1, 0)
 	centerCorner.Parent = self.center
-
+	
 	-- Create triangles
 	self:_createTriangles()
-
-	-- Create hitbox zone visualization
-	if CONFIG.UI.SHOW_HITBOX_ZONES then
-		self:_createHitboxVisualization()
-	end
 end
 
 -- Create directional triangles
@@ -165,7 +155,7 @@ function DirectionalCasting:_createTriangles()
 		{name = "LEFT", text = "◀", position = UDim2.fromScale(0.2, 0.5)},
 		{name = "RIGHT", text = "▶", position = UDim2.fromScale(0.8, 0.5)}
 	}
-
+	
 	for _, dir in pairs(directions) do
 		local triangle = Instance.new("TextLabel")
 		triangle.Name = dir.name
@@ -181,151 +171,9 @@ function DirectionalCasting:_createTriangles()
 		triangle.Font = Enum.Font.SourceSansBold
 		triangle.Visible = false
 		triangle.Parent = self.container
-
+		
 		self.triangles[dir.name] = triangle
 	end
-end
-
--- Create hitbox zone visualization
-function DirectionalCasting:_createHitboxVisualization()
-	-- Create a canvas for drawing zones
-	local canvas = Instance.new("Frame")
-	canvas.Name = "HitboxCanvas"
-	canvas.Size = UDim2.fromScale(1, 1)
-	canvas.Position = UDim2.fromScale(0.5, 0.5)
-	canvas.AnchorPoint = Vector2.new(0.5, 0.5)
-	canvas.BackgroundTransparency = 1
-	canvas.Visible = false
-	canvas.ZIndex = 0 -- Behind triangles
-	canvas.Parent = self.container
-
-	self.hitboxCanvas = canvas
-
-	-- Helper function to draw angle boundary lines
-	local function createBoundaryLine(angleDegrees, color)
-		local length = 100 -- pixels from center
-
-		-- Create line using a rotated frame
-		local line = Instance.new("Frame")
-		line.Size = UDim2.fromOffset(length, 2)
-		line.Position = UDim2.fromScale(0.5, 0.5)
-		line.AnchorPoint = Vector2.new(0, 0.5)
-		line.BackgroundColor3 = color
-		line.BorderSizePixel = 0
-		line.Rotation = angleDegrees
-		line.ZIndex = 2
-		line.Parent = canvas
-
-		-- Add label at the end of the line
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.fromOffset(40, 20)
-		label.Position = UDim2.fromScale(1, 0.5)
-		label.AnchorPoint = Vector2.new(0.5, 0.5)
-		label.BackgroundTransparency = 1
-		label.Text = angleDegrees .. "°"
-		label.TextColor3 = color
-		label.TextSize = 10
-		label.TextStrokeTransparency = 0
-		label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-		label.Font = Enum.Font.SourceSansBold
-		label.Rotation = -angleDegrees -- Keep text upright
-		label.Parent = line
-
-		return line
-	end
-
-	-- Helper function to create a zone label
-	local function createZoneLabel(angleDegrees, distance, text, color)
-		local angleRad = math.rad(angleDegrees)
-		local x = 0.5 + (math.cos(angleRad) * distance / 100)
-		local y = 0.5 + (math.sin(angleRad) * distance / 100)
-
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.fromOffset(80, 40)
-		label.Position = UDim2.fromScale(x, y)
-		label.AnchorPoint = Vector2.new(0.5, 0.5)
-		label.BackgroundTransparency = 0.3
-		label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-		label.Text = text
-		label.TextColor3 = color
-		label.TextSize = 12
-		label.TextStrokeTransparency = 0.5
-		label.Font = Enum.Font.SourceSansBold
-		label.ZIndex = 3
-		label.Parent = canvas
-
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 4)
-		corner.Parent = label
-
-		return label
-	end
-
-	-- Draw boundary lines for each zone (matching the corrected angle ranges)
-	-- RIGHT: 315° - 45° (wraps around 0°)
-	createBoundaryLine(315, CONFIG.COLORS.rightZone)
-	createBoundaryLine(45, CONFIG.COLORS.rightZone)
-	createZoneLabel(0, 70, "RIGHT\n315°-45°", CONFIG.COLORS.rightZone)
-
-	-- DOWN: 45° - 135°
-	createBoundaryLine(45, CONFIG.COLORS.downZone)
-	createBoundaryLine(135, CONFIG.COLORS.downZone)
-	createZoneLabel(90, 70, "DOWN\n45°-135°", CONFIG.COLORS.downZone)
-
-	-- LEFT: 135° - 225°
-	createBoundaryLine(135, CONFIG.COLORS.leftZone)
-	createBoundaryLine(225, CONFIG.COLORS.leftZone)
-	createZoneLabel(180, 70, "LEFT\n135°-225°", CONFIG.COLORS.leftZone)
-
-	-- UP: 225° - 315°
-	createBoundaryLine(225, CONFIG.COLORS.upZone)
-	createBoundaryLine(315, CONFIG.COLORS.upZone)
-	createZoneLabel(270, 70, "UP\n225°-315°", CONFIG.COLORS.upZone)
-
-	-- Create dead zone circle
-	local deadZone = Instance.new("Frame")
-	deadZone.Name = "DeadZone"
-	deadZone.Size = UDim2.fromOffset(CONFIG.UI.DEAD_ZONE * 2, CONFIG.UI.DEAD_ZONE * 2)
-	deadZone.Position = UDim2.fromScale(0.5, 0.5)
-	deadZone.AnchorPoint = Vector2.new(0.5, 0.5)
-	deadZone.BackgroundTransparency = 0.7
-	deadZone.BackgroundColor3 = CONFIG.COLORS.deadZone
-	deadZone.BorderSizePixel = 2
-	deadZone.BorderColor3 = Color3.fromRGB(255, 0, 0)
-	deadZone.ZIndex = 1
-	deadZone.Parent = canvas
-
-	local deadCorner = Instance.new("UICorner")
-	deadCorner.CornerRadius = UDim.new(1, 0)
-	deadCorner.Parent = deadZone
-
-	local deadLabel = Instance.new("TextLabel")
-	deadLabel.Size = UDim2.fromScale(1, 1)
-	deadLabel.BackgroundTransparency = 1
-	deadLabel.Text = "DEAD\nZONE\n" .. CONFIG.UI.DEAD_ZONE .. "px"
-	deadLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	deadLabel.TextSize = 9
-	deadLabel.TextStrokeTransparency = 0.5
-	deadLabel.Font = Enum.Font.SourceSansBold
-	deadLabel.Parent = deadZone
-
-	-- Add instruction label
-	local instructions = Instance.new("TextLabel")
-	instructions.Size = UDim2.fromOffset(180, 30)
-	instructions.Position = UDim2.fromScale(0.5, 0)
-	instructions.AnchorPoint = Vector2.new(0.5, 0)
-	instructions.BackgroundTransparency = 0.3
-	instructions.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	instructions.Text = "Move mouse to colored zones"
-	instructions.TextColor3 = Color3.fromRGB(255, 255, 255)
-	instructions.TextSize = 11
-	instructions.Font = Enum.Font.SourceSansBold
-	instructions.ZIndex = 3
-	instructions.Parent = canvas
-
-	local instrCorner = Instance.new("UICorner")
-	instrCorner.CornerRadius = UDim.new(0, 4)
-	instrCorner.Parent = instructions
 end
 
 -- Format sequence to compact string (e.g., "DULR")
@@ -368,27 +216,26 @@ function DirectionalCasting:_updateStates()
 	self._onCastingStateChangedEvent:Fire(self.isCasting, self.isModifying)
 end
 
--- Lock character rotation during casting
+-- Lock character rotation during casting (shift lock mode)
 function DirectionalCasting:_lockCharacterRotation()
 	if self.rotationLocked then return end -- Already locked
 
-	if self.Character then
-		local humanoid = self.Character:FindFirstChild("Humanoid")
-		local rootPart = self.Character:FindFirstChild("HumanoidRootPart")
+	-- Check if in shift lock mode
+	local isShiftLock = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
 
-		if humanoid and rootPart then
+	if isShiftLock and self.Character then
+		local humanoid = self.Character:FindFirstChild("Humanoid")
+
+		if humanoid then
 			-- Store original AutoRotate state
 			self.originalAutoRotate = humanoid.AutoRotate
 
-			-- ENABLE AutoRotate so character faces camera direction
-			humanoid.AutoRotate = true
-
-			-- Store the current facing direction
-			self.lockedCFrame = rootPart.CFrame
+			-- Disable AutoRotate to prevent character from rotating with mouse movement
+			humanoid.AutoRotate = false
 
 			self.rotationLocked = true
 
-			-- print("🔒 Character AutoRotate ENABLED for casting")
+			-- print("🔒 AutoRotate DISABLED for casting (shift lock mode)")
 		end
 	end
 end
@@ -407,41 +254,34 @@ function DirectionalCasting:_unlockCharacterRotation()
 
 	self.rotationLocked = false
 	self.originalAutoRotate = nil
-	self.lockedCFrame = nil
 
-	-- print("🔓 Character rotation unlocked")
+	-- print("🔓 AutoRotate restored")
 end
 
--- Lock camera rotation during casting (but allow it to follow player)
-function DirectionalCasting:_lockCamera()
-	if self.cameraLocked then return end -- Already locked
+-- Reduce camera sensitivity during casting (for non-shift-lock mode)
+function DirectionalCasting:_reduceCameraSensitivity()
+	if self.originalMouseSensitivity then return end -- Already reduced
 
-	-- Store original mouse delta sensitivity
-	self.originalMouseDeltaSensitivity = UserInputService.MouseDeltaSensitivity
+	-- Check if in shift lock mode
+	local isShiftLock = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
 
-	-- Set mouse sensitivity to 0 to prevent camera rotation from mouse movement
-	UserInputService.MouseDeltaSensitivity = 0
-
-	self.cameraLocked = true
-
-	-- Don't hide mouse cursor - we need to see it for directional input
-
-	-- print("📷 Camera mouse input DISABLED (camera will still follow player)")
-end
-
--- Unlock camera after casting
-function DirectionalCasting:_unlockCamera()
-	if not self.cameraLocked then return end
-
-	-- Restore mouse delta sensitivity
-	if self.originalMouseDeltaSensitivity then
-		UserInputService.MouseDeltaSensitivity = self.originalMouseDeltaSensitivity
-		self.originalMouseDeltaSensitivity = nil
+	if not isShiftLock then
+		-- Normal mode: reduce sensitivity
+		self.originalMouseSensitivity = UserInputService.MouseDeltaSensitivity
+		UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity * CONFIG.CAMERA.CASTING_SENSITIVITY
+		-- print("📷 Camera sensitivity reduced for casting")
 	end
+end
 
-	self.cameraLocked = false
+-- Restore camera sensitivity after casting
+function DirectionalCasting:_restoreCameraSensitivity()
+	if not self.originalMouseSensitivity then return end -- Not reduced
 
-	-- print("📷 Camera mouse input RESTORED")
+	-- Restore original sensitivity
+	UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity
+	self.originalMouseSensitivity = nil
+
+	-- print("📷 Camera sensitivity restored")
 end
 
 -- Start casting
@@ -454,17 +294,17 @@ function DirectionalCasting:StartCasting()
 	self.modifierSequence = {}
 	self.savedBaseSequence = {}
 	self.currentTriangle = nil
-	self.lastDirection = nil -- Reset last direction
 	self.accumulatedMouseDelta = Vector2.new(0, 0) -- Reset accumulated delta
+	self.lastRegisteredDirection = nil -- Reset last registered direction
 
 	-- Update states
 	self:_updateStates()
 
-	-- Lock character rotation
+	-- Lock character rotation if in shift lock mode
 	self:_lockCharacterRotation()
 
-	-- Lock camera in place
-	self:_lockCamera()
+	-- Reduce camera sensitivity during casting (for non-shift-lock)
+	self:_reduceCameraSensitivity()
 
 	-- Show UI with animations
 	self:_showUI()
@@ -478,25 +318,24 @@ end
 -- Enter modifier mode
 function DirectionalCasting:EnterModifierMode()
 	if not self.isCasting then return end
-
+	
 	self.isModifying = true
-
+	
 	-- Save current base sequence
 	self.savedBaseSequence = {}
 	for i, direction in ipairs(self.directionSequence) do
 		self.savedBaseSequence[i] = direction
 	end
-
+	
 	-- Start fresh modifier sequence
 	self.modifierSequence = {}
-	self.lastDirection = nil -- Reset last direction for modifier sequence
-
+	
 	-- Update states
 	self:_updateStates()
-
+	
 	-- Update triangle colors to red
 	self:_updateTriangleColors()
-
+	
 	-- print("🔧 MODIFIER MODE ACTIVATED - Triangles are now red")
 	-- print("💾 Base sequence saved: " .. self:_formatSequence(self.savedBaseSequence))
 	-- print("🆕 Starting fresh modifier sequence...")
@@ -532,11 +371,11 @@ function DirectionalCasting:StopCasting()
 	self.isCasting = false
 	self.isModifying = false
 
-	-- Unlock character rotation
+	-- Unlock character rotation (if it was locked)
 	self:_unlockCharacterRotation()
 
-	-- Unlock camera
-	self:_unlockCamera()
+	-- Restore camera sensitivity
+	self:_restoreCameraSensitivity()
 
 	-- Update states
 	self:_updateStates()
@@ -571,8 +410,8 @@ function DirectionalCasting:Destroy()
 	-- Ensure character rotation is unlocked
 	self:_unlockCharacterRotation()
 
-	-- Ensure camera is unlocked
-	self:_unlockCamera()
+	-- Ensure camera sensitivity is restored
+	self:_restoreCameraSensitivity()
 
 	if self.screenGui then
 		self.screenGui:Destroy()
@@ -617,11 +456,6 @@ function DirectionalCasting:_showUI()
 		})
 		triangleTween:Play()
 	end
-
-	-- Show hitbox visualization if enabled
-	if self.hitboxCanvas then
-		self.hitboxCanvas.Visible = true
-	end
 end
 
 -- Hide UI with fade-out animations
@@ -656,11 +490,6 @@ function DirectionalCasting:_hideUI()
 		triangleTween.Completed:Connect(function()
 			triangle.Visible = false
 		end)
-	end
-
-	-- Hide hitbox visualization
-	if self.hitboxCanvas then
-		self.hitboxCanvas.Visible = false
 	end
 end
 
@@ -708,14 +537,8 @@ function DirectionalCasting:_updateMouseTracking()
 		-- Accumulate mouse delta for shift-lock mode
 		local mouseDelta = UserInputService:GetMouseDelta()
 		self.accumulatedMouseDelta = self.accumulatedMouseDelta + mouseDelta
-
-		-- Calculate virtual mouse position from accumulated delta
-		mouse = Vector2.new(
-			centerX + self.accumulatedMouseDelta.X * CONFIG.UI.MOUSE_SENSITIVITY,
-			centerY + self.accumulatedMouseDelta.Y * CONFIG.UI.MOUSE_SENSITIVITY
-		)
+		mouse = Vector2.new(centerX + self.accumulatedMouseDelta.X * CONFIG.UI.MOUSE_SENSITIVITY, centerY + self.accumulatedMouseDelta.Y * CONFIG.UI.MOUSE_SENSITIVITY)
 	else
-		-- Normal mode - use actual mouse location
 		mouse = UserInputService:GetMouseLocation()
 	end
 
@@ -724,9 +547,20 @@ function DirectionalCasting:_updateMouseTracking()
 	-- Check if in dead zone
 	if distance < CONFIG.UI.DEAD_ZONE then
 		self:_setCurrentTriangle(nil)
-		-- Don't clear lastDirection - keep it so we don't add spurious directions when passing through dead zone
+		-- Only clear last registered direction if we've been in dead zone
+		-- This prevents spurious directions when quickly passing through center
+		if not self.inDeadZone then
+			self.inDeadZone = true
+			self.deadZoneEnterTime = tick()
+		elseif tick() - self.deadZoneEnterTime > 0.05 then
+			-- Been in dead zone for 50ms, safe to clear
+			self.lastRegisteredDirection = nil
+		end
 		return
 	end
+
+	-- Not in dead zone anymore
+	self.inDeadZone = false
 
 	-- Calculate angle and determine direction
 	local angle = math.atan2(mouse.Y - centerY, mouse.X - centerX)
@@ -735,18 +569,29 @@ function DirectionalCasting:_updateMouseTracking()
 
 	local direction = self:_getDirectionFromAngle(degrees)
 	if direction then
-		self:_setCurrentTriangle(self.triangles[direction])
+		-- Only register if it's different from the last registered direction
+		if direction ~= self.lastRegisteredDirection then
+			self:_setCurrentTriangle(self.triangles[direction])
 
-		-- Only add to sequence if direction changed from last valid direction
-		if direction ~= self.lastDirection then
+			-- Add direction to sequence
 			self:_addDirectionToSequence(direction)
-			self.lastDirection = direction
 
-			-- Reset virtual mouse position to center after logging input
+			-- Mark this direction as registered
+			self.lastRegisteredDirection = direction
+
+			-- Reset mouse position to center after logging input
 			if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
-				-- Reset accumulated delta for shift-lock mode
 				self.accumulatedMouseDelta = Vector2.new(0, 0)
 			end
+
+			-- Clear the last registered direction immediately so we can do another input
+			-- This allows rapid input chaining without needing to return to dead zone
+			task.delay(0.05, function()
+				if self.lastRegisteredDirection == direction then
+					self.lastRegisteredDirection = nil
+					self:_setCurrentTriangle(nil)
+				end
+			end)
 		end
 	end
 end
@@ -755,17 +600,17 @@ end
 function DirectionalCasting:_getDirectionFromAngle(degrees)
 	-- Standard math angles: 0° = right, 90° = down, 180° = left, 270° = up
 
-	-- RIGHT: 315° - 45° (90° range, wraps around 0°)
+	-- RIGHT: 315° - 45° (90° range, wraps around 0°) - Large zone
 	if degrees >= 315 or degrees <= 45 then
 		return "RIGHT"
-	-- DOWN: 45° - 135° (90° range)
-	elseif degrees > 45 and degrees <= 135 then
-		return "DOWN"
-	-- LEFT: 135° - 225° (90° range)
+	-- LEFT: 135° - 225° (90° range) - Large zone
 	elseif degrees > 135 and degrees <= 225 then
 		return "LEFT"
-	-- UP: 225° - 315° (90° range)
-	elseif degrees > 225 and degrees < 315 then
+	-- DOWN: 75° - 105° (30° range) - Very small zone, hard to trigger
+	elseif degrees > 75 and degrees <= 105 then
+		return "DOWN"
+	-- UP: 255° - 285° (30° range) - Very small zone, hard to trigger
+	elseif degrees > 255 and degrees < 285 then
 		return "UP"
 	end
 

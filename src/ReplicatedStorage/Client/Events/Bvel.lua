@@ -172,11 +172,28 @@ NetworkModule["PIBvel"] = function(Character)
 		return
 	end
 
+	local rootPart = Character.PrimaryPart
+
+	-- Clean up any existing body movers FIRST
+	--print(`[PIBvel] Cleaning body movers before creating new velocity`)
+	for _, child in pairs(rootPart:GetChildren()) do
+		if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+			--print(`[PIBvel] Destroying existing {child.ClassName}: {child.Name}`)
+			child:Destroy()
+		end
+	end
+
+	-- Clear residual velocity
+	rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+	rootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+
+	-- Wait for physics to update (critical to prevent teleporting!)
+	task.wait()
+
 	local lv = Instance.new("LinearVelocity")
 	local attachment = Instance.new("Attachment")
-	attachment.Parent = Character.PrimaryPart
+	attachment.Parent = rootPart
 
-	local rootPart = Character.PrimaryPart
 	local speed = 40
 	local duration = .71
 	local startTime = os.clock()
@@ -377,13 +394,32 @@ NetworkModule["BaseBvel"] = function(Character: Model)
 end
 
 NetworkModule["RemoveBvel"] = function(Character: Model)
-	for _, v in pairs(Character:GetChildren()) do
-		if v:IsA("LinearVelocity") then
-			v:Destroy()
-		elseif v:IsA("BodyVelocity") then
+	local startTime = os.clock()
+	local rootPart = Character:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return end
+
+	--print(`[RemoveBvel] [{startTime}] START - Cleaning body movers from {Character.Name}`)
+	--print(`[RemoveBvel] Current position: {rootPart.Position}`)
+	--print(`[RemoveBvel] Current velocity: {rootPart.AssemblyLinearVelocity}`)
+
+	local moversFound = 0
+	-- Remove all body movers from HumanoidRootPart
+	for _, v in pairs(Character:GetDescendants()) do
+		if v:IsA("LinearVelocity") or v:IsA("BodyVelocity") or v:IsA("BodyPosition") or v:IsA("BodyGyro") then
+			--print(`[RemoveBvel] Destroying {v.ClassName}: {v.Name} (Parent: {v.Parent.Name})`)
+			moversFound = moversFound + 1
 			v:Destroy()
 		end
 	end
+
+	-- Also clear assembly velocity to remove any residual momentum
+	rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+	rootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+
+	local endTime = os.clock()
+	--print(`[RemoveBvel] [{endTime}] COMPLETE - Removed {moversFound} body movers in {(endTime - startTime) * 1000}ms`)
+	--print(`[RemoveBvel] Final position: {rootPart.Position}`)
+	--print(`[RemoveBvel] Final velocity: {rootPart.AssemblyLinearVelocity}`)
 end
 
 NetworkModule["MineM1Bvel"] = function(Character)
@@ -489,7 +525,7 @@ end
 
 NetworkModule["AABvel"] = function(Character: Model)
 	local tim = 0.71
-	print(tim)
+	--print(tim)
 	local lv = Instance.new("LinearVelocity")
 	local attachment = Instance.new("Attachment")
 	attachment.Parent = Character.HumanoidRootPart
@@ -553,15 +589,78 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 end
 
 NetworkModule["NTBvel"] = function(Character)
-    print("starting bvel")
-    local lv = Instance.new("LinearVelocity")
-    local attachment = Instance.new("Attachment")
-    attachment.Parent = Character.PrimaryPart
+    local startTime = os.clock()
+    local callId = math.random(1000, 9999)
+    --print(`[NTBvel #{callId}] [{startTime}] START - Creating velocity for {Character.Name}`)
+    --print(`[NTBvel #{callId}] ⚠️ WARNING: If you see multiple calls with different IDs, the skill is being triggered multiple times!`)
 
     local rootPart = Character.PrimaryPart
+    if not rootPart then return end
+
+    --print(`[NTBvel #{callId}] Position before cleanup: {rootPart.Position}`)
+    --print(`[NTBvel #{callId}] Velocity before cleanup: {rootPart.AssemblyLinearVelocity}`)
+
+    -- Stop ONLY movement animations (Walking, Running, Dash, etc.) but NOT skill animations
+    local humanoid = Character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        local animator = humanoid:FindFirstChildOfClass("Animator")
+        if animator then
+            local tracks = animator:GetPlayingAnimationTracks()
+            --print(`[NTBvel #{callId}] Checking {#tracks} active animations`)
+
+            -- List of movement animation names to stop
+            local movementAnimNames = {"Walking", "Running", "Right", "Left", "Forward", "Backward", "Idle", "Jump", "Fall", "Climb", "Sit"}
+
+            for _, track in ipairs(tracks) do
+                local animName = track.Animation.Name
+                local shouldStop = false
+
+                -- Check if this is a movement animation
+                for _, moveName in ipairs(movementAnimNames) do
+                    if animName == moveName then
+                        shouldStop = true
+                        break
+                    end
+                end
+
+                if shouldStop then
+                    --print(`[NTBvel #{callId}]   - Stopping movement anim: {animName}`)
+                    track:Stop(0) -- Stop immediately with 0 fade time
+                else
+                    --print(`[NTBvel #{callId}]   - Keeping skill anim: {animName}`)
+                end
+            end
+        end
+    end
+
+    -- Clean up any existing body movers FIRST
+    --print(`[NTBvel #{callId}] Cleaning body movers before creating new velocity`)
+    local moversFound = 0
+    for _, child in pairs(rootPart:GetChildren()) do
+        if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+            --print(`[NTBvel #{callId}] Destroying existing {child.ClassName}: {child.Name}`)
+            moversFound = moversFound + 1
+            child:Destroy()
+        end
+    end
+    --print(`[NTBvel #{callId}] Removed {moversFound} existing body movers`)
+
+    -- Clear residual velocity
+    rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    rootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+
+    --print(`[NTBvel #{callId}] Position after cleanup: {rootPart.Position}`)
+    --print(`[NTBvel #{callId}] Velocity after cleanup: {rootPart.AssemblyLinearVelocity}`)
+
+    local lv = Instance.new("LinearVelocity")
+    local attachment = Instance.new("Attachment")
+    attachment.Parent = rootPart
+
     local speed = 50
     local duration = 0.6
-    local startTime = os.clock()
+    local animStartTime = os.clock()
+
+    --print(`[NTBvel #{callId}] Creating LinearVelocity with speed={speed}, duration={duration}`)
 
     lv.MaxForce = math.huge
     lv.Attachment0 = attachment
@@ -569,10 +668,12 @@ NetworkModule["NTBvel"] = function(Character)
     lv.Parent = rootPart
 
     -- Connection to update velocity every frame
+    local frameCount = 0
     local conn
     conn = RunService.Heartbeat:Connect(function()
-        local elapsed = os.clock() - startTime
+        local elapsed = os.clock() - animStartTime
         local progress = math.clamp(elapsed / duration, 0, 1)
+        frameCount = frameCount + 1
 
         -- Get current forward direction
         local forwardVector = rootPart.CFrame.LookVector
@@ -592,13 +693,20 @@ NetworkModule["NTBvel"] = function(Character)
 
         -- Apply velocity with arc motion
         lv.VectorVelocity = forwardVector * horizontalSpeed + Vector3.new(0, verticalComponent, 0)
+
+        -- Debug tracking every 5 frames
+        if frameCount % 5 == 0 then
+            --print(`[NTBvel #{callId} Frame {frameCount}] Progress: {math.floor(progress * 100)}% | Pos: {rootPart.Position} | Vel: {rootPart.AssemblyLinearVelocity}`)
+        end
     end)
 
     -- Cleanup after duration seconds
     task.delay(duration, function()
+        --print(`[NTBvel #{callId}] ENDING - Final position: {rootPart.Position} | Final velocity: {rootPart.AssemblyLinearVelocity}`)
         conn:Disconnect()
         lv:Destroy()
         attachment:Destroy()
+        --print(`[NTBvel #{callId}] Cleanup complete`)
     end)
 end
 
