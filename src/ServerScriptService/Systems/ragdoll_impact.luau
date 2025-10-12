@@ -203,8 +203,8 @@ return {
                             print(`[RagdollImpact] 💥 {character.Name} hitting ground! Velocity: {math.floor(math.abs(currentVelocity.Y))} studs/s, Distance: {math.floor(distanceToGround)} studs`)
                             print(`[RagdollImpact] 📍 Ground: {raycastResult.Instance:GetFullName()}`)
 
-                            -- Send impact event to clients immediately
-                            createImpact(character.Name, rootPart.Position, currentVelocity)
+                            -- Send impact event to clients immediately using the GROUND position, not character position
+                            createImpact(character.Name, raycastResult.Position, currentVelocity)
 
                             -- Update impact time
                             impactData.lastImpactTime = impactTime

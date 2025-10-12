@@ -13,7 +13,6 @@ local function getSystemsFolders() : table
 		end
 	end
 
-	-- Both server and client load shared systems from ReplicatedStorage
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local modules = ReplicatedStorage:WaitForChild("Modules", 10)
 	if modules then

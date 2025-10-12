@@ -47,10 +47,22 @@ Bridges.ECSClient:Connect(function(data)
 
     print(`[RagdollImpactClient] 🌋 Creating crater - Size: {sizeMultiplier}, Debris: {debrisCount}`)
 
-    -- Play downslam kick "Land" effect at impact position
+    -- Play downslam kick "Land" effect at GROUND impact position (not character position)
     if character then
-        print(`[RagdollImpactClient] 💥 Playing Downslam Land effect for {characterName}`)
-        BaseEffects.Downslam(character, "Land")
+        print(`[RagdollImpactClient] 💥 Playing Downslam Land effect at ground position: {impactPosition}`)
+
+        -- Create the effect manually at the ground position instead of using character position
+        local eff = ReplicatedStorage.Assets.VFX.DSKSlam:Clone()
+        eff.CFrame = CFrame.new(impactPosition) -- Use ground position, not character position
+        eff.Parent = workspace.World.Visuals
+        for _, v in eff:GetDescendants() do
+            if v:IsA("ParticleEmitter") then
+                v:Emit(v:GetAttribute("EmitCount"))
+            end
+        end
+        task.delay(3, function()
+            eff:Destroy()
+        end)
 
         -- Play impact sound on the character
         local impactSound = ReplicatedStorage.Assets.SFX.Extra:FindFirstChild("Impact")
@@ -62,16 +74,24 @@ Bridges.ECSClient:Connect(function(data)
         end
     end
 
-    -- Create crater effect on client
+    -- Create crater effect on client at GROUND position
+    -- Offset the crater slightly upward so rocks aren't buried underground
+    local craterPosition = impactPosition + Vector3.new(0, 1, 0) -- Raise 1 stud above ground
+    print(`[RagdollImpactClient] 🪨 Creating crater at position: {craterPosition} (offset +1Y from ground)`)
     local success, err = pcall(function()
-        local effect = RockMod.New("Crater", CFrame.new(impactPosition), {
+        local craterCFrame = CFrame.new(craterPosition)
+        print(`[RagdollImpactClient] 🪨 Crater CFrame: {craterCFrame}`)
+
+        local effect = RockMod.New("Crater", craterCFrame, {
             Distance = { 5.5, 15 },
             SizeMultiplier = sizeMultiplier,
             PartCount = 12,
             Layers = { 3, 3 },
             ExitIterationDelay = { 0.5, 1 },
         })
-        
+
+        print(`[RagdollImpactClient] 🪨 RockMod.New returned: {effect}`)
+
         if effect then
             print(`[RagdollImpactClient] ✅ Crater created, adding debris...`)
             effect:Debris("Normal", {
@@ -101,7 +121,7 @@ Bridges.ECSClient:Connect(function(data)
             })
             print(`[RagdollImpactClient] ✅ Debris added successfully`)
         else
-            warn(`[RagdollImpactClient] ⚠️ RockMod.New returned nil`)
+            warn(`[RagdollImpactClient] ⚠️ RockMod.New returned nil - crater type may not exist`)
         end
     end)
     
