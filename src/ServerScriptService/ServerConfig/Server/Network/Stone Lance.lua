@@ -119,6 +119,10 @@ NetworkModule.EndPoint = function(Player, Data)
         end)
 
 		task.delay(hittimes[2], function()
+			           local s = Replicated.Assets.SFX.FMAB.Transmute:Clone()
+					s.Parent = Character.HumanoidRootPart
+					s:Play()
+					Debris:AddItem(s, s.TimeLength)
 			local root = Character.HumanoidRootPart
 			if not root then return end
 

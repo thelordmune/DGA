@@ -543,18 +543,31 @@ function LoadNode(Node, Params)
 
 
 		if CurrentDialogueUI then
-			local textLabel = CurrentDialogueUI:FindFirstChild("Text", true)
+			-- Look for TextPlusContainer instead of Text
+			local textContainer = CurrentDialogueUI:FindFirstChild("TextPlusContainer", true)
 			local npcNameLabel = CurrentDialogueUI:FindFirstChild("NPCName", true)
 
-			if textLabel and Node.Text then
-				DebugPrint("Updating text label with: " .. Node.Text.Value)
-				RichText.ClearText(textLabel)
+			DebugPrint("CurrentDialogueUI found:", CurrentDialogueUI)
+			DebugPrint("TextPlusContainer found:", textContainer)
+			DebugPrint("Node.Text:", Node.Text)
+
+			if textContainer and Node.Text then
+				DebugPrint("Updating text with TextPlus: " .. Node.Text.Value)
+				DebugPrint("Setting dpText to empty")
 				dpText:set("")
-				task.wait(1)
+				task.wait(0.1)
+				DebugPrint("Setting dpText to:", Node.Text.Value)
 				dpText:set(Node.Text.Value)
-				-- RichText.AnimateText(Node.Text.Value, textLabel, 0.05, Enum.Font.SourceSans, "fade diverge", 1, 14)
+			elseif Node.Text then
+				-- Fallback: just set the text even if container not found yet
+				DebugPrint("TextPlusContainer not found, setting text anyway: " .. Node.Text.Value)
+				DebugPrint("Setting dpText to empty")
+				dpText:set("")
+				task.wait(0.1)
+				DebugPrint("Setting dpText to:", Node.Text.Value)
+				dpText:set(Node.Text.Value)
 			else
-				DebugPrint("WARNING: Text label or node text not found")
+				DebugPrint("WARNING: Node.Text not found")
 			end
 
 			if npcNameLabel then
@@ -563,6 +576,8 @@ function LoadNode(Node, Params)
 			else
 				DebugPrint("WARNING: NPC name label not found")
 			end
+		else
+			DebugPrint("WARNING: CurrentDialogueUI is nil!")
 		end
 
 		DebugPrint("Waiting " .. PromptWaitTime .. " seconds before loading next nodes")
@@ -640,7 +655,14 @@ end
 function LoadNodes(Nodes, Params)
 	DebugPrint("Loading " .. #Nodes .. " nodes")
 	if #Nodes <= 0 then
-		DebugPrint("No nodes to load, closing dialogue")
+		DebugPrint("No nodes to load, waiting for animation to finish then auto-closing")
+		-- Wait for text animation to complete (estimate based on text length)
+		-- Average text is ~80 chars * 0.015s = 1.2s + 0.5s buffer = ~2s
+		task.wait(2)
+		-- Then wait additional time for player to read
+		DebugPrint("Animation complete, waiting 3 seconds for player to read")
+		task.wait(3)
+		DebugPrint("Auto-closing dialogue now")
 		Close(Params)
 	else
 		-- Filter nodes by conditions and priority
@@ -834,8 +856,9 @@ function OnEvent(Params)
 	local parent = Target
 
 	-- Store the created UI
+	DebugPrint("Creating dialogue with dpText:", dpText, "begin:", begin, "fadein:", fadein)
 	scope:Dialogue({
-		displayText = dpText or "",
+		displayText = dpText,
 		npcname = Params.name,
 		start = begin,
 		Parent = parent,
