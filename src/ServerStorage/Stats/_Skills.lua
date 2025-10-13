@@ -164,7 +164,7 @@ local Table = {
 			Stun = 0.8, -- Increased from 0.4 to 0.8 for better NPC stun
             },
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
-            ["HitTime"] = {24/49}
+            ["HitTime"] = {21/49,27/49}
         },
 		["Pincer Impact"] = {
 			["DamageTable"] = {

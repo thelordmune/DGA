@@ -61,32 +61,28 @@ return function(Player, Data, Server)
 
 		print(tostring(hittimes[1]))
 
+		-- Play start effect immediately
+		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+			Module = "Base",
+			Function = "Downslam",
+			Arguments = { Character, "Start" },
+		})
+
 		task.delay(hittimes[1], function()
 			-- Safety check - make sure character still exists
 			if not Character or not Character.PrimaryPart then
 				return
 			end
 
-			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-				Module = "Base",
-				Function = "Downslam",
-				Arguments = { Character, "Start" },
-			})
-
-			-- Create linear velocity for arc motion
-			local lv = Instance.new("LinearVelocity")
-			local attachment = Instance.new("Attachment")
-			attachment.Parent = Character.PrimaryPart
-
-			lv.MaxForce = math.huge
-			lv.Attachment0 = attachment
-			lv.RelativeTo = Enum.ActuatorRelativeTo.World
-			lv.Parent = Character.PrimaryPart
+			-- Create body velocity for arc motion (more reliable than LinearVelocity)
+			local bv = Instance.new("BodyVelocity")
+			bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+			bv.P = 10000
+			bv.Parent = Character.PrimaryPart
 
 			-- Launch forward and up
 			local forwardVector = Character.PrimaryPart.CFrame.LookVector
-			local startTime = os.clock()
-			local launchDuration = hittimes[2] - hittimes[1]
+			bv.Velocity = forwardVector * 50 + Vector3.new(0, 120, 0)
 
 			-- Safety cleanup function
 			local function cleanup()
@@ -106,54 +102,44 @@ return function(Player, Data, Server)
 				humanoid.Died:Once(cleanup)
 			end
 
-			-- Smooth arc motion using heartbeat
-			local conn
-			conn = RunService.Heartbeat:Connect(function()
-				local elapsed = os.clock() - startTime
-				local progress = math.min(elapsed / launchDuration, 1)
+			-- Wait for apex detection
+			local apexConn
+			apexConn = RunService.Heartbeat:Connect(function()
+				-- Check if character still exists
+				if not Character or not Character.PrimaryPart or not lv or not lv.Parent then
+					if apexConn then
+						apexConn:Disconnect()
+					end
+					return
+				end
 
-				-- Smooth arc trajectory - only forward (Z) and up (Y)
-				local forwardSpeed = 50 * (1 - progress * 0.45) -- Gradual slowdown
-				local verticalSpeed = 120 * (1 - progress) - 150 * progress -- Much higher arc up then down
+				-- Check if we've reached the apex (velocity going downward)
+				local currentVelocity = Character.PrimaryPart.AssemblyLinearVelocity
+				if currentVelocity.Y <= 0 then
+					-- Reached apex - destroy LinearVelocity and let gravity take over
+					Move:AdjustSpeed(0) -- Pause animation at apex
+					lv:Destroy()
+					attachment:Destroy()
+					apexConn:Disconnect()
 
-				lv.VectorVelocity = forwardVector * forwardSpeed + Vector3.new(0, verticalSpeed, 0)
-
-				-- Pause animation at peak
-				if progress >= 1 then
-					Move:AdjustSpeed(0)
-					conn:Disconnect()
-
-					-- Start descent phase
-					local descentConn
-					descentConn = RunService.Heartbeat:Connect(function()
-						-- Check if velocity still exists
-						if not lv or not lv.Parent then
-							if descentConn then
-								descentConn:Disconnect()
+					-- Wait for landing detection
+					local landingConn
+					landingConn = RunService.Heartbeat:Connect(function()
+						-- Check if character still exists
+						if not Character or not Character.PrimaryPart then
+							if landingConn then
+								landingConn:Disconnect()
 							end
 							return
 						end
 
-						-- Gradually slow down the descent
-						local currentVelocity = lv.VectorVelocity
-						lv.VectorVelocity = Vector3.new(
-							0, -- No X movement
-							math.max(currentVelocity.Y * 0.98, -30), -- Cap downward speed at -30
-							currentVelocity.Z * 0.95 -- Slow Z movement
-						)
-
 						local raycast = workspace:Raycast(Character.PrimaryPart.Position, Vector3.new(0, -20, 0))
 						if raycast and raycast.Distance < 8 then
-							-- Close to ground - STOP velocity before destroying
-							lv.VectorVelocity = Vector3.zero
-							task.wait(0.05) -- Brief pause to ensure velocity is applied
-
-							-- Unpause animation and remove velocity
+							-- Close to ground - unpause animation
 							Move:AdjustSpeed(1)
-							lv:Destroy()
-							attachment:Destroy()
-							descentConn:Disconnect()
+							landingConn:Disconnect()
 
+							-- Play landing effect with crater
 							Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 								Module = "Base",
 								Function = "Downslam",

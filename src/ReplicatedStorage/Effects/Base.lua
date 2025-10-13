@@ -9,6 +9,7 @@ local Misc = require(script.Parent.Misc)
 local Library = require(Replicated.Modules.Library)
 local Utilities = require(Replicated.Modules.Utilities)
 local Debris = Utilities.Debris
+local RockMod = require(Replicated.Modules.Utils.RockMod)
 
 -- Variables
 local Player = Players.LocalPlayer
@@ -1170,7 +1171,8 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 			-- print("Combo 1: Using RightHand fallback")
 		end
 		-- Always face forward in character's direction
-		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector) * CFrame.Angles(0, math.rad(90), 0)
+		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector)
+			* CFrame.Angles(0, math.rad(90), 0)
 		for _, v in eff:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
 				v:Emit(v:GetAttribute("EmitCount"))
@@ -1199,7 +1201,8 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 			-- print("Combo 2: Using LeftHand fallback")
 		end
 		-- Always face forward in character's direction
-		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector) * CFrame.Angles(0, math.rad(90), 0)
+		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector)
+			* CFrame.Angles(0, math.rad(90), 0)
 		for _, v in eff:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
 				v:Emit(v:GetAttribute("EmitCount"))
@@ -1227,8 +1230,6 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 
 		meshfunction(eff.CFrame, workspace.World.Visuals)
 	end
-
-
 end
 
 -- Track active dialogue sessions to prevent duplicates
@@ -1730,9 +1731,9 @@ function Base.ShellPiercer(Character: Model, Frame: string, tim: number)
 
 		-- Target values for the effect
 		local targetBloomIntensity = 2
-		local targetBloomSize =  56
-		local targetBloomThreshold =  0.8
-		local targetBlurSize =  24
+		local targetBloomSize = 56
+		local targetBloomThreshold = 0.8
+		local targetBlurSize = 24
 
 		-- Create tween info for circular in-out easing
 		local tweenInfo = TweenInfo.new(
@@ -1848,20 +1849,86 @@ function Base.SC(Character: Model, Frame: string)
 end
 
 function Base.AxeKick(Character: Model, Frame: string)
-	if Frame == "Hit" then
-		local eff = Replicated.Assets.VFX.AK:Clone()
-		eff.Parent = Character.HumanoidRootPart
-		for _, v in eff:GetDescendants() do
-			if v:IsA("ParticleEmitter") then
-				task.delay(v:GetAttribute("EmitDelay"), function()
-					v:Emit(v:GetAttribute("EmitCount"))
-				end)
-				-- v:Emit(v:GetAttribute("EmitCount"))
+	if Frame == "Swing" then
+		-- Check if the VFX exists before trying to use it
+		local axekickVFX = Replicated.Assets.VFX:FindFirstChild("Axekick")
+		if axekickVFX and axekickVFX:FindFirstChild("Downslam") then
+			local eff = axekickVFX.Downslam:Clone()
+			eff.CFrame = Character.HumanoidRootPart.CFrame
+			eff.Parent = Character.HumanoidRootPart
+			for _, v in eff:GetDescendants() do
+				if v:IsA("ParticleEmitter") then
+					task.delay(v:GetAttribute("EmitDelay") or 0, function()
+						v:Emit(v:GetAttribute("EmitCount") or 10)
+					end)
+				end
 			end
+			task.delay(3, function()
+				eff:Destroy()
+			end)
+			task.delay(0.1, function()
+				local ak = Replicated.Assets.VFX:FindFirstChild("Axekick")
+				if ak and ak:FindFirstChild("SlamFx") then
+					local eff2 = ak.SlamFx:Clone()
+					eff2.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, -3)
+					eff2.Parent = workspace.World.Visuals
+					for _, v in eff2:GetDescendants() do
+						if v:IsA("ParticleEmitter") then
+							task.delay(v:GetAttribute("EmitDelay") or 0, function()
+								v:Emit(v:GetAttribute("EmitCount") or 10)
+							end)
+						end
+					end
+					task.delay(3, function()
+						eff2:Destroy()
+					end)
+
+					-- Create crater impact effect
+					local impactPosition = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, -3)
+					local craterPosition = impactPosition.Position + Vector3.new(0, 1, 0) -- Raise 1 stud above ground
+
+					local success, err = pcall(function()
+						local craterCFrame = CFrame.new(craterPosition)
+
+						local effect = RockMod.New("Crater", craterCFrame, {
+							Distance = { 5.5, 15 },
+							SizeMultiplier = 0.3,
+							PartCount = 12,
+							Layers = { 3, 3 },
+							ExitIterationDelay = { 0.5, 1 },
+						})
+
+						if effect then
+							effect:Debris("Normal", {
+								Size = { 0.75, 2.5 },
+								UpForce = { 0.55, 0.95 },
+								RotationalForce = { 15, 35 },
+								Spread = { 8, 8 },
+								PartCount = 10,
+								Radius = 8,
+								LifeTime = 5,
+								LifeCycle = {
+									Entrance = {
+										Type = "SizeUp",
+										Speed = 0.25,
+										Division = 3,
+										EasingStyle = Enum.EasingStyle.Quad,
+										EasingDirection = Enum.EasingDirection.Out,
+									},
+									Exit = {
+										Type = "SizeDown",
+										Speed = 0.3,
+										Division = 2,
+										EasingStyle = Enum.EasingStyle.Sine,
+										EasingDirection = Enum.EasingDirection.In,
+									},
+								},
+							})
+						end
+					end)
+				end
+			end)
 		end
-		task.delay(3, function()
-			eff:Destroy()
-		end)
 	end
 end
 
@@ -1891,18 +1958,66 @@ function Base.Downslam(Character: Model, Frame: string)
 		task.delay(3, function()
 			eff:Destroy()
 		end)
+
+		-- Create crater impact effect
+		local impactPosition = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, 0)
+		local craterPosition = impactPosition.Position + Vector3.new(0, 1, 0) -- Raise 1 stud above ground
+
+		local success, err = pcall(function()
+			local craterCFrame = CFrame.new(craterPosition)
+
+			local effect = RockMod.New("Crater", craterCFrame, {
+				Distance = { 5.5, 15 },
+				SizeMultiplier = 0.4,
+				PartCount = 14,
+				Layers = { 3, 4 },
+				ExitIterationDelay = { 0.5, 1 },
+			})
+
+			if effect then
+				effect:Debris("Normal", {
+					Size = { 0.75, 2.5 },
+					UpForce = { 0.6, 1.0 },
+					RotationalForce = {20, 40},
+					Spread = { 10, 10 },
+					PartCount = 12,
+					Radius = 10,
+					LifeTime = 5,
+					LifeCycle = {
+						Entrance = {
+							Type = "SizeUp",
+							Speed = 0.25,
+							Division = 3,
+							EasingStyle = Enum.EasingStyle.Quad,
+							EasingDirection = Enum.EasingDirection.Out,
+						},
+						Exit = {
+							Type = "SizeDown",
+							Speed = 0.3,
+							Division = 2,
+							EasingStyle = Enum.EasingStyle.Sine,
+							EasingDirection = Enum.EasingDirection.In,
+						},
+					},
+				})
+			end
+		end)
+
+		if not success then
+			warn(`[Downslam] Failed to create crater effect: {err}`)
+		end
 	end
 end
 
 function Base.TransmutationCircle(Character: Model, Destination: CFrame?)
 	local eff = Replicated.Assets.VFX.TransmutationCircle:Clone()
-	eff.CFrame = Destination * CFrame.new(0,-1.5,0) or Character.HumanoidRootPart.CFrame * CFrame.new(0,-1.5,0)
+	eff.CFrame = Destination * CFrame.new(0, -1.5, 0) or Character.HumanoidRootPart.CFrame * CFrame.new(0, -1.5, 0)
 	eff.Parent = workspace.World.Visuals
-	TweenService:Create(eff.Decal, TInfo, {Transparency = 0}):Play()
+	TweenService:Create(eff.Decal, TInfo, { Transparency = 0 }):Play()
 	local emits = Replicated.Assets.VFX.Construct:Clone()
 	emits.CFrame = Destination or Character.HumanoidRootPart.CFrame
 	emits.Parent = workspace.World.Visuals
-	task.delay(.35, function()
+	task.delay(0.35, function()
 		for _, v in emits:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
 				v:Emit(v:GetAttribute("EmitCount"))
@@ -1912,7 +2027,7 @@ function Base.TransmutationCircle(Character: Model, Destination: CFrame?)
 
 	local fadeInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	task.delay(3, function()
-		TweenService:Create(eff.Decal, fadeInfo, {Transparency = 1}):Play()
+		TweenService:Create(eff.Decal, fadeInfo, { Transparency = 1 }):Play()
 	end)
 
 	task.delay(5, function()
@@ -1920,7 +2035,5 @@ function Base.TransmutationCircle(Character: Model, Destination: CFrame?)
 		emits:Destroy()
 	end)
 end
-
-
 
 return Base
