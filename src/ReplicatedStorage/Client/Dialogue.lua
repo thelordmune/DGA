@@ -413,65 +413,13 @@ function CommonNodeFunctions(Node, Params)
 	RunInternalCommands(Node)
 end
 
+-- Response buttons are now created by DialogueComp using Fusion
+-- This function is no longer needed but kept for reference
 function CreateResponseButton(Node, Params)
-	DebugPrint("Creating response button for node: " .. tostring(Node))
-	if not CurrentDialogueUI or not CurrentDialogueUI:FindFirstChild("ResponseFrame") then
-		DebugPrint("ERROR: No response frame found")
-		return
-	end
-
-	local ResponseFrame = CurrentDialogueUI.ResponseFrame
-
-	local NewResponse = Instance.new("TextButton")
-	NewResponse.Name = "Response"
-	NewResponse.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	NewResponse.BackgroundTransparency = 1
-	NewResponse.BorderSizePixel = 0
-	NewResponse.Size = UDim2.new(1, 0, 0, 40)
-	NewResponse.Text = ""
-	NewResponse.TextColor3 = Color3.fromRGB(255, 255, 255)
-	NewResponse.TextSize = 14
-	NewResponse.LayoutOrder = Node:GetAttribute("Priority") or 0
-	NewResponse.Parent = ResponseFrame
-
-	-- Add styling elements similar to your Fusion component
-	local Background = Instance.new("ImageLabel")
-	Background.Name = "Background"
-	Background.Image = "rbxassetid://85774200010476"
-	Background.ScaleType = Enum.ScaleType.Slice
-	Background.SliceCenter = Rect.new(10, 17, 561, 274)
-	Background.BackgroundTransparency = 1
-	Background.Size = UDim2.new(1, 0, 1, 0)
-	Background.Parent = NewResponse
-
-	local Border = Instance.new("ImageLabel")
-	Border.Name = "Border"
-	Border.Image = "rbxassetid://121279258155271"
-	Border.BackgroundTransparency = 1
-	Border.Size = UDim2.new(1, 0, 1, 0)
-	Border.Parent = NewResponse
-
-	local TextLabel = Instance.new("TextLabel")
-	TextLabel.Name = "Text"
-	TextLabel.BackgroundTransparency = 1
-	TextLabel.Size = UDim2.new(1, -20, 1, 0)
-	TextLabel.Position = UDim2.new(0, 10, 0, 0)
-	TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TextLabel.TextSize = 14
-	TextLabel.TextWrapped = true
-	TextLabel.TextXAlignment = Enum.TextXAlignment.Left
-	TextLabel.Font = Enum.Font.SourceSans
-	TextLabel.Text = Node.Text and Node.Text.Value or "No text"
-	TextLabel.Parent = NewResponse
-
-	NewResponse.Activated:Connect(function()
-		DebugPrint("Response button activated: " .. tostring(Node))
-		CommonNodeFunctions(Node, Params)
-		LoadNodes(GetOutputNodes(Node), Params)
-	end)
-
-	DebugPrint("Response button created successfully")
-	return NewResponse
+	DebugPrint("CreateResponseButton called (deprecated - using DialogueComp instead)")
+	-- Responses are now handled by the DialogueComp component via the resp Fusion Value
+	-- The actual button creation and click handling happens in DialogueComp.lua
+	return nil
 end
 
 function LoadNode(Node, Params)
@@ -533,8 +481,9 @@ function LoadNode(Node, Params)
 	end
 
 	if Type == "Response" then
-		DebugPrint("Loading response node")
-		CreateResponseButton(Node, Params)
+		DebugPrint("Loading response node (handled by DialogueComp)")
+		-- Response buttons are now created by DialogueComp via the resp Fusion Value
+		-- No need to create buttons here anymore
 	elseif Type == "Prompt" then
 		DebugPrint("Loading prompt node")
 		CommonNodeFunctions(Node, Params)
@@ -703,14 +652,20 @@ function LoadNodes(Nodes, Params)
 
 		-- If we have response nodes, show them all
 		if #responseNodes > 0 then
-			resp:set(GetResponses(responseNodes))
+			local responseData = GetResponses(responseNodes)
+			print("[Dialogue] Setting responses:", #responseData, "responses")
+			for i, r in ipairs(responseData) do
+				print("  Response", i, ":", r.text, "node:", r.node)
+			end
+			resp:set(responseData)
 
 			if not peek(respMode) then
-				print("Setting response mode to true")
+				print("[Dialogue] Setting response mode to true")
 				respMode:set(true)
 			end
 
-			ClearResponses()
+			-- Don't call ClearResponses() - Fusion handles button lifecycle automatically
+			-- Just load the nodes for any side effects (quest actions, etc.)
 			for _, Node in pairs(responseNodes) do
 				LoadNode(Node, Params)
 			end
@@ -719,7 +674,7 @@ function LoadNodes(Nodes, Params)
 
 		-- Fallback: load all valid nodes
 		if #validNodes > 0 then
-			ClearResponses()
+			-- Don't call ClearResponses() - Fusion handles button lifecycle
 			for _, Node in pairs(validNodes) do
 				LoadNode(Node, Params)
 			end
@@ -844,6 +799,12 @@ function OnEvent(Params)
 		uidisable.Enabled = false
 	end
 
+	-- Clear any existing dialogue state BEFORE creating UI
+	DebugPrint("Clearing previous dialogue state")
+	dpText:set("")
+	resp:set({})
+	respMode:set(false)
+
 	-- Create the new Fusion-based UI
 	DebugPrint("Creating Fusion dialogue UI")
 
@@ -880,11 +841,8 @@ function OnEvent(Params)
 	CurrentParams = Params or {}
 	DebugPrint("Current params set: " .. tostring(CurrentParams))
 
-	-- Clear any existing responses and text
+	-- Clear any old manually-created buttons (from previous dialogue system)
 	ClearResponses()
-	dpText:set("")
-	resp:set({})
-	respMode:set(false)
 
 	for _, Condition in pairs(DialogueTree:GetChildren()) do
 		if Condition:GetAttribute("Type") == "Condition" then
@@ -905,6 +863,31 @@ end
 function Controller:SetDebugging(enabled)
 	DEBUG_ENABLED = enabled
 	DebugPrint("Debugging " .. (enabled and "enabled" or "disabled"))
+end
+
+-- Handle response button clicks from DialogueComp
+function Controller.HandleResponseClick(node)
+	DebugPrint("HandleResponseClick called for node:", node)
+
+	if not node then
+		warn("[Dialogue] HandleResponseClick: No node provided")
+		return
+	end
+
+	-- Get the current params (stored when dialogue was opened)
+	local params = CurrentParams
+
+	-- Clear responses immediately when clicked
+	print("[Dialogue] Clearing responses after button click")
+	resp:set({})
+	respMode:set(false)
+
+	-- Execute common node functions (quest actions, etc.)
+	CommonNodeFunctions(node, params)
+
+	-- Load the next nodes (outputs of this response)
+	local outputNodes = GetOutputNodes(node)
+	LoadNodes(outputNodes, params)
 end
 
 DebugPrint("Dialogue controller initialized")

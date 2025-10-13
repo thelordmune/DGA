@@ -9,11 +9,22 @@ Your dialogue system now has **3 different animation styles** you can easily swi
 ### **1. Disperse Animation**
 When dialogue text changes to the next line, the old text disperses (spreads out and fades away) before the new text converges in. This creates a smooth transition between dialogue lines.
 
-### **2. Horizontal Response Buttons**
-Response buttons now appear side by side (horizontal layout) and automatically adjust their size to fit all responses, aligned to the bottom-right.
+### **2. Horizontal Response Buttons with Animations**
+Response buttons now appear side by side (horizontal layout) and automatically adjust their size to fit all responses, aligned to the bottom-right. They feature:
+- **Staggered entrance animations** - Each button appears with a 0.1s delay
+- **Bouncy scale effect** - Buttons pop in with a spring animation
+- **Fade in effect** - Smooth transparency transition
+- **Only appear after text finishes** - Buttons wait for dialogue text animation to complete
 
 ### **3. Auto-Hide Dialogue**
 When the dialogue reaches the end (no more nodes), it waits 5 seconds total (2s for animation + 3s for reading) before automatically closing, giving the player plenty of time to read the final message.
+
+### **4. Fusion-Based Button System**
+Response buttons are now created entirely by DialogueComp using Fusion, not by the Dialogue script. This provides:
+- **Reactive animations** - Buttons respond to state changes automatically
+- **Proper click handling** - Buttons call `Dialogue.HandleResponseClick()` to progress dialogue
+- **Equal width distribution** - Each button gets `1 / responseCount` of the available width
+- **Clean architecture** - Separation of concerns between UI (DialogueComp) and logic (Dialogue)
 
 ---
 

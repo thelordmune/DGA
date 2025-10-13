@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local TextPlus = require(ReplicatedStorage.Modules.Utils.Text)
 local plr = Players.LocalPlayer
 
-local Children, scoped, peek, out = Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out
+local Children, scoped, peek, out, ForValues = Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out, Fusion.ForValues
 
 local TInfo = TweenInfo.new(0.7, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0)
 local TInfo2 = TweenInfo.new(1.1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0)
@@ -170,8 +170,8 @@ end
 local function animateTextIn(textFrame, delayPerChar)
 	task.wait(0.05)
 
-	fadeDivergeAnimation(textFrame, delayPerChar)
-	-- slideUpAnimation(textFrame, delayPerChar)
+	-- fadeDivergeAnimation(textFrame, delayPerChar)
+	slideUpAnimation(textFrame, delayPerChar)
 	-- popInAnimation(textFrame, delayPerChar)
 end
 
@@ -184,6 +184,27 @@ return function(scope, props: {})
 	local responseMode: boolean = props.responseMode
 	local parent = props.Parent
 	local responses: { order: number, text: string, node: Configuration } = props.responses
+
+	-- Create a local state to control when responses should show (after text animation)
+	local showResponses = scope:Value(false)
+
+	-- When responseMode becomes true, check if we should show responses
+	scope:Computed(function(use)
+		local respMode = use(responseMode)
+		if respMode then
+			-- If response mode is activated, show responses after a short delay
+			-- (to allow any ongoing text animation to complete)
+			task.spawn(function()
+				task.wait(0.5) -- Wait for any ongoing animation
+				if peek(responseMode) then -- Double-check it's still in response mode
+					print("[DialogueComp] Response mode activated, showing responses")
+					showResponses:set(true)
+				end
+			end)
+		else
+			showResponses:set(false)
+		end
+	end)
 
 	local textFrame = scope:New("Frame")({
 		Name = "TextPlusContainer",
@@ -239,7 +260,21 @@ return function(scope, props: {})
 					YAlignment = "Top",
 				})
 
+				-- Reset showResponses when new text starts
+				showResponses:set(false)
+
+				-- Animate text in
 				animateTextIn(textFrame, 0.015)
+
+				-- After animation completes, show responses
+				task.spawn(function()
+					-- Calculate animation duration (chars * delay + buffer)
+					local charCount = #currentText
+					local animDuration = charCount * 0.015 + 0.5
+					task.wait(animDuration)
+					showResponses:set(true)
+				end)
+
 				isAnimating = false
 			end)
 		end
@@ -251,7 +286,7 @@ return function(scope, props: {})
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BackgroundTransparency = scope:Tween(
 			scope:Computed(function(use)
-				return if use(framein) then 0 else 1
+				return if use(framein) then 1 else 0
 			end),
 			TInfo
 		),
@@ -275,10 +310,11 @@ return function(scope, props: {})
 				Image = "rbxassetid://85774200010476",
 				ImageTransparency = scope:Tween(
 					scope:Computed(function(use)
-						return if use(framein) then 0 else 1
+						return if use(framein) then 0.2 else 1
 					end),
 					TInfo
 				),
+				BackgroundTransparency = 1,
 				SelectionOrder = -3,
 				Size = UDim2.fromOffset(453, 236),
 
@@ -293,22 +329,22 @@ return function(scope, props: {})
 				Name = "UICorner",
 			}),
 
-			scope:New("ImageLabel")({
-				Name = "Border",
-				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-				BackgroundTransparency = 1,
-				BorderColor3 = Color3.fromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				Image = "rbxassetid://121279258155271",
-				ImageTransparency = scope:Tween(
-					scope:Computed(function(use)
-						return if use(framein) then 0 else 1
-					end),
-					TInfo
-				),
-				SelectionOrder = -3,
-				Size = UDim2.fromOffset(453, 236),
-			}),
+			-- scope:New("ImageLabel")({
+			-- 	Name = "Border",
+			-- 	BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+			-- 	BackgroundTransparency = 1,
+			-- 	BorderColor3 = Color3.fromRGB(0, 0, 0),
+			-- 	BorderSizePixel = 0,
+			-- 	Image = "rbxassetid://121279258155271",
+			-- 	ImageTransparency = scope:Tween(
+			-- 		scope:Computed(function(use)
+			-- 			return if use(framein) then 0 else 1
+			-- 		end),
+			-- 		TInfo
+			-- 	),
+			-- 	SelectionOrder = -3,
+			-- 	Size = UDim2.fromOffset(453, 236),
+			-- }),
 
 			scope:New("ImageLabel")({
 				Name = "Corners",
@@ -316,7 +352,8 @@ return function(scope, props: {})
 				BackgroundTransparency = 1,
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
-				Image = "rbxassetid://139183149783612",
+				Image = "rbxassetid://137499405297167",
+				ImageColor3 = Color3.fromRGB(129, 152, 255),
 				ImageTransparency = scope:Tween(
 					scope:Computed(function(use)
 						return if use(framein) then 0 else 1
@@ -326,20 +363,10 @@ return function(scope, props: {})
 				ScaleType = Enum.ScaleType.Slice,
 				SelectionOrder = -3,
 				Size = UDim2.fromOffset(453, 236),
-				SliceCenter = Rect.new(208, 266, 814, 276),
-				SliceScale = 0.2,
+				SliceCenter = Rect.new(20, 20, 50, 50),
+				SliceScale = 1,
 				ZIndex = 2,
 
-				[Children] = {
-					scope:New("UIGradient")({
-						Name = "UIGradient",
-						Color = ColorSequence.new({
-							ColorSequenceKeypoint.new(0, Color3.fromRGB(93, 93, 93)),
-							ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
-						}),
-						Offset = Vector2.new(3, 3),
-					}),
-				},
 			}),
 
 			scope:New("ViewportFrame")({
@@ -419,7 +446,7 @@ return function(scope, props: {})
 				),
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextSize = 12,
-				TextScaled = true,
+				TextScaled = false,
 				TextStrokeColor3 = Color3.fromRGB(255, 255, 255),
 
 				[Children] = {
@@ -429,7 +456,7 @@ return function(scope, props: {})
 						BackgroundTransparency = 1,
 						BorderColor3 = Color3.fromRGB(0, 0, 0),
 						BorderSizePixel = 0,
-						Image = "rbxassetid://80175650219598",
+						Image = "rbxassetid://89598685430053",
 						ImageTransparency = scope:Tween(
 							scope:Computed(function(use)
 								return if use(framein) then 0 else 1
@@ -438,25 +465,25 @@ return function(scope, props: {})
 						),
 						ScaleType = Enum.ScaleType.Slice,
 						Size = UDim2.fromOffset(65, 23),
-						SliceCenter = Rect.new(10, 17, 561, 274),
+						SliceCenter = Rect.new(9, 9, 21, 21),
 					}),
 
-					scope:New("ImageLabel")({
-						Name = "Border",
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						Image = "rbxassetid://121279258155271",
-						ImageTransparency = scope:Tween(
-							scope:Computed(function(use)
-								return if use(framein) then 0 else 1
-							end),
-							TInfo
-						),
-						SelectionOrder = -3,
-						Size = UDim2.fromOffset(65, 23),
-					}),
+					-- scope:New("ImageLabel")({
+					-- 	Name = "Border",
+					-- 	BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+					-- 	BackgroundTransparency = 1,
+					-- 	BorderColor3 = Color3.fromRGB(0, 0, 0),
+					-- 	BorderSizePixel = 0,
+					-- 	Image = "rbxassetid://121279258155271",
+					-- 	ImageTransparency = scope:Tween(
+					-- 		scope:Computed(function(use)
+					-- 			return if use(framein) then 0 else 1
+					-- 		end),
+					-- 		TInfo
+					-- 	),
+					-- 	SelectionOrder = -3,
+					-- 	Size = UDim2.fromOffset(65, 23),
+					-- }),
 				},
 			}),
 
@@ -466,7 +493,7 @@ return function(scope, props: {})
 				BackgroundTransparency = 1,
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
-				Image = "rbxassetid://121279258155271",
+				Image = "rbxassetid://121635285699370",
 				ImageTransparency = scope:Tween(
 					scope:Computed(function(use)
 						return if use(framein) then 0 else 1
@@ -476,6 +503,8 @@ return function(scope, props: {})
 				Position = UDim2.fromScale(0.231, 0.102),
 				SelectionOrder = -3,
 				Size = UDim2.fromOffset(320, 129),
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = Rect.new(13, 13, 37, 33),
 			}),
 
 			scope:New("ImageLabel")({
@@ -513,7 +542,17 @@ return function(scope, props: {})
 				AutomaticSize = Enum.AutomaticSize.Y, -- Auto-size vertically
 				ClipsDescendants = false, -- Allow buttons to be visible
 				Visible = scope:Computed(function(use)
-					return use(responseMode) -- Only visible when in response mode
+					-- Only visible when in response mode AND text animation is complete
+					local respModeValue = use(responseMode)
+					local showRespValue = use(showResponses)
+					local responsesValue = use(responses)
+
+					print("[DialogueComp] ResponseFrame visibility check:")
+					print("  responseMode:", respModeValue)
+					print("  showResponses:", showRespValue)
+					print("  responses count:", responsesValue and #responsesValue or 0)
+
+					return respModeValue and showRespValue
 				end),
 
 				[Children] = {
@@ -523,23 +562,75 @@ return function(scope, props: {})
 						HorizontalAlignment = Enum.HorizontalAlignment.Right, -- Align to right
 						SortOrder = Enum.SortOrder.LayoutOrder,
 						VerticalAlignment = Enum.VerticalAlignment.Bottom, -- Align to bottom
-						Padding = UDim.new(0, 10), -- 10 pixels spacing between buttons
+						Padding = UDim.new(0, 2), -- 5 pixels spacing between buttons
 					}),
 
-					scope:ForValues(responses or {}, function(_, innerScope, response, index)
-						local safeIndex = index or 1
+					scope:ForValues(responses, function(use, innerScope, response)
+						-- Get the index from the response order
+						local safeIndex = response.order or 1
 
-						-- Calculate button width based on number of responses
-						local responseCount = 0
-						for _ in pairs(responses or {}) do
-							responseCount = responseCount + 1
-						end
+						print("[DialogueComp] Creating response button:", safeIndex, response.text)
 
-						-- Divide available width by number of responses, accounting for padding
-						local buttonWidthScale = 1 / responseCount
-						local paddingOffset = 10 * (responseCount - 1) / responseCount -- Account for padding
+						-- Use Computed to dynamically calculate size based on actual response count
+						local buttonSize = innerScope:Computed(function(use)
+							-- Get the actual responses table
+							local responsesTable = use(responses)
+							local responseCount = 0
 
-						return innerScope:New("TextButton")({
+							-- Count the actual responses in the table
+							if responsesTable then
+								for _ in pairs(responsesTable) do
+									responseCount = responseCount + 1
+								end
+							end
+
+							print("[DialogueComp] Total response count:", responseCount)
+
+							-- Each button gets equal share of width
+							-- UIListLayout handles padding automatically, so we just divide by count
+							local widthScale = 1 / math.max(responseCount, 1)
+							return UDim2.new(widthScale, 0, 0, 30)
+						end)
+
+						-- Animation state for this button
+						local buttonScale = innerScope:Value(0)
+						local buttonTransparency = innerScope:Value(1)
+
+						-- Animate button in when it becomes visible
+						innerScope:Computed(function(use)
+							local shouldShow = use(showResponses) and use(responseMode)
+							if shouldShow then
+								task.spawn(function()
+									-- Stagger animation based on button index
+									task.wait((safeIndex - 1) * 0.1)
+
+									-- Spring animation for scale (bouncy effect)
+									local targetScale = 1
+									local currentScale = peek(buttonScale)
+									local steps = 15
+									for i = 1, steps do
+										local t = i / steps
+										local eased = 1 - math.pow(1 - t, 3) -- Cubic ease out
+										local overshoot = math.sin(t * math.pi) * 0.1 -- Small bounce
+										buttonScale:set(currentScale + (targetScale - currentScale) * eased + overshoot)
+										task.wait(0.02)
+									end
+									buttonScale:set(1)
+
+									-- Fade in transparency
+									for i = 1, 10 do
+										buttonTransparency:set(1 - (i / 10))
+										task.wait(0.02)
+									end
+									buttonTransparency:set(0)
+								end)
+							else
+								buttonScale:set(0)
+								buttonTransparency:set(1)
+							end
+						end)
+
+						local button = innerScope:New("TextButton")({
 							Name = "ResponseButton" .. tostring(safeIndex),
 							BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 							BackgroundTransparency = 1,
@@ -550,59 +641,87 @@ return function(scope, props: {})
 								Enum.FontWeight.Bold,
 								Enum.FontStyle.Normal
 							),
-							-- Size based on number of responses
-							Size = UDim2.new(buttonWidthScale, -paddingOffset, 0, 30),
+							-- Size: equal width distribution (UIListLayout handles padding)
+							Size = buttonSize,
 							Text = response.text or "",
 							TextWrapped = true, -- Allow wrapping for long text
 							TextXAlignment = Enum.TextXAlignment.Center,
-							TextTransparency = innerScope:Tween(
-								innerScope:Computed(function(use)
-									return if use(responseMode) then 0 else 1
-								end),
-								TInfo
-							),
+							TextYAlignment = Enum.TextYAlignment.Center,
+							TextTransparency = innerScope:Computed(function(use)
+								return use(buttonTransparency)
+							end),
 							TextColor3 = Color3.fromRGB(255, 255, 255),
 							TextSize = 14,
-							TextScaled = true, -- Scale text to fit
+							TextScaled = false, -- Scale text to fit
 							LayoutOrder = response.order or safeIndex,
 
 							[Children] = {
+								innerScope:New("UIScale")({
+									Name = "ButtonScale",
+									Scale = innerScope:Computed(function(use)
+										return use(buttonScale)
+									end),
+								}),
+
 								innerScope:New("ImageLabel")({
 									Name = "ImageLabel",
 									BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 									BackgroundTransparency = 1,
 									BorderColor3 = Color3.fromRGB(0, 0, 0),
 									BorderSizePixel = 0,
-									Image = "rbxassetid://80175650219598",
-									ImageTransparency = innerScope:Tween(
-										innerScope:Computed(function(use)
-											return if use(responseMode) then 0 else 1
-										end),
-										TInfo
-									),
+									Image = "rbxassetid://117654171793420",
+									ImageTransparency = innerScope:Computed(function(use)
+										return use(buttonTransparency)
+									end),
 									ScaleType = Enum.ScaleType.Slice,
 									Size = UDim2.fromScale(1, 1),
-									SliceCenter = Rect.new(10, 17, 561, 274),
+									SliceCenter = Rect.new(13, 13, 37, 33),
 								}),
 
-								innerScope:New("ImageLabel")({
-									Name = "Border",
-									BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-									BackgroundTransparency = 1,
-									BorderColor3 = Color3.fromRGB(0, 0, 0),
-									BorderSizePixel = 0,
-									Image = "rbxassetid://121279258155271",
-									ImageTransparency = innerScope:Tween(
-										innerScope:Computed(function(use)
-											return if use(responseMode) then 0 else 1
-										end),
-										TInfo
-									),
-									SelectionOrder = -3,
-									Size = UDim2.fromScale(1, 1),
-								}),
+								-- innerScope:New("ImageLabel")({
+								-- 	Name = "Border",
+								-- 	BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+								-- 	BackgroundTransparency = 1,
+								-- 	BorderColor3 = Color3.fromRGB(0, 0, 0),
+								-- 	BorderSizePixel = 0,
+								-- 	Image = "rbxassetid://121279258155271",
+								-- 	ImageTransparency = innerScope:Computed(function(use)
+								-- 		return use(buttonTransparency)
+								-- 	end),
+								-- 	SelectionOrder = -3,
+								-- 	Size = UDim2.fromScale(1, 1),
+								-- }),
 							},
 						})
+
+						-- Add click handler
+						task.spawn(function()
+							button.Activated:Connect(function()
+								print("[DialogueComp] Response button clicked:", response.text)
+
+								-- Fade out all buttons before progressing
+								task.spawn(function()
+									-- Fade out this button and all others
+									for i = 1, 10 do
+										buttonTransparency:set(i / 10)
+										buttonScale:set(1 - (i / 20)) -- Shrink slightly
+										task.wait(0.02)
+									end
+								end)
+
+								-- Get the Dialogue module to handle the click
+								local Dialogue = require(ReplicatedStorage.Client.Dialogue)
+
+								-- Call the node's output
+								if response.node then
+									-- The response.node should have the necessary data
+									-- We need to trigger the dialogue progression
+									Dialogue.HandleResponseClick(response.node)
+								end
+							end)
+						end)
+
+						return button
 					end),
 				},
 			}),
