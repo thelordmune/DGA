@@ -52,11 +52,23 @@ return function(TREE)
             return FALLBACK({
                 -- Priority 1: Handle aggressive mode (when attacked)
                 tree_composition.aggressive_sequence(TREE),
-                
+
                 -- Priority 2: If passive and not attacked, just idle
                 tree_composition.idle_sequence(TREE),
-                
-                -- Priority 3: Follow if enemy detected
+
+                -- Priority 3: Run away if low health
+                SEQUENCE({
+                    Condition("is_low_health"),
+                    Condition("run_away"),
+                }),
+
+                -- Priority 4: Sprint when following if far away
+                SEQUENCE({
+                    Condition("should_sprint_on_follow"),
+                    Condition("sprint"),
+                }),
+
+                -- Priority 5: Normal follow
                 Condition("follow_enemy"),
             })
         end,
@@ -123,7 +135,10 @@ return function(TREE)
                         -- Priority 1: Smart defense - always check for player actions
                         tree_composition.defense_sequence(TREE),
 
-                        -- Priority 2: Dash to reposition
+                        -- Priority 2: Attack with guard pattern
+                        tree_composition.attack_sequence(TREE),
+
+                        -- Priority 3: Dash to reposition (lower priority, less frequent)
                         SEQUENCE({
                             Condition("should_dash"),
                             FALLBACK({
@@ -133,11 +148,20 @@ return function(TREE)
                             }),
                         }),
 
-                        -- Priority 3: Attack with guard pattern
-                        tree_composition.attack_sequence(TREE),
+                        -- Priority 4: Sprint/stop sprint based on distance
+                        FALLBACK({
+                            SEQUENCE({
+                                Condition("should_sprint_on_follow"),
+                                Condition("sprint"),
+                            }),
+                            Condition("stop_sprint"),
+                        }),
+
+                        -- Priority 5: Follow enemy
+                        Condition("follow_enemy"),
                     }),
                 }),
-                
+
                 -- Priority 2: Normal combat if not passive
                 SEQUENCE({
                     INVERT({ Condition("is_passive") }),
@@ -146,14 +170,26 @@ return function(TREE)
                             Condition("enemy_has_state", "Attacking"),
                             tree_composition.defense_sequence(TREE),
                         }),
+
+                        tree_composition.attack_sequence(TREE),
+
+                        -- Sprint/stop sprint based on distance
+                        FALLBACK({
+                            SEQUENCE({
+                                Condition("should_sprint_on_follow"),
+                                Condition("sprint"),
+                            }),
+                            Condition("stop_sprint"),
+                        }),
+
                         FALLBACK({
                             Condition("stop_block"),
                             Condition("always_true"),
                         }),
-                        tree_composition.attack_sequence(TREE),
+                        Condition("follow_enemy"),
                     }),
                 }),
-                
+
                 -- Priority 3: If passive and not aggressive, just idle
                 SEQUENCE({
                     Condition("is_passive"),

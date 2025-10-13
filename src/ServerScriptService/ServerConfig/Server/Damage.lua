@@ -251,6 +251,16 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				{ Module = "Base", Function = "Parry", Arguments = { Target, Invoker, Distance } }
 			)
 
+			-- Screen shake for the invoker (person who got parried)
+			if Player then
+				Server.Packets.Bvel.sendTo({ Character = Invoker, Name = "ParryShakeInvoker" }, Player)
+			end
+
+			-- Screen shake for the target (person who parried)
+			if TargetPlayer then
+				Server.Packets.Bvel.sendTo({ Character = Target, Name = "ParryShakeTarget" }, TargetPlayer)
+			end
+
 			if Table.M1 or Table.M2 then
 				if Player then
 					Server.Packets.Bvel.sendTo({ Character = Invoker, Name = "RemoveBvel" }, Player)

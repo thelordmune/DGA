@@ -229,7 +229,7 @@ local MainConfig = {
 
 	HumanoidDefaults = {
 		WalkSpeed = 16,
-		RunSpeed =35,
+		RunSpeed = 35,
 		JumpPower = 50,
 	},
 

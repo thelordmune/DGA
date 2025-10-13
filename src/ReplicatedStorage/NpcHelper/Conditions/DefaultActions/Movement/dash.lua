@@ -59,8 +59,8 @@ return function(actor: Actor, mainConfig: table, direction: string)
 
 	-- Store original WalkSpeed
 	local originalWalkSpeed = humanoid.WalkSpeed
-	local dashSpeed = 100  -- Peak dash speed
-	local Duration = 0.4
+	local dashSpeed = 80  -- Peak dash speed (reduced from 100 for less instant feel)
+	local Duration = 0.5  -- Increased from 0.4 for smoother feel
 
 	-- Store the dash state in mainConfig so follow_enemy knows not to override it
 	if not mainConfig.Movement then
@@ -69,21 +69,49 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	mainConfig.Movement.IsDashing = true
 	mainConfig.Movement.DashDirection = dashVector
 
+	-- Play dash animation
+	local dashAnimations = ReplicatedStorage.Assets.Animations.Dashes
+	local animationName
+	if direction == "Back" then
+		animationName = "SDash"
+	elseif direction == "Left" then
+		animationName = "ADash"
+	elseif direction == "Right" then
+		animationName = "DDash"
+	else
+		animationName = "WDash"
+	end
+
+	local dashAnim = dashAnimations:FindFirstChild(animationName)
+	if dashAnim then
+		Library.StopMovementAnimations(npc)
+		local dashTrack = Library.PlayAnimation(npc, dashAnim)
+		if dashTrack then
+			dashTrack.Priority = Enum.AnimationPriority.Action
+		end
+	end
+
 	-- Make the humanoid move in the dash direction
 	humanoid:Move(dashVector)
 
-	-- Tween WalkSpeed up to dash speed, then back down
-	local tweenInfo = TweenInfo.new(
-		Duration / 2,  -- Half duration to ramp up
-		Enum.EasingStyle.Quad,
+	-- Tween WalkSpeed up to dash speed, then back down with smoother easing
+	local tweenInfoUp = TweenInfo.new(
+		Duration * 0.3,  -- 30% of duration to ramp up
+		Enum.EasingStyle.Sine,  -- Changed to Sine for smoother acceleration
 		Enum.EasingDirection.Out
 	)
 
-	local tweenUp = TweenService:Create(humanoid, tweenInfo, {
+	local tweenInfoDown = TweenInfo.new(
+		Duration * 0.7,  -- 70% of duration to ramp down
+		Enum.EasingStyle.Sine,  -- Smoother deceleration
+		Enum.EasingDirection.In
+	)
+
+	local tweenUp = TweenService:Create(humanoid, tweenInfoUp, {
 		WalkSpeed = dashSpeed
 	})
 
-	local tweenDown = TweenService:Create(humanoid, tweenInfo, {
+	local tweenDown = TweenService:Create(humanoid, tweenInfoDown, {
 		WalkSpeed = originalWalkSpeed
 	})
 

@@ -48,8 +48,12 @@ return function(actor: Actor, mainConfig: table)
 
 	local distance = (mainConfig.getNpcCFrame().Position - mainConfig.getTargetCFrame().Position).Magnitude
 
-	--print(if runConfig.RunOnFollowing.AwayOrNear == "Near" then distance <= runConfig.RunOnFollowing.Distance 
-	--else distance >= runConfig.RunOnFollowing.Distance)
-	return if runConfig.RunOnFollowing.AwayOrNear == "Near" then distance <= runConfig.RunOnFollowing.Distance 
+	local shouldSprint = if runConfig.RunOnFollowing.AwayOrNear == "Near" then distance <= runConfig.RunOnFollowing.Distance
 		else distance >= runConfig.RunOnFollowing.Distance
+
+	if shouldSprint then
+		print(`[NPC Sprint] {npc.Name} should sprint - Distance: {math.floor(distance)} studs`)
+	end
+
+	return shouldSprint
 end

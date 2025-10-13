@@ -106,7 +106,7 @@ return function(Player, Data, Server)
 				humanoid.Died:Once(cleanup)
 			end
 
-			-- Smooth arc motion using heartbeat
+			-- Smooth arc motion using heartbeat - ONLY DURING RISE
 			local conn
 			conn = RunService.Heartbeat:Connect(function()
 				local elapsed = os.clock() - startTime
@@ -118,40 +118,31 @@ return function(Player, Data, Server)
 
 				lv.VectorVelocity = forwardVector * forwardSpeed + Vector3.new(0, verticalSpeed, 0)
 
-				-- Pause animation at peak
+				-- When rise completes, REMOVE velocity and let gravity take over
 				if progress >= 1 then
 					Move:AdjustSpeed(0)
 					conn:Disconnect()
 
-					-- Start descent phase
+					-- REMOVE the LinearVelocity - let natural gravity handle the fall
+					lv:Destroy()
+					attachment:Destroy()
+
+					-- Wait for character to hit the ground naturally
 					local descentConn
 					descentConn = RunService.Heartbeat:Connect(function()
-						-- Check if velocity still exists
-						if not lv or not lv.Parent then
+						-- Check if character still exists
+						if not Character or not Character.PrimaryPart then
 							if descentConn then
 								descentConn:Disconnect()
 							end
 							return
 						end
 
-						-- Gradually slow down the descent
-						local currentVelocity = lv.VectorVelocity
-						lv.VectorVelocity = Vector3.new(
-							0, -- No X movement
-							math.max(currentVelocity.Y * 0.98, -30), -- Cap downward speed at -30
-							currentVelocity.Z * 0.95 -- Slow Z movement
-						)
-
+						-- Check distance to ground
 						local raycast = workspace:Raycast(Character.PrimaryPart.Position, Vector3.new(0, -20, 0))
 						if raycast and raycast.Distance < 8 then
-							-- Close to ground - STOP velocity before destroying
-							lv.VectorVelocity = Vector3.zero
-							task.wait(0.05) -- Brief pause to ensure velocity is applied
-
-							-- Unpause animation and remove velocity
+							-- Close to ground - unpause animation and trigger landing
 							Move:AdjustSpeed(1)
-							lv:Destroy()
-							attachment:Destroy()
 							descentConn:Disconnect()
 
 							Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {

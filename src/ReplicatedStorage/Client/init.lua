@@ -65,7 +65,6 @@ System.Settings = {
 	KeyBinds = {},
 	DefaultBinds = {
 		Attack   = Enum.UserInputType.MouseButton1;
-		Feint	 = Enum.UserInputType.MouseButton2;
 		Critical = Enum.KeyCode.R;
 		Jump     = Enum.KeyCode.Space;
 		Block    = Enum.KeyCode.F;

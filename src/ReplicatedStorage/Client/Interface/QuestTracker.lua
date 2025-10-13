@@ -147,7 +147,7 @@ function QuestTrackerManager:UpdateQuestData()
 		})
 	end
 	self.questsList:set(quests)
-	print("[QuestTracker] Updated quests list, count:", #quests)
+	-- print("[QuestTracker] Updated quests list, count:", #quests)
 end
 
 function QuestTrackerManager:SetupKeybind()

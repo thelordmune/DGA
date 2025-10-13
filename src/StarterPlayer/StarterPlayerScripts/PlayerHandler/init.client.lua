@@ -235,7 +235,6 @@ function Initialize(Character: Model)
 		if Client.Library.ResetCooldown then
 			Client.Library.ResetCooldown(Character, "Dodge")
 			Client.Library.ResetCooldown(Character, "DodgeCancel")
-			Client.Library.ResetCooldown(Character, "Feint")
 			print("Reset all cooldowns for new character")
 		end
 	end

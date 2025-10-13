@@ -3,28 +3,27 @@ local Library = Server.Library
 
 local DEBUG = false
 
-local function debugPrint(...)
-    if DEBUG then
+local function debugPrint(npcName, ...)
+    -- Only debug Guards
+    if npcName and npcName:match("Guard") then
+        print("[DetectEnemy]", npcName, ...)
+    elseif DEBUG then
         print("[DetectEnemy]", ...)
     end
 end
 
 return function(actor: Actor, mainConfig: table)
-    debugPrint("Starting enemy detection for actor:", actor.Name)
-    
     local npc = actor:FindFirstChildOfClass("Model")
     if not npc then
-        debugPrint("No NPC model found in actor:", actor.Name)
-        return false 
+        return false
     end
-    debugPrint("Found NPC:", npc.Name)
 
     local root = npc:FindFirstChild("HumanoidRootPart")
-    if not root then 
-        debugPrint("No HumanoidRootPart found for NPC:", npc.Name)
-        return false 
+    if not root then
+        return false
     end
-    debugPrint("Found root part for NPC:", npc.Name)
+
+    debugPrint(npc.Name, "Starting enemy detection")
 
     -- Check if current target is still valid
     if mainConfig.EnemyDetection.Current and

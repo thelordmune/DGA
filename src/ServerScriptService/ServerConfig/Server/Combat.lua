@@ -111,39 +111,7 @@ Combat.Light = function(Character: Model)
 			Cancel = true
 		end)
 
-		-- Only enable feinting for players, not NPCs
-		local Feint
-		if not isNPC then
-			Character:SetAttribute("Feint", true)
 
-			Feint = Character:GetAttributeChangedSignal("Feint"):Once(function()
-				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "Feint", Arguments = {Character}})
-				Cancel = true
-				-- Reset combo when feinting to skip M1 count
-				Entity.Combo = math.max(0, Entity.Combo - 1)
-				print("Feint triggered - combo reset to:", Entity.Combo)
-
-				-- Clean up M1 states when feinting
-				if Server.Library.StateCheck(Character.Actions, "M1" .. Combo) then
-					Server.Library.RemoveState(Character.Actions, "M1" .. Combo)
-				end
-				if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
-					Server.Library.RemoveState(Character.Speeds, "M1Speed8")
-				end
-
-				-- Stop animation and sound
-				SwingAnimation:Stop(0.2)
-				Sound:Stop()
-
-				-- Clean up connections when feinting
-				if Connection then
-					Connection:Disconnect()
-					Connection = nil
-				end
-
-				Server.Library.TimedState(Character.Stuns,"Feint",0)
-			end)
-		end
 
 		task.delay(Stats["HitTimes"][Combo] - (15/60), function()
 			if Stats["Slashes"] then
@@ -155,22 +123,14 @@ Combat.Light = function(Character: Model)
 
 
 		if Cancel then
-			-- Ensure feint attribute is cleared when cancelled
-			Character:SetAttribute("Feint", nil)
 			return
 		end
 
-		-- Clean up connections and reset feint attribute
-		if Feint then
-			Feint:Disconnect()
-			Feint = nil
-		end
+		-- Clean up connections
 		if Connection then
 			Connection:Disconnect()
 			Connection = nil
 		end
-
-		Character:SetAttribute("Feint", nil)
 
 		--if Player then
 		--	Server.Packets.Bvel.sendTo({Character = Character, Name = "M1Bvel"}, Player)

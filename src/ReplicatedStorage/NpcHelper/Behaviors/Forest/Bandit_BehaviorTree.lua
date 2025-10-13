@@ -51,26 +51,19 @@ return function(TREE)
 				-- Priority 2: If passive and not attacked, just idle
 				tree_composition.idle_sequence(TREE),
 
-				-- Priority 3: Original targeting logic for normal behavior
-				SEQUENCE({
-					FALLBACK({
-						SEQUENCE({
-							FALLBACK({ -- CONDITIONS TO SPRINT
-								Condition("is_low_health"),
-								Condition("should_sprint_on_follow"),
-							}),
-							Condition("sprint"),
-						}),
-						Condition("stop_sprint"),
-					}),
-					Condition("always_false"),
-				}),
-
+				-- Priority 3: Run away if low health
 				SEQUENCE({
 					Condition("is_low_health"),
 					Condition("run_away"),
 				}),
 
+				-- Priority 4: Sprint when following if conditions are met
+				SEQUENCE({
+					Condition("should_sprint_on_follow"),
+					Condition("sprint"),
+				}),
+
+				-- Priority 5: Normal follow
 				Condition("follow_enemy"),
 			})
 		end,
@@ -195,11 +188,23 @@ return function(TREE)
 							Condition("enemy_has_state", "Attacking"),
 							tree_composition.defense_sequence(TREE),
 						}),
+
+						tree_composition.attack_sequence(TREE),
+
+						-- Sprint/stop sprint based on distance
+						FALLBACK({
+							SEQUENCE({
+								Condition("should_sprint_on_follow"),
+								Condition("sprint"),
+							}),
+							Condition("stop_sprint"),
+						}),
+
 						FALLBACK({
 							Condition("stop_block"),
 							Condition("always_true"),
 						}),
-						tree_composition.attack_sequence(TREE),
+						Condition("follow_enemy"),
 					}),
 				}),
 
@@ -211,11 +216,23 @@ return function(TREE)
 							Condition("enemy_has_state", "Attacking"),
 							tree_composition.defense_sequence(TREE),
 						}),
+
+						tree_composition.attack_sequence(TREE),
+
+						-- Sprint/stop sprint based on distance
+						FALLBACK({
+							SEQUENCE({
+								Condition("should_sprint_on_follow"),
+								Condition("sprint"),
+							}),
+							Condition("stop_sprint"),
+						}),
+
 						FALLBACK({
 							Condition("stop_block"),
 							Condition("always_true"),
 						}),
-						tree_composition.attack_sequence(TREE),
+						Condition("follow_enemy"),
 					}),
 				}),
 

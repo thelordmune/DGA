@@ -176,6 +176,11 @@ return function(actor: Actor, mainConfig: table )
 		return false
 	end
 
+	-- Debug: Check if Guards are following
+	if npc.Name:match("Guard") then
+		print(`[Follow] {npc.Name} is following {victim.Name}`)
+	end
+
 	local vRoot,vHum = victim:FindFirstChild("HumanoidRootPart"),victim:FindFirstChild("Humanoid")
 	if not vRoot or not vHum then
 		return false

@@ -762,24 +762,53 @@ NetworkModule["NPCDash"] = function(Character, Direction, DashVector)
 
 	-- Store original WalkSpeed
 	local originalWalkSpeed = humanoid.WalkSpeed
-	local dashSpeed = 100  -- Peak dash speed
-	local Duration = 0.4
+	local dashSpeed = 80  -- Peak dash speed (reduced from 100)
+	local Duration = 0.5  -- Increased from 0.4
+
+	-- Play dash animation
+	local Library = require(Replicated.Modules.Library)
+	local dashAnimations = Replicated.Assets.Animations.Dashes
+	local animationName
+	if Direction == "Back" then
+		animationName = "SDash"
+	elseif Direction == "Left" then
+		animationName = "ADash"
+	elseif Direction == "Right" then
+		animationName = "DDash"
+	else
+		animationName = "WDash"
+	end
+
+	local dashAnim = dashAnimations:FindFirstChild(animationName)
+	if dashAnim then
+		Library.StopMovementAnimations(Character)
+		local dashTrack = Library.PlayAnimation(Character, dashAnim)
+		if dashTrack then
+			dashTrack.Priority = Enum.AnimationPriority.Action
+		end
+	end
 
 	-- Make the humanoid move in the dash direction
 	humanoid:Move(DashVector)
 
-	-- Tween WalkSpeed up to dash speed, then back down
-	local tweenInfo = TweenInfo.new(
-		Duration / 2,  -- Half duration to ramp up
-		Enum.EasingStyle.Quad,
+	-- Tween WalkSpeed up to dash speed, then back down with smoother easing
+	local tweenInfoUp = TweenInfo.new(
+		Duration * 0.3,  -- 30% of duration to ramp up
+		Enum.EasingStyle.Sine,  -- Smoother acceleration
 		Enum.EasingDirection.Out
 	)
 
-	local tweenUp = TweenService:Create(humanoid, tweenInfo, {
+	local tweenInfoDown = TweenInfo.new(
+		Duration * 0.7,  -- 70% of duration to ramp down
+		Enum.EasingStyle.Sine,  -- Smoother deceleration
+		Enum.EasingDirection.In
+	)
+
+	local tweenUp = TweenService:Create(humanoid, tweenInfoUp, {
 		WalkSpeed = dashSpeed
 	})
 
-	local tweenDown = TweenService:Create(humanoid, tweenInfo, {
+	local tweenDown = TweenService:Create(humanoid, tweenInfoDown, {
 		WalkSpeed = originalWalkSpeed
 	})
 
@@ -915,6 +944,38 @@ NetworkModule["RemovePincerForwardVelocity"] = function(Character)
 	if forwardVelocity then
 		forwardVelocity:Destroy()
 	end
+end
+
+-- Parry screen shake for invoker (person who got parried)
+NetworkModule["ParryShakeInvoker"] = function(Character)
+	if not Character then return end
+
+	-- Slight screen shake for the person who got parried
+	local Base = require(Replicated.Effects.Base)
+	Base.Shake("Once", {
+		3,  -- magnitude
+		10, -- roughness
+		0,  -- fadeInTime
+		0.3, -- fadeOutTime
+		Vector3.new(0.3, 0.3, 0.3), -- posInfluence
+		Vector3.new(1, 1, 1) -- rotInfluence
+	})
+end
+
+-- Parry screen shake for target (person who parried)
+NetworkModule["ParryShakeTarget"] = function(Character)
+	if not Character then return end
+
+	-- Slight screen shake for the person who successfully parried
+	local Base = require(Replicated.Effects.Base)
+	Base.Shake("Once", {
+		2,  -- magnitude (slightly less than invoker)
+		8,  -- roughness
+		0,  -- fadeInTime
+		0.25, -- fadeOutTime
+		Vector3.new(0.2, 0.2, 0.2), -- posInfluence
+		Vector3.new(0.8, 0.8, 0.8) -- rotInfluence
+	})
 end
 
 return NetworkModule

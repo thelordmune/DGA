@@ -466,27 +466,7 @@ function Base.RemoveFlashStep(Character: Model)
 	end
 end
 
-function Base.Feint(Character: Model)
-	local highlight = Instance.new("Highlight")
 
-	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
-	highlight.FillColor = Color3.fromRGB(255, 255, 255)
-	highlight.FillTransparency = 0.8
-	highlight.OutlineTransparency = 0.6
-	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	highlight.Parent = Character
-
-	local TInfo = TweenInfo.new(0.3, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut, 0)
-
-	task.delay(0.1, function()
-		local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 1, FillTransparency = 1 })
-		hTween:Play()
-		hTween.Completed:Connect(function()
-			highlight:Destroy()
-		end)
-	end)
-end
 function Base.RollCancel(Character: Model)
 	local highlight = Instance.new("Highlight")
 

@@ -30,7 +30,7 @@ return function(actor: Actor, mainConfig: table)
 
     -- Check dash cooldown
     local lastDash = mainConfig.States.LastDash or 0
-    local dashCooldown = 3.0 -- Longer cooldown - only dash when needed
+    local dashCooldown = 8.0 -- Much longer cooldown - dash rarely
 
     if os.clock() - lastDash < dashCooldown then
         return false

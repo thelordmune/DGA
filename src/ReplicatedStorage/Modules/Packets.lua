@@ -137,12 +137,7 @@ return ByteNet.defineNamespace("Networking", function()
 				Air  = ByteNet.bool
 			})
 		});
-		
-		Feint = ByteNet.definePacket({
-			reliabilityType = "reliable";
-			value = ByteNet.nothing;
-		});
-		
+
 		Equip = ByteNet.definePacket({
 			reliabilityType = "reliable";
 			value = ByteNet.nothing;

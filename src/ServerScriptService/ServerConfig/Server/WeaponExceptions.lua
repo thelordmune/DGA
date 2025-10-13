@@ -86,22 +86,7 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 
 			SwingAnimation:Stop(0.2)
 
-			Character:SetAttribute("Feint", nil)
-
 			Cancel = true
-		end)
-
-		Character:SetAttribute("Feint", true)
-
-		local Feint
-		Feint = Character:GetAttributeChangedSignal("Feint"):Once(function()
-			Server.Visuals.Ranged(
-				Character.HumanoidRootPart.Position,
-				300,
-				{ Module = "Base", Function = "Feint", Arguments = { Character } }
-			)
-			Cancel = true
-			Server.Library.TimedState(Character.Stuns, "Feint", 0)
 		end)
 
 		task.wait(Stats["HitTimes"][Combo])
@@ -118,12 +103,8 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 			)
 		end
 
-		Feint:Disconnect()
-		Feint = nil
 		Connection:Disconnect()
 		Connection = nil
-
-		Character:SetAttribute("Feint", nil)
 
 		self.FlameProj(Character, Entity, Weapon, Stats, Combo)
 
@@ -506,19 +487,7 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
             end
             Sound:Stop()
             SwingAnimation:Stop(0.2)
-            Character:SetAttribute("Feint", nil)
             Cancel = true
-        end)
-
-        Character:SetAttribute("Feint", true)
-        local Feint = Character:GetAttributeChangedSignal("Feint"):Once(function()
-            Server.Visuals.Ranged(
-                Character.HumanoidRootPart.Position,
-                300,
-                { Module = "Base", Function = "Feint", Arguments = { Character } }
-            )
-            Cancel = true
-            Server.Library.TimedState(Character.Stuns, "Feint", 0)
         end)
 
         -- Wait for the first hit time
@@ -579,9 +548,7 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
             end
         end
 
-        Feint:Disconnect()
         Connection:Disconnect()
-        Character:SetAttribute("Feint", nil)
     end
 end
 
