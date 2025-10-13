@@ -88,6 +88,23 @@ Bridges.ECSClient:Connect(function(data)
             PartCount = 12,
             Layers = { 3, 3 },
             ExitIterationDelay = { 0.5, 1 },
+            LifeCycle = {
+                Entrance = {
+                    Type = "Elevate",
+                    Speed = 0.25,
+                    Division = 3,
+                    EasingStyle = Enum.EasingStyle.Quad,
+                    EasingDirection = Enum.EasingDirection.Out,
+                },
+
+                Exit = {
+                    Type = "SizeDown",
+                    Speed = 0.3,
+                    Division = 2,
+                    EasingStyle = Enum.EasingStyle.Sine,
+                    EasingDirection = Enum.EasingDirection.In,
+                },
+            },
         })
 
         print(`[RagdollImpactClient] 🪨 RockMod.New returned: {effect}`)

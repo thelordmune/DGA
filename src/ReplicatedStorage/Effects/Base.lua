@@ -1883,7 +1883,6 @@ function Base.AxeKick(Character: Model, Frame: string)
 						eff2:Destroy()
 					end)
 
-					-- Create crater impact effect
 					local impactPosition = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, -3)
 					local craterPosition = impactPosition.Position + Vector3.new(0, 1, 0) -- Raise 1 stud above ground
 
@@ -1895,7 +1894,24 @@ function Base.AxeKick(Character: Model, Frame: string)
 							SizeMultiplier = 0.3,
 							PartCount = 12,
 							Layers = { 3, 3 },
-							ExitIterationDelay = { 0.5, 1 },
+							ExitIterationDelay = { 0, 0 },
+							LifeCycle = {
+                Entrance = {
+                    Type = "Elevate",
+                    Speed = 0.25,
+                    Division = 3,
+                    EasingStyle = Enum.EasingStyle.Quad,
+                    EasingDirection = Enum.EasingDirection.Out,
+                },
+
+                Exit = {
+                    Type = "SizeDown",
+                    Speed = 0.3,
+                    Division = 2,
+                    EasingStyle = Enum.EasingStyle.Sine,
+                    EasingDirection = Enum.EasingDirection.In,
+                },
+            }, -- Instant, no delay
 						})
 
 						if effect then
@@ -1925,6 +1941,64 @@ function Base.AxeKick(Character: Model, Frame: string)
 								},
 							})
 						end
+					end)
+
+					if not success then
+						warn(`[AxeKick] Failed to create crater effect: {err}`)
+					end
+
+					-- Vicious but brief screenshake on impact
+					Base.Shake("Once", {
+						8,  -- magnitude (high for vicious shake)
+						15, -- roughness (very rough)
+						0,  -- fadeInTime (instant)
+						0.6, -- fadeOutTime (brief - 0.3 seconds)
+						Vector3.new(2.5, 2.5, 2.5), -- posInfluence
+						Vector3.new(1.5, 1.5, 1.5) -- rotInfluence (strong rotation shake)
+					})
+
+					-- Brief bloom effect on impact
+					local lighting = game:GetService("Lighting")
+					local bloom = lighting:FindFirstChild("Bloom")
+
+					if not bloom then
+						bloom = Instance.new("BloomEffect")
+						bloom.Name = "Bloom"
+						bloom.Enabled = true
+						bloom.Intensity = 0
+						bloom.Size = 24
+						bloom.Threshold = 2
+						bloom.Parent = lighting
+					end
+
+					-- Store original values
+					local originalIntensity = bloom.Intensity
+					local originalSize = bloom.Size
+					local originalThreshold = bloom.Threshold
+
+					-- Create brief bloom tween (in and out)
+					local tweenInfo = TweenInfo.new(
+						0.15, -- Duration for in (0.15 seconds)
+						Enum.EasingStyle.Circular,
+						Enum.EasingDirection.InOut,
+						0,
+						true, -- Reverses automatically
+						0
+					)
+
+					local bloomTween = TweenService:Create(bloom, tweenInfo, {
+						Intensity = 30,
+						Size = 5,
+						Threshold = .5,
+					})
+
+					bloomTween:Play()
+
+					-- Reset to original values after completion
+					bloomTween.Completed:Connect(function()
+						bloom.Intensity = originalIntensity
+						bloom.Size = originalSize
+						bloom.Threshold = originalThreshold
 					end)
 				end
 			end)
@@ -1971,7 +2045,24 @@ function Base.Downslam(Character: Model, Frame: string)
 				SizeMultiplier = 0.4,
 				PartCount = 14,
 				Layers = { 3, 4 },
-				ExitIterationDelay = { 0.5, 1 },
+				ExitIterationDelay = { 0, 0 },
+				LifeCycle = {
+                Entrance = {
+                    Type = "Elevate",
+                    Speed = 0.25,
+                    Division = 3,
+                    EasingStyle = Enum.EasingStyle.Quad,
+                    EasingDirection = Enum.EasingDirection.Out,
+                },
+
+                Exit = {
+                    Type = "SizeDown",
+                    Speed = 0.3,
+                    Division = 2,
+                    EasingStyle = Enum.EasingStyle.Sine,
+                    EasingDirection = Enum.EasingDirection.In,
+                },
+            }, -- Instant, no delay
 			})
 
 			if effect then

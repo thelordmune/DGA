@@ -747,68 +747,54 @@ NetworkModule["FlameRunningBvel"] = function(Character)
 	end)
 end
 
--- NPC Dash - Client-side replication for smooth visual movement
+-- NPC Dash - Client-side replication using WalkSpeed tweening
 NetworkModule["NPCDash"] = function(Character, Direction, DashVector)
 	if not Character or not Character.PrimaryPart then
 		warn("NPCDash: Character or PrimaryPart is nil")
 		return
 	end
 
-	local root = Character.PrimaryPart
-
-	-- Clean up any existing dash velocities
-	for _, bodyMover in pairs(root:GetChildren()) do
-		if bodyMover:IsA("LinearVelocity") or bodyMover:IsA("BodyVelocity") then
-			if bodyMover.Name == "NPCDash" or bodyMover.Name == "NPCDodge" then
-				bodyMover:Destroy()
-			end
-		end
+	local humanoid = Character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		warn("NPCDash: No Humanoid found")
+		return
 	end
 
-	-- Create smooth client-side velocity
-	local Speed = 100
+	-- Store original WalkSpeed
+	local originalWalkSpeed = humanoid.WalkSpeed
+	local dashSpeed = 100  -- Peak dash speed
 	local Duration = 0.4
 
-	local Velocity = Instance.new("LinearVelocity")
-	Velocity.Name = "NPCDash"
-	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	Velocity.ForceLimitsEnabled = true
-	Velocity.MaxAxesForce = Vector3.new(80000, 0, 80000)
-	Velocity.VectorVelocity = DashVector * Speed
-	Velocity.RelativeTo = Enum.ActuatorRelativeTo.World
+	-- Make the humanoid move in the dash direction
+	humanoid:Move(DashVector)
 
-	-- Create attachment if it doesn't exist
-	local attachment = root:FindFirstChild("RootAttachment")
-	if not attachment then
-		attachment = Instance.new("Attachment")
-		attachment.Name = "RootAttachment"
-		attachment.Parent = root
-	end
-
-	Velocity.Attachment0 = attachment
-	Velocity.Parent = root
-
-	-- Smooth deceleration tween
-	local SlowdownSpeed = Speed * 0.2
-	local DashTween = TweenService:Create(
-		Velocity,
-		TweenInfo.new(Duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
-		{VectorVelocity = DashVector * SlowdownSpeed}
+	-- Tween WalkSpeed up to dash speed, then back down
+	local tweenInfo = TweenInfo.new(
+		Duration / 2,  -- Half duration to ramp up
+		Enum.EasingStyle.Quad,
+		Enum.EasingDirection.Out
 	)
-	DashTween:Play()
 
-	-- Cleanup
-	DashTween.Completed:Connect(function()
-		if Velocity and Velocity.Parent then
-			Velocity:Destroy()
-		end
+	local tweenUp = TweenService:Create(humanoid, tweenInfo, {
+		WalkSpeed = dashSpeed
+	})
+
+	local tweenDown = TweenService:Create(humanoid, tweenInfo, {
+		WalkSpeed = originalWalkSpeed
+	})
+
+	-- Play the speed-up tween
+	tweenUp:Play()
+
+	-- When speed-up completes, play the slow-down tween
+	tweenUp.Completed:Connect(function()
+		tweenDown:Play()
 	end)
 
-	-- Safety cleanup
-	task.delay(Duration + 0.1, function()
-		if Velocity and Velocity.Parent then
-			Velocity:Destroy()
+	-- Cleanup after dash completes
+	task.delay(Duration, function()
+		if humanoid and humanoid.Parent then
+			humanoid.WalkSpeed = originalWalkSpeed
 		end
 	end)
 end

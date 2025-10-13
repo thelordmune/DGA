@@ -305,6 +305,12 @@ function Initialize(Character: Model)
 		print("Initialized leaderboard")
 	end
 
+	-- Initialize Quest Tracker
+	if Client.Modules["Interface"].InitQuestTracker then
+		Client.Modules["Interface"].InitQuestTracker()
+		print("✅ Initialized Quest Tracker")
+	end
+
 	safeConnect(Humanoid, "HealthChanged", function(Health)
 		Client.Modules["Interface"].UpdateStats("Health", Health, Humanoid.MaxHealth)
 	end)

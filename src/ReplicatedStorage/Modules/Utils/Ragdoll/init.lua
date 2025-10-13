@@ -34,6 +34,10 @@ local function HasState(character: Model, stateName: string): boolean
 	return false
 end
 
+-- Track ragdoll end times for each character
+local ragdollEndTimes = {}
+local ragdollThreads = {}
+
 -- Simple ragdoll function for direct use (duration-based)
 function Ragdoller.Ragdoll(character: Model, duration: number)
 	if not character or not character:FindFirstChild("Humanoid") then
@@ -41,13 +45,58 @@ function Ragdoller.Ragdoll(character: Model, duration: number)
 		return false
 	end
 
-	Ragdoller:Enable(character)
+	-- Calculate new end time
+	local currentTime = os.clock()
+	local newEndTime = currentTime + duration
 
-	task.delay(duration, function()
-		if character and character.Parent then
-			Ragdoller:Disable(character)
+	-- If already ragdolled, extend the duration
+	if ragdollEndTimes[character] then
+		-- Extend if the new duration would last longer
+		if newEndTime > ragdollEndTimes[character] then
+			ragdollEndTimes[character] = newEndTime
+			print(`[Ragdoll] Extended ragdoll for {character.Name} by {duration} seconds (new end: {newEndTime})`)
 		end
-	end)
+	else
+		-- First time ragdolling this character
+		ragdollEndTimes[character] = newEndTime
+		Ragdoller:Enable(character)
+
+		-- Cleanup when character is removed
+		local ancestryConnection
+		ancestryConnection = character.AncestryChanged:Connect(function(_, parent)
+			if not parent then
+				-- Character was removed, cleanup
+				ragdollEndTimes[character] = nil
+				if ragdollThreads[character] then
+					task.cancel(ragdollThreads[character])
+					ragdollThreads[character] = nil
+				end
+				if ancestryConnection then
+					ancestryConnection:Disconnect()
+				end
+			end
+		end)
+
+		-- Start monitoring thread
+		local thread = task.spawn(function()
+			while character and character.Parent and ragdollEndTimes[character] do
+				local timeLeft = ragdollEndTimes[character] - os.clock()
+				if timeLeft <= 0 then
+					-- Time's up, disable ragdoll
+					ragdollEndTimes[character] = nil
+					ragdollThreads[character] = nil
+					Ragdoller:Disable(character)
+					if ancestryConnection then
+						ancestryConnection:Disconnect()
+					end
+					break
+				end
+				task.wait(0.1) -- Check every 0.1 seconds
+			end
+		end)
+
+		ragdollThreads[character] = thread
+	end
 
 	return true
 end

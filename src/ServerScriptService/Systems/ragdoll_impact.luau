@@ -2,6 +2,7 @@
 -- ECS System that monitors ragdolled entities and creates crater effects when they hit the ground
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 local Players = game:GetService("Players")
 
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
@@ -10,8 +11,11 @@ local Bridges = require(ReplicatedStorage.Modules.Bridges)
 local BridgeNet2 = require(ReplicatedStorage.Modules.Shared.BridgeNet2)
 local Visuals = require(ReplicatedStorage.Modules.Visuals)
 
+-- Get Server modules for damage dealing
+local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
+
 -- Configuration
-local MIN_IMPACT_VELOCITY = 10 -- Minimum velocity to create crater (studs/second)
+local MIN_IMPACT_VELOCITY = 30 -- Minimum velocity to create crater (studs/second) - increased from 10
 local IMPACT_COOLDOWN = .3 -- Seconds between impacts
 local RAYCAST_DISTANCE = 10 -- How far to raycast down for ground detection
 local FALLING_THRESHOLD = -10 -- Y velocity threshold to consider "falling"
@@ -27,8 +31,8 @@ raycastParams.FilterDescendantsInstances = {workspace.World.Live, workspace.Worl
 
 print("[RagdollImpact] ✅ Server system loaded - will replicate effects to clients")
 
--- Helper function to send impact event to all clients
-local function createImpact(characterName, impactPosition, impactVelocity)
+-- Helper function to send impact event to all clients and deal damage
+local function createImpact(character, impactPosition, impactVelocity)
     -- Check minimum velocity
     local velocityMagnitude = math.abs(impactVelocity.Y)
     if velocityMagnitude < MIN_IMPACT_VELOCITY then
@@ -36,7 +40,7 @@ local function createImpact(characterName, impactPosition, impactVelocity)
         return
     end
 
-    print(`[RagdollImpact] 🎯 Sending impact event for {characterName} at {impactPosition} with velocity {velocityMagnitude} studs/s`)
+    print(`[RagdollImpact] 🎯 Sending impact event for {character.Name} at {impactPosition} with velocity {velocityMagnitude} studs/s`)
 
     -- Raycast down to find the ground with extended range
     local rayOrigin = impactPosition + Vector3.new(0, 10, 0) -- Start higher
@@ -57,10 +61,22 @@ local function createImpact(characterName, impactPosition, impactVelocity)
         Action = "CreateImpact",
         Position = raycastResult.Position,
         Velocity = impactVelocity,
-        CharacterName = characterName
+        CharacterName = character.Name
     })
 
     print(`[RagdollImpact] 📡 Impact event sent to all clients`)
+
+    -- Deal damage based on impact velocity
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid and humanoid.Health > 0 then
+        -- Calculate damage: 5 damage per 10 studs/s of velocity (minimum 5, maximum 25)
+        local baseDamage = math.floor(velocityMagnitude / 10) * 5
+        local damage = math.clamp(baseDamage, 5, 25)
+
+        -- Apply damage
+        humanoid:TakeDamage(damage)
+        print(`[RagdollImpact] 💥 Dealt {damage} impact damage to {character.Name} (velocity: {math.floor(velocityMagnitude)} studs/s)`)
+    end
 end
 
 local debugPrinted = false
@@ -204,7 +220,7 @@ return {
                             print(`[RagdollImpact] 📍 Ground: {raycastResult.Instance:GetFullName()}`)
 
                             -- Send impact event to clients immediately using the GROUND position, not character position
-                            createImpact(character.Name, raycastResult.Position, currentVelocity)
+                            createImpact(character, raycastResult.Position, currentVelocity)
 
                             -- Update impact time
                             impactData.lastImpactTime = impactTime

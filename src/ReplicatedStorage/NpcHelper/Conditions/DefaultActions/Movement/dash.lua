@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local TweenService = game:GetService("TweenService")
 local Library = require(ReplicatedStorage.Modules.Library)
 
 -- Get Server from main VM
@@ -56,8 +57,9 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		dashVector = root.CFrame.LookVector
 	end
 
-	-- Use while loop with CFrame manipulation for NPC dash
-	local Speed = 100  -- Studs per second
+	-- Store original WalkSpeed
+	local originalWalkSpeed = humanoid.WalkSpeed
+	local dashSpeed = 100  -- Peak dash speed
 	local Duration = 0.4
 
 	-- Store the dash state in mainConfig so follow_enemy knows not to override it
@@ -67,31 +69,38 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	mainConfig.Movement.IsDashing = true
 	mainConfig.Movement.DashDirection = dashVector
 
-	-- Spawn the dash in a separate thread
-	task.spawn(function()
-		local startTime = os.clock()
-		local startCFrame = root.CFrame
+	-- Make the humanoid move in the dash direction
+	humanoid:Move(dashVector)
 
-		while os.clock() - startTime < Duration do
-			-- Check if NPC still exists
-			if not npc or not npc.Parent or not root or not root.Parent then
-				break
-			end
+	-- Tween WalkSpeed up to dash speed, then back down
+	local tweenInfo = TweenInfo.new(
+		Duration / 2,  -- Half duration to ramp up
+		Enum.EasingStyle.Quad,
+		Enum.EasingDirection.Out
+	)
 
-			-- Calculate progress and speed with deceleration
-			local elapsed = os.clock() - startTime
-			local progress = elapsed / Duration
-			local speedMultiplier = 1 - (progress * 0.8) -- Slow down to 20% of original speed
+	local tweenUp = TweenService:Create(humanoid, tweenInfo, {
+		WalkSpeed = dashSpeed
+	})
 
-			-- Calculate movement delta for this frame
-			local dt = task.wait()
-			local moveDistance = Speed * speedMultiplier * dt
+	local tweenDown = TweenService:Create(humanoid, tweenInfo, {
+		WalkSpeed = originalWalkSpeed
+	})
 
-			-- Move the NPC using CFrame
-			root.CFrame = root.CFrame + (dashVector * moveDistance)
+	-- Play the speed-up tween
+	tweenUp:Play()
+
+	-- When speed-up completes, play the slow-down tween
+	tweenUp.Completed:Connect(function()
+		tweenDown:Play()
+	end)
+
+	-- Cleanup after dash completes
+	task.delay(Duration, function()
+		if humanoid and humanoid.Parent then
+			humanoid.WalkSpeed = originalWalkSpeed
 		end
 
-		-- Cleanup
 		if mainConfig.Movement then
 			mainConfig.Movement.IsDashing = false
 			mainConfig.Movement.DashDirection = nil

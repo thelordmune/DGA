@@ -43,4 +43,13 @@ Interface.InitLeaderboard = function()
 	end
 end
 
+-- Initialize Quest Tracker
+Interface.InitQuestTracker = function()
+	if self.Modules["QuestTracker"] and self.Modules["QuestTracker"].new then
+		local questTracker = self.Modules["QuestTracker"].new()
+		questTracker:Initialize()
+		return questTracker
+	end
+end
+
 return Interface

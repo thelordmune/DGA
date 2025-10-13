@@ -295,6 +295,29 @@ Combat.Critical = function(Character: Model)
 
 		for _, Target: Model in pairs(HitTargets) do
 			Server.Modules.Damage.Tag(Character, Target, Stats["Critical"]["DamageTable"])
+
+			-- Check if target is ragdolled and apply knockback (similar to Pincer Impact)
+			if Target:IsA("Model") and Target:FindFirstChild("HumanoidRootPart") then
+				local isRagdolled = Target:FindFirstChild("Ragdoll") or
+				                   (Target:GetAttribute("Knocked") and Target:GetAttribute("Knocked") > 0)
+
+				if isRagdolled then
+					-- Apply knockback using the same method as Pincer Impact
+					local direction = Character.HumanoidRootPart.CFrame.LookVector -- Forward from attacker
+					local horizontalPower = 60 -- Strong horizontal knockback
+					local upwardPower = 50 -- Strong upward arc
+
+					-- Use ServerBvel for consistent knockback
+					Server.Modules.ServerBvel.BFKnockback(Target, direction, horizontalPower, upwardPower)
+
+					-- Extend ragdoll duration by 3 seconds
+					local Ragdoller = require(game.ReplicatedStorage.Modules.Utils.Ragdoll)
+					Ragdoller.Ragdoll(Target, 3)
+
+					print(`[Critical] Knocked back ragdolled target: {Target.Name} and extended ragdoll by 3 seconds`)
+				end
+			end
+
 			if Target:IsDescendantOf(workspace.Transmutables) then
 				local wall = Target
 				local root = Character.HumanoidRootPart

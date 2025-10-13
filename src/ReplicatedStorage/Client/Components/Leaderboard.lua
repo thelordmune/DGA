@@ -45,6 +45,8 @@ return function(scope, props: {})
 				SelectionOrder = -3,
 				Size = UDim2.fromScale(1, 1),
 				ZIndex = 0,
+				BackgroundTransparency = 1,
+				ImageTransparency = .25,
 
 				[Children] = {
 					scope:New "UICorner" {

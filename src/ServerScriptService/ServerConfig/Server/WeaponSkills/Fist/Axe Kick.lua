@@ -2,6 +2,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Replicated = game:GetService("ReplicatedStorage")
 local Library = require(Replicated.Modules.Library)
 local Skills = require(ServerStorage.Stats._Skills)
+local Ragdoller = require(Replicated.Modules.Utils.Ragdoll)
 
 local Global = require(Replicated.Modules.Shared.Global)
 return function(Player, Data, Server)
@@ -106,6 +107,9 @@ return function(Player, Data, Server)
 					if Target ~= Character and Target:IsA("Model") then
 						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
 						print("Axe Kick hit:", Target.Name)
+
+						-- Ragdoll the target for 1 second
+						Ragdoller.Ragdoll(Target, 3)
 					end
 				end
 			end
