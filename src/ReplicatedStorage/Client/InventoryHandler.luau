@@ -4,6 +4,7 @@ local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local Bridges = require(ReplicatedStorage.Modules.Bridges)
+local NotificationManager = require(ReplicatedStorage.Client.NotificationManager)
 
 local function deserializeInventory(inventoryData)
     local inventory = {
@@ -26,6 +27,9 @@ local function deserializeInventory(inventoryData)
     
     return inventory
 end
+
+-- Track previous inventory state to detect new items
+local previousInventory = {}
 
 -- Handle inventory updates from server
 Bridges.Inventory:Connect(function(syncData)
@@ -56,6 +60,39 @@ Bridges.Inventory:Connect(function(syncData)
 
     print("[InventoryHandler] Client: Local player entity confirmed:", pent)
 
+    -- Detect new items by comparing with previous inventory
+    local newItems = {}
+    for slot, item in pairs(syncData.inventory.items) do
+        local previousItem = previousInventory[slot]
+
+        -- Check if this is a new item or increased quantity
+        if not previousItem then
+            -- Brand new item in this slot
+            print("[InventoryHandler] New item in slot", slot, ":", item.name)
+            table.insert(newItems, {
+                name = item.name,
+                typ = item.typ,
+                quantity = item.quantity
+            })
+        elseif previousItem.name ~= item.name then
+            -- Different item in same slot (item replaced)
+            print("[InventoryHandler] Item replaced in slot", slot, ":", previousItem.name, "->", item.name)
+            table.insert(newItems, {
+                name = item.name,
+                typ = item.typ,
+                quantity = item.quantity
+            })
+        elseif previousItem.name == item.name and item.quantity > previousItem.quantity then
+            -- Same item, increased quantity
+            print("[InventoryHandler] Item quantity increased in slot", slot, ":", item.name, previousItem.quantity, "->", item.quantity)
+            table.insert(newItems, {
+                name = item.name,
+                typ = item.typ,
+                quantity = item.quantity - previousItem.quantity
+            })
+        end
+    end
+
     -- Update inventory component
     local inventory = deserializeInventory(syncData.inventory)
     world:set(pent, comps.Inventory, inventory)
@@ -64,6 +101,28 @@ Bridges.Inventory:Connect(function(syncData)
     -- Update hotbar component
     world:set(pent, comps.Hotbar, syncData.hotbar)
     print("[InventoryHandler] Client: Set Hotbar component")
+
+    -- Show notifications for new items
+    print("[InventoryHandler] Total new items to notify:", #newItems)
+    for _, item in ipairs(newItems) do
+        print("[InventoryHandler] Showing notification for:", item.name, "Type:", item.typ)
+
+        if item.typ == "skill" then
+            NotificationManager.ShowSkill(item.name)
+        else
+            NotificationManager.ShowItem(item.name)
+        end
+    end
+
+    -- Update previous inventory state
+    previousInventory = {}
+    for slot, item in pairs(syncData.inventory.items) do
+        previousInventory[slot] = {
+            name = item.name,
+            typ = item.typ,
+            quantity = item.quantity
+        }
+    end
 
     -- Count items
     local itemCount = 0

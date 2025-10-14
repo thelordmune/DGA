@@ -10,6 +10,28 @@ NetworkModule.EndPoint = function(Player, Data)
     print("Quest packet received:", Data.Module, Data.Function)
     if Data.Function == "Start" then
         print("Starting quest: " .. Data.Module)
+
+        -- Call server-side quest module Start function if it exists
+        local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local questModulesFolder = ReplicatedStorage.Modules:FindFirstChild("QuestsFolder")
+        if questModulesFolder then
+            local questModule = questModulesFolder:FindFirstChild(Data.Module)
+            if questModule then
+                local success, err = pcall(function()
+                    local QuestScript = require(questModule)
+                    if typeof(QuestScript) == "table" and QuestScript.Start then
+                        print("[Quest Start] 🎯 Calling quest module Start function")
+                        QuestScript.Start()
+                    end
+                end)
+
+                if not success then
+                    warn("[Quest Start] ❌ Failed to call quest module Start:", err)
+                end
+            end
+        end
+
+        -- Also fire to client for client-side quest handling
         bridges.Quests:Fire(Player, { Module = Data.Module })
 
     elseif Data.Function == "Complete" then
@@ -164,6 +186,25 @@ NetworkModule.EndPoint = function(Player, Data)
             questName = questName,
             completedTime = os.clock(),
         })
+
+        -- Call quest module's Complete function if it exists
+        local questModulesFolder = ReplicatedStorage.Modules:FindFirstChild("QuestsFolder")
+        if questModulesFolder then
+            local questModule = questModulesFolder:FindFirstChild(npcName)
+            if questModule then
+                local success, err = pcall(function()
+                    local QuestScript = require(questModule)
+                    if typeof(QuestScript) == "table" and QuestScript.Complete then
+                        print("[Quest Complete] 🎯 Calling quest module Complete function")
+                        QuestScript.Complete(Player, questName, choice)
+                    end
+                end)
+
+                if not success then
+                    warn("[Quest Complete] ❌ Failed to call quest module Complete:", err)
+                end
+            end
+        end
 
         -- Send completion notification to client
         print("🔔 [Quest Complete] Sending completion notification to client:")

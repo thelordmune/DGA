@@ -291,14 +291,15 @@ return function(scope, props: {})
 			TInfo
 		),
 		BorderSizePixel = 0,
+		AnchorPoint = Vector2.new(0.5, 0.5), -- Center the frame around its position
 		Position = scope:Spring(
 			scope:Computed(function(use)
-				return if use(framein) then UDim2.fromScale(0.342, 0.611) else UDim2.fromScale(0.342, 1.2)
+				return if use(framein) then UDim2.fromScale(0.5, 0.611) else UDim2.fromScale(0.5, 1.2)
 			end),
 			18,
 			0.4
 		),
-		  Size = UDim2.fromOffset(453, 236),
+		Size = UDim2.fromOffset(453, 236),
 		Parent = parent,
 
 		[Children] = {

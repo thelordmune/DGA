@@ -3,6 +3,7 @@ local jecs = require(ReplicatedStorage.Modules.Imports.jecs)
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+local NotificationManager = require(ReplicatedStorage.Client.NotificationManager)
 
 local QuestManager = {}
 
@@ -43,6 +44,9 @@ function QuestManager.acceptQuest(player, npcname, questName)
 	})
 
 	print("[QuestManager] Quest accepted on client:", npcname, questName)
+
+	-- Show quest notification
+	NotificationManager.ShowQuest(questName)
 end
 
 function QuestManager.getActiveQuests(player)

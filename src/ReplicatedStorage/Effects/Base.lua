@@ -1830,7 +1830,8 @@ end
 
 function Base.AxeKick(Character: Model, Frame: string)
 	if Frame == "Swing" then
-		-- Check if the VFX exists before trying to use it
+		local meshes = require(Replicated.Assets.VFX.axekickmeshes.AllMeshes)
+		meshes(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
 		local axekickVFX = Replicated.Assets.VFX:FindFirstChild("Axekick")
 		if axekickVFX and axekickVFX:FindFirstChild("Downslam") then
 			local eff = axekickVFX.Downslam:Clone()
