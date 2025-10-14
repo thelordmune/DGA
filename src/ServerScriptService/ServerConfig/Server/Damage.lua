@@ -838,7 +838,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 			-- Create BodyVelocity for initial impulse (reduced force)
 			local bodyVelocity = Instance.new("BodyVelocity")
 			bodyVelocity.Velocity = velocity
-			bodyVelocity.MaxForce = Vector3.new(3000, 3000, 3000) -- Reduced from 8000
+			bodyVelocity.MaxForce = Vector3.new(2000, 2000, 2000) -- Further reduced from 3000 to prevent flinging
 			bodyVelocity.Parent = piece
 
 			-- Remove velocity after a short time to let gravity take over

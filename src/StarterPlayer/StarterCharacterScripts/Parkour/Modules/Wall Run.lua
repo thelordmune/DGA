@@ -143,15 +143,15 @@ function Sliding:Start()
 	self.Normal = Ray.Normal
 
 	local BP = Instance.new('BodyPosition')
-	BP.MaxForce = Vector3.one * 2e9
+	BP.MaxForce = Vector3.one * 100000  -- Reduced from 2e9 to prevent teleporting
 	BP.Position = Ray.Position + Ray.Normal * 1.5
-	BP.P = 99999
+	BP.P = 50000  -- Reduced from 99999 for smoother movement
 	BP.Parent = RootPart
 	self.Cleaner:AddTask(BP)
 
 	local BG = Instance.new('BodyGyro')
-	BG.MaxTorque = Vector3.one * 2e9
-	BG.CFrame = CFrame.new(Vector3.zero, CrossVector) 
+	BG.MaxTorque = Vector3.one * 100000  -- Reduced from 2e9 to prevent snapping
+	BG.CFrame = CFrame.new(Vector3.zero, CrossVector)
 	BG.P = 2500
 	BG.Parent = RootPart
 	self.Cleaner:AddTask(BG)

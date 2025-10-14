@@ -29,14 +29,18 @@ NetworkModule.EndPoint = function(Player, Data)
 end
 
 NetworkModule["M1Bvel"] = function(Character) -- // Linear Version
+	-- Calculate world-space forward direction and flatten to horizontal
+	local forwardDirection = Character.PrimaryPart.CFrame.LookVector
+	forwardDirection = Vector3.new(forwardDirection.X, 0, forwardDirection.Z).Unit
+
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.Attachment0 = Character.PrimaryPart.RootAttachment
 	Velocity.ForceLimitsEnabled = true
 	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
-	Velocity.RelativeTo = "Attachment0"
+	Velocity.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- Reduced from 100000 for stability
+	Velocity.RelativeTo = Enum.ActuatorRelativeTo.World  -- Changed from Attachment0 to World
 	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	Velocity.VectorVelocity = Vector3.new(0, 0, -60)
+	Velocity.VectorVelocity = forwardDirection * 60
 	Velocity.Parent = Character.PrimaryPart
 
 	Debris:AddItem(Velocity, 0.15)
@@ -49,14 +53,18 @@ NetworkModule["M1Bvel"] = function(Character) -- // Linear Version
 end
 
 NetworkModule["M2Bvel"] = function(Character) -- // Linear Version
+	-- Calculate world-space forward direction and flatten to horizontal
+	local forwardDirection = Character.PrimaryPart.CFrame.LookVector
+	forwardDirection = Vector3.new(forwardDirection.X, 0, forwardDirection.Z).Unit
+
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.Attachment0 = Character.PrimaryPart.RootAttachment
 	Velocity.ForceLimitsEnabled = true
 	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
-	Velocity.RelativeTo = "Attachment0"
+	Velocity.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- Reduced from 100000 for stability
+	Velocity.RelativeTo = Enum.ActuatorRelativeTo.World  -- Changed from Attachment0 to World
 	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	Velocity.VectorVelocity = Vector3.new(0, 0, -80)
+	Velocity.VectorVelocity = forwardDirection * 80
 	Velocity.Parent = Character.PrimaryPart
 
 	Debris:AddItem(Velocity, 0.35)
@@ -69,14 +77,18 @@ NetworkModule["M2Bvel"] = function(Character) -- // Linear Version
 end
 
 NetworkModule["Bone GauntletsRunningBvel"] = function(Character)
+	-- Calculate world-space forward direction and flatten to horizontal
+	local forwardDirection = Character.PrimaryPart.CFrame.LookVector
+	forwardDirection = Vector3.new(forwardDirection.X, 0, forwardDirection.Z).Unit
+
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.Attachment0 = Character.PrimaryPart.RootAttachment
 	Velocity.ForceLimitsEnabled = true
 	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
-	Velocity.RelativeTo = "Attachment0"
+	Velocity.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- Reduced from 100000 for stability
+	Velocity.RelativeTo = Enum.ActuatorRelativeTo.World  -- Changed from Attachment0 to World
 	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	Velocity.VectorVelocity = Vector3.new(0, 0, -80)
+	Velocity.VectorVelocity = forwardDirection * 80
 	Velocity.Parent = Character.PrimaryPart
 
 	Debris:AddItem(Velocity, 0.35)
@@ -140,7 +152,11 @@ NetworkModule["FistRunningBvel"] = function(Character)
 	local duration = 0.65
 	local startTime = os.clock()
 
-	lv.MaxForce = math.huge
+	-- Use constrained force limits like M1Bvel to prevent flinging
+	lv.ForceLimitsEnabled = true
+	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	lv.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
+	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -152,8 +168,9 @@ NetworkModule["FistRunningBvel"] = function(Character)
 		local elapsed = os.clock() - startTime
 		local progress = math.clamp(1 - (elapsed / duration), 0, 1)
 
-		-- Get current forward direction
+		-- Get current forward direction and flatten to horizontal
 		local forwardVector = rootPart.CFrame.LookVector
+		forwardVector = Vector3.new(forwardVector.X, 0, forwardVector.Z).Unit
 
 		-- Apply velocity with gradual decay
 		lv.VectorVelocity = forwardVector * speed * progress
@@ -198,7 +215,11 @@ NetworkModule["PIBvel"] = function(Character)
 	local duration = .71
 	local startTime = os.clock()
 
-	lv.MaxForce = math.huge
+	-- Use constrained force limits like M1Bvel to prevent flinging
+	lv.ForceLimitsEnabled = true
+	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	lv.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
+	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -244,7 +265,11 @@ NetworkModule["PIBvel2"] = function(Character)
 	local duration = .3
 	local startTime = os.clock()
 
-	lv.MaxForce = math.huge
+	-- Use constrained force limits like M1Bvel to prevent flinging
+	lv.ForceLimitsEnabled = true
+	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	lv.MaxAxesForce = Vector3.new(50000, 8000, 50000)  -- Small Y force for hop
+	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -280,12 +305,16 @@ NetworkModule["PIBvel2"] = function(Character)
 end
 
 NetworkModule["FistBvel"] = function(Character: Model)
+	-- Calculate world-space forward direction and flatten to horizontal
+	local forwardDirection = Character.PrimaryPart.CFrame.LookVector
+	forwardDirection = Vector3.new(forwardDirection.X, 0, forwardDirection.Z).Unit
+
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.Attachment0 = Character.PrimaryPart.RootAttachment
 	Velocity.ForceLimitsEnabled = true
 	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
-	Velocity.RelativeTo = "Attachment0"
+	Velocity.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- Reduced from 100000 for stability
+	Velocity.RelativeTo = Enum.ActuatorRelativeTo.World  -- Changed from Attachment0 to World
 	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	Velocity.VectorVelocity = Vector3.new(0, 0, 0)
 	Velocity.Parent = Character.PrimaryPart
@@ -295,7 +324,7 @@ NetworkModule["FistBvel"] = function(Character: Model)
 	TweenService:Create(
 		Velocity,
 		TweenInfo.new(12 / 60, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
-		{ VectorVelocity = Vector3.new(0, 0, -50) }
+		{ VectorVelocity = forwardDirection * 50 }  -- Use world direction
 	):Play()
 
 	task.wait(12 / 60)
@@ -374,14 +403,18 @@ NetworkModule["BaseBvel"] = function(Character: Model)
 		end
 	end
 
+	-- Calculate world-space backward direction and flatten to horizontal
+	local backwardDirection = -Character.PrimaryPart.CFrame.LookVector
+	backwardDirection = Vector3.new(backwardDirection.X, 0, backwardDirection.Z).Unit
+
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.Attachment0 = Character.PrimaryPart.RootAttachment
 	Velocity.ForceLimitsEnabled = true
 	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
-	Velocity.RelativeTo = "Attachment0"
+	Velocity.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- Reduced from 100000 for stability
+	Velocity.RelativeTo = Enum.ActuatorRelativeTo.World  -- Changed from Attachment0 to World
 	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	Velocity.VectorVelocity = Vector3.new(0, 0, 50)
+	Velocity.VectorVelocity = backwardDirection * 50
 	Velocity.Parent = Character.PrimaryPart
 
 	Debris:AddItem(Velocity, 0.15)
@@ -535,7 +568,11 @@ NetworkModule["AABvel"] = function(Character: Model)
 	local maxSpeed = 100 -- Maximum speed at end of duration
 	local elapsedTime = 0
 
-	lv.MaxForce = math.huge
+	-- Use constrained force limits like M1Bvel to prevent flinging
+	lv.ForceLimitsEnabled = true
+	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	lv.MaxAxesForce = Vector3.new(50000, 2000, 50000)  -- Small Y force for slight upward
+	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -575,11 +612,13 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		end
 	end
 
+	-- Calculate direction and flatten to horizontal to prevent upward flinging
 	local direction = (eroot.Position - root.Position).Unit
+	direction = Vector3.new(direction.X, 0, direction.Z).Unit  -- Flatten to horizontal
 	local power = 60
 
 	local bv = Instance.new("BodyVelocity")
-	bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+	bv.MaxForce = Vector3.new(50000, 0, 50000)  -- Reduced from math.huge, no Y force
 	bv.Velocity = direction * power
 	bv.Parent = eroot
 
@@ -589,16 +628,8 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 end
 
 NetworkModule["NTBvel"] = function(Character)
-    local startTime = os.clock()
-    local callId = math.random(1000, 9999)
-    --print(`[NTBvel #{callId}] [{startTime}] START - Creating velocity for {Character.Name}`)
-    --print(`[NTBvel #{callId}] ⚠️ WARNING: If you see multiple calls with different IDs, the skill is being triggered multiple times!`)
-
     local rootPart = Character.PrimaryPart
     if not rootPart then return end
-
-    --print(`[NTBvel #{callId}] Position before cleanup: {rootPart.Position}`)
-    --print(`[NTBvel #{callId}] Velocity before cleanup: {rootPart.AssemblyLinearVelocity}`)
 
     -- Stop ONLY movement animations (Walking, Running, Dash, etc.) but NOT skill animations
     local humanoid = Character:FindFirstChildOfClass("Humanoid")
@@ -606,7 +637,6 @@ NetworkModule["NTBvel"] = function(Character)
         local animator = humanoid:FindFirstChildOfClass("Animator")
         if animator then
             local tracks = animator:GetPlayingAnimationTracks()
-            --print(`[NTBvel #{callId}] Checking {#tracks} active animations`)
 
             -- List of movement animation names to stop
             local movementAnimNames = {"Walking", "Running", "Right", "Left", "Forward", "Backward", "Idle", "Jump", "Fall", "Climb", "Sit"}
@@ -624,33 +654,22 @@ NetworkModule["NTBvel"] = function(Character)
                 end
 
                 if shouldStop then
-                    --print(`[NTBvel #{callId}]   - Stopping movement anim: {animName}`)
                     track:Stop(0) -- Stop immediately with 0 fade time
-                else
-                    --print(`[NTBvel #{callId}]   - Keeping skill anim: {animName}`)
                 end
             end
         end
     end
 
     -- Clean up any existing body movers FIRST
-    --print(`[NTBvel #{callId}] Cleaning body movers before creating new velocity`)
-    local moversFound = 0
     for _, child in pairs(rootPart:GetChildren()) do
         if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
-            --print(`[NTBvel #{callId}] Destroying existing {child.ClassName}: {child.Name}`)
-            moversFound = moversFound + 1
             child:Destroy()
         end
     end
-    --print(`[NTBvel #{callId}] Removed {moversFound} existing body movers`)
 
     -- Clear residual velocity
     rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
     rootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-
-    --print(`[NTBvel #{callId}] Position after cleanup: {rootPart.Position}`)
-    --print(`[NTBvel #{callId}] Velocity after cleanup: {rootPart.AssemblyLinearVelocity}`)
 
     local lv = Instance.new("LinearVelocity")
     local attachment = Instance.new("Attachment")
@@ -660,23 +679,24 @@ NetworkModule["NTBvel"] = function(Character)
     local duration = 0.6
     local animStartTime = os.clock()
 
-    --print(`[NTBvel #{callId}] Creating LinearVelocity with speed={speed}, duration={duration}`)
-
-    lv.MaxForce = math.huge
+    -- Use constrained force limits like M1Bvel to prevent flinging
+    lv.ForceLimitsEnabled = true
+    lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+    lv.MaxAxesForce = Vector3.new(50000, 15000, 50000)  -- Moderate Y force for arc
+    lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
     lv.Attachment0 = attachment
     lv.RelativeTo = Enum.ActuatorRelativeTo.World
     lv.Parent = rootPart
 
     -- Connection to update velocity every frame
-    local frameCount = 0
     local conn
     conn = RunService.Heartbeat:Connect(function()
         local elapsed = os.clock() - animStartTime
         local progress = math.clamp(elapsed / duration, 0, 1)
-        frameCount = frameCount + 1
 
-        -- Get current forward direction
+        -- Get current forward direction and flatten to horizontal
         local forwardVector = rootPart.CFrame.LookVector
+        forwardVector = Vector3.new(forwardVector.X, 0, forwardVector.Z).Unit
 
         -- Create arc motion with faster descent
         local verticalComponent
@@ -693,20 +713,13 @@ NetworkModule["NTBvel"] = function(Character)
 
         -- Apply velocity with arc motion
         lv.VectorVelocity = forwardVector * horizontalSpeed + Vector3.new(0, verticalComponent, 0)
-
-        -- Debug tracking every 5 frames
-        if frameCount % 5 == 0 then
-            --print(`[NTBvel #{callId} Frame {frameCount}] Progress: {math.floor(progress * 100)}% | Pos: {rootPart.Position} | Vel: {rootPart.AssemblyLinearVelocity}`)
-        end
     end)
 
     -- Cleanup after duration seconds
     task.delay(duration, function()
-        --print(`[NTBvel #{callId}] ENDING - Final position: {rootPart.Position} | Final velocity: {rootPart.AssemblyLinearVelocity}`)
         conn:Disconnect()
         lv:Destroy()
         attachment:Destroy()
-        --print(`[NTBvel #{callId}] Cleanup complete`)
     end)
 end
 
@@ -720,7 +733,11 @@ NetworkModule["FlameRunningBvel"] = function(Character)
 	local duration = 0.65
 	local startTime = os.clock()
 
-	lv.MaxForce = math.huge
+	-- Use constrained force limits like M1Bvel to prevent flinging
+	lv.ForceLimitsEnabled = true
+	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	lv.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
+	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -732,8 +749,9 @@ NetworkModule["FlameRunningBvel"] = function(Character)
 		local elapsed = os.clock() - startTime
 		local progress = math.clamp(1 - (elapsed / duration), 0, 1)
 
-		-- Get current forward direction
+		-- Get current forward direction and flatten to horizontal
 		local forwardVector = rootPart.CFrame.LookVector
+		forwardVector = Vector3.new(forwardVector.X, 0, forwardVector.Z).Unit
 
 		-- Apply velocity with gradual decay
 		lv.VectorVelocity = forwardVector * speed * progress
@@ -838,7 +856,11 @@ NetworkModule["GunsRunningBvel"] = function(Character)
 	local duration = 0.65
 	local startTime = os.clock()
 
-	lv.MaxForce = math.huge
+	-- Use constrained force limits like M1Bvel to prevent flinging
+	lv.ForceLimitsEnabled = true
+	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	lv.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
+	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -850,8 +872,9 @@ NetworkModule["GunsRunningBvel"] = function(Character)
 		local elapsed = os.clock() - startTime
 		local progress = math.clamp(1 - (elapsed / duration), 0, 1)
 
-		-- Get current forward direction
+		-- Get current forward direction and flatten to horizontal
 		local forwardVector = rootPart.CFrame.LookVector
+		forwardVector = Vector3.new(forwardVector.X, 0, forwardVector.Z).Unit
 
 		-- Apply velocity with gradual decay
 		lv.VectorVelocity = forwardVector * speed * progress
@@ -890,7 +913,11 @@ NetworkModule["StoneLaunchVelocity"] = function(Character, Data)
 
 	local lv = Instance.new("LinearVelocity")
 	lv.Name = "StoneLaunchVelocity"
-	lv.MaxForce = math.huge
+	-- Use constrained force limits to prevent excessive flinging
+	lv.ForceLimitsEnabled = true
+	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	lv.MaxAxesForce = Vector3.new(50000, 30000, 50000)  -- Moderate Y force for launch
+	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
 	lv.VectorVelocity = velocity
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
@@ -924,10 +951,18 @@ NetworkModule["PincerForwardVelocity"] = function(Character)
 		oldVel:Destroy()
 	end
 
+	-- Flatten forward direction to horizontal
+	local forwardDirection = rootPart.CFrame.LookVector
+	forwardDirection = Vector3.new(forwardDirection.X, 0, forwardDirection.Z).Unit
+
 	local forwardVelocity = Instance.new("LinearVelocity")
 	forwardVelocity.Name = "PincerImpactVelocity"
-	forwardVelocity.MaxForce = math.huge
-	forwardVelocity.VectorVelocity = rootPart.CFrame.LookVector * 30
+	-- Use constrained force limits like M1Bvel to prevent flinging
+	forwardVelocity.ForceLimitsEnabled = true
+	forwardVelocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	forwardVelocity.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
+	forwardVelocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	forwardVelocity.VectorVelocity = forwardDirection * 30
 	forwardVelocity.Attachment0 = attachment
 	forwardVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
 	forwardVelocity.Parent = rootPart

@@ -176,7 +176,7 @@ return function(Player, Data, Server)
 							local positionLock = Instance.new("BodyPosition")
 							positionLock.Name = "StrategistComboLock"
 							positionLock.Position = originalCFrame.Position
-							positionLock.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+							positionLock.MaxForce = Vector3.new(100000, 100000, 100000)  -- Reduced from math.huge
 							positionLock.P = 10000
 							positionLock.D = 500
 							positionLock.Parent = victimRoot

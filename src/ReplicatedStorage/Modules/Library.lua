@@ -122,16 +122,52 @@ Library.CleanupCharacter = function(Char: Model)
 		end
 		print("Stopped all animation tracks for character:", Char.Name)
 	end
+
+	-- Clean up all body movers to prevent flinging
+	Library.RemoveAllBodyMovers(Char)
 end
 
 Library.StopMovementAnimations = function(Char: Model)
 	if not Char then return end;
 	local Table = {"Left", "Right", "Forward", "Back", "CancelLeft", "CancelRight"};
-	
+
 	for _, v in next, Char.Humanoid.Animator:GetPlayingAnimationTracks() do
 		if table.find(Table, v.Name) then
 			v:Stop()
 		end
+	end
+end
+
+-- Remove all body movers from a character to prevent flinging
+Library.RemoveAllBodyMovers = function(Char: Model)
+	if not Char then return end
+
+	local moversRemoved = 0
+
+	-- Check all descendants for body movers
+	for _, descendant in pairs(Char:GetDescendants()) do
+		if descendant:IsA("BodyVelocity")
+			or descendant:IsA("BodyPosition")
+			or descendant:IsA("BodyGyro")
+			or descendant:IsA("BodyAngularVelocity")
+			or descendant:IsA("LinearVelocity")
+			or descendant:IsA("AngularVelocity")
+			or descendant:IsA("AlignPosition")
+			or descendant:IsA("AlignOrientation") then
+			descendant:Destroy()
+			moversRemoved = moversRemoved + 1
+		end
+	end
+
+	-- Clear residual velocity from HumanoidRootPart
+	local rootPart = Char:FindFirstChild("HumanoidRootPart")
+	if rootPart then
+		rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+		rootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+	end
+
+	if moversRemoved > 0 then
+		print(`[Library] Removed {moversRemoved} body movers from {Char.Name}`)
 	end
 end
 

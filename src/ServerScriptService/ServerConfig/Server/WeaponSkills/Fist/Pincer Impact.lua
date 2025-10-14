@@ -299,14 +299,14 @@ return function(Player, Data, Server)
 					local attackerCFrame = Char.HumanoidRootPart.CFrame
 					local attackerAnchor = Instance.new("BodyPosition")
 					attackerAnchor.Position = attackerCFrame.Position
-					attackerAnchor.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+					attackerAnchor.MaxForce = Vector3.new(100000, 100000, 100000)  -- Reduced from math.huge
 					attackerAnchor.P = 10000
 					attackerAnchor.D = 500
 					attackerAnchor.Parent = Char.HumanoidRootPart
 
 					local attackerGyro = Instance.new("BodyGyro")
 					attackerGyro.CFrame = attackerCFrame
-					attackerGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+					attackerGyro.MaxTorque = Vector3.new(100000, 100000, 100000)  -- Reduced from math.huge
 					attackerGyro.P = 10000
 					attackerGyro.D = 500
 					attackerGyro.Parent = Char.HumanoidRootPart
@@ -326,14 +326,14 @@ return function(Player, Data, Server)
 							local targetCFrame = Target.HumanoidRootPart.CFrame
 							local targetAnchor = Instance.new("BodyPosition")
 							targetAnchor.Position = targetCFrame.Position
-							targetAnchor.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+							targetAnchor.MaxForce = Vector3.new(100000, 100000, 100000)  -- Reduced from math.huge
 							targetAnchor.P = 10000
 							targetAnchor.D = 500
 							targetAnchor.Parent = Target.HumanoidRootPart
 
 							local targetGyro = Instance.new("BodyGyro")
 							targetGyro.CFrame = targetCFrame
-							targetGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+							targetGyro.MaxTorque = Vector3.new(100000, 100000, 100000)  -- Reduced from math.huge
 							targetGyro.P = 10000
 							targetGyro.D = 500
 							targetGyro.Parent = Target.HumanoidRootPart

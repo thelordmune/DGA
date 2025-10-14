@@ -29,7 +29,7 @@ local RockMod = {
 		CreatePart = function(Raycast)
 			local Part = PartCache:GetPart()
 			--task.delay(10, PartCache.ReturnPart, PartCache, Part)
-			Part.CanCollide = true
+			Part.CanCollide = false  -- Changed to false to prevent flinging players
 			Part.CanQuery = false
 			Part.Anchored = true
 			Part.CollisionGroup = "CharactersOff"

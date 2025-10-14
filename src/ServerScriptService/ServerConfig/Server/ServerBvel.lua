@@ -40,7 +40,7 @@ ServerBvel.BFKnockback = function(Character, direction, horizontalPower, upwardP
     -- Create LinearVelocity
     local lv = Instance.new("LinearVelocity")
     lv.Name = "BFKnockbackVelocity"
-    lv.MaxForce = math.huge
+    lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
     lv.VectorVelocity = velocity
     lv.Attachment0 = attachment
     lv.RelativeTo = Enum.ActuatorRelativeTo.World

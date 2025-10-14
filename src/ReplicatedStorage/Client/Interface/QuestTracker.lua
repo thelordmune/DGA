@@ -53,16 +53,28 @@ end
 
 function QuestTrackerManager:Initialize()
 	print("[QuestTracker] Initializing...")
-	
+
+	-- Clean up old UI if it exists (for respawns)
+	if self.questTrackerGui and self.questTrackerGui.Parent then
+		self.questTrackerGui:Destroy()
+		self.questTrackerGui = nil
+	end
+
 	-- Create the quest tracker UI
 	self:CreateUI()
-	
-	-- Set up keybind
-	self:SetupKeybind()
-	
-	-- Set up quest data updates
-	self:SetupQuestUpdates()
-	
+
+	-- Set up keybind (only once)
+	if not self.keybindSetup then
+		self:SetupKeybind()
+		self.keybindSetup = true
+	end
+
+	-- Set up quest data updates (only once)
+	if not self.questUpdatesSetup then
+		self:SetupQuestUpdates()
+		self.questUpdatesSetup = true
+	end
+
 	print("[QuestTracker] Initialized successfully")
 end
 

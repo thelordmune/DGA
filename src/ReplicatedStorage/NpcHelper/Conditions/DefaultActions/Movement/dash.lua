@@ -72,10 +72,13 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	mainConfig.Movement.IsDashing = true
 	mainConfig.Movement.DashDirection = dashVector
 
-	-- Set Dashing component to true for ECS
-	local npcEntity = ref.get("mob", npc)
-	if npcEntity then
-		world:set(npcEntity, comps.Dashing, true)
+	-- Set Dashing component to true for ECS by finding the entity with this NPC's Character component
+	for entity in world:query(comps.Character) do
+		local character = world:get(entity, comps.Character)
+		if character == npc then
+			world:set(entity, comps.Dashing, true)
+			break
+		end
 	end
 
 	-- Play dash animation
@@ -143,9 +146,13 @@ return function(actor: Actor, mainConfig: table, direction: string)
 			mainConfig.Movement.DashDirection = nil
 		end
 
-		-- Clear Dashing component
-		if npcEntity and world:contains(npcEntity) then
-			world:set(npcEntity, comps.Dashing, false)
+		-- Clear Dashing component by finding the entity again
+		for entity in world:query(comps.Character) do
+			local character = world:get(entity, comps.Character)
+			if character == npc then
+				world:set(entity, comps.Dashing, false)
+				break
+			end
 		end
 	end)
 

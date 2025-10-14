@@ -130,8 +130,11 @@ Movement.Dodge = function()
     Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
     Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
     Velocity.Attachment0 = Client.Root.RootAttachment
-    Velocity.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-    Velocity.VectorVelocity = Vector * Speed
+    Velocity.RelativeTo = Enum.ActuatorRelativeTo.World  -- Changed from Attachment0 to World to prevent uphill flinging
+    -- Calculate world-space velocity direction (flatten to prevent going up/down)
+    local worldDirection = (Client.Root.CFrame * CFrame.new(Vector)).Position - Client.Root.Position
+    worldDirection = Vector3.new(worldDirection.X, 0, worldDirection.Z).Unit  -- Flatten to horizontal plane
+    Velocity.VectorVelocity = worldDirection * Speed
     Velocity.Name = "Dodge"
     Velocity.Parent = Client.Root
 
@@ -145,7 +148,7 @@ Movement.Dodge = function()
     local DashTween = Client.Service["TweenService"]:Create(
         Velocity,
         TweenInfo.new(TweenDuration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-        {VectorVelocity = Vector * SlowdownSpeed}
+        {VectorVelocity = worldDirection * SlowdownSpeed}  -- Use world direction for consistent slowdown
     )
     DashTween:Play()
 

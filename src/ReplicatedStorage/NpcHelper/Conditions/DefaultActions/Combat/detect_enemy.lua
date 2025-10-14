@@ -6,7 +6,7 @@ local DEBUG = false
 local function debugPrint(npcName, ...)
     -- Only debug Guards
     if npcName and npcName:match("Guard") then
-        print("[DetectEnemy]", npcName, ...)
+        --print("[DetectEnemy]", npcName, ...)
     elseif DEBUG then
         print("[DetectEnemy]", ...)
     end

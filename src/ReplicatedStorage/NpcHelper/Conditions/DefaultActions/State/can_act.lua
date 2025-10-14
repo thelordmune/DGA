@@ -14,13 +14,19 @@ return function(actor: Actor, mainConfig: table)
         return false
     end
 
-    -- Check if NPC is dashing
-    local npcEntity = ref.get("mob", npc)
-    if npcEntity and world:has(npcEntity, comps.Dashing) then
-        local isDashing = world:get(npcEntity, comps.Dashing)
-        if isDashing then
-            -- print("NPC", npc.Name, "is dashing, cannot act")
-            return false
+    -- Check if NPC is dashing by querying the world for the entity with this NPC's Character component
+    for entity in world:query(comps.Character) do
+        local character = world:get(entity, comps.Character)
+        if character == npc then
+            -- Found the entity for this NPC
+            if world:has(entity, comps.Dashing) then
+                local isDashing = world:get(entity, comps.Dashing)
+                if isDashing then
+                    -- print("NPC", npc.Name, "is dashing, cannot act")
+                    return false
+                end
+            end
+            break
         end
     end
 

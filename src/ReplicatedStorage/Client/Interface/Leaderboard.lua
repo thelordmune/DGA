@@ -51,22 +51,34 @@ end
 
 function LeaderboardManager:Initialize()
 	print("[Leaderboard] Initializing...")
-	
+
 	-- Disable default Roblox player list
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 		print("[Leaderboard] Disabled default player list")
 	end)
-	
+
+	-- Clean up old UI if it exists (for respawns)
+	if self.leaderboardGui and self.leaderboardGui.Parent then
+		self.leaderboardGui:Destroy()
+		self.leaderboardGui = nil
+	end
+
 	-- Create the leaderboard UI
 	self:CreateUI()
-	
-	-- Set up player tracking
-	self:SetupPlayerTracking()
-	
-	-- Set up keybind
-	self:SetupKeybind()
-	
+
+	-- Set up player tracking (only once)
+	if not self.playerTrackingSetup then
+		self:SetupPlayerTracking()
+		self.playerTrackingSetup = true
+	end
+
+	-- Set up keybind (only once)
+	if not self.keybindSetup then
+		self:SetupKeybind()
+		self.keybindSetup = true
+	end
+
 	print("[Leaderboard] Initialized successfully")
 end
 

@@ -285,7 +285,13 @@ return function(scope, props: {})
 		visible:set(false)
 		task.wait(0.5) -- Wait for slide-out animation to complete
 
-		-- Now clear TextPlus children after all animations
+		-- Clear TextPlus content using TextPlus.Create with empty string
+		-- This properly cleans up TextPlus internal state
+		pcall(function()
+			TextPlus.Create(textFrame, "", {})
+		end)
+
+		-- Now clear any remaining children
 		for _, child in textFrame:GetChildren() do
 			child:Destroy()
 		end
