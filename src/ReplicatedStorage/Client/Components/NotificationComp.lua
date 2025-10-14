@@ -24,31 +24,31 @@ local function getCharacters(textFrame)
 	return characters
 end
 
--- Fade Diverge Animation (SwagText style)
+-- Fade Diverge Animation IN (SwagText style)
 local function fadeDivergeAnimation(textFrame, delayPerChar)
 	delayPerChar = delayPerChar or 0.015
-	
+
 	local characters = getCharacters(textFrame)
 	if #characters == 0 then return end
-	
+
 	local totalChars = #characters
 	local centerIndex = totalChars / 2
-	
+
 	for i, character in characters do
 		if not character.Parent then break end
-		
+
 		local isImageLabel = character:IsA("ImageLabel")
 		local isTextLabel = character:IsA("TextLabel")
 		if not isImageLabel and not isTextLabel then continue end
-		
+
 		local originalPos = character.Position
-		
+
 		-- Calculate diverge offset (spread from center)
 		local distanceFromCenter = i - centerIndex
 		local divergeAmount = 8
 		local xOffset = distanceFromCenter * (divergeAmount / totalChars) * 2
 		local yOffset = math.abs(distanceFromCenter) * 0.5
-		
+
 		-- Set initial state
 		if isImageLabel then
 			character.ImageTransparency = 1
@@ -56,12 +56,49 @@ local function fadeDivergeAnimation(textFrame, delayPerChar)
 			character.TextTransparency = 1
 		end
 		character.Position = originalPos - UDim2.fromOffset(xOffset, yOffset)
-		
+
 		-- Animate
 		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
 		local props = { Position = originalPos }
 		props[isImageLabel and "ImageTransparency" or "TextTransparency"] = 0
-		
+
+		TweenService:Create(character, tweenInfo, props):Play()
+		task.wait(delayPerChar)
+	end
+end
+
+-- Fade Diverge Animation OUT (reverse)
+local function fadeDivergeOutAnimation(textFrame, delayPerChar)
+	delayPerChar = delayPerChar or 0.01
+
+	local characters = getCharacters(textFrame)
+	if #characters == 0 then return end
+
+	local totalChars = #characters
+	local centerIndex = totalChars / 2
+
+	-- Animate from center outward (reverse order)
+	for i = #characters, 1, -1 do
+		local character = characters[i]
+		if not character or not character.Parent then continue end
+
+		local isImageLabel = character:IsA("ImageLabel")
+		local isTextLabel = character:IsA("TextLabel")
+		if not isImageLabel and not isTextLabel then continue end
+
+		local originalPos = character.Position
+
+		-- Calculate diverge offset (spread from center)
+		local distanceFromCenter = i - centerIndex
+		local divergeAmount = 8
+		local xOffset = distanceFromCenter * (divergeAmount / totalChars) * 2
+		local yOffset = math.abs(distanceFromCenter) * 0.5
+
+		-- Animate to diverged position and fade out
+		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Cubic, Enum.EasingDirection.In)
+		local props = { Position = originalPos + UDim2.fromOffset(xOffset, yOffset) }
+		props[isImageLabel and "ImageTransparency" or "TextTransparency"] = 1
+
 		TweenService:Create(character, tweenInfo, props):Play()
 		task.wait(delayPerChar)
 	end
@@ -195,16 +232,19 @@ return function(scope, props: {})
 			end
 
 			TextPlus.Create(textFrame, fullText, {
-				Font = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold),
-				Size = 14, -- Smaller text
+				Font = Font.new("rbxasset://fonts/families/Prompt.json", Enum.FontWeight.Bold),
+				Size = 20, -- Smaller text
 				Color = textColor,
 				Transparency = 1,
 				XAlignment = "Right", -- Align to right
 				YAlignment = "Center",
-				-- Drop shadow using TextPlus built-in feature
-				-- ShadowOffset = Vector2.new(5, 5), -- Shadow offset (x, y)
-				-- ShadowColor = Color3.fromRGB(255, 255, 255), -- Black shadow
-				-- ShadowTransparency = 0.9, -- 50% transparent
+				--Drop shadow using TextPlus built-in feature
+				ShadowOffset = Vector2.new(.5, .5), -- Shadow offset (x, y)
+				ShadowColor = textColor, -- Black shadow
+				ShadowTransparency = 0.9, -- 50% transparent
+				StrokeSize = .2,
+				StrokeColor = Color3.fromRGB(0, 0, 0),
+				StrokeTransparency = 0.5,
 			})
 		end)
 
@@ -237,7 +277,15 @@ return function(scope, props: {})
 		-- Mark as destroying
 		isDestroying = true
 
-		-- Clear TextPlus children before destroying frame
+		-- Fade diverge OUT animation (characters spread and fade)
+		fadeDivergeOutAnimation(textFrame, 0.01)
+		task.wait(0.3) -- Wait for fade diverge out to complete
+
+		-- Slide out the notification frame to the right
+		visible:set(false)
+		task.wait(0.5) -- Wait for slide-out animation to complete
+
+		-- Now clear TextPlus children after all animations
 		for _, child in textFrame:GetChildren() do
 			child:Destroy()
 		end
@@ -245,11 +293,7 @@ return function(scope, props: {})
 		-- Wait for cleanup
 		task.wait(0.1)
 
-		-- Fade out
-		visible:set(false)
-		task.wait(0.5)
-
-		-- Cleanup
+		-- Cleanup callback
 		if onComplete then
 			onComplete()
 		end

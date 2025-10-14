@@ -116,7 +116,7 @@ function QuestTrackerManager:UpdateQuestData()
 	-- Update active quest
 	if world:has(playerEntity, comps.ActiveQuest) then
 		local activeQuest = world:get(playerEntity, comps.ActiveQuest)
-		print("[QuestTracker] Active quest found:", activeQuest.npcName, activeQuest.questName)
+		-- print("[QuestTracker] Active quest found:", activeQuest.npcName, activeQuest.questName)
 
 		local questInfo = QuestData[activeQuest.npcName] and QuestData[activeQuest.npcName][activeQuest.questName]
 

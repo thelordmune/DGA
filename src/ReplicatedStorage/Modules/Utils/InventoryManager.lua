@@ -8,22 +8,104 @@ local isServer = Runservice:IsServer()
 
 local InventoryManager = {}
 
+-- Sync inventory to client
+local function syncInventoryToClient(entity)
+    if not isServer then return end
+
+    -- Get player from entity
+    if not world:has(entity, comps.Player) then
+        return
+    end
+
+    local player = world:get(entity, comps.Player)
+    if not player or not player.Parent then
+        return
+    end
+
+    -- Get inventory and hotbar (fresh read from world)
+    if not world:has(entity, comps.Inventory) or not world:has(entity, comps.Hotbar) then
+        return
+    end
+
+    -- Force a fresh read from the world to ensure we have the latest data
+    local inventory = world:get(entity, comps.Inventory)
+    local hotbar = world:get(entity, comps.Hotbar)
+
+    -- Serialize inventory data
+    -- IMPORTANT: Convert sparse table to array format for BridgeNet2
+    -- BridgeNet2 doesn't handle sparse tables well (drops non-consecutive keys)
+    local inventoryData = {
+        items = {},
+        maxSlots = inventory.maxSlots
+    }
+
+    -- Count items properly (can't use # with sparse tables)
+    local itemCount = 0
+    for _ in pairs(inventory.items) do
+        itemCount = itemCount + 1
+    end
+
+    print("[InventoryManager] Syncing inventory - Total items:", itemCount)
+
+    -- Convert to array format with slot numbers embedded in each item
+    local itemArray = {}
+    for slot, item in pairs(inventory.items) do
+        print("[InventoryManager]   Slot", slot, ":", item.name, "(type:", item.typ .. ")")
+        table.insert(itemArray, {
+            name = item.name,
+            typ = item.typ,
+            quantity = item.quantity,
+            singleuse = item.singleuse,
+            description = item.description,
+            icon = item.icon,
+            stackable = item.stackable,
+            slot = slot  -- Include slot number in the item data
+        })
+    end
+
+    inventoryData.items = itemArray
+
+    print("[InventoryManager] Serialized items array length:", #itemArray)
+    for i, item in ipairs(itemArray) do
+        print("[InventoryManager]   Array[" .. i .. "] slot", item.slot, ":", item.name)
+    end
+
+    local syncData = {
+        inventory = inventoryData,
+        hotbar = {
+            slots = hotbar.slots,
+            activeSlot = hotbar.activeSlot or 1
+        }
+    }
+
+    -- Fire to client
+    local Bridges = require(ReplicatedStorage.Modules.Bridges)
+    print("[InventoryManager] Syncing inventory to", player.Name)
+    Bridges.Inventory:Fire(player, syncData)
+end
+
 local function markInventoryChanged(entity)
     if isServer then
         world:set(entity, comps.InventoryChanged, os.clock())
+        -- Immediately sync to client
+        syncInventoryToClient(entity)
     end
 end
 
+-- Constants for slot ranges
+local HOTBAR_SLOTS = {min = 1, max = 7}  -- Slots 1-7 are hotbar (for skills)
+local INVENTORY_SLOTS = {min = 8, max = 50}  -- Slots 8-50 are inventory (for items)
+
 function InventoryManager.initializeInventory(entity, maxSlots)
     maxSlots = maxSlots or 50
-    
+
     if not world:has(entity, comps.Inventory) then
         world:set(entity, comps.Inventory, {
             items = {},
             maxSlots = maxSlots
         })
     end
-    
+
     if not world:has(entity, comps.Hotbar) then
         world:set(entity, comps.Hotbar, {
             slots = {},
@@ -32,16 +114,49 @@ function InventoryManager.initializeInventory(entity, maxSlots)
     end
 end
 
--- Add item to inventory
+-- Find first available slot in a specific range
+local function findEmptySlotInRange(inventory, minSlot, maxSlot)
+    for i = minSlot, maxSlot do
+        if not inventory.items[i] then
+            return i
+        end
+    end
+    return nil
+end
+
+-- Auto-assign hotbar slot for skills
+local function autoAssignHotbarSlot(entity, inventorySlot)
+    if not world:has(entity, comps.Hotbar) then
+        return
+    end
+
+    local hotbar = world:get(entity, comps.Hotbar)
+
+    -- Find first available hotbar slot (1-7)
+    for hotbarSlot = 1, 7 do
+        if not hotbar.slots[hotbarSlot] then
+            hotbar.slots[hotbarSlot] = inventorySlot
+            world:set(entity, comps.Hotbar, hotbar)
+            print("[InventoryManager] Auto-assigned inventory slot", inventorySlot, "to hotbar slot", hotbarSlot)
+            return hotbarSlot
+        end
+    end
+
+    print("[InventoryManager] All hotbar slots full, skill added to inventory only")
+    return nil
+end
+
+-- Add item to inventory with smart slot allocation
+-- Skills go to slots 1-7 (hotbar), items go to slots 8-50 (inventory)
 function InventoryManager.addItem(entity, itemName, itemType, quantity, singleuse, description, icon)
     if not world:has(entity, comps.Inventory) then
         InventoryManager.initializeInventory(entity)
     end
-    
+
     local inventory = world:get(entity, comps.Inventory)
     quantity = quantity or 1
     singleuse = singleuse or false
-    
+
     -- Check if item is stackable and already exists
     local stackable = not singleuse
     if stackable then
@@ -49,27 +164,46 @@ function InventoryManager.addItem(entity, itemName, itemType, quantity, singleus
             if item.name == itemName and item.typ == itemType then
                 item.quantity = item.quantity + quantity
                 world:set(entity, comps.Inventory, inventory)
+                markInventoryChanged(entity)
                 return true, i
             end
         end
     end
-    
-    -- Find empty slot
+
+    -- Determine slot range based on item type
     local emptySlot = nil
-    for i = 1, inventory.maxSlots do
-        if not inventory.items[i] then
-            emptySlot = i
-            break
+    if itemType == "skill" then
+        -- Skills go to hotbar slots (1-7)
+        emptySlot = findEmptySlotInRange(inventory, HOTBAR_SLOTS.min, HOTBAR_SLOTS.max)
+
+        if not emptySlot then
+            -- Hotbar full, try inventory slots as fallback
+            print("[InventoryManager] Hotbar full, placing skill in inventory slots")
+            emptySlot = findEmptySlotInRange(inventory, INVENTORY_SLOTS.min, INVENTORY_SLOTS.max)
+        end
+    else
+        -- Items (consumables, weapons, etc.) go to inventory slots (8-50)
+        emptySlot = findEmptySlotInRange(inventory, INVENTORY_SLOTS.min, INVENTORY_SLOTS.max)
+
+        if not emptySlot then
+            -- Inventory full, try hotbar slots as fallback
+            print("[InventoryManager] Inventory full, placing item in hotbar slots")
+            emptySlot = findEmptySlotInRange(inventory, HOTBAR_SLOTS.min, HOTBAR_SLOTS.max)
         end
     end
-    
+
     if not emptySlot then
-        warn("Inventory full, cannot add item:", itemName)
+        warn("[InventoryManager] Inventory completely full, cannot add item:", itemName)
         return false, nil
     end
-    
-    -- Add new item
-    inventory.items[emptySlot] = {
+
+    -- Add new item (create completely new inventory table to ensure jecs detects the change)
+    local newItems = {}
+    for slot, item in pairs(inventory.items) do
+        newItems[slot] = item
+    end
+
+    newItems[emptySlot] = {
         name = itemName,
         typ = itemType,
         quantity = quantity,
@@ -79,8 +213,30 @@ function InventoryManager.addItem(entity, itemName, itemType, quantity, singleus
         stackable = stackable,
         slot = emptySlot
     }
-    
-    world:set(entity, comps.Inventory, inventory)
+
+    -- Create a completely new inventory table
+    local newInventory = {
+        items = newItems,
+        maxSlots = inventory.maxSlots
+    }
+
+    world:set(entity, comps.Inventory, newInventory)
+
+    -- Auto-assign to hotbar if it's a skill in hotbar range
+    if itemType == "skill" and emptySlot >= HOTBAR_SLOTS.min and emptySlot <= HOTBAR_SLOTS.max then
+        autoAssignHotbarSlot(entity, emptySlot)
+    end
+
+    print("[InventoryManager] Added", itemName, "to slot", emptySlot, "(type:", itemType .. ")")
+
+    -- Debug: Verify item was actually added
+    local verifyInventory = world:get(entity, comps.Inventory)
+    if verifyInventory.items[emptySlot] then
+        print("[InventoryManager] ✅ Verified item in slot", emptySlot, ":", verifyInventory.items[emptySlot].name)
+    else
+        warn("[InventoryManager] ❌ Item NOT found in slot", emptySlot, "after adding!")
+    end
+
     markInventoryChanged(entity)
     return true, emptySlot
 end
@@ -298,6 +454,55 @@ function InventoryManager.resetPlayerInventory(entity)
     InventoryManager.clearInventory(entity)
     InventoryManager.clearHotbar(entity)
     print("Reset player inventory and hotbar")
+end
+
+-- Get available slot counts
+function InventoryManager.getAvailableSlots(entity)
+    if not world:has(entity, comps.Inventory) then
+        return {
+            hotbarSlots = 0,
+            inventorySlots = 0,
+            totalSlots = 0
+        }
+    end
+
+    local inventory = world:get(entity, comps.Inventory)
+
+    local hotbarAvailable = 0
+    local inventoryAvailable = 0
+
+    -- Count available hotbar slots (1-7)
+    for i = HOTBAR_SLOTS.min, HOTBAR_SLOTS.max do
+        if not inventory.items[i] then
+            hotbarAvailable = hotbarAvailable + 1
+        end
+    end
+
+    -- Count available inventory slots (8-50)
+    for i = INVENTORY_SLOTS.min, INVENTORY_SLOTS.max do
+        if not inventory.items[i] then
+            inventoryAvailable = inventoryAvailable + 1
+        end
+    end
+
+    return {
+        hotbarSlots = hotbarAvailable,
+        inventorySlots = inventoryAvailable,
+        totalSlots = hotbarAvailable + inventoryAvailable
+    }
+end
+
+-- Check if there's space for a specific item type
+function InventoryManager.hasSpaceFor(entity, itemType)
+    local available = InventoryManager.getAvailableSlots(entity)
+
+    if itemType == "skill" then
+        -- Skills prefer hotbar, but can use inventory as fallback
+        return available.hotbarSlots > 0 or available.inventorySlots > 0
+    else
+        -- Items prefer inventory, but can use hotbar as fallback
+        return available.inventorySlots > 0 or available.hotbarSlots > 0
+    end
 end
 
 return InventoryManager

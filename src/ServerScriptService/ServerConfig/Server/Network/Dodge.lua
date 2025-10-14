@@ -7,6 +7,9 @@ local Utilities  = require(Replicated.Modules.Utilities);
 local Library    = require(Replicated.Modules.Library);
 local Packets    = require(Replicated.Modules.Packets);
 local Visuals    = require(Replicated.Modules.Visuals);
+local world      = require(Replicated.Modules.ECS.jecs_world);
+local comps      = require(Replicated.Modules.ECS.jecs_components);
+local ref        = require(Replicated.Modules.ECS.jecs_ref);
 
 NetworkModule.EndPoint = function(Player, Data)
     local Character = Player.Character
@@ -37,6 +40,19 @@ NetworkModule.EndPoint = function(Player, Data)
     -- Set cooldown when out of charges
     if charges <= 0 then
         Library.SetCooldown(Character, "Dodge", 2)
+    end
+
+    -- Set Dashing component to true
+    local playerEntity = ref.get("player", Player)
+    if playerEntity then
+        world:set(playerEntity, comps.Dashing, true)
+
+        -- Clear dashing state after dash duration (0.5s)
+        task.delay(0.5, function()
+            if playerEntity and world:contains(playerEntity) then
+                world:set(playerEntity, comps.Dashing, false)
+            end
+        end)
     end
 
     -- Always process VFX if we got here

@@ -4,11 +4,24 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Library = require(ReplicatedStorage.Modules.Library)
+local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 
 return function(actor: Actor, mainConfig: table)
     local npc = actor:FindFirstChildOfClass("Model")
     if not npc then
         return false
+    end
+
+    -- Check if NPC is dashing
+    local npcEntity = ref.get("mob", npc)
+    if npcEntity and world:has(npcEntity, comps.Dashing) then
+        local isDashing = world:get(npcEntity, comps.Dashing)
+        if isDashing then
+            -- print("NPC", npc.Name, "is dashing, cannot act")
+            return false
+        end
     end
 
     -- Check if NPC is stunned
@@ -26,7 +39,7 @@ return function(actor: Actor, mainConfig: table)
             -- print("NPC", npc.Name, "is already attacking")
             return false
         end
-        
+
         if Library.StateCheck(actions, "BlockBreak") then
             -- print("NPC", npc.Name, "is block broken")
             return false

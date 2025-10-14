@@ -6,13 +6,17 @@ local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local Bridges = require(ReplicatedStorage.Modules.Bridges)
 local NotificationManager = require(ReplicatedStorage.Client.NotificationManager)
 
+-- Deserialize inventory data
+-- Server sends items as an array (not sparse table) to avoid BridgeNet2 issues
 local function deserializeInventory(inventoryData)
     local inventory = {
         items = {},
         maxSlots = inventoryData.maxSlots
     }
-    
-    for slot, item in pairs(inventoryData.items) do
+
+    -- Convert array format back to slot-indexed table
+    for _, item in ipairs(inventoryData.items) do
+        local slot = item.slot
         inventory.items[slot] = {
             name = item.name,
             typ = item.typ,
@@ -24,17 +28,25 @@ local function deserializeInventory(inventoryData)
             slot = slot
         }
     end
-    
+
     return inventory
 end
 
 -- Track previous inventory state to detect new items
 local previousInventory = {}
+local isFirstSync = true
 
 -- Handle inventory updates from server
 Bridges.Inventory:Connect(function(syncData)
     print("[InventoryHandler] Client: Received inventory update from server")
     print("[InventoryHandler] Client: SyncData:", syncData)
+
+    -- Debug: Check what items we received (items come as array)
+    local receivedCount = #syncData.inventory.items
+    for i, item in ipairs(syncData.inventory.items) do
+        print("[InventoryHandler] Client: Received array[" .. i .. "] slot", item.slot, ":", item.name, "(type:", item.typ .. ")")
+    end
+    print("[InventoryHandler] Client: Total items received:", receivedCount)
 
     -- Wait a bit to ensure ECS is fully initialized
     local maxAttempts = 10
@@ -62,35 +74,44 @@ Bridges.Inventory:Connect(function(syncData)
 
     -- Detect new items by comparing with previous inventory
     local newItems = {}
-    for slot, item in pairs(syncData.inventory.items) do
-        local previousItem = previousInventory[slot]
 
-        -- Check if this is a new item or increased quantity
-        if not previousItem then
-            -- Brand new item in this slot
-            print("[InventoryHandler] New item in slot", slot, ":", item.name)
-            table.insert(newItems, {
-                name = item.name,
-                typ = item.typ,
-                quantity = item.quantity
-            })
-        elseif previousItem.name ~= item.name then
-            -- Different item in same slot (item replaced)
-            print("[InventoryHandler] Item replaced in slot", slot, ":", previousItem.name, "->", item.name)
-            table.insert(newItems, {
-                name = item.name,
-                typ = item.typ,
-                quantity = item.quantity
-            })
-        elseif previousItem.name == item.name and item.quantity > previousItem.quantity then
-            -- Same item, increased quantity
-            print("[InventoryHandler] Item quantity increased in slot", slot, ":", item.name, previousItem.quantity, "->", item.quantity)
-            table.insert(newItems, {
-                name = item.name,
-                typ = item.typ,
-                quantity = item.quantity - previousItem.quantity
-            })
+    -- Skip notifications on first sync (initial inventory load)
+    if not isFirstSync then
+        -- Items come as array, need to use ipairs and get slot from item.slot
+        for _, item in ipairs(syncData.inventory.items) do
+            local slot = item.slot  -- Get actual slot number from item data
+            local previousItem = previousInventory[slot]
+
+            -- Check if this is a new item or increased quantity
+            if not previousItem then
+                -- Brand new item in this slot
+                print("[InventoryHandler] New item in slot", slot, ":", item.name)
+                table.insert(newItems, {
+                    name = item.name,
+                    typ = item.typ,
+                    quantity = item.quantity
+                })
+            elseif previousItem.name ~= item.name then
+                -- Different item in same slot (item replaced)
+                print("[InventoryHandler] Item replaced in slot", slot, ":", previousItem.name, "->", item.name)
+                table.insert(newItems, {
+                    name = item.name,
+                    typ = item.typ,
+                    quantity = item.quantity
+                })
+            elseif previousItem.name == item.name and item.quantity > previousItem.quantity then
+                -- Same item, increased quantity
+                print("[InventoryHandler] Item quantity increased in slot", slot, ":", item.name, previousItem.quantity, "->", item.quantity)
+                table.insert(newItems, {
+                    name = item.name,
+                    typ = item.typ,
+                    quantity = item.quantity - previousItem.quantity
+                })
+            end
         end
+    else
+        print("[InventoryHandler] First sync - skipping notifications for initial inventory")
+        isFirstSync = false
     end
 
     -- Update inventory component
@@ -116,7 +137,8 @@ Bridges.Inventory:Connect(function(syncData)
 
     -- Update previous inventory state
     previousInventory = {}
-    for slot, item in pairs(syncData.inventory.items) do
+    for _, item in ipairs(syncData.inventory.items) do
+        local slot = item.slot  -- Get actual slot number from item data
         previousInventory[slot] = {
             name = item.name,
             typ = item.typ,

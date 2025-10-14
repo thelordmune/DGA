@@ -96,8 +96,8 @@ return {
 			Priority = 2,
 			Text = "You found it! My precious pocketwatch! Will you return it to me?",
 			Condition = {
-				Module = "HasQuestItem",
-				Args = {"Magnus", "Missing Pocketwatch"}
+				Module = "HasPocketwatch",
+				Args = {}
 			},
 			Outputs = {"ReturnWatchResponse", "KeepWatchResponse"}
 		},

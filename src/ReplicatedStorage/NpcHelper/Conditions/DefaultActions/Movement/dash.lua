@@ -2,6 +2,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
 local Library = require(ReplicatedStorage.Modules.Library)
+local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 
 -- Get Server from main VM
 local function getServer()
@@ -69,6 +72,12 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	mainConfig.Movement.IsDashing = true
 	mainConfig.Movement.DashDirection = dashVector
 
+	-- Set Dashing component to true for ECS
+	local npcEntity = ref.get("mob", npc)
+	if npcEntity then
+		world:set(npcEntity, comps.Dashing, true)
+	end
+
 	-- Play dash animation
 	local dashAnimations = ReplicatedStorage.Assets.Animations.Dashes
 	local animationName
@@ -132,6 +141,11 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		if mainConfig.Movement then
 			mainConfig.Movement.IsDashing = false
 			mainConfig.Movement.DashDirection = nil
+		end
+
+		-- Clear Dashing component
+		if npcEntity and world:contains(npcEntity) then
+			world:set(npcEntity, comps.Dashing, false)
 		end
 	end)
 

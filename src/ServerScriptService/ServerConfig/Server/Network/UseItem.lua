@@ -78,6 +78,16 @@ NetworkModule.EndPoint = function(Player, Data)
             Player:SetAttribute("Weapon", usedItem.name)
             print("Switched to weapon:", usedItem.name)
         elseif usedItem.typ == "skill" then
+            -- Check if player is dashing
+            local playerEntity = ref.get("player", Player)
+            if playerEntity and world:has(playerEntity, comps.Dashing) then
+                local isDashing = world:get(playerEntity, comps.Dashing)
+                if isDashing then
+                    print("[UseItem] Cannot use skill while dashing")
+                    return
+                end
+            end
+
             -- Activate skill
             print("Activated skill:", usedItem.name, "for weapon:", Weapon, "InputType:", Data.inputType or "began")
             local skillPath = script.Parent.Parent.WeaponSkills[Weapon]

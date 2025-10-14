@@ -127,12 +127,12 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
         InventoryManager.clearHotbar(entity)
     end
 
-    -- Track hotbar slot assignment
-    local currentHotbarSlot = 1
+    -- Track skills added
     local skillsAdded = 0
 
     for skillName, skillData in WeaponSkills do
-        -- addItem returns (success: boolean, inventorySlot: number)
+        -- addItem now automatically handles slot allocation and hotbar assignment
+        -- Skills go to slots 1-7 (hotbar), with automatic hotbar assignment
         local success, inventorySlot = InventoryManager.addItem(
             entity,
             skillName,
@@ -144,17 +144,10 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
         )
 
         if success and inventorySlot then
-            print("[GiveWeaponSkills] Added skill:", skillName, "to inventory slot:", inventorySlot)
+            print("[GiveWeaponSkills] ✅ Added skill:", skillName, "to slot:", inventorySlot)
             skillsAdded = skillsAdded + 1
-
-            -- Assign to hotbar (max 7 skills on hotbar)
-            if currentHotbarSlot <= 7 then
-                InventoryManager.setHotbarSlot(entity, currentHotbarSlot, inventorySlot)
-                print("[GiveWeaponSkills] Set hotbar slot:", currentHotbarSlot, "to inventory slot:", inventorySlot, "for skill:", skillName)
-                currentHotbarSlot = currentHotbarSlot + 1
-            end
         else
-            warn("[GiveWeaponSkills] Failed to add skill:", skillName)
+            warn("[GiveWeaponSkills] ❌ Failed to add skill:", skillName)
         end
     end
 

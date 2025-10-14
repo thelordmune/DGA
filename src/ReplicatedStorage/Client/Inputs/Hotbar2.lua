@@ -29,6 +29,12 @@ InputModule.InputBegan = function(input, Client)
     local hotbarSlot = keyToSlot[input.KeyCode]
     if not hotbarSlot then return end
 
+    -- Check if player is dashing
+    if Client.Dodging then
+        print("[Hotbar2] Cannot use skill while dashing")
+        return
+    end
+
     print("Hotbar slot pressed:", hotbarSlot)
 
     local item = InventoryManager.getHotbarItem(pent, hotbarSlot)
