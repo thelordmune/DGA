@@ -273,12 +273,11 @@ return function(Player, Data, Server)
 				Server.Library.RemoveState(Character.Speeds, "AlcSpeed-0")
 				Server.Library.RemoveState(Character.Stuns, "NoRotate")
 				Server.Library.RemoveState(Character.IFrames, "StrategistCombo")
-				Server.Library.RemoveState(Character.Stuns, "StrategistComboLock")
+				Server.Library.RemoveState(Character.Stuns, "StrategistComboLock") -- Remove the lock that prevents dashing
 
 				-- Add short recovery time on miss (much shorter than full combo)
-				local missRecovery = 0.8 -- Short recovery on miss
+				local missRecovery = 0.3 -- Very short recovery on miss to allow dashing
 				Server.Library.TimedState(Character.Actions, script.Name .. "Miss", missRecovery)
-				Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", missRecovery)
 			end
 		end)
 	end

@@ -33,6 +33,9 @@ local heldSkills = {} -- {[player]: {skill, track, startTime, character}}
 -- Cooldown tracking
 local cooldowns = {} -- {[userId]: {[skillName]: expiryTime}}
 
+-- Input debounce tracking (prevents spam)
+local inputDebounce = {} -- {[userId]: {[skillName]: expiryTime}}
+
 -- Set up collision group for ghost clones (no collision with anything)
 local PhysicsService = game:GetService("PhysicsService")
 local hasGhostGroup = pcall(function()
@@ -66,24 +69,55 @@ function WeaponSkillHold:OnInputBegan(player, character)
 		self:ExecuteImmediately(player, character)
 		return
 	end
-	
+
 	-- WEAPON SKILLS WITH BODY MOVERS: Execute immediately
 	if self.hasBodyMovers then
 		self:ExecuteImmediately(player, character)
 		return
 	end
-	
+
 	-- WEAPON SKILLS WITHOUT BODY MOVERS: Can be held
-	
+
+	-- Check input debounce (prevents spam before cooldown is set)
+	local userId = player.UserId
+	if not inputDebounce[userId] then
+		inputDebounce[userId] = {}
+	end
+
+	if inputDebounce[userId][self.skillName] and tick() < inputDebounce[userId][self.skillName] then
+		print(`[WeaponSkillHold] {self.skillName} input is debounced, ignoring input`)
+		return
+	end
+
+	-- Check if player is already holding a skill (prevent spam)
+	if heldSkills[player] then
+		print(`[WeaponSkillHold] {player.Name} is already holding a skill, ignoring input`)
+		return
+	end
+
 	-- Check cooldown
 	if self:IsOnCooldown(player) then
 		print(`[WeaponSkillHold] {self.skillName} is on cooldown`)
 		return
 	end
-	
+
+	-- Check if character is in the middle of executing this skill (Actions state)
+	if character:FindFirstChild("Actions") and character.Actions:FindFirstChild(self.skillName) then
+		print(`[WeaponSkillHold] {self.skillName} is already executing, ignoring input`)
+		return
+	end
+
+	-- Set input debounce (skill animation length + cooldown)
+	-- This prevents any input for this skill until it's completely done
+	local debounceTime = self.cooldown + 5 -- Cooldown + extra buffer
+	inputDebounce[userId][self.skillName] = tick() + debounceTime
+	print(`[WeaponSkillHold] Set input debounce for {self.skillName} for {debounceTime}s`)
+
 	-- Validate character
 	if not character or not character.Parent then
 		warn(`[WeaponSkillHold] Invalid character for {player.Name}`)
+		-- Clear debounce if validation fails
+		inputDebounce[userId][self.skillName] = nil
 		return
 	end
 	

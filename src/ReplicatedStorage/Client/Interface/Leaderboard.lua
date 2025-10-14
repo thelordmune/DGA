@@ -138,10 +138,10 @@ function LeaderboardManager:SetupPlayerTracking()
 		self:RemovePlayer(player)
 	end)
 
-	-- Update player data periodically (to catch DisplayName updates)
+	-- Update player data periodically (to catch DisplayName updates and prevent bugs)
 	task.spawn(function()
 		while true do
-			task.wait(5) -- Update every 5 seconds to catch late DisplayName updates
+			task.wait(1) -- Update every 1 second to prevent leaderboard bugs
 			self:UpdateAllPlayers()
 		end
 	end)

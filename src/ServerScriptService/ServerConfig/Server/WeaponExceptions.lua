@@ -61,8 +61,9 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 		Entity["SwingConnection"] = SwingAnimation.Stopped:Once(function()
 			Entity["SwingConnection"] = nil
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
-				Server.Library.RemoveState(Character.Speeds, "M1Speed8")
+			-- Remove M1Speed12 (not M1Speed8)
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
+				Server.Library.RemoveState(Character.Speeds, "M1Speed12")
 			end
 
 			if Stats["Trail"] then
@@ -74,8 +75,9 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 		Connection = Character.Stuns.Changed:Once(function()
 			Connection = nil
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
-				Server.Library.RemoveState(Character.Speeds, "M1Speed8")
+			-- Remove M1Speed12 (not M1Speed8)
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
+				Server.Library.RemoveState(Character.Speeds, "M1Speed12")
 			end
 
 			if Server.Library.StateCheck(Character.Actions, "M1" .. Combo) then
@@ -468,8 +470,9 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
 
         Entity["SwingConnection"] = SwingAnimation.Stopped:Once(function()
             Entity["SwingConnection"] = nil
-            if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
-                Server.Library.RemoveState(Character.Speeds, "M1Speed8")
+            -- Remove M1Speed12 (not M1Speed8)
+            if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
+                Server.Library.RemoveState(Character.Speeds, "M1Speed12")
             end
             if Stats["Trail"] then
                 Customs.Trail(Character, false)
@@ -479,8 +482,9 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
         local Connection
         Connection = Character.Stuns.Changed:Once(function()
             Connection = nil
-            if Server.Library.StateCheck(Character.Speeds, "M1Speed8") then
-                Server.Library.RemoveState(Character.Speeds, "M1Speed8")
+            -- Remove M1Speed12 (not M1Speed8)
+            if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
+                Server.Library.RemoveState(Character.Speeds, "M1Speed12")
             end
             if Server.Library.StateCheck(Character.Actions, "M1" .. Combo) then
                 Server.Library.RemoveState(Character.Actions, "M1" .. Combo)

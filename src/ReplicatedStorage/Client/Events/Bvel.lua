@@ -152,11 +152,7 @@ NetworkModule["FistRunningBvel"] = function(Character)
 	local duration = 0.65
 	local startTime = os.clock()
 
-	-- Use constrained force limits like M1Bvel to prevent flinging
-	lv.ForceLimitsEnabled = true
-	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	lv.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
-	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -215,11 +211,7 @@ NetworkModule["PIBvel"] = function(Character)
 	local duration = .71
 	local startTime = os.clock()
 
-	-- Use constrained force limits like M1Bvel to prevent flinging
-	lv.ForceLimitsEnabled = true
-	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	lv.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
-	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -265,11 +257,7 @@ NetworkModule["PIBvel2"] = function(Character)
 	local duration = .3
 	local startTime = os.clock()
 
-	-- Use constrained force limits like M1Bvel to prevent flinging
-	lv.ForceLimitsEnabled = true
-	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	lv.MaxAxesForce = Vector3.new(50000, 8000, 50000)  -- Small Y force for hop
-	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -568,11 +556,7 @@ NetworkModule["AABvel"] = function(Character: Model)
 	local maxSpeed = 100 -- Maximum speed at end of duration
 	local elapsedTime = 0
 
-	-- Use constrained force limits like M1Bvel to prevent flinging
-	lv.ForceLimitsEnabled = true
-	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	lv.MaxAxesForce = Vector3.new(50000, 2000, 50000)  -- Small Y force for slight upward
-	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -679,11 +663,7 @@ NetworkModule["NTBvel"] = function(Character)
     local duration = 0.6
     local animStartTime = os.clock()
 
-    -- Use constrained force limits like M1Bvel to prevent flinging
-    lv.ForceLimitsEnabled = true
-    lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-    lv.MaxAxesForce = Vector3.new(50000, 15000, 50000)  -- Moderate Y force for arc
-    lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+    lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
     lv.Attachment0 = attachment
     lv.RelativeTo = Enum.ActuatorRelativeTo.World
     lv.Parent = rootPart
@@ -733,11 +713,7 @@ NetworkModule["FlameRunningBvel"] = function(Character)
 	local duration = 0.65
 	local startTime = os.clock()
 
-	-- Use constrained force limits like M1Bvel to prevent flinging
-	lv.ForceLimitsEnabled = true
-	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	lv.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
-	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -856,11 +832,7 @@ NetworkModule["GunsRunningBvel"] = function(Character)
 	local duration = 0.65
 	local startTime = os.clock()
 
-	-- Use constrained force limits like M1Bvel to prevent flinging
-	lv.ForceLimitsEnabled = true
-	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	lv.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
-	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
 	lv.Parent = rootPart
@@ -913,11 +885,7 @@ NetworkModule["StoneLaunchVelocity"] = function(Character, Data)
 
 	local lv = Instance.new("LinearVelocity")
 	lv.Name = "StoneLaunchVelocity"
-	-- Use constrained force limits to prevent excessive flinging
-	lv.ForceLimitsEnabled = true
-	lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	lv.MaxAxesForce = Vector3.new(50000, 30000, 50000)  -- Moderate Y force for launch
-	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
 	lv.VectorVelocity = velocity
 	lv.Attachment0 = attachment
 	lv.RelativeTo = Enum.ActuatorRelativeTo.World
@@ -957,11 +925,7 @@ NetworkModule["PincerForwardVelocity"] = function(Character)
 
 	local forwardVelocity = Instance.new("LinearVelocity")
 	forwardVelocity.Name = "PincerImpactVelocity"
-	-- Use constrained force limits like M1Bvel to prevent flinging
-	forwardVelocity.ForceLimitsEnabled = true
-	forwardVelocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	forwardVelocity.MaxAxesForce = Vector3.new(50000, 0, 50000)  -- No Y-axis force
-	forwardVelocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	forwardVelocity.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
 	forwardVelocity.VectorVelocity = forwardDirection * 30
 	forwardVelocity.Attachment0 = attachment
 	forwardVelocity.RelativeTo = Enum.ActuatorRelativeTo.World

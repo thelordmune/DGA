@@ -276,9 +276,11 @@ return function(Player, Data, Server)
 						hitSomeone = true
 						table.insert(hitTargets, Target)
 
-						-- Stun target and prevent attacks for both variants
-						Server.Library.TimedState(Target.Actions, "PincerImpactStun", damageTable.Stun)
-						Server.Library.TimedState(Target.Stuns, "NoAttack", damageTable.Stun)
+						-- Only apply additional stun for BF variant (non-BF uses damage table stun which is 0)
+						if pressedM1 then
+							Server.Library.TimedState(Target.Actions, "PincerImpactStun", damageTable.Stun)
+							Server.Library.TimedState(Target.Stuns, "NoAttack", damageTable.Stun)
+						end
 					end
 				end
 

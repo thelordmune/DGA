@@ -73,59 +73,79 @@ return function(Player, Data, Server)
 				Arguments = { Character, "Start" },
 			})
 
-			-- Create linear velocity for arc motion
+			-- Create linear velocity for smooth upward launch
 			local lv = Instance.new("LinearVelocity")
 			local attachment = Instance.new("Attachment")
 			attachment.Parent = Character.PrimaryPart
 
-			lv.MaxForce = math.huge
+			lv.MaxForce = 200000  -- Reduced from math.huge to prevent excessive force
+			lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+			lv.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+			lv.ForceLimitsEnabled = true
+			lv.MaxAxesForce = Vector3.new(40000, 40000, 40000)  -- Allow Y-axis during rise
 			lv.Attachment0 = attachment
 			lv.RelativeTo = Enum.ActuatorRelativeTo.World
 			lv.Parent = Character.PrimaryPart
 
-			-- Launch forward and up
+			-- Get initial forward direction
 			local forwardVector = Character.PrimaryPart.CFrame.LookVector
-			local startTime = os.clock()
-			local launchDuration = hittimes[2] - hittimes[1]
+			forwardVector = Vector3.new(forwardVector.X, 0, forwardVector.Z).Unit  -- Flatten to horizontal
 
-			-- Safety cleanup function
-			local function cleanup()
-				if lv and lv.Parent then
-					lv.VectorVelocity = Vector3.zero
-					task.wait(0.05)
-					lv:Destroy()
-				end
-				if attachment and attachment.Parent then
-					attachment:Destroy()
-				end
-			end
+			-- Smooth upward launch parameters
+			local startTime = os.clock()
+			local riseDuration = 0.4  -- Duration of upward movement
+			local initialUpwardSpeed = 70
+			local initialForwardSpeed = 35
 
 			-- Cleanup if character dies
 			local humanoid = Character:FindFirstChildOfClass("Humanoid")
 			if humanoid then
-				humanoid.Died:Once(cleanup)
+				humanoid.Died:Once(function()
+					if lv and lv.Parent then
+						lv:Destroy()
+					end
+					if attachment and attachment.Parent then
+						attachment:Destroy()
+					end
+				end)
 			end
 
-			-- Smooth arc motion using heartbeat - ONLY DURING RISE
-			local conn
-			conn = RunService.Heartbeat:Connect(function()
+			-- Smooth rise with player control
+			local riseConn
+			riseConn = RunService.Heartbeat:Connect(function()
+				if not Character or not Character.PrimaryPart then
+					riseConn:Disconnect()
+					return
+				end
+
 				local elapsed = os.clock() - startTime
-				local progress = math.min(elapsed / launchDuration, 1)
+				local progress = math.min(elapsed / riseDuration, 1)
 
-				-- Smooth arc trajectory - only forward (Z) and up (Y)
-				local forwardSpeed = 50 * (1 - progress * 0.45) -- Gradual slowdown
-				local verticalSpeed = 120 * (1 - progress) - 150 * progress -- Much higher arc up then down
+				-- Smooth deceleration curve for upward movement
+				local upwardSpeed = initialUpwardSpeed * (1 - progress)
 
-				lv.VectorVelocity = forwardVector * forwardSpeed + Vector3.new(0, verticalSpeed, 0)
+				-- Get current player input direction for air control
+				local currentForward = Character.PrimaryPart.CFrame.LookVector
+				currentForward = Vector3.new(currentForward.X, 0, currentForward.Z).Unit
 
-				-- When rise completes, REMOVE velocity and let gravity take over
+				-- Allow player to control horizontal direction during jump
+				local horizontalSpeed = initialForwardSpeed * (1 - progress * 0.3)
+
+				-- Apply velocity (player can steer horizontally)
+				lv.VectorVelocity = currentForward * horizontalSpeed + Vector3.new(0, upwardSpeed, 0)
+
+				-- When rise completes, restrict to horizontal movement only
 				if progress >= 1 then
-					Move:AdjustSpeed(0)
-					conn:Disconnect()
+					riseConn:Disconnect()
 
-					-- REMOVE the LinearVelocity - let natural gravity handle the fall
-					lv:Destroy()
-					attachment:Destroy()
+					-- Restrict LinearVelocity to horizontal movement only (no Y-axis)
+					lv.MaxAxesForce = Vector3.new(40000, 0, 40000)  -- No Y-axis force
+					lv.VectorVelocity = Vector3.new(lv.VectorVelocity.X, 0, lv.VectorVelocity.Z)  -- Zero out Y velocity
+
+					-- Pause animation during fall (will be resumed faster when close to ground)
+					if Move then
+						Move:AdjustSpeed(0)
+					end
 
 					-- Wait for character to hit the ground naturally
 					local descentConn
@@ -139,11 +159,30 @@ return function(Player, Data, Server)
 						end
 
 						-- Check distance to ground
-						local raycast = workspace:Raycast(Character.PrimaryPart.Position, Vector3.new(0, -20, 0))
+						local rayParams = RaycastParams.new()
+						rayParams.FilterType = Enum.RaycastFilterType.Exclude
+						rayParams.FilterDescendantsInstances = {Character}
+
+						local raycast = workspace:Raycast(
+							Character.PrimaryPart.Position,
+							Vector3.new(0, -20, 0),
+							rayParams
+						)
+
 						if raycast and raycast.Distance < 8 then
-							-- Close to ground - unpause animation and trigger landing
-							Move:AdjustSpeed(1)
+							-- Close to ground - unpause animation at 2x speed for faster landing
+							if Move then
+								Move:AdjustSpeed(2)  -- 2x speed for faster descent animation
+							end
 							descentConn:Disconnect()
+
+							-- Clean up LinearVelocity after landing
+							if lv and lv.Parent then
+								lv:Destroy()
+							end
+							if attachment and attachment.Parent then
+								attachment:Destroy()
+							end
 
 							Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 								Module = "Base",

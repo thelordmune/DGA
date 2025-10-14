@@ -26,35 +26,35 @@ self.Vectors = {
 
 self.Connections = {};
 
-Movement.DodgeCancel = function()
-	if not Client.Dodging then return end;
-	if not Client.Character then return end;
-	if not Client.Root or not Client.Humanoid then return end;
-	if not Client.Actions or not Client.Stuns then return end;
-	if not Client.Library.StateCheck(Client.Statuses, "Dodging") then return end
-	if Client.Library.CheckCooldown(Client.Character, "DodgeCancel") or Client.Library.StateCount(Client.Stuns) then return end
+-- Movement.DodgeCancel = function()
+-- 	if not Client.Dodging then return end;
+-- 	if not Client.Character then return end;
+-- 	if not Client.Root or not Client.Humanoid then return end;
+-- 	if not Client.Actions or not Client.Stuns then return end;
+-- 	if not Client.Library.StateCheck(Client.Statuses, "Dodging") then return end
+-- 	if Client.Library.CheckCooldown(Client.Character, "DodgeCancel") or Client.Library.StateCount(Client.Stuns) then return end
 	
-	Client.Library.RemoveState(Client.Statuses, "Dodging")
-	Client.Library.SetCooldown(Client.Character, "DodgeCancel", 4);
-	Client.Library.StopMovementAnimations(Client.Character);
-	Client.Library.PlaySound(Client.Character,Client.Service.ReplicatedStorage.Assets.SFX.Movement.RollCancel)
-	coroutine.wrap(function()
-		for _, BodyMover in next, Client.Root:GetChildren() do
-			if BodyMover.Name == "Dodge" then BodyMover:Destroy() end;
-		end
-	end)();
+-- 	Client.Library.RemoveState(Client.Statuses, "Dodging")
+-- 	Client.Library.SetCooldown(Client.Character, "DodgeCancel", 4);
+-- 	Client.Library.StopMovementAnimations(Client.Character);
+-- 	Client.Library.PlaySound(Client.Character,Client.Service.ReplicatedStorage.Assets.SFX.Movement.RollCancel)
+-- 	coroutine.wrap(function()
+-- 		for _, BodyMover in next, Client.Root:GetChildren() do
+-- 			if BodyMover.Name == "Dodge" then BodyMover:Destroy() end;
+-- 		end
+-- 	end)();
 	
 	
-	local Direction = self.GetDirection(Client.Humanoid, Client.Root);
-	if Direction == "Right" or Direction == "Forward" then
-		Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes["CancelRight"])
-	else
-		Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes["CancelLeft"])
-	end
+-- 	local Direction = self.GetDirection(Client.Humanoid, Client.Root);
+-- 	if Direction == "Right" or Direction == "Forward" then
+-- 		Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes["CancelRight"])
+-- 	else
+-- 		Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes["CancelLeft"])
+-- 	end
 	
-	Client.Packets.DodgeCancel.send();
-	Client.Library.ResetCooldown(Client.Character, "Dodge");
-end
+-- 	Client.Packets.DodgeCancel.send();
+-- 	Client.Library.ResetCooldown(Client.Character, "Dodge");
+-- end
 
 Movement.Dodge = function()
 	if not Client.Character then return end
@@ -78,7 +78,7 @@ Movement.Dodge = function()
 	end
 	if Client.Library.StateCount(Client.Actions) or
 		Client.Library.StateCount(Client.Stuns) or
-		Client.Library.StateCheck(Client.Speeds, "M1Speed12") then
+		Client.Library.StateCheck(Client.Speeds, "M1Speed8") then
 		print("Dodge blocked: Character has active states")
 		return
 	end
@@ -98,31 +98,24 @@ Movement.Dodge = function()
 
 	-- Set cooldown when out of charges
 	if Client.DodgeCharges <= 0 then
-		Client.Library.SetCooldown(Client.Character, "Dodge", 2)
+		Client.Library.SetCooldown(Client.Character, "Dodge", 2.5)
 		print("Dodge cooldown set")
 	end
     
     Client.Library.AddState(Client.Statuses, "Dodging")
-
+    
     local Direction = self.GetDirection(Client.Humanoid, Client.Root)
     local Vector = self.Vectors[Direction]
-
+    
     Client.Library.StopMovementAnimations(Client.Character)
     Client.Library.StopAllAnims(Client.Character)
     local Animation = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes[Direction])
-
+    
     -- CONSISTENT DASH PARAMETERS
     local Speed = 135  -- Consistent speed
     local Duration = 0.5  -- Consistent duration
     local TweenDuration = Duration  -- Match tween to velocity duration
     Client.Dodging = true
-
-    -- Clean up any existing velocities and body movers to prevent interference
-    for _, child in ipairs(Client.Root:GetChildren()) do
-        if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
-            child:Destroy()
-        end
-    end
 
     local Velocity = Instance.new("LinearVelocity")
     Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
@@ -130,11 +123,8 @@ Movement.Dodge = function()
     Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
     Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
     Velocity.Attachment0 = Client.Root.RootAttachment
-    Velocity.RelativeTo = Enum.ActuatorRelativeTo.World  -- Changed from Attachment0 to World to prevent uphill flinging
-    -- Calculate world-space velocity direction (flatten to prevent going up/down)
-    local worldDirection = (Client.Root.CFrame * CFrame.new(Vector)).Position - Client.Root.Position
-    worldDirection = Vector3.new(worldDirection.X, 0, worldDirection.Z).Unit  -- Flatten to horizontal plane
-    Velocity.VectorVelocity = worldDirection * Speed
+    Velocity.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+    Velocity.VectorVelocity = Vector * Speed
     Velocity.Name = "Dodge"
     Velocity.Parent = Client.Root
 
@@ -148,7 +138,7 @@ Movement.Dodge = function()
     local DashTween = Client.Service["TweenService"]:Create(
         Velocity,
         TweenInfo.new(TweenDuration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-        {VectorVelocity = worldDirection * SlowdownSpeed}  -- Use world direction for consistent slowdown
+        {VectorVelocity = Vector * SlowdownSpeed}
     )
     DashTween:Play()
 
@@ -179,7 +169,7 @@ Movement.Run = function(State)
 	
 	if State and not Client.Library.StateCount(Client.Stuns) and not Client.Library.StateCount(Client.Actions) and not Client.Running then
 		Client.Library.StopAllAnims(Client.Character);
-		Client.Library.AddState(Client.Speeds, "RunSpeedSet30") -- Increased from 24 to 45
+		Client.Library.AddState(Client.Speeds, "RunSpeedSet24")
 		Client.Running = true;
 		Client.RunAtk = true;
 		
@@ -209,7 +199,7 @@ Movement.Run = function(State)
 		
 	elseif not State and Client.Running then
 		Client.Running = false;
-		Client.Library.RemoveState(Client.Speeds, "RunSpeedSet30") -- Updated to match new speed
+		Client.Library.RemoveState(Client.Speeds, "RunSpeedSet24")
 		
 		if Client.RunAnim then Client.RunAnim:Stop(); Client.RunAnim = nil end;
 		

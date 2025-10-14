@@ -506,8 +506,8 @@ end
 
 -- Start input tracking
 function DirectionalCasting:_startInputTracking()
-	-- Mouse movement tracking
-	self.connections.mouseMove = RunService.Heartbeat:Connect(function()
+	-- Mouse movement tracking - Use RenderStepped for faster, more accurate input detection
+	self.connections.mouseMove = RunService.RenderStepped:Connect(function()
 		self:_updateMouseTracking()
 	end)
 end
@@ -552,8 +552,8 @@ function DirectionalCasting:_updateMouseTracking()
 		if not self.inDeadZone then
 			self.inDeadZone = true
 			self.deadZoneEnterTime = tick()
-		elseif tick() - self.deadZoneEnterTime > 0.05 then
-			-- Been in dead zone for 50ms, safe to clear
+		elseif tick() - self.deadZoneEnterTime > 0.02 then
+			-- Been in dead zone for 20ms, safe to clear (reduced from 50ms for faster input)
 			self.lastRegisteredDirection = nil
 		end
 		return
@@ -584,9 +584,9 @@ function DirectionalCasting:_updateMouseTracking()
 				self.accumulatedMouseDelta = Vector2.new(0, 0)
 			end
 
-			-- Clear the last registered direction immediately so we can do another input
-			-- This allows rapid input chaining without needing to return to dead zone
-			task.delay(0.05, function()
+			-- Clear the last registered direction for rapid input chaining
+			-- Reduced delay from 50ms to 15ms for faster sequential inputs
+			task.delay(0.015, function()
 				if self.lastRegisteredDirection == direction then
 					self.lastRegisteredDirection = nil
 					self:_setCurrentTriangle(nil)

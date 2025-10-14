@@ -20,8 +20,8 @@ NetworkModule.EndPoint = function(Player, Data)
                 local success, err = pcall(function()
                     local QuestScript = require(questModule)
                     if typeof(QuestScript) == "table" and QuestScript.Start then
-                        print("[Quest Start] 🎯 Calling quest module Start function")
-                        QuestScript.Start()
+                        print("[Quest Start] 🎯 Calling quest module Start function for player:", Player.Name)
+                        QuestScript.Start(Player) -- Pass player parameter
                     end
                 end)
 

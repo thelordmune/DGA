@@ -10,24 +10,65 @@ if isServer then
     local comps = require(Replicated.Modules.ECS.jecs_components)
     local InventoryManager = require(Replicated.Modules.Utils.InventoryManager)
 
+    -- Track spawned pocketwatches per player
+    local spawnedPocketwatches = {} -- {[player] = pocketwatchModel}
+
     return {
         -- Called when quest is accepted
-        Start = function()
-            print("[Magnus Quest] Starting quest - spawning pocketwatch")
+        Start = function(player)
+            print("[Magnus Quest] Starting quest for player:", player and player.Name or "UNKNOWN")
+
+            -- Validate player parameter
+            if not player or not player:IsA("Player") then
+                warn("[Magnus Quest] Start called without valid player!")
+                return
+            end
+
+            -- Clean up any existing pocketwatch for this player
+            if spawnedPocketwatches[player] then
+                if spawnedPocketwatches[player].Parent then
+                    spawnedPocketwatches[player]:Destroy()
+                end
+                spawnedPocketwatches[player] = nil
+            end
+
             local item = Replicated.Assets.Quest_Items.Pocketwatch:Clone()
             local randomspots = workspace.World.Quests.Magnus:GetChildren()
             local randomspot = randomspots[math.random(1, #randomspots)]
             item:SetPrimaryPartCFrame(randomspot.CFrame)
             item.Parent = randomspot
 
+            -- Store reference to this player's pocketwatch
+            spawnedPocketwatches[player] = item
+
             local clickdetector = item.ClickDetector
-            clickdetector.MouseClick:Connect(function(player)
-                print("[Magnus Quest] Pocketwatch clicked by:", player.Name)
+            clickdetector.MouseClick:Connect(function(clickingPlayer)
+                print("[Magnus Quest] Pocketwatch clicked by:", clickingPlayer.Name)
+
+                -- Only allow the quest owner to pick it up
+                if clickingPlayer ~= player then
+                    print("[Magnus Quest] Wrong player tried to pick up pocketwatch!")
+                    return
+                end
+
                 item:Destroy()
+                spawnedPocketwatches[player] = nil
 
                 -- Get player entity
-                local playerEntity = ref.get("player", player)
+                local playerEntity = ref.get("player", clickingPlayer)
                 if playerEntity then
+                    -- Check if player still has the active quest
+                    if not world:has(playerEntity, comps.ActiveQuest) then
+                        warn("[Magnus Quest] Player no longer has active quest!")
+                        return
+                    end
+
+                    local activeQuest = world:get(playerEntity, comps.ActiveQuest)
+                    if activeQuest.npcName ~= "Magnus" or activeQuest.questName ~= "Missing Pocketwatch" then
+                        warn("[Magnus Quest] Player has different active quest!")
+                        return
+                    end
+
                     -- Set QuestItemCollected component
                     world:set(playerEntity, comps.QuestItemCollected, {
                         npcName = "Magnus",
@@ -47,7 +88,7 @@ if isServer then
                     )
 
                     if success then
-                        print("[Magnus Quest] Pocketwatch added to", player.Name, "'s inventory")
+                        print("[Magnus Quest] Pocketwatch added to", clickingPlayer.Name, "'s inventory")
                         -- Inventory sync happens automatically via markInventoryChanged
                     else
                         warn("[Magnus Quest] Failed to add pocketwatch to inventory!")

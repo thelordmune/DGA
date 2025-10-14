@@ -57,8 +57,8 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Character, script.Name) then
-		-- Cooldown is handled by WeaponSkillHold system
-		-- Server.Library.SetCooldown(Character, script.Name, 6)
+		-- Set cooldown (in addition to WeaponSkillHold system cooldown)
+		Server.Library.SetCooldown(Character, script.Name, 6)
 		Server.Library.StopAllAnims(Character)
 
 		local Move = Library.PlayAnimation(Character, Animation)

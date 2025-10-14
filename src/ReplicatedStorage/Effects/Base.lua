@@ -1690,24 +1690,31 @@ function Base.ShellPiercer(Character: Model, Frame: string, tim: number)
 		local lighting = game:GetService("Lighting")
 
 		-- Get or create bloom and blur effects
-		local bloom = lighting:FindFirstChild("Bloom") or Instance.new("BloomEffect")
-		local blur = lighting:FindFirstChild("MotionBlur") or Instance.new("BlurEffect")
+		local bloom = lighting:FindFirstChild("Bloom")
+		local blur = lighting:FindFirstChild("Blur")
 
-		if not bloom.Parent then
+		-- Create if they don't exist
+		if not bloom then
+			bloom = Instance.new("BloomEffect")
 			bloom.Name = "Bloom"
+			bloom.Intensity = 0
+			bloom.Size = 0
+			bloom.Threshold = 0
 			bloom.Parent = lighting
 		end
 
-		if not blur.Parent then
-			blur.Name = "MotionBlur"
+		if not blur then
+			blur = Instance.new("BlurEffect")
+			blur.Name = "Blur"
+			blur.Size = 0
 			blur.Parent = lighting
 		end
 
-		-- Store original values
-		local originalBloomIntensity = bloom.Intensity
-		local originalBloomSize = bloom.Size
-		local originalBloomThreshold = bloom.Threshold
-		local originalBlurSize = blur.Size
+		-- Store original values (should be 0 if properly cleaned up)
+		local originalBloomIntensity = 0
+		local originalBloomSize = 0
+		local originalBloomThreshold = 0
+		local originalBlurSize = 0
 
 		-- Target values for the effect
 		local targetBloomIntensity = 2
@@ -1715,38 +1722,42 @@ function Base.ShellPiercer(Character: Model, Frame: string, tim: number)
 		local targetBloomThreshold = 0.8
 		local targetBlurSize = 24
 
-		-- Create tween info for circular in-out easing
-		local tweenInfo = TweenInfo.new(
-			0.1, -- Half duration for in
-			Enum.EasingStyle.Circular,
-			Enum.EasingDirection.In,
-			0,
-			true, -- Reverses automatically
-			0
-		)
+		-- Use RenderStepped for smooth real-time blur effect
+		local startTime = tick()
+		local duration = 0.2 -- Total duration (in + out)
 
-		-- Create tweens
-		local bloomTween = TweenService:Create(bloom, tweenInfo, {
-			Intensity = targetBloomIntensity,
-			Size = targetBloomSize,
-			Threshold = targetBloomThreshold,
-		})
+		local connection
+		connection = RunService.RenderStepped:Connect(function()
+			local elapsed = tick() - startTime
+			local progress = math.min(elapsed / duration, 1)
 
-		local blurTween = TweenService:Create(blur, tweenInfo, {
-			Size = targetBlurSize,
-		})
+			-- Circular in-out easing
+			local alpha
+			if progress < 0.5 then
+				-- First half: ease in
+				local t = progress * 2
+				alpha = 1 - math.sqrt(1 - t * t)
+			else
+				-- Second half: ease out
+				local t = (progress - 0.5) * 2
+				alpha = 1 - (1 - math.sqrt(1 - (1 - t) * (1 - t)))
+			end
 
-		-- Start the tweens
-		bloomTween:Play()
-		blurTween:Play()
+			-- Apply values
+			bloom.Intensity = originalBloomIntensity + (targetBloomIntensity - originalBloomIntensity) * alpha
+			bloom.Size = originalBloomSize + (targetBloomSize - originalBloomSize) * alpha
+			bloom.Threshold = originalBloomThreshold + (targetBloomThreshold - originalBloomThreshold) * alpha
+			blur.Size = originalBlurSize + (targetBlurSize - originalBlurSize) * alpha
 
-		-- Clean up after the effect completes
-		bloomTween.Completed:Connect(function()
-			-- Reset to original values
-			bloom.Intensity = 0
-			bloom.Size = 0
-			bloom.Threshold = 0
-			blur.Size = 0
+			-- Clean up when complete
+			if progress >= 1 then
+				connection:Disconnect()
+				-- Reset to 0 (clean state)
+				bloom.Intensity = 0
+				bloom.Size = 0
+				bloom.Threshold = 0
+				blur.Size = 0
+			end
 		end)
 	end
 end

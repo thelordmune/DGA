@@ -104,6 +104,28 @@ NetworkModule.EndPoint = function(Player, Data)
                     -- NEW HOLD SYSTEM
                     print("[UseItem] Using NEW HOLD SYSTEM for:", usedItem.name)
                     if Data.inputType == "began" then
+                        -- Additional server-side check: prevent spam if skill is on cooldown or executing
+                        local Character = Player.Character
+                        if Character then
+                            -- Check if skill is on cooldown
+                            if skill:IsOnCooldown(Player) then
+                                print("[UseItem] Skill is on cooldown, ignoring input")
+                                return
+                            end
+
+                            -- Check if skill is already executing (Actions state)
+                            if Character:FindFirstChild("Actions") and Character.Actions:FindFirstChild(usedItem.name) then
+                                print("[UseItem] Skill is already executing, ignoring input")
+                                return
+                            end
+
+                            -- Check if player is already holding a skill
+                            if heldWeaponSkills[Player] then
+                                print("[UseItem] Player is already holding a skill, ignoring input")
+                                return
+                            end
+                        end
+
                         -- Store skill for InputEnded
                         heldWeaponSkills[Player] = {
                             skillName = usedItem.name,

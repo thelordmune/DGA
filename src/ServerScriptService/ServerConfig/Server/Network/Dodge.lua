@@ -48,7 +48,7 @@ NetworkModule.EndPoint = function(Player, Data)
         world:set(playerEntity, comps.Dashing, true)
 
         -- Clear dashing state after dash duration (0.5s)
-        task.delay(0.5, function()
+        task.delay(0.35, function()
             if playerEntity and world:contains(playerEntity) then
                 world:set(playerEntity, comps.Dashing, false)
             end
