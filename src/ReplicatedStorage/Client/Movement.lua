@@ -26,36 +26,6 @@ self.Vectors = {
 
 self.Connections = {};
 
--- Movement.DodgeCancel = function()
--- 	if not Client.Dodging then return end;
--- 	if not Client.Character then return end;
--- 	if not Client.Root or not Client.Humanoid then return end;
--- 	if not Client.Actions or not Client.Stuns then return end;
--- 	if not Client.Library.StateCheck(Client.Statuses, "Dodging") then return end
--- 	if Client.Library.CheckCooldown(Client.Character, "DodgeCancel") or Client.Library.StateCount(Client.Stuns) then return end
-	
--- 	Client.Library.RemoveState(Client.Statuses, "Dodging")
--- 	Client.Library.SetCooldown(Client.Character, "DodgeCancel", 4);
--- 	Client.Library.StopMovementAnimations(Client.Character);
--- 	Client.Library.PlaySound(Client.Character,Client.Service.ReplicatedStorage.Assets.SFX.Movement.RollCancel)
--- 	coroutine.wrap(function()
--- 		for _, BodyMover in next, Client.Root:GetChildren() do
--- 			if BodyMover.Name == "Dodge" then BodyMover:Destroy() end;
--- 		end
--- 	end)();
-	
-	
--- 	local Direction = self.GetDirection(Client.Humanoid, Client.Root);
--- 	if Direction == "Right" or Direction == "Forward" then
--- 		Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes["CancelRight"])
--- 	else
--- 		Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes["CancelLeft"])
--- 	end
-	
--- 	Client.Packets.DodgeCancel.send();
--- 	Client.Library.ResetCooldown(Client.Character, "Dodge");
--- end
-
 Movement.Dodge = function()
 	if not Client.Character then return end
 	if not Client.Root or not Client.Humanoid then return end

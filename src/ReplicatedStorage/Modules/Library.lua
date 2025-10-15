@@ -10,8 +10,13 @@ local RunService  = game:GetService("RunService");
 local HttpService = game:GetService("HttpService");
 local Replicated  = game:GetService("ReplicatedStorage");
 
+-- Import ECS state and cooldown managers
+local StateManager = require(Replicated.Modules.ECS.StateManager)
+local CooldownManager = require(Replicated.Modules.ECS.CooldownManager)
+
 local Animations = {};
-local Cooldowns  = {};
+-- Cooldowns are now managed by ECS CooldownManager
+-- local Cooldowns  = {};
 
 Library.PlayAnimation = function(Char: Model, Name, Transition: number)
     if not Char then return end;
@@ -108,11 +113,15 @@ Library.CleanupCharacter = function(Char: Model)
 		print("Cleared animation cache for character:", Char.Name)
 	end
 
-	-- Clear cooldowns for this character
-	if Cooldowns[Char] then
-		Cooldowns[Char] = nil
-		print("Cleared cooldowns for character:", Char.Name)
+	-- Clear cooldowns for this character (ECS-based)
+	CooldownManager.ClearAllCooldowns(Char)
+	print("Cleared cooldowns for character:", Char.Name)
+
+	-- Clear all states for this character (ECS-based)
+	for _, category in ipairs({"Actions", "Stuns", "IFrames", "Speeds", "Frames", "Status"}) do
+		StateManager.ClearCategory(Char, category)
 	end
+	print("Cleared states for character:", Char.Name)
 
 	-- Stop all playing animation tracks
 	if Char:FindFirstChild("Humanoid") and Char.Humanoid:FindFirstChild("Animator") then
@@ -246,47 +255,25 @@ Library.PlaySound = function(Origin, S,Overlap: boolean,Speed: number)
 	end
 end
 
+-- ECS-based cooldown functions
 Library.SetCooldown = function(Char: Model, Identifier: string, Time: number)
-	-- Use character instance as key instead of name to avoid respawn issues
-	if not Cooldowns[Char] then Cooldowns[Char] = {} end;
-	Cooldowns[Char][Identifier] = os.clock() + Time
+	CooldownManager.SetCooldown(Char, Identifier, Time)
 end
 
 Library.CheckCooldown = function(Char: Model, Identifier: string)
-	-- Use character instance as key instead of name to avoid respawn issues
-	if not Cooldowns[Char] then Cooldowns[Char] = {} end;
-	if Cooldowns[Char][Identifier] then
-		if Cooldowns[Char][Identifier] > os.clock()  then
-			return true;
-		else
-			Cooldowns[Char][Identifier] = nil
-			return false;
-		end
-	end;
-
-	return false;
+	return CooldownManager.CheckCooldown(Char, Identifier)
 end
 
 Library.ResetCooldown = function(Char: Model, Identifier: string)
-	-- Use character instance as key instead of name to avoid respawn issues
-	if not Cooldowns[Char] then Cooldowns[Char] = {} end;
-	if Cooldowns[Char][Identifier] ~= nil then Cooldowns[Char][Identifier] = 0 end;
+	CooldownManager.ResetCooldown(Char, Identifier)
 end
 
 Library.GetCooldowns = function(Char: Model)
-	-- Get all cooldowns for a character
-	if not Cooldowns[Char] then Cooldowns[Char] = {} end;
-	return Cooldowns[Char]
+	return CooldownManager.GetCooldowns(Char)
 end
 
 Library.GetCooldownTime = function(Char: Model, Identifier: string)
-	-- Get remaining cooldown time for a specific skill
-	if not Cooldowns[Char] then return 0 end;
-	if Cooldowns[Char][Identifier] then
-		local remaining = Cooldowns[Char][Identifier] - os.clock()
-		return math.max(0, remaining)
-	end
-	return 0
+	return CooldownManager.GetCooldownTime(Char, Identifier)
 end
 
 function ReturnDecodedTable(Table)
@@ -297,113 +284,142 @@ function ReturnEncodedTable(Table)
 	return HttpService:JSONEncode(Table)
 end
 
-Library.StateCheck = function(Table, FrameName)
-	local Found = false
-	local DecodedTable = ReturnDecodedTable(Table)
+-- Helper to extract category from StringValue name
+local function getCategoryFromStringValue(stringValue)
+	local name = stringValue.Name
+	-- Map old StringValue names to new categories
+	local categoryMap = {
+		Actions = "Actions",
+		Stuns = "Stuns",
+		IFrames = "IFrames",
+		Speeds = "Speeds",
+		Frames = "Frames",
+		Status = "Status",
+	}
+	return categoryMap[name] or "Actions"
+end
 
-	return (table.find(DecodedTable, FrameName) and true) or false
+-- Helper to get character from StringValue
+local function getCharacterFromStringValue(stringValue)
+	-- Validate input
+	if not stringValue or typeof(stringValue) ~= "Instance" then
+		-- Silent fail for nil - this is expected when character is respawning
+		return nil
+	end
+
+	if not stringValue:IsA("StringValue") then
+		warn(`[Library] Expected StringValue, got {stringValue.ClassName} named "{stringValue.Name}"`)
+		return nil
+	end
+
+	local parent = stringValue.Parent
+	if not parent then
+		-- Silent fail for no parent - StringValue might be destroyed
+		return nil
+	end
+
+	if not parent:IsA("Model") then
+		warn(`[Library] StringValue "{stringValue.Name}" parent is not a Model: {parent.ClassName} named "{parent.Name}"`)
+		return nil
+	end
+
+	return parent
+end
+
+-- ECS-based state functions
+Library.StateCheck = function(Table, FrameName)
+	local character = getCharacterFromStringValue(Table)
+	if not character then return false end
+
+	local category = getCategoryFromStringValue(Table)
+	return StateManager.StateCheck(character, category, FrameName)
 end
 
 Library.StateCount = function(Table)
-	local Decode = ReturnDecodedTable(Table);
-	return (#Decode > 0 and true) or false;
+	local character = getCharacterFromStringValue(Table)
+	if not character then return false end
+
+	local category = getCategoryFromStringValue(Table)
+	return StateManager.StateCount(character, category)
 end
 
-Library.MultiStateCheck = function(Table, Query) 
-	local Pass = true
-	local DecodedTable = ReturnDecodedTable(Table)
+Library.MultiStateCheck = function(Table, Query)
+	local character = getCharacterFromStringValue(Table)
+	if not character then return true end
 
-	for _, Frame in Query do
-		if table.find(DecodedTable, Frame) then
-			Pass = false
-		end
-	end
-
-	return Pass
+	local category = getCategoryFromStringValue(Table)
+	return StateManager.MultiStateCheck(character, category, Query)
 end
 
 Library.AddState = function(Table, Name)
-	local DecodedTable = ReturnDecodedTable(Table)
-	table.insert(DecodedTable, Name)
-	Table.Value = ReturnEncodedTable(DecodedTable)
+	local character = getCharacterFromStringValue(Table)
+	if not character then return end
+
+	local category = getCategoryFromStringValue(Table)
+	StateManager.AddState(character, category, Name)
 end
 
 Library.RemoveState = function(Table, Name)
-	local DecodedTable = ReturnDecodedTable(Table)
-	local Query = table.find(DecodedTable, Name);
-	
-	if Query then table.remove(DecodedTable, Query) end;
-	Table.Value = ReturnEncodedTable(DecodedTable)
+	local character = getCharacterFromStringValue(Table)
+	if not character then return end
+
+	local category = getCategoryFromStringValue(Table)
+	StateManager.RemoveState(character, category, Name)
 end
 
 Library.TimedState = function(Table, Name, Time)
-	Library.AddState(Table, Name)
-	task.delay(Time, function()
-		Library.RemoveState(Table, Name)
-	end)
+	local character = getCharacterFromStringValue(Table)
+	if not character then return end
+
+	local category = getCategoryFromStringValue(Table)
+	StateManager.TimedState(character, category, Name, Time)
 end
 
 Library.RemoveAllStates = function(Table, Name)
-	local DecodedTable = ReturnDecodedTable(Table)
+	local character = getCharacterFromStringValue(Table)
+	if not character then return end
 
-	for FrameIndex, Frame in DecodedTable do
-		if Frame == Name then
-			table.remove(DecodedTable, FrameIndex)
-		end
-	end
-
-	Table.Value = ReturnEncodedTable(DecodedTable)
+	local category = getCategoryFromStringValue(Table)
+	StateManager.RemoveAllStates(character, category, Name)
 end
 
 Library.Remove = function(Char) --> For Clean Up
 	if Animations[Char.Name] then Animations[Char.Name] = nil end;
-	if Cooldowns[Char.Name] then Cooldowns[Char.Name] = nil end;
+	-- Cooldowns are now managed by ECS
+	CooldownManager.ClearAllCooldowns(Char)
 end
 
 Library.GetAllStates = function(Table)
-	local DecodedTable = ReturnDecodedTable(Table)
-	return DecodedTable
+	local character = getCharacterFromStringValue(Table)
+	if not character then return {} end
+
+	local category = getCategoryFromStringValue(Table)
+	return StateManager.GetAllStates(character, category)
 end
 
 Library.GetAllStatesFromCharacter = function(Char: Model)
-	if not Char then return {} end
-	local allStates = {}
+	return StateManager.GetAllStatesFromCharacter(Char)
+end
 
-	for _, child in Char:GetDescendants() do
-		if child:IsA("StringValue") and child.Value ~= "" then
-			local success, decodedTable = pcall(function()
-				return HttpService:JSONDecode(child.Value)
-			end)
-			
-			if success and type(decodedTable) == "table" then
-				allStates[child.Name] = decodedTable
+Library.GetSpecificState = function(Char: Model, DesiredState: string)
+	if not Char then return nil end
+
+	-- Check all state categories for the desired state
+	local allStates = StateManager.GetAllStatesFromCharacter(Char)
+
+	for category, states in pairs(allStates) do
+		for _, state in ipairs(states) do
+			if string.match(state, DesiredState) then
+				-- Return a mock StringValue for backwards compatibility
+				local mockStringValue = Instance.new("StringValue")
+				mockStringValue.Name = category
+				mockStringValue.Parent = Char
+				return mockStringValue
 			end
 		end
 	end
 
-	return allStates
-end
-
-Library.GetSpecificState = function(Char: Model, DesiredState: string)
-    if not Char then return nil end
-    
-    for _, child in Char:GetDescendants() do
-        if child:IsA("StringValue") and child.Value ~= "" then
-            local success, decodedTable = pcall(function()
-                return HttpService:JSONDecode(child.Value)
-            end)
-            
-            if success and type(decodedTable) == "table" then
-                for _, state in decodedTable do
-                    if string.match(state, DesiredState) then
-                        return child
-                    end
-                end
-            end
-        end
-    end
-    
-    return nil
+	return nil
 end
 
 

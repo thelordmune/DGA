@@ -308,9 +308,9 @@ function WeaponSkillHold:ApplyHoldEffect(character, isHolding)
 			Library.TimedState(character.Actions, "WeaponSkillHold", 999) -- Long duration, will be manually removed
 		end
 
-		-- Lock movement speeds
+		-- Lock movement speeds (SpeedSet0 = set speed to 0)
 		if character:FindFirstChild("Speeds") then
-			Library.TimedState(character.Speeds, "WeaponSkillHoldSpeed", 999)
+			Library.TimedState(character.Speeds, "WeaponSkillHoldSpeedSet0", 999)
 		end
 
 		-- Make player invisible (fade out over 0.3s)
@@ -359,7 +359,7 @@ function WeaponSkillHold:ApplyHoldEffect(character, isHolding)
 
 		-- Remove speed lock
 		if character:FindFirstChild("Speeds") then
-			Library.RemoveState(character.Speeds, "WeaponSkillHoldSpeed")
+			Library.RemoveState(character.Speeds, "WeaponSkillHoldSpeedSet0")
 			print("[WeaponSkillHold] Removed Speeds state")
 		end
 

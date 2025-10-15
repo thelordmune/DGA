@@ -93,6 +93,17 @@ local components: {
     Experience: Entity<{current: number, required: number, total: number}>,
     Alignment: Entity<{value: number, min: number, max: number}>,
     QuestItemCollected: Entity<{npcName: string, questName: string, itemName: string, collectedTime: number}>,
+
+    -- ECS State Management (replaces StringValue JSON arrays)
+    StateActions: Entity<{string}>,
+    StateStuns: Entity<{string}>,
+    StateIFrames: Entity<{string}>,
+    StateSpeeds: Entity<{string}>,
+    StateFrames: Entity<{string}>,
+    StateStatus: Entity<{string}>,
+
+    -- ECS Cooldown Management (replaces table-based cooldowns)
+    Cooldowns: Entity<{[string]: number}>,
 } =
 	{
 		Character = world:component(),
@@ -181,6 +192,17 @@ local components: {
         Experience = world:component(),
         Alignment = world:component(),
         QuestItemCollected = world:component(),
+
+        -- ECS State Management
+        StateActions = world:component(),
+        StateStuns = world:component(),
+        StateIFrames = world:component(),
+        StateSpeeds = world:component(),
+        StateFrames = world:component(),
+        StateStatus = world:component(),
+
+        -- ECS Cooldown Management
+        Cooldowns = world:component(),
 	}
 
     for name, component in components :: {[string]: jecs.Entity} do 

@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+local RefManager = require(ReplicatedStorage.Modules.ECS.jecs_ref_manager)
+local ref = RefManager.player -- Use player-specific ref system
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
@@ -309,6 +310,14 @@ local function processPlayer(world, player)
             world:set(e, comps.Hotbar, {slots = {}, activeSlot = 1})
 
             print(`[Character] Finished initializing {rig.Name} for {player.Name}`)
+
+            -- Notify client that all components are ready
+            print(`[Character] Notifying client that entity {e} is fully initialized`)
+            Bridges.ECSClient:Fire(player, {
+                Module = "EntitySync",
+                Action = "EntityReady",
+                EntityId = e
+            })
 
             -- Give weapon skills AFTER components are initialized
             -- Use task.defer to ensure all components are fully set before giving skills

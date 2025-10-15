@@ -193,6 +193,20 @@ Bridges.ECSClient:Connect(function(data)
 			print("🔧 Initializing leveling components on client for player entity")
 			LevelingManager.initialize(entityId)
 		end
+	elseif data.Module == "EntitySync" and data.Action == "EntityReady" then
+		local entityId = data.EntityId
+		print(`[ECS] ✅ Entity {entityId} is fully initialized, loading weapon skills`)
+
+		-- Try to load weapon skills now that all components are ready
+		if Client.Modules and Client.Modules.Interface and Client.Modules.Interface.Stats then
+			local success, err = pcall(function()
+				Client.Modules.Interface.Stats.LoadWeaponSkills()
+			end)
+
+			if not success then
+				warn("[ECS] Failed to load weapon skills:", err)
+			end
+		end
 	end
 end)
 
@@ -349,13 +363,18 @@ function Initialize(Character: Model)
 		if Client.Library.StateCheck(Speeds, "FlashSpeedSet50") then
 			Client.Packets.Flash.send({ Remove = true })
 		end
-		if Client.Library.StateCheck(Stuns, "NoRotate") then
+		-- Check if ANY stun state is active (not just NoRotate)
+		if Client.Library.StateCount(Stuns) then
 			Humanoid.AutoRotate = false
 		else
 			Humanoid.AutoRotate = true
 		end
 	end)
 
+	-- DISABLED: Replaced by walkspeed_controller ECS system (runs every frame on PreRender)
+	-- The old listener only fired when StringValue changed, causing timing issues
+	-- The new system reads the StringValue every frame for immediate response
+	--[[
 	safeConnect(Speeds, "Changed", function(Value)
 		if not Humanoid then
 			return
@@ -391,6 +410,7 @@ function Initialize(Character: Model)
 		Humanoid.WalkSpeed = math.max(0, DeltaSpeed) -- Ensure never negative
 		Humanoid.JumpPower = math.max(0, DeltaJump) -- Ensure never negative
 	end)
+	]]
 
 	-- local pent = ref.get("player", Players.LocalPlayer)
 

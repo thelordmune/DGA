@@ -458,55 +458,32 @@ end
 function MainConfig.getState(player: Model | Player)
 	player = player or MainConfig.getNpc()
 
-	-- For NPCs, use the standard entity system states instead of creating duplicates
-	if player and player:IsA("Model") then
-		-- Check if this is an NPC (not a player character)
-		local isNPC = player:GetAttribute("IsNPC") or not game.Players:GetPlayerFromCharacter(player)
-
-		if isNPC then
-			-- Use the standard Stuns state object created by the entity system
-			local stunState = player:FindFirstChild("Stuns")
-			if stunState then
-				return stunState
-			else
-				-- If no Stuns state exists, the NPC hasn't been properly initialized
-				warn("NPC", player.Name, "missing Stuns state - may need entity initialization")
-				-- Create a temporary state to prevent errors
-				local tempState = Instance.new("StringValue")
-				tempState.Name = "TempStuns"
-				tempState.Value = "[]"
-				tempState.Parent = player
-				return tempState
-			end
-		end
+	-- Get the character model
+	local character = player
+	if player:IsA("Player") then
+		character = player.Character
 	end
 
-	-- For players, use the original PlayerStates system
-	local statesFolder = game.ReplicatedStorage:FindFirstChild("PlayerStates")
-	if not statesFolder then
-		statesFolder = Instance.new("Folder")
-		statesFolder.Name = "PlayerStates"
-		statesFolder.Parent = ReplicatedStorage
+	if not character then
+		warn("MainConfig.getState: No character found for", player.Name)
+		return nil
 	end
 
-	-- Ensure we're using a StringValue, not a Folder
-	local stateValue = statesFolder:FindFirstChild(player.Name)
-	if not stateValue then
-		stateValue = Instance.new("StringValue")
-		stateValue.Name = player.Name
-		stateValue.Value = "[]" -- Empty JSON array
-		stateValue.Parent = statesFolder
-	elseif stateValue:IsA("Folder") then
-		-- Convert existing Folder to StringValue if needed
-		local newValue = Instance.new("StringValue")
-		newValue.Name = player.Name
-		newValue.Value = "[]"
-		newValue.Parent = statesFolder
-		stateValue:Destroy()
-		stateValue = newValue
+	-- For both NPCs and players, use the standard Stuns state object from the character
+	-- This is created by the entity system (Entities.Initialize)
+	local stunState = character:FindFirstChild("Stuns")
+	if stunState then
+		return stunState
+	else
+		-- If no Stuns state exists, the character hasn't been properly initialized
+		warn("Character", character.Name, "missing Stuns state - may need entity initialization")
+		-- Create a temporary state to prevent errors
+		local tempState = Instance.new("StringValue")
+		tempState.Name = "TempStuns"
+		tempState.Value = "[]"
+		tempState.Parent = character
+		return tempState
 	end
-
-	return stateValue
 end
 
 function MainConfig.getSkillData(skill: string)

@@ -1,23 +1,21 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local jecs = require(ReplicatedStorage.Modules.Imports.jecs)
-local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
-local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+--[[
+	Quest Cleanup System - DEPRECATED
 
-local function questcleanup(world)
-    for entity in world:query(comps.CompletedQuest):iter() do
-        local completedQuest = world:get(entity, comps.CompletedQuest)
-        if os.clock() - completedQuest.completedTime > 10 then
-            world:remove(entity, comps.CompletedQuest)
-        end
-    end
-end
+	This system is now handled by observers in jecs_observers.luau
+	The observer automatically schedules cleanup 10 seconds after quest completion.
+
+	This file is kept for backwards compatibility but does nothing.
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 return {
-    run = function(world)
-        questcleanup(world)
-    end,
-    settings = {
-        phase = "Heartbeat",
-        paused = false
-    }
+	run = function(world)
+		-- No-op: Quest cleanup is now handled by observers
+	end,
+	settings = {
+		phase = "Heartbeat",
+		paused = true, -- Paused since observers handle this now
+		server_only = true
+	}
 }

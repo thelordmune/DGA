@@ -109,6 +109,13 @@ local function start(systemsFolder)
         print(`  - {phaseName}: {systemCount} systems`)
     end
 
+    -- Initialize observers (server-side only)
+    if RunService:IsServer() then
+        local ObserversManager = require(script.Parent.jecs_observers)
+        ObserversManager.init()
+        print("✅ Observer system initialized")
+    end
+
     -- Note: System loading is now handled by scheduler.FillingSchedulerWithSystems
     -- The old hotReloader:scan approach has been replaced
     

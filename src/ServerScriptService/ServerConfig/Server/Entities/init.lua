@@ -1,7 +1,8 @@
 local Server = require(script.Parent);
 local Replicated = game:GetService("ReplicatedStorage")
 local start = require(Replicated.Modules.ECS.jecs_start)
-local ref = require(Replicated.Modules.ECS.jecs_ref)
+local RefManager = require(Replicated.Modules.ECS.jecs_ref_manager)
+local ref = RefManager.player -- Use player-specific ref system
 -- local util = Replicated.Modules:WaitForChild("Utilities")
 
 local DEBUG = false -- Toggle debugging

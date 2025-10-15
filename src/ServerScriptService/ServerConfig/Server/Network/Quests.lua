@@ -55,7 +55,8 @@ NetworkModule.EndPoint = function(Player, Data)
 
         -- Load required modules
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
-        local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+        local RefManager = require(ReplicatedStorage.Modules.ECS.jecs_ref_manager)
+        local ref = RefManager.player -- Use player-specific ref system
         local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
         local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
         local LevelingManager = require(ReplicatedStorage.Modules.Utils.LevelingManager)
@@ -63,11 +64,6 @@ NetworkModule.EndPoint = function(Player, Data)
 
         -- Get player entity (server-side uses "player" key)
         print("[Quest Complete] 🔍 Attempting to get player entity for:", Player.Name, "UserId:", Player.UserId)
-
-        -- Debug: Check ref system internals
-        local RefModule = require(ReplicatedStorage.Modules.ECS.jecs_ref)
-        print("[Quest Complete] 🔍 Calling ref.get with Player object:", Player)
-        print("[Quest Complete] 🔍 Player.UserId:", Player.UserId)
 
         local playerEntity = ref.get("player", Player)
         print("[Quest Complete] 🔍 ref.get returned:", playerEntity)

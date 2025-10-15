@@ -20,7 +20,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+local RefManager = require(ReplicatedStorage.Modules.ECS.jecs_ref_manager)
+local ref = RefManager.player -- Use player-specific ref system
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 

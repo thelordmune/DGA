@@ -24,6 +24,7 @@ local Children, scoped, peek, out = Fusion.Children, Fusion.scoped, Fusion.peek,
 local world = require(Replicated.Modules.ECS.jecs_world)
 local ref = require(Replicated.Modules.ECS.jecs_ref)
 local comps = require(Replicated.Modules.ECS.jecs_components)
+local RunService = game:GetService("RunService")
 
 local TInfo = TweenInfo.new(0.35, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0)
 

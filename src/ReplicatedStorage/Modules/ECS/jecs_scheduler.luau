@@ -45,6 +45,9 @@ local pair = jecs.pair
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
+-- Store active scheduler for system time tracking
+local activeScheduler = nil
+
 -- Add components from example
 local System = comps.System :: jecs.Id<{ callback: (any) -> (), name: string }>
 local DependsOn = comps.DependsOn
@@ -58,7 +61,8 @@ local PreSimulation = world:entity()
 local PreAnimation = world:entity()
 
 local function CreatingScheduler()
-	return jabby.scheduler.create("MainScheduler")
+	activeScheduler = jabby.scheduler.create("MainScheduler")
+	return activeScheduler
 end
 
 local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
@@ -199,11 +203,29 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
 end
 
 local function RegisteringWorldToJabby()
+	local ref = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_ref)
+
 	jabby.register({
 		applet = jabby.applets.world,
 		name = "World",
 		configuration = {
 			world = world,
+			entities = {}, -- Populated by ref system
+			get_entity_from_part = function(part)
+				-- Try to get entity from character
+				local character = part:FindFirstAncestorOfClass("Model")
+				if character and character:FindFirstChildOfClass("Humanoid") then
+					-- Try different ref types
+					local entity = ref.get("character", character)
+					if not entity then
+						entity = ref.get("mob", character)
+					end
+					if entity then
+						return entity, part
+					end
+				end
+				return nil, nil
+			end
 		},
 	})
 end
@@ -329,10 +351,18 @@ local function begin()
 
 		-- Create connection
 		connections[phaseEntity] = event:Connect(function(...)
+			local args = {...}
 			debug.profilebegin(phaseName)
 			for _, sysData in pairs(systems) do
-				if sysData.callback then
-					pcall(sysData.callback, world, ...)
+				if sysData.callback and sysData.id then
+					-- Use scheduler:run() to automatically track execution time for Jabby
+					local success, err = pcall(function()
+						activeScheduler:run(sysData.id, sysData.callback, world, table.unpack(args))
+					end)
+
+					if not success then
+						warn(`System {sysData.name} error: {err}`)
+					end
 				end
 			end
 			debug.profileend()
