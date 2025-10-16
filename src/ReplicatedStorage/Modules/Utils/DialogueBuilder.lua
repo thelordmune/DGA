@@ -37,9 +37,13 @@ local function createNode(nodeData, parentFolder)
 	if nodeData.Type then
 		node:SetAttribute("Type", nodeData.Type)
 	end
-	
+
 	if nodeData.Priority then
 		node:SetAttribute("Priority", nodeData.Priority)
+	end
+
+	if nodeData.AutoClose then
+		node:SetAttribute("AutoClose", nodeData.AutoClose)
 	end
 	
 	-- Add text if present

@@ -63,6 +63,7 @@ local CurrentParams = nil
 local SkipTyping = false
 local CanSkip = false
 local CurrentDialogueUI = nil
+local CurrentNode = nil -- Track the current dialogue node for AutoClose support
 
 function GetRootNode(Tree)
 	DebugPrint("Getting root node from tree: " .. tostring(Tree))
@@ -426,6 +427,9 @@ function LoadNode(Node, Params)
 	local Type = Node:GetAttribute("Type") or "Unknown"
 	DebugPrint("Loading node: " .. tostring(Node) .. " of type: " .. Type)
 
+	-- Track current node for AutoClose support
+	CurrentNode = Node
+
 	if IsLocked(Node) then
 		DebugPrint("Node is locked, skipping")
 		return
@@ -560,8 +564,10 @@ function Close(Params)
 	else
 		DebugPrint("No current dialogue UI to destroy")
 	end
-
-	uidisable.Enabled = true
+	if uidisable then
+		uidisable.Enabled = true
+	end
+	--uidisable.Enabled = true
 	CurrentParams = nil
 	-- scope:doCleanup()
 
@@ -605,12 +611,20 @@ function LoadNodes(Nodes, Params)
 	DebugPrint("Loading " .. #Nodes .. " nodes")
 	if #Nodes <= 0 then
 		DebugPrint("No nodes to load, waiting for animation to finish then auto-closing")
-		-- Wait for text animation to complete (estimate based on text length)
-		-- Average text is ~80 chars * 0.015s = 1.2s + 0.5s buffer = ~2s
-		task.wait(2)
-		-- Then wait additional time for player to read
-		DebugPrint("Animation complete, waiting 3 seconds for player to read")
-		task.wait(3)
+		-- Check if the current node has AutoClose attribute for faster closing
+		local autoCloseDelay = 2 -- Default: 2s animation + 3s reading = 5s total
+		if CurrentNode and CurrentNode:GetAttribute("AutoClose") then
+			autoCloseDelay = 1.5 -- Fast close: 1.5s total
+			DebugPrint("AutoClose enabled, using fast close delay")
+		else
+			-- Wait for text animation to complete (estimate based on text length)
+			-- Average text is ~80 chars * 0.015s = 1.2s + 0.5s buffer = ~2s
+			task.wait(2)
+			-- Then wait additional time for player to read
+			DebugPrint("Animation complete, waiting 3 seconds for player to read")
+			autoCloseDelay = 3
+		end
+		task.wait(autoCloseDelay)
 		DebugPrint("Auto-closing dialogue now")
 		Close(Params)
 	else

@@ -7,7 +7,7 @@ return {
 			Name = "Root",
 			Type = "DialogueRoot",
 			Priority = 0,
-			Outputs = {"DefaultGreeting", "QuestActiveGreeting", "QuestCompleteGreeting"}
+			Outputs = {"DefaultGreeting", "QuestActiveGreeting", "QuestCompleteGreeting", "QuestCompletedGreeting"}
 		},
 		
 		{
@@ -127,6 +127,15 @@ return {
 				Action = "CompleteGood",
 				QuestName = "Missing Pocketwatch"
 			},
+			Outputs = {"ThanksAgain"}
+		},
+
+		{
+			Name = "ThanksAgain",
+			Type = "Prompt",
+			Priority = 2,
+			Text = "Thanks for your help again!",
+			AutoClose = true, -- This will close the dialogue after showing
 			Outputs = {}
 		},
 
@@ -134,11 +143,25 @@ return {
 			Name = "KeepWatch",
 			Type = "Prompt",
 			Priority = 2,
-			Text = "What?! You... you thief! I trusted you!",
+			Text = "There he is! Guards!!!",
 			Quest = {
 				Action = "CompleteEvil",
 				QuestName = "Missing Pocketwatch"
 			},
+			AutoClose = true, -- This will close the dialogue after showing
+			Outputs = {}
+		},
+
+		{
+			Name = "QuestCompletedGreeting",
+			Type = "Prompt",
+			Priority = 3,
+			Text = "Thanks for your help again!",
+			Condition = {
+				Module = "MagnusQuestCompleted",
+				Args = {}
+			},
+			AutoClose = true,
 			Outputs = {}
 		}
 	}

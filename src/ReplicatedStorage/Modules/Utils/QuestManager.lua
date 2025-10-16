@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local jecs = require(ReplicatedStorage.Modules.Imports.jecs)
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
@@ -8,7 +9,7 @@ local NotificationManager = require(ReplicatedStorage.Client.NotificationManager
 local QuestManager = {}
 
 function QuestManager.acceptQuest(player, npcname, questName)
-	local playerEntity = ref.get("local_player", player)
+	local playerEntity = ref.get("player", player)
 
 	if not playerEntity then
 		warn("[QuestManager] No player entity found for", player)
@@ -45,6 +46,17 @@ function QuestManager.acceptQuest(player, npcname, questName)
 
 	print("[QuestManager] Quest accepted on client:", npcname, questName)
 
+	-- Send packet to server to set QuestAccepted on server-side
+	if RunService:IsClient() then
+		local Client = require(ReplicatedStorage.Client)
+		print("[QuestManager] Sending quest start packet to server:", npcname, questName)
+		Client.Packets.Quests.send({
+			Module = npcname,
+			Function = "Start",
+			Arguments = {questName},
+		})
+	end
+
 	-- Show quest notification
 	NotificationManager.ShowQuest(questName)
 end
@@ -78,7 +90,7 @@ function QuestManager.hasActiveQuest(player, npcname, questName)
 end
 
 function QuestManager.completedQuest(player, npcName, questName)
-    local playerEntity = ref.get("local_player", player)
+    local playerEntity = ref.get("player", player)  -- Fixed: Use "player" instead of "local_player"
     if not playerEntity or not world:contains(playerEntity) then
         return
     end

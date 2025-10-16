@@ -183,12 +183,30 @@ function ObserversManager.setupQuestObservers()
 		function(entity)
 			local completedQuest = world:get(entity, comps.CompletedQuest)
 			print("[Observers] Quest completed:", completedQuest.npcName, completedQuest.questName)
-			
-			-- Schedule cleanup after 10 seconds
+
+			-- IMMEDIATELY remove ActiveQuest and QuestAccepted to prevent re-completion
+			if world:has(entity, comps.ActiveQuest) then
+				world:remove(entity, comps.ActiveQuest)
+				print("[Observers] Removed ActiveQuest component")
+			end
+			if world:has(entity, comps.QuestAccepted) then
+				world:remove(entity, comps.QuestAccepted)
+				print("[Observers] Removed QuestAccepted component")
+			end
+			if world:has(entity, comps.QuestData) then
+				world:remove(entity, comps.QuestData)
+				print("[Observers] Removed QuestData component")
+			end
+			if world:has(entity, comps.QuestItemCollected) then
+				world:remove(entity, comps.QuestItemCollected)
+				print("[Observers] Removed QuestItemCollected component")
+			end
+
+			-- Schedule cleanup of CompletedQuest after 10 seconds
 			task.delay(10, function()
 				if world:contains(entity) and world:has(entity, comps.CompletedQuest) then
 					world:remove(entity, comps.CompletedQuest)
-					print("[Observers] Cleaned up completed quest for entity", entity)
+					print("[Observers] Cleaned up CompletedQuest component for entity", entity)
 				end
 			end)
 		end

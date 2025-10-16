@@ -109,10 +109,10 @@ function QuestTrackerManager:SetupQuestUpdates()
 		self:UpdateQuestData()
 	end)
 
-	-- Update periodically to catch quest changes
-	task.spawn(function()
+	-- Store update loop thread for cleanup
+	self.updateThread = task.spawn(function()
 		while true do
-			task.wait(0.5) -- Update every half second for responsiveness
+			task.wait(2) -- Update every 2 seconds (reduced from 0.5s to save performance)
 			self:UpdateQuestData()
 		end
 	end)
@@ -200,6 +200,12 @@ function QuestTrackerManager:SwitchView(viewName)
 end
 
 function QuestTrackerManager:Destroy()
+	-- Cancel update loop thread to prevent memory leak
+	if self.updateThread then
+		task.cancel(self.updateThread)
+		self.updateThread = nil
+	end
+
 	if self.scope then
 		self.scope:doCleanup()
 	end

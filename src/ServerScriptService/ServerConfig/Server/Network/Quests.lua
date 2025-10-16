@@ -11,8 +11,26 @@ NetworkModule.EndPoint = function(Player, Data)
     if Data.Function == "Start" then
         print("Starting quest: " .. Data.Module)
 
-        -- Call server-side quest module Start function if it exists
+        -- Set QuestAccepted component on server so observer can convert it to ActiveQuest
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
+        local RefManager = require(ReplicatedStorage.Modules.ECS.jecs_ref_manager)
+        local ref = RefManager.player
+        local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+        local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+
+        local playerEntity = ref.get("player", Player)
+        if playerEntity then
+            print("[Quest Start] Setting QuestAccepted component on server for:", Player.Name)
+            world:set(playerEntity, comps.QuestAccepted, {
+                npcName = Data.Module,
+                questName = Data.Arguments[1] or "Missing Pocketwatch", -- Default for legacy support
+                acceptedAt = os.clock(),
+            })
+        else
+            warn("[Quest Start] ❌ No player entity found for:", Player.Name)
+        end
+
+        -- Call server-side quest module Start function if it exists
         local questModulesFolder = ReplicatedStorage.Modules:FindFirstChild("QuestsFolder")
         if questModulesFolder then
             local questModule = questModulesFolder:FindFirstChild(Data.Module)
