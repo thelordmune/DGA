@@ -42,11 +42,11 @@ local function updateMovementPattern(mainConfig)
 			While numerator being specific weight for that pattern]]
 
 		local patterns = {
-			{name = "Direct",weight = 2}, -- 2/20 -> 10%
-			{name = "Strafe",weight = 5}, -- 5/20 -> 25%
-			{name = "SideApproach",weight = 3}, -- 3/20 -> 15%
-			{name = "CircleStrafe", weight = 8}, -- 8/20 -> 40%
-			{name = "ZigZag", weight = 2}, -- 2/20 -> 10%
+			{name = "Direct",weight = 1}, -- 1/30 -> 3% (rarely run straight)
+			{name = "Strafe",weight = 8}, -- 8/30 -> 27% (strafe often)
+			{name = "SideApproach",weight = 4}, -- 4/30 -> 13%
+			{name = "CircleStrafe", weight = 15}, -- 15/30 -> 50% (circle strafe most of the time!)
+			{name = "ZigZag", weight = 2}, -- 2/30 -> 7%
 		}
 
 

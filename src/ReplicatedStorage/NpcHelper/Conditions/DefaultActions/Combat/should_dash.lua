@@ -30,7 +30,7 @@ return function(actor: Actor, mainConfig: table)
 
     -- Check dash cooldown
     local lastDash = mainConfig.States.LastDash or 0
-    local dashCooldown = 4.0 -- Reduced from 8.0 - dash more frequently
+    local dashCooldown = 3.0 -- Dash moderately - not too spammy
 
     if os.clock() - lastDash < dashCooldown then
         return false
@@ -54,8 +54,8 @@ return function(actor: Actor, mainConfig: table)
         mainConfig.States.LastHitTime = os.clock()
     end
 
-    -- Dash sideways if getting repeatedly attacked (3+ hits in 3 seconds)
-    if mainConfig.States.HitsTaken >= 3 then
+    -- Dash sideways if getting attacked (2+ hits in 3 seconds) - reduced from 3 for more reactive dodging
+    if mainConfig.States.HitsTaken >= 2 then
         mainConfig.States.HitsTaken = 0 -- Reset counter
         return true
     end
@@ -68,6 +68,27 @@ return function(actor: Actor, mainConfig: table)
     -- Dash back if low health and too close
     local humanoid = npc:FindFirstChild("Humanoid")
     if humanoid and humanoid.Health / humanoid.MaxHealth < 0.3 and distance < 5 then
+        return true
+    end
+
+    -- NEW: Tactical dashing for better positioning (reduced chances - less spammy)
+    -- Dash to reposition if at awkward mid-range (15% chance)
+    if distance > 6 and distance < 10 and math.random() < 0.15 then
+        return true
+    end
+
+    -- Dash to close distance if player is far (10% chance)
+    if distance > 15 and distance < 25 and math.random() < 0.1 then
+        return true
+    end
+
+    -- Dash to create space if too close (20% chance)
+    if distance < 4 and math.random() < 0.2 then
+        return true
+    end
+
+    -- Random tactical dash for unpredictability (5% chance when in combat range)
+    if distance > 5 and distance < 15 and math.random() < 0.05 then
         return true
     end
 

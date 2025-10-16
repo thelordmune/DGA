@@ -1,6 +1,6 @@
 local Replicated = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-
+local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
 local isServer = RunService:IsServer()
 
 if isServer then
@@ -172,6 +172,16 @@ if isServer then
                 return
             end
 
+            -- Make Magnus untalkable by removing him from Dialogue folder
+            local dialogueFolder = workspace.World:FindFirstChild("Dialogue")
+            if dialogueFolder then
+                local magnusNPC = dialogueFolder:FindFirstChild("Magnus")
+                if magnusNPC then
+                    print("[Magnus Quest] Removing Magnus from Dialogue folder - no longer talkable")
+                    magnusNPC.Parent = workspace.World.Live
+                end
+            end
+
             if choice == "CompleteGood" then
                 -- Player returned the pocketwatch - remove it from inventory
                 print("[Magnus Quest] Player returned pocketwatch - removing from inventory")
@@ -194,50 +204,99 @@ if isServer then
                     return
                 end
 
-                -- Spawn guard near the player
+                -- Get the spawn position near the player
                 local playerPos = character.HumanoidRootPart.Position
-                local spawnOffset = Vector3.new(10, 0, 10) -- Spawn 10 studs away
+                local spawnOffset = Vector3.new(10, 0, 10)
                 local guardSpawnPos = playerPos + spawnOffset
 
-                -- Clone the Bandit model to create a guard
-                local guardModel = game.ReplicatedStorage.Assets.NPC.Bandit:Clone()
-                guardModel.Name = "QuestGuard"
-                guardModel:SetAttribute("Weapon", "Fist")
-                guardModel:SetAttribute("Equipped", false)
-                guardModel:SetAttribute("IsNPC", true)
+                -- Load the QuestGuard NPC data
+                local QuestGuardData = require(game.ReplicatedStorage.Regions.Forest.Npcs.QuestGuard)
 
-                -- Position the guard
-                guardModel:PivotTo(CFrame.new(guardSpawnPos))
+                -- Update spawn location
+                QuestGuardData.DataToSendOverAndUdpate.Spawning.Locations = { guardSpawnPos }
+                QuestGuardData.Quantity = 1
+                QuestGuardData.AlwaysSpawn = true
 
-                -- Add to workspace
-                guardModel.Parent = workspace.World.Live
+                -- Use the serializer to create NPC data
+                local seralizer = require(Replicated.Seralizer)
 
-                print("[Magnus Quest] ✅ Guard spawned at:", guardSpawnPos)
-
-                -- Wait for guard to be initialized by the NPC system
-                task.wait(0.5)
-
-                -- Make the guard aggressive towards the player
-                local damageLog = guardModel:FindFirstChild("Damage_Log")
-                if not damageLog then
-                    damageLog = Instance.new("Folder")
-                    damageLog.Name = "Damage_Log"
-                    damageLog.Parent = guardModel
+                -- Prepare NPC file (same way LeftGuard/RightGuard are spawned)
+                local regionName = "Forest"
+                local regionContainer = workspace.World.Live:FindFirstChild(regionName)
+                if not regionContainer then
+                    regionContainer = Instance.new("Folder")
+                    regionContainer.Name = regionName
+                    regionContainer.Parent = workspace.World.Live
                 end
 
-                -- Add player to damage log to make guard aggro
-                local attackRecord = Instance.new("ObjectValue")
-                attackRecord.Name = "Attack_" .. os.clock()
-                attackRecord.Value = character
-                attackRecord.Parent = damageLog
+                local npcsContainer = regionContainer:FindFirstChild("NPCs")
+                if not npcsContainer then
+                    npcsContainer = Instance.new("Folder")
+                    npcsContainer.Name = "NPCs"
+                    npcsContainer.Parent = regionContainer
+                end
 
-                print("[Magnus Quest] ✅ Guard set to aggressive mode targeting:", player.Name)
+                -- Create NPC file
+                local npcFile = game.ReplicatedStorage.NpcFile:Clone()
+                npcFile.Name = "QuestGuard"
+                npcFile:SetAttribute("SetName", "QuestGuard")
+                npcFile:SetAttribute("DefaultName", "QuestGuard")
+
+                -- Create data folder
+                local dataFolder = Instance.new("Folder")
+                dataFolder.Name = "Data"
+                seralizer.LoadTableThroughInstance(dataFolder, QuestGuardData.DataToSendOverAndUdpate)
+                dataFolder.Parent = npcFile
+
+                npcFile.Parent = npcsContainer
+
+                print("[Magnus Quest] Quest guard NPC file created!")
+
+                -- Wait for the guard to spawn and be fully loaded
+                task.spawn(function()
+                    local spawnedGuard
+                    local maxWaitTime = 10
+                    local startTime = os.clock()
+
+                    -- Poll for the guard model to spawn
+                    while not spawnedGuard and (os.clock() - startTime) < maxWaitTime do
+                        for _, model in workspace.World.Live:GetDescendants() do
+                            if model:IsA("Model") and model:FindFirstChild("Humanoid") and
+                               (model.Name:find("QuestGuard") or (model:GetAttribute("SetName") and model:GetAttribute("SetName") == "QuestGuard")) then
+                                spawnedGuard = model
+                                
+                                break
+                            end
+                        end
+
+                        if not spawnedGuard then
+                            task.wait(0.5)
+                        end
+                    end
+
+                    if spawnedGuard then
+                        print("[Magnus Quest] Found spawned guard:", spawnedGuard.Name)
+
+                        local damageLog = spawnedGuard:WaitForChild("Damage_Log", 5)
+                        if damageLog then
+                            task.wait(0.5)
+
+                            local attackRecord = Instance.new("ObjectValue")
+                            attackRecord.Name = "Attack_" .. os.clock()
+                            attackRecord.Value = character
+                            attackRecord.Parent = damageLog
+                            print("[Magnus Quest] Guard set to target:", player.Name)
+                        else
+                            warn("[Magnus Quest] Damage_Log not found on guard!")
+                        end
+                    else
+                        warn("[Magnus Quest] Could not find spawned guard model after", maxWaitTime, "seconds!")
+                    end
+                end)
             end
         end
     }
 else
-    -- Client-side - return empty module
     return function()
-        -- Quest spawning happens on server
     end
 end

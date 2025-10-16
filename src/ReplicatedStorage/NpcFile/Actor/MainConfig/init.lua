@@ -7,6 +7,8 @@ local Signal = require(ReplicatedStorage.Signal)
 local Serializer = require(ReplicatedStorage.Seralizer)
 
 local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
+
+local Base = require(ReplicatedStorage.Effects.Base)
 local Library = Server.Library
 -- local AnimationManager = require(ReplicatedStorage.AnimationHandler)
 
@@ -19,11 +21,10 @@ local Library = Server.Library
 
 local Skill_Data = {}
 
-
-for i_branch: string, v: {[string]: {[string]: any}} in  require(ReplicatedStorage.Skill_Data) do 
-	for i, v in v do 
+for i_branch: string, v: { [string]: { [string]: any } } in require(ReplicatedStorage.Skill_Data) do
+	for i, v in v do
 		v.Branch = i_branch
-		Skill_Data[i] = v 
+		Skill_Data[i] = v
 	end
 end
 
@@ -31,11 +32,11 @@ type SpawningConfig = {
 	Enabled: boolean,
 	Cooldown: number,
 	LastSpawned: number,
-	Locations: {Vector3},
+	Locations: { Vector3 },
 	Despawning: {
 		Enabled: boolean,
-		DespawnDistance: number
-	}
+		DespawnDistance: number,
+	},
 }
 
 type EnemyDetectionConfig = {
@@ -47,22 +48,22 @@ type EnemyDetectionConfig = {
 	CaptureOnStun: number,
 	Lost: {
 		MaxPathsRetry: number,
-		Current: number
-	}
+		Current: number,
+	},
 }
 
 type IdleConfig = {
 	WaitBeforeChangingDirection: {
 		Min: number,
-		Max: number
+		Max: number,
 	},
 	WalkEnded: typeof(Signal.new()),
 	GoAtSpawnFirstIfFar: boolean,
-	Positions: {Vector3},
+	Positions: { Vector3 },
 	GoalPoint: Vector3?,
 	ReachedGoal: boolean,
 	LastArrived: number,
-	Move_Places: boolean
+	Move_Places: boolean,
 }
 
 type MovementConfig = {
@@ -76,12 +77,12 @@ type MovementConfig = {
 		},
 		Chance: {
 			Min: Number,
-			Max: Number
+			Max: Number,
 		},
 		BackawaySpeed: Number,
 		StrafeSpeed: Number,
-		ForwardMixRatio: Number -- how much forward movement to mix in with strafe
-	}
+		ForwardMixRatio: Number, -- how much forward movement to mix in with strafe
+	},
 }
 
 local MainConfig = {
@@ -93,45 +94,45 @@ local MainConfig = {
 	Appearance = {},
 
 	Movement = {
-		MaxStrafeRadius = 15, -- maximum distance for strafing
-		MaxAlignmentDot = 0.3, -- Minimum dot product to allow strafing
+		MaxStrafeRadius = 25, -- maximum distance for strafing (increased from 15 - strafe at longer ranges)
+		MaxAlignmentDot = 0.5, -- Minimum dot product to allow strafing (increased from 0.3 - strafe more often)
 		BackupSpeed = 5, -- when being pressed by a player and the npc backs up
 
 		-- Smooth movement interpolation
 		CurrentDirection = Vector3.zero,
-		SmoothingAlpha = 0.35, -- Higher = faster response, lower = smoother (0-1) - increased for more responsive movement
+		SmoothingAlpha = 0.5, -- Higher = faster response, lower = smoother (0-1) - increased for very responsive movement
 
 		Patterns = {
 			Current = nil, -- Current pattern type
 			LastChanged = 0,
 
 			Duration = {
-				Min = 1.5, -- Reduced from 2 for more dynamic movement
-				Max = 2.5  -- Reduced from 3 for more dynamic movement
+				Min = 0.8, -- Reduced from 1.5 - change patterns very frequently
+				Max = 1.5, -- Reduced from 2.5 - change patterns very frequently
 			},
 			Types = {
 				Strafe = {
-					Speed = 1.5,
-					ForwardMix = 1,
+					Speed = 2.0, -- Increased from 1.5 - strafe faster
+					ForwardMix = 1.2, -- Increased from 1 - more aggressive forward movement while strafing
 				},
 				SideApproach = {
-					ForwardSpeed = 1,
-					SideSpeed = 2,
-					Direction = nil -- "Left" or "Right"
+					ForwardSpeed = 1.3, -- Increased from 1
+					SideSpeed = 2.5, -- Increased from 2
+					Direction = nil, -- "Left" or "Right"
 				},
 				Direct = {
-					Speed = 1
+					Speed = 1,
 				},
 				CircleStrafe = {
-					Speed = 0.7,
-					Radius = 8
+					Speed = 1.0, -- Increased from 0.7 - circle strafe faster and more aggressively
+					Radius = 10, -- Increased from 8 - wider circles for better positioning
 				},
 				ZigZag = {
-					ForwardSpeed = 0.7,
-					SideSpeed = 0.3,
-				}
-			}
-		}
+					ForwardSpeed = 1.0, -- Increased from 0.7
+					SideSpeed = 0.5, -- Increased from 0.3
+				},
+			},
+		},
 	} :: MovementConfig,
 
 	EnemyDetection = {
@@ -144,14 +145,14 @@ local MainConfig = {
 		CaptureOnStun = true,
 		Lost = {
 			MaxPathsRetry = 2,
-			Current = 2
+			Current = 2,
 		},
 		RunAway = {
 			RunHp = 0,
 			Ranges = {
-				SafeRange = 37
+				SafeRange = 37,
 			},
-		}
+		},
 	} :: EnemyDetectionConfig,
 
 	Setting = {
@@ -163,7 +164,7 @@ local MainConfig = {
 			HealEvery = 300,
 			CooldownFromStun = 30,
 			LastHealed = 0,
-			AddAmount = 1/100,
+			AddAmount = 1 / 100,
 		},
 	},
 
@@ -176,7 +177,7 @@ local MainConfig = {
 		IsRunning = false,
 		RunAnimation = "",
 		--Run = Signal.new(),
-		RunOnFollowing = {Distance = 5,AwayOrNear = "Away",Enabled = true},
+		RunOnFollowing = { Distance = 5, AwayOrNear = "Away", Enabled = true },
 	},
 
 	Idle = {
@@ -188,28 +189,28 @@ local MainConfig = {
 		NextPause = {
 			Current = nil,
 			Min = 5,
-			Max = 7
+			Max = 7,
 		},
 		PauseDuration = {
 			Current = nil,
 			Min = 3,
-			Max = 5
+			Max = 5,
 		},
 	},
 	Idle2 = {
 		WaitBeforeChangingDirection = {
 			Min = 1,
-			Max = 3
+			Max = 3,
 		},
 		WalkEnded = Signal.new(),
 		GoAtSpawnFirstIfFar = true,
 		Positions = {},
 		-- Add these new fields
 		-- OLD
-		GoalPoint = nil,          -- Current goal point
-		ReachedGoal = false,      -- Track if goal is reached
-		LastArrived = 0,          -- Time of last arrival at goal
-		Move_Places = true,       -- Enable/disable movement
+		GoalPoint = nil, -- Current goal point
+		ReachedGoal = false, -- Track if goal is reached
+		LastArrived = 0, -- Time of last arrival at goal
+		Move_Places = true, -- Enable/disable movement
 	} :: IdleConfig,
 
 	Spawning = {
@@ -219,12 +220,12 @@ local MainConfig = {
 		LastSpawned = 0,
 		Locations = {},
 		ChosenSpawnLocation = nil,
-		Tags = {"Humanoids"},
+		Tags = { "Humanoids" },
 		DespawnTime = 3,
 		Despawning = {
 			Enabled = true,
-			DespawnDistance = 150
-		}
+			DespawnDistance = 150,
+		},
 	} :: SpawningConfig,
 
 	HumanoidDefaults = {
@@ -236,11 +237,12 @@ local MainConfig = {
 	Weapons = {
 		Enabled = false,
 		WeaponList = {},
-	}
+	},
 }
 
 -- Initialize with NPC data
-local NpcData = script.Parent.Parent:WaitForChild(`Data`) do
+local NpcData = script.Parent.Parent:WaitForChild(`Data`)
+do
 	local DataFetched = {}
 	Serializer.ToTable(NpcData, DataFetched)
 
@@ -372,8 +374,14 @@ local function loadAlchemySkills()
 			if networkPath then
 				-- Alchemy skills: Cascade, Cinder, Firestorm, Rock Skewer, Construct, Deconstruct, AlchemicAssault, Stone Lance
 				local alchemySkills = {
-					"Cascade", "Cinder", "Firestorm", "Rock Skewer",
-					"Construct", "Deconstruct", "AlchemicAssault", "Stone Lance"
+					"Cascade",
+					"Cinder",
+					"Firestorm",
+					"Rock Skewer",
+					"Construct",
+					"Deconstruct",
+					"AlchemicAssault",
+					"Stone Lance",
 				}
 
 				for _, skillName in alchemySkills do
@@ -454,7 +462,6 @@ function MainConfig.hasState(player: Model | Player, state: string, value: any)
 	return Library.StateCheck(stateValue, state)
 end
 
-
 function MainConfig.getState(player: Model | Player)
 	player = player or MainConfig.getNpc()
 
@@ -487,7 +494,7 @@ function MainConfig.getState(player: Model | Player)
 end
 
 function MainConfig.getSkillData(skill: string)
-	return  Skill_Data[skill]
+	return Skill_Data[skill]
 end
 
 function MainConfig.setTarget(player: Player?)
@@ -499,10 +506,10 @@ function MainConfig.getTarget(): Player?
 end
 
 function MainConfig.getRunAnimation()
-	return getRunPath(MainConfig.getNpc(),MainConfig)
+	return getRunPath(MainConfig.getNpc(), MainConfig)
 end
 function MainConfig.getBlockAnimation()
-	return getBlockPath(MainConfig.getNpc(),MainConfig)
+	return getBlockPath(MainConfig.getNpc(), MainConfig)
 end
 function MainConfig.getTargetCFrame(): CFrame
 	return MainConfig.getTarget():GetPivot()
@@ -524,7 +531,7 @@ function MainConfig.Alert(npc: Model)
 	end
 	---- print("hyw1")
 	--	bridges.Client:Fire(bridgeNet2.AllPlayers(),{
-	--		Module = "AlertEffect", 
+	--		Module = "AlertEffect",
 	--Head = npc.Head,
 	--	})
 end
@@ -535,8 +542,10 @@ end
 
 function MainConfig.SpawnEffect(position): Vector3
 	--TODO: Effect
-	local specificSpawnEffectForNpc = `{MainConfig.getNpc().Name}SpawnEffect`
-	-- print(specificSpawnEffectForNpc,position)
+
+	Base.Spawn(position)
+	print("doing spawn effect for npcs")
+	print("position:", position)
 end
 
 function MainConfig.DespawnEffect(position): Vector3
@@ -544,7 +553,6 @@ function MainConfig.DespawnEffect(position): Vector3
 	local specificDespawnEffectForNpc = `{MainConfig.getNpc().Name}DespawnEffect`
 	-- print(specificDespawnEffectForNpc,position)
 end
-
 
 function MainConfig.LoadAppearance()
 	local npc = MainConfig.getNpc()
@@ -556,33 +564,37 @@ function MainConfig.LoadAppearance()
 		return
 	end
 
-	local appearanceData  = {
+	local appearanceData = {
 		Hair = require(MainConfig.Appearance.Hair),
-		Face = require(MainConfig.Appearance.Face), 
+		Face = require(MainConfig.Appearance.Face),
 		Shirt = require(MainConfig.Appearance.Shirt),
 		Pants = require(MainConfig.Appearance.Pants),
 		SkinColor = require(MainConfig.Appearance.SkinColor),
 	}
-	for _,apperanceModule in appearanceData do
-		apperanceModule(npc,MainConfig)
+	for _, apperanceModule in appearanceData do
+		apperanceModule(npc, MainConfig)
 	end
 
-	local accessories = MainConfig.Appearance.Accessories do
+	local accessories = MainConfig.Appearance.Accessories
+	do
 		if accessories and #accessories > 0 then
 			for _, accessory in accessories do
 				--todo
 			end
 		end
 	end
-
 end
 
 function MainConfig.InitiateRun(ShouldRun: boolean)
 	local npc = MainConfig.getNpc()
-	if not npc then return end
+	if not npc then
+		return
+	end
 
 	local npcStates = MainConfig.getState(npc)
-	if not npcStates then return end
+	if not npcStates then
+		return
+	end
 
 	-- Check states using Library system
 	local canRun = not (Library.StateCheck(npcStates, "Stunned") or Library.StateCheck(npcStates, "ToSpeed"))
@@ -604,7 +616,7 @@ function MainConfig.InitiateRun(ShouldRun: boolean)
 		if ShouldRun then
 			Library.PlayAnimation(npc, runAnimation)
 		else
-			Library.StopAnimation(npc, runAnimation, {FadeTime = 0.25})
+			Library.StopAnimation(npc, runAnimation, { FadeTime = 0.25 })
 		end
 	end
 end
@@ -616,33 +628,37 @@ function MainConfig.getMimic(): Folder
 	if not npc then
 		return
 	end
-	
+
 	if npc:FindFirstChild(Perequisite_Folder_Name) then
 		return npc[Perequisite_Folder_Name]
 	end
 
 	local Folder: Folder = Instance.new("Folder")
-	Folder.Name = Perequisite_Folder_Name;
+	Folder.Name = Perequisite_Folder_Name
 
 	local pathfindingState: IntValue = Instance.new("IntValue")
-	pathfindingState.Name = "PathState";
-	pathfindingState.Parent = Folder;
+	pathfindingState.Name = "PathState"
+	pathfindingState.Parent = Folder
 
 	local pathfindingId: IntValue = Instance.new("IntValue")
 	pathfindingId.Name = "StateId"
-	pathfindingId.Parent = Folder;
+	pathfindingId.Parent = Folder
 
-	Folder.Parent = npc;
+	Folder.Parent = npc
 
 	return Folder
 end
 
 function MainConfig.InitiateBlock(ShouldBlock: boolean)
 	local npc = MainConfig.getNpc()
-	if not npc then return end
+	if not npc then
+		return
+	end
 
 	local npcStates = MainConfig.getState()
-	if not npcStates then return end
+	if not npcStates then
+		return
+	end
 
 	local canBlock = not Library.StateCheck(npcStates, "Stunned")
 	ShouldBlock = if canBlock then ShouldBlock else false
@@ -668,17 +684,20 @@ function MainConfig.InitiateBlock(ShouldBlock: boolean)
 	end
 end
 
-
 function MainConfig.cleanup(boolean: boolean)
 	---- print(debug.info(2, "sl"))
 	if #MainConfig.Storage > 0 then
 		--task.synchronize()
-		for _,specificTag in MainConfig.Spawning.Tags do
-			game.CollectionService:RemoveTag(MainConfig.getNpc(),specificTag)
+		for _, specificTag in MainConfig.Spawning.Tags do
+			game.CollectionService:RemoveTag(MainConfig.getNpc(), specificTag)
 		end
 
-		for _,trash in MainConfig.Storage do
-			if typeof(trash) == "RBXScriptConnection" then trash:Disconnect(); else trash:Destroy(); end
+		for _, trash in MainConfig.Storage do
+			if typeof(trash) == "RBXScriptConnection" then
+				trash:Disconnect()
+			else
+				trash:Destroy()
+			end
 		end
 		--task.desynchronize()
 	end
@@ -686,8 +705,6 @@ function MainConfig.cleanup(boolean: boolean)
 	table.clear(MainConfig.States)
 
 	MainConfig.EnemyDetection.Current = nil
-
-
 end
 
 return MainConfig

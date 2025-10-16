@@ -120,18 +120,19 @@ return function(TREE)
                 SEQUENCE({
                     Condition("is_aggressive"),
                     FALLBACK({
-                        -- Priority 1: Smart defense - always check for player actions
-                        tree_composition.defense_sequence(TREE),
-
-                        -- Priority 2: Dash to reposition
+                        -- Priority 1: Dash to reposition (moved up - dash more often!)
                         SEQUENCE({
                             Condition("should_dash"),
                             FALLBACK({
-                                Condition("dash", "Forward"),
                                 Condition("dash", "Left"),
                                 Condition("dash", "Right"),
+                                Condition("dash", "Back"),
+                                Condition("dash", "Forward"),
                             }),
                         }),
+
+                        -- Priority 2: Smart defense - always check for player actions
+                        tree_composition.defense_sequence(TREE),
 
                         -- Priority 3: Attack with guard pattern
                         tree_composition.attack_sequence(TREE),

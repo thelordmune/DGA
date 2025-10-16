@@ -2120,4 +2120,19 @@ function Base.TransmutationCircle(Character: Model, Destination: CFrame?)
 	end)
 end
 
+function Base.Spawn(Position: Vector3)
+	local eff = Replicated.Assets.VFX.SpawnEff:Clone()
+	eff.Position = Position
+	print("Spawning effect at:", tostring(eff.CFrame))
+	eff.Parent = workspace.World.Visuals
+	for _, v in eff:GetDescendants() do
+		if v:IsA("ParticleEmitter") then
+			v:Emit(v:GetAttribute("EmitCount"))
+		end
+	end
+	task.delay(3, function()
+		eff:Destroy()
+	end)
+end
+
 return Base

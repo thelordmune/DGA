@@ -7,7 +7,7 @@ return {
 			Name = "Root",
 			Type = "DialogueRoot",
 			Priority = 0,
-			Outputs = {"DefaultGreeting", "QuestActiveGreeting", "QuestCompleteGreeting", "QuestCompletedGreeting"}
+			Outputs = {"DefaultGreeting", "QuestActiveGreeting", "QuestCompleteGreeting"}
 		},
 		
 		{
@@ -149,19 +149,6 @@ return {
 				QuestName = "Missing Pocketwatch"
 			},
 			AutoClose = true, -- This will close the dialogue after showing
-			Outputs = {}
-		},
-
-		{
-			Name = "QuestCompletedGreeting",
-			Type = "Prompt",
-			Priority = 3,
-			Text = "Thanks for your help again!",
-			Condition = {
-				Module = "MagnusQuestCompleted",
-				Args = {}
-			},
-			AutoClose = true,
 			Outputs = {}
 		}
 	}

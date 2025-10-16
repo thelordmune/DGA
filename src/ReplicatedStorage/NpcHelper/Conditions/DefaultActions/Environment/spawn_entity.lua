@@ -1,6 +1,6 @@
 local VISUALIZE_SPAWN_PART = false
 
-local SPAWN_EFFECT: boolean = false
+local SPAWN_EFFECT: boolean = true
 local DESPAWN_EFFECT: boolean = false
 
 -- Global table to track used spawn locations per NPC type
@@ -199,7 +199,7 @@ return function(actor: Actor, mainConfig: table)
 		end
 	end
 
-	local _ = SPAWN_EFFECT and mainConfig.SpawnEffect(mainConfig.Spawning.SpawnedAt)
+	local _ = SPAWN_EFFECT and mainConfig.SpawnEffect(mainConfig.Spawning.SpawnedAt) and print("spawning effect here brochacho")
 
 	local damageLog = Instance.new("Folder")
 	damageLog.Name = "Damage_Log"

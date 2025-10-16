@@ -227,6 +227,32 @@ return function(actor: Actor, mainConfig: table)
         end
     end
 
+    -- Check if NPC just parried - immediate counter-attack!
+    if mainConfig.States.JustParried and (os.clock() - (mainConfig.States.ParryTime or 0)) < 0.8 then
+        mainConfig.States.JustParried = false -- Clear flag
+
+        -- Immediately counter with Critical or best skill
+        local Combat = Server.Modules.Combat
+        if not Library.CheckCooldown(npc, "Critical") then
+            Combat.Critical(npc)
+            print("[Intelligent Attack] Counter-attacking with Critical after parry!")
+            return true
+        else
+            -- Use best available skill for counter
+            local availableSkills = getAvailableSkills(npc, mainConfig)
+            if #availableSkills > 0 then
+                local bestSkill = availableSkills[1]
+                if bestSkill ~= "M1" and bestSkill ~= "Block" then
+                    local success = mainConfig.performAction(bestSkill)
+                    if success then
+                        print("[Intelligent Attack] Counter-attacking with", bestSkill, "after parry!")
+                        return true
+                    end
+                end
+            end
+        end
+    end
+
     -- Check if player is blocking
     local targetActions = target:FindFirstChild("Actions")
     local playerIsBlocking = false

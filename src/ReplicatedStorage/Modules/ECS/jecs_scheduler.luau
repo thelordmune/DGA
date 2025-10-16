@@ -203,7 +203,7 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
 end
 
 local function RegisteringWorldToJabby()
-	local ref = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_ref)
+	local RefManager = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_ref_manager)
 
 	jabby.register({
 		applet = jabby.applets.world,
@@ -215,11 +215,8 @@ local function RegisteringWorldToJabby()
 				-- Try to get entity from character
 				local character = part:FindFirstAncestorOfClass("Model")
 				if character and character:FindFirstChildOfClass("Humanoid") then
-					-- Try different ref types
-					local entity = ref.get("character", character)
-					if not entity then
-						entity = ref.get("mob", character)
-					end
+					-- Use RefManager to find entity from model
+					local entity = RefManager.getEntityFromModel(character)
 					if entity then
 						return entity, part
 					end

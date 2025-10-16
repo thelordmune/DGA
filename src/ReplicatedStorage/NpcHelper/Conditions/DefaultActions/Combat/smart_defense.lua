@@ -51,14 +51,14 @@ local function getBestDefense(playerAction, distance)
     -- Check for M1 attacks (M11, M12, M13, M14)
     -- M1 states are stored as "M11", "M12", "M13", "M14" in Actions
     if string.match(playerAction, "^M1") then
-        -- M1 attacks - prefer blocking over parrying
-        if distance < 10 then
-            -- 70% chance to block, 5% chance to parry, 25% no defense
+        -- M1 attacks - prefer parrying for aggressive counter-play
+        if distance < 12 then
+            -- 40% chance to parry, 45% chance to block, 15% no defense (much more reactive!)
             local roll = math.random()
-            if roll < 0.70 then
-                return "Block"
-            elseif roll < 0.75 then
+            if roll < 0.40 then
                 return "Parry"
+            elseif roll < 0.85 then
+                return "Block"
             else
                 return nil
             end
@@ -69,10 +69,17 @@ local function getBestDefense(playerAction, distance)
 
     -- Check for M2 attacks (Critical)
     if playerAction == "M2" then
-        -- M2 attacks are heavier, always prefer blocking
-        -- Block 80% of the time
-        if distance < 12 and math.random() < 0.8 then
-            return "Block"
+        -- M2 attacks are heavier, prefer blocking but can parry
+        if distance < 14 then
+            -- 60% block, 25% parry, 15% no defense
+            local roll = math.random()
+            if roll < 0.60 then
+                return "Block"
+            elseif roll < 0.85 then
+                return "Parry"
+            else
+                return nil
+            end
         else
             return nil
         end
@@ -80,14 +87,14 @@ local function getBestDefense(playerAction, distance)
 
     -- Check for Running Attack
     if playerAction == "RunningAttack" then
-        -- Running attacks - prefer blocking
-        if distance < 10 then
-            -- 65% block, 5% parry
+        -- Running attacks - prefer parrying for counter-attack
+        if distance < 12 then
+            -- 50% parry, 35% block, 15% no defense
             local roll = math.random()
-            if roll < 0.65 then
-                return "Block"
-            elseif roll < 0.70 then
+            if roll < 0.50 then
                 return "Parry"
+            elseif roll < 0.85 then
+                return "Block"
             else
                 return nil
             end
@@ -113,8 +120,8 @@ local function getBestDefense(playerAction, distance)
 
     for _, skill in ipairs(dodgeSkills) do
         if playerAction == skill then
-            -- Dodge AOE attacks 50% of the time (higher than normal attacks)
-            if distance < 15 and math.random() < 0.5 then
+            -- Dodge AOE attacks 70% of the time (very reactive to AOE!)
+            if distance < 18 and math.random() < 0.7 then
                 return "Dodge"
             else
                 return nil
@@ -132,9 +139,16 @@ local function getBestDefense(playerAction, distance)
 
     for _, skill in ipairs(blockSkills) do
         if playerAction == skill then
-            -- Block heavy skills 35% of the time
-            if distance < 12 and math.random() < 0.35 then
-                return "Block"
+            -- Block heavy skills 60% of the time, parry 20% of the time
+            if distance < 14 then
+                local roll = math.random()
+                if roll < 0.60 then
+                    return "Block"
+                elseif roll < 0.80 then
+                    return "Parry"
+                else
+                    return nil
+                end
             else
                 return nil
             end
@@ -160,6 +174,11 @@ local function executeDefense(npc, defenseType, mainConfig)
         end
 
         Combat.AttemptParry(npc)
+
+        -- Set flag for immediate counter-attack after parry
+        mainConfig.States.JustParried = true
+        mainConfig.States.ParryTime = os.clock()
+
         return true
 
     elseif defenseType == "Block" then
@@ -311,7 +330,7 @@ return function(actor: Actor, mainConfig: table)
 
     -- Check cooldown for defensive actions
     local lastDefense = mainConfig.States.LastDefense or 0
-    local defenseCooldown = 1.2 -- Reduced cooldown to allow more frequent blocking (was 2.5)
+    local defenseCooldown = 0.5 -- Very short cooldown - react to every attack!
 
     if os.clock() - lastDefense < defenseCooldown then
         return false

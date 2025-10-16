@@ -52,7 +52,7 @@ Bridges.ECSClient:Connect(function(data)
         print(`[RagdollImpactClient] 💥 Playing Downslam Land effect at ground position: {impactPosition}`)
 
         -- Create the effect manually at the ground position instead of using character position
-        local eff = ReplicatedStorage.Assets.VFX.DSKSlam:Clone()
+        local eff = ReplicatedStorage.Assets.VFX.Slam:Clone()
         eff.CFrame = CFrame.new(impactPosition) -- Use ground position, not character position
         eff.Parent = workspace.World.Visuals
         for _, v in eff:GetDescendants() do

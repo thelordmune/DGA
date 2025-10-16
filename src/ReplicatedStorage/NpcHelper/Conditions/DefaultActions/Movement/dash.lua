@@ -41,7 +41,7 @@ return function(actor: Actor, mainConfig: table, direction: string)
 
 	-- Check dash cooldown
 	local lastDash = mainConfig.States.LastDash or 0
-	local dashCooldown = 1.5 -- Cooldown between dashes
+	local dashCooldown = 1.0 -- Minimum time between dash executions
 
 	if os.clock() - lastDash < dashCooldown then
 		return false
@@ -62,8 +62,8 @@ return function(actor: Actor, mainConfig: table, direction: string)
 
 	-- Store original WalkSpeed
 	local originalWalkSpeed = humanoid.WalkSpeed
-	local dashSpeed = 80  -- Peak dash speed (reduced from 100 for less instant feel)
-	local Duration = 0.5  -- Increased from 0.4 for smoother feel
+	local dashSpeed = 50  -- Reduced from 80 - shorter dash distance
+	local Duration = 0.35  -- Reduced from 0.5 - quicker dash
 
 	-- Store the dash state in mainConfig so follow_enemy knows not to override it
 	if not mainConfig.Movement then
@@ -100,7 +100,13 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		local dashTrack = Library.PlayAnimation(npc, dashAnim)
 		if dashTrack then
 			dashTrack.Priority = Enum.AnimationPriority.Action
+			dashTrack:Play()
+			print("[NPC Dash] Playing dash animation:", animationName, "for", npc.Name)
+		else
+			warn("[NPC Dash] Failed to load animation track for:", animationName)
 		end
+	else
+		warn("[NPC Dash] Animation not found:", animationName, "in", dashAnimations:GetFullName())
 	end
 
 	-- Make the humanoid move in the dash direction
