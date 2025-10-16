@@ -28,7 +28,7 @@ local STATE_SYNC_MAP = {
 local lastSyncedStates = {}
 
 -- Debug flag (set to true to see sync activity)
-local DEBUG = true
+local DEBUG = false
 
 -- Track first run
 local firstRun = true

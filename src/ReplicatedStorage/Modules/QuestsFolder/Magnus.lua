@@ -41,21 +41,40 @@ if isServer then
             -- Store reference to this player's pocketwatch
             spawnedPocketwatches[player] = item
 
-            local clickdetector = item.ClickDetector
-            clickdetector.MouseClick:Connect(function(clickingPlayer)
-                print("[Magnus Quest] Pocketwatch clicked by:", clickingPlayer.Name)
+            -- Use Touched event instead of ClickDetector for more reliable pickup
+            local primaryPart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+            if not primaryPart then
+                warn("[Magnus Quest] Pocketwatch has no PrimaryPart or BasePart!")
+                return
+            end
+
+            local touchConnection
+            touchConnection = primaryPart.Touched:Connect(function(hit)
+                local touchingCharacter = hit.Parent
+                if not touchingCharacter or not touchingCharacter:FindFirstChild("Humanoid") then
+                    return
+                end
+
+                local touchingPlayer = game.Players:GetPlayerFromCharacter(touchingCharacter)
+                if not touchingPlayer then
+                    return
+                end
+
+                print("[Magnus Quest] Pocketwatch touched by:", touchingPlayer.Name)
 
                 -- Only allow the quest owner to pick it up
-                if clickingPlayer ~= player then
+                if touchingPlayer ~= player then
                     print("[Magnus Quest] Wrong player tried to pick up pocketwatch!")
                     return
                 end
 
+                -- Disconnect to prevent multiple pickups
+                touchConnection:Disconnect()
                 item:Destroy()
                 spawnedPocketwatches[player] = nil
 
                 -- Get player entity
-                local playerEntity = ref.get("player", clickingPlayer)
+                local playerEntity = ref.get("player", touchingPlayer)
                 if playerEntity then
                     -- Check if player still has the active quest
                     if not world:has(playerEntity, comps.ActiveQuest) then
@@ -88,7 +107,7 @@ if isServer then
                     )
 
                     if success then
-                        print("[Magnus Quest] Pocketwatch added to", clickingPlayer.Name, "'s inventory")
+                        print("[Magnus Quest] Pocketwatch added to", touchingPlayer.Name, "'s inventory")
                         -- Inventory sync happens automatically via markInventoryChanged
                     else
                         warn("[Magnus Quest] Failed to add pocketwatch to inventory!")

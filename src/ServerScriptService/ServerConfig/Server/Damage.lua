@@ -271,8 +271,25 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	local function BlockBreak()
-		-- Immediately reset posture to 0 to prevent double triggering
-		Target.Posture.Value = 0
+		-- Use ECS BlockBar component instead of Posture.Value
+		local targetEntity = ref.get("player", TargetPlayer) or ref.get("mob", Target)
+		if targetEntity then
+			-- Reset BlockBar to 0 and set BlockBroken to true
+			world:set(targetEntity, comps.BlockBar, {Value = 0, MaxValue = 100})
+			world:set(targetEntity, comps.BlockBroken, true)
+
+			-- Schedule BlockBroken reset after 4.5 seconds
+			task.delay(4.5, function()
+				if world:contains(targetEntity) then
+					world:set(targetEntity, comps.BlockBroken, false)
+				end
+			end)
+		end
+
+		-- Also update old Posture.Value for backwards compatibility
+		if Target:FindFirstChild("Posture") then
+			Target.Posture.Value = 0
+		end
 
 		Server.Library.StopAllAnims(Target)
 
@@ -556,18 +573,37 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		local BlockedSounds =
 			Server.Service.ReplicatedStorage.Assets.SFX.Weapons[TargetWeapon]:FindFirstChild("Blocked"):GetChildren()
 
-		local Sound = Library.PlaySound(Target, BlockedSounds[Random.new():NextInteger(1, #BlockedSounds)])
-		Target.Posture.Value += Table.Damage / 3
+		Library.PlaySound(Target, BlockedSounds[Random.new():NextInteger(1, #BlockedSounds)])
 
-		if Target.Posture.Value >= Target.Posture.MaxValue then
-			-- print("block broken")
-			BlockBreak()
-			return
+		-- Use ECS BlockBar component instead of Posture.Value
+		local targetEntity = ref.get("player", TargetPlayer) or ref.get("mob", Target)
+		if targetEntity then
+			local blockBar = world:get(targetEntity, comps.BlockBar)
+			if blockBar then
+				-- Increase block damage
+				blockBar.Value = blockBar.Value + (Table.Damage / 3)
+				world:set(targetEntity, comps.BlockBar, blockBar)
+
+				-- Check if block is broken
+				if blockBar.Value >= blockBar.MaxValue then
+					BlockBreak()
+					return
+				end
+			end
+		end
+
+		-- Also update old Posture.Value for backwards compatibility
+		if Target:FindFirstChild("Posture") then
+			Target.Posture.Value = Target.Posture.Value + (Table.Damage / 3)
+
+			if Target.Posture.Value >= Target.Posture.MaxValue then
+				BlockBreak()
+				return
+			end
 		end
 
 		if TargetPlayer then
 			Server.Packets.Bvel.sendTo({ Character = Target, Name = "BaseBvel" }, TargetPlayer)
-		else
 		end
 
 		Visuals.Ranged(

@@ -291,6 +291,46 @@ function ObserversManager.setupCooldownObservers()
 end
 
 --[[
+	Setup leveling and experience observers
+	Reacts to Level and Experience component changes
+
+	NOTE: jecs-utils monitors only support :added() and :removed(), not :changed()
+	So we track when Level/Experience components are first added to entities
+]]
+function ObserversManager.setupLevelingObservers()
+	print("[Observers] Setting up leveling observers...")
+
+	-- Monitor when Level component is added (player/NPC initialization)
+	local levelMonitor = observers.monitor(
+		world:query(comps.Level, comps.Character)
+	)
+
+	levelMonitor:added(function(entity)
+		local level = world:get(entity, comps.Level)
+		local character = world:get(entity, comps.Character)
+		print(`[Leveling Observer] Level component added to {character.Name}: Level {level.current}/{level.max}`)
+	end)
+
+	table.insert(ObserversManager.activeObservers, levelMonitor)
+
+	-- Monitor when Experience component is added (player/NPC initialization)
+	local expMonitor = observers.monitor(
+		world:query(comps.Experience, comps.Character)
+	)
+
+	expMonitor:added(function(entity)
+		local exp = world:get(entity, comps.Experience)
+		local character = world:get(entity, comps.Character)
+		print(`[Leveling Observer] Experience component added to {character.Name}: {exp.current}/{exp.required} XP`)
+	end)
+
+	table.insert(ObserversManager.activeObservers, expMonitor)
+
+	print("[Observers] ✅ Leveling observers active (tracking component additions)")
+	print("[Observers] ℹ️  Level-up logic is handled directly in LevelingManager.addExperience()")
+end
+
+--[[
 	Initialize all observers
 ]]
 function ObserversManager.init()
@@ -302,6 +342,7 @@ function ObserversManager.init()
 	ObserversManager.setupPlayerObservers()
 	ObserversManager.setupStateObservers()
 	ObserversManager.setupCooldownObservers()
+	ObserversManager.setupLevelingObservers()
 
 	print(`[Observers] ✅ Initialized {#ObserversManager.activeObservers} observers/monitors`)
 end

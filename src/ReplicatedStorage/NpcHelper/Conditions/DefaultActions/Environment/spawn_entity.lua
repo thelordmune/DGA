@@ -229,6 +229,16 @@ return function(actor: Actor, mainConfig: table)
 				end
 			end
 
+			-- CRITICAL: Delete ECS entity BEFORE destroying model to prevent memory leak
+			if npcModel then
+				local RefManager = require(game.ReplicatedStorage.Modules.ECS.jecs_ref_manager)
+				local entity = RefManager.entity.find(npcModel)
+				if entity then
+					RefManager.entity.delete(npcModel)
+					print(`[NPC Cleanup] Deleted ECS entity {entity} for {npcModel.Name}`)
+				end
+			end
+
 			if npcModel then
 				npcModel:Destroy()
 				npcModel = nil

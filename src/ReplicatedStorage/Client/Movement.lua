@@ -139,7 +139,7 @@ Movement.Run = function(State)
 	
 	if State and not Client.Library.StateCount(Client.Stuns) and not Client.Library.StateCount(Client.Actions) and not Client.Running then
 		Client.Library.StopAllAnims(Client.Character);
-		Client.Library.AddState(Client.Speeds, "RunSpeedSet24")
+		Client.Library.AddState(Client.Speeds, "RunSpeedSet30")
 		Client.Running = true;
 		Client.RunAtk = true;
 		
@@ -169,7 +169,7 @@ Movement.Run = function(State)
 		
 	elseif not State and Client.Running then
 		Client.Running = false;
-		Client.Library.RemoveState(Client.Speeds, "RunSpeedSet24")
+		Client.Library.RemoveState(Client.Speeds, "RunSpeedSet30")
 		
 		if Client.RunAnim then Client.RunAnim:Stop(); Client.RunAnim = nil end;
 		

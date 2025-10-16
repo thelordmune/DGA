@@ -42,8 +42,8 @@ Combat.Light = function(Character: Model)
 		
 		if Entity["SwingConnection"] then
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-				Server.Library.RemoveState(Character.Speeds,"M1Speed12")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+				Server.Library.RemoveState(Character.Speeds,"M1Speed10")
 			end
 
 			Entity["SwingConnection"]:Disconnect()
@@ -64,7 +64,7 @@ Combat.Light = function(Character: Model)
 		end
 
 		Server.Library.TimedState(Character.Actions,"M1"..Combo,Stats["Endlag"][Combo])
-		Server.Library.AddState(Character.Speeds,"M1Speed12") -- Changed from 8 to 12 for faster combat
+		Server.Library.AddState(Character.Speeds,"M1Speed10") -- Changed from 8 to 12 for faster combat
 
 		local Swings = Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Swings
 
@@ -81,8 +81,8 @@ Combat.Light = function(Character: Model)
 		Entity["SwingConnection"] = SwingAnimation.Stopped:Once(function()
 			Entity["SwingConnection"] = nil
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-				Server.Library.RemoveState(Character.Speeds,"M1Speed12")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+				Server.Library.RemoveState(Character.Speeds,"M1Speed10")
 			end
 						
 			if Stats["Trail"] then
@@ -219,8 +219,8 @@ Combat.Critical = function(Character: Model)
 		Entity["M1StunConnection"] = Character.Stuns.Changed:Once(function()
 			Entity["M1StunConnection"] = nil
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-				Server.Library.RemoveState(Character.Speeds,"M1Speed12")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+				Server.Library.RemoveState(Character.Speeds,"M1Speed10")
 			end
 
 			--Sound:Stop()
@@ -396,8 +396,8 @@ Combat.RunningAttack = function(Character)
 
 		if Entity["SwingConnection"] then
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-				Server.Library.RemoveState(Character.Speeds,"M1Speed12")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+				Server.Library.RemoveState(Character.Speeds,"M1Speed10")
 			end
 
 			Entity["SwingConnection"]:Disconnect()
@@ -426,8 +426,8 @@ Combat.RunningAttack = function(Character)
 		Entity["SwingConnection"] = SwingAnimation.Stopped:Once(function()
 			Entity["SwingConnection"] = nil
 
-			if Server.Library.StateCheck(Character.Speeds, "RunningAttack-8") then
-				Server.Library.RemoveState(Character.Speeds,"RunningAttack-8")
+			if Server.Library.StateCheck(Character.Speeds, "RunningAttack-12") then
+				Server.Library.RemoveState(Character.Speeds,"RunningAttack-12")
 			end
 
 			if Stats["Trail"] then
@@ -442,23 +442,23 @@ Combat.RunningAttack = function(Character)
 		local Connection Connection = Character.Stuns.Changed:Once(function()
 			Connection = nil
 
-			if Server.Library.StateCheck(Character.Speeds, "RunningAttack-8") then
-				Server.Library.RemoveState(Character.Speeds,"RunningAttack-8")
+			if Server.Library.StateCheck(Character.Speeds, "RunningAttack-12") then
+				Server.Library.RemoveState(Character.Speeds,"RunningAttack-12")
 			end
 
 			if Server.Library.StateCheck(Character.Actions, "RunningAttack") then
-				Server.Library.RemoveState(Character.Actions,"RunningAttack")	
+				Server.Library.RemoveState(Character.Actions,"RunningAttack")
 			end
-			
+
 			if Player then
 				Server.Packets.Bvel.sendTo({Character = Character, Name = "RemoveBvel", Targ = Character}, Player)
 			end
-			
+
 			--Sound:Stop()
 
 			SwingAnimation:Stop(.2)
 
-			
+
 
 			Cancel = true
 		end)

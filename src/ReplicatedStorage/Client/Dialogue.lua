@@ -23,7 +23,7 @@ local uidisable = PlayerGui:FindFirstChild("ScreenGui")
 local Client = require(ReplicatedStorage.Client)
 
 -- Debug settings
-local DEBUG_ENABLED = true -- ENABLED FOR DEBUGGING
+local DEBUG_ENABLED = false -- ENABLED FOR DEBUGGING
 local function DebugPrint(message, ...)
 	if DEBUG_ENABLED then
 		print("[Dialogue]", message, ...)
@@ -801,9 +801,14 @@ function OnEvent(Params)
 
 	-- Clear any existing dialogue state BEFORE creating UI
 	DebugPrint("Clearing previous dialogue state")
+
+	-- Force reset all state values to ensure fresh start (fixes dialogue after death)
 	dpText:set("")
+	task.wait(0.05) -- Small delay to ensure state clears
 	resp:set({})
 	respMode:set(false)
+	begin:set(false)
+	fadein:set(false)
 
 	-- Create the new Fusion-based UI
 	DebugPrint("Creating Fusion dialogue UI")

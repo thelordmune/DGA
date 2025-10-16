@@ -16,8 +16,8 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 	local Hitbox = Server.Modules.Hitbox
 	if Stats then
 		if Entity["SwingConnection"] then
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-				Server.Library.RemoveState(Character.Speeds, "M1Speed12")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+				Server.Library.RemoveState(Character.Speeds, "M1Speed10")
 			end
 
 			Entity["SwingConnection"]:Disconnect()
@@ -38,7 +38,7 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 		end
 
 		Server.Library.TimedState(Character.Actions, "M1" .. Combo, Stats["Endlag"][Combo])
-		Server.Library.AddState(Character.Speeds, "M1Speed12") -- Changed from 8 to 12 for faster combat
+		Server.Library.AddState(Character.Speeds, "M1Speed10") -- Changed from 8 to 12 for faster combat
 
 		local Swings = Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Swings
 
@@ -61,9 +61,9 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 		Entity["SwingConnection"] = SwingAnimation.Stopped:Once(function()
 			Entity["SwingConnection"] = nil
 
-			-- Remove M1Speed12 (not M1Speed8)
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-				Server.Library.RemoveState(Character.Speeds, "M1Speed12")
+			-- Remove M1Speed10 (not M1Speed8)
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+				Server.Library.RemoveState(Character.Speeds, "M1Speed10")
 			end
 
 			if Stats["Trail"] then
@@ -75,9 +75,9 @@ Customs.Flame = function(Character, Entity, Weapon, Stats)
 		Connection = Character.Stuns.Changed:Once(function()
 			Connection = nil
 
-			-- Remove M1Speed12 (not M1Speed8)
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-				Server.Library.RemoveState(Character.Speeds, "M1Speed12")
+			-- Remove M1Speed10 (not M1Speed8)
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+				Server.Library.RemoveState(Character.Speeds, "M1Speed10")
 			end
 
 			if Server.Library.StateCheck(Character.Actions, "M1" .. Combo) then
@@ -419,8 +419,8 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
     local Hitbox = Server.Modules.Hitbox
     if Stats then
         if Entity["SwingConnection"] then
-            if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-                Server.Library.RemoveState(Character.Speeds, "M1Speed12")
+            if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+                Server.Library.RemoveState(Character.Speeds, "M1Speed10")
             end
             Entity["SwingConnection"]:Disconnect()
             Entity["SwingConnection"] = nil
@@ -446,7 +446,7 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
         -- Use different endlag for double hit
         local endlagIndex = IsDoubleHit and 4 or Combo
         Server.Library.TimedState(Character.Actions, "M1" .. Combo, Stats["Endlag"][endlagIndex])
-        Server.Library.AddState(Character.Speeds, "M1Speed12") -- Changed from 8 to 12 for faster combat
+        Server.Library.AddState(Character.Speeds, "M1Speed10") -- Changed from 8 to 12 for faster combat
 
         local Swings = Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Swings
         local SwingAnimation = Character.Humanoid.Animator:LoadAnimation(Swings:FindFirstChild(Combo))
@@ -470,9 +470,9 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
 
         Entity["SwingConnection"] = SwingAnimation.Stopped:Once(function()
             Entity["SwingConnection"] = nil
-            -- Remove M1Speed12 (not M1Speed8)
-            if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-                Server.Library.RemoveState(Character.Speeds, "M1Speed12")
+            -- Remove M1Speed10 (not M1Speed8)
+            if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+                Server.Library.RemoveState(Character.Speeds, "M1Speed10")
             end
             if Stats["Trail"] then
                 Customs.Trail(Character, false)
@@ -482,9 +482,9 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
         local Connection
         Connection = Character.Stuns.Changed:Once(function()
             Connection = nil
-            -- Remove M1Speed12 (not M1Speed8)
-            if Server.Library.StateCheck(Character.Speeds, "M1Speed12") then
-                Server.Library.RemoveState(Character.Speeds, "M1Speed12")
+            -- Remove M1Speed10 (not M1Speed8)
+            if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
+                Server.Library.RemoveState(Character.Speeds, "M1Speed10")
             end
             if Server.Library.StateCheck(Character.Actions, "M1" .. Combo) then
                 Server.Library.RemoveState(Character.Actions, "M1" .. Combo)

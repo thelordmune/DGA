@@ -106,8 +106,8 @@ local MainConfig = {
 			LastChanged = 0,
 
 			Duration = {
-				Min = 2,
-				Max = 3
+				Min = 1.5, -- Reduced from 2 for more dynamic movement
+				Max = 2.5  -- Reduced from 3 for more dynamic movement
 			},
 			Types = {
 				Strafe = {

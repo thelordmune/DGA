@@ -16,7 +16,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
-local DEBUG = true -- Enable debug logging
+local DEBUG = false -- Enable debug logging
 
 -- Convert state name to number (e.g., "M1Speed12" -> 12, "RunSpeedSet24" -> 24)
 local function ConvertToNumber(String)
@@ -89,6 +89,12 @@ local function walkspeed_controller()
 		speedStates = {}
 	end
 
+	-- Debug: Print raw StringValue and parsed states
+	if DEBUG and speedsStringValue.Value ~= "[]" then
+		print(`[WalkspeedController] Raw Speeds.Value: {speedsStringValue.Value}`)
+		print(`[WalkspeedController] Parsed states count: {#speedStates}`)
+	end
+
 	local DeltaSpeed = 16 -- Default speed
 	local DeltaJump = 50 -- Default jump
 
@@ -101,6 +107,9 @@ local function walkspeed_controller()
 		elseif string.match(state, "Speed") then
 			local Number = ConvertToNumber(state)
 			table.insert(speedModifiers, Number)
+			if DEBUG and #speedStates > 0 then
+				print(`[WalkspeedController] Found speed state: {state} -> {Number}`)
+			end
 		end
 	end
 
@@ -109,9 +118,16 @@ local function walkspeed_controller()
 		-- For negative modifiers (like -0), use them directly
 		if modifier <= 0 then
 			DeltaSpeed = modifier
+			if DEBUG then
+				print(`[WalkspeedController] Applied zero/negative modifier: {modifier}`)
+			end
 			break -- Negative/zero speeds take priority
 		else
+			local oldSpeed = DeltaSpeed
 			DeltaSpeed = math.min(DeltaSpeed + modifier, modifier) -- Cap at modifier if it's a "Set"
+			if DEBUG and #speedStates > 0 then
+				print(`[WalkspeedController] Applied modifier: {modifier}, DeltaSpeed: {oldSpeed} -> {DeltaSpeed}`)
+			end
 		end
 	end
 
@@ -142,9 +158,10 @@ end
 return {
 	run = walkspeed_controller,
 	settings = {
-		phase = "PreRender",
+		phase = "Heartbeat",
 		client_only = true,
-		priority = 50 -- Run before movement_lock (which is priority 100)
+		priority = 200, -- Run AFTER state_sync (which has default priority)
+		depends_on = {"state_sync"} -- Ensure state_sync runs first
 	}
 }
 
