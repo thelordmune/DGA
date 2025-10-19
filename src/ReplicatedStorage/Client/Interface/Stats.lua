@@ -256,7 +256,7 @@ Controller.Hotbar = function(Order: string)
         
         -- Store original properties of the template hotbar
         storeOriginalProperties(hotbarContainer)
-        
+
         -- First, set the key labels for the template hotbar
         local imageLabel = hotbarContainer:FindFirstChild("ImageLabel")
         if imageLabel then
@@ -265,19 +265,33 @@ Controller.Hotbar = function(Order: string)
                 keyLabel.Text = "1"
             end
         end
-        
-        -- Set the template to transparent initially
+
+        -- Store the original position BEFORE any modifications
+        local originalPosition = hotbarContainer.Position
+
+        -- Create a clean template for cloning (before we modify position)
+        local cleanTemplate = hotbarContainer:Clone()
+
+        -- Set the template to transparent initially and offset position (first slot comes from top)
         setTransparent(hotbarContainer)
-        
-        -- Tween the template hotbar back to visible
-        tweenToOriginal(hotbarContainer)
-        
+        hotbarContainer.Position = originalPosition + UDim2.fromOffset(0, -15)
+
+        -- Tween the template hotbar back to visible and original position together
+        task.delay(0, function()
+            -- Tween position
+            Client.Service.TweenService:Create(hotbarContainer, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Position = originalPosition
+            }):Play()
+            -- Tween transparency
+            tweenToOriginal(hotbarContainer)
+        end)
+
         -- Create 9 additional hotbars with delay
         task.delay(2, function()
         for i = 2, 10 do
             task.wait(0.05) -- Small delay between creating each hotbar
 
-            local newHotbar = hotbarContainer:Clone()
+            local newHotbar = cleanTemplate:Clone()
             newHotbar.Name = "Hotbar" .. i
             newHotbar.Parent = UI.Hotbar
 
@@ -303,12 +317,25 @@ Controller.Hotbar = function(Order: string)
             local hotbarProperties = {}
             storeOriginalProperties(newHotbar, hotbarProperties)
 
+            -- Store the original position
+            local newOriginalPosition = newHotbar.Position
+
             -- Set the new hotbar to transparent initially
             setTransparent(newHotbar)
+
+            -- Alternate between top and bottom: even indices come from bottom, odd from top
+            local yOffset = (i % 2 == 0) and 15 or -15
+            newHotbar.Position = newOriginalPosition + UDim2.fromOffset(0, yOffset)
 
             -- Tween it to visible after a short delay
             task.delay(2, function()
                 task.wait(0.1 * (i-1)) -- Staggered delay based on index
+
+                -- Tween position and transparency together
+                Client.Service.TweenService:Create(newHotbar, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                    Position = newOriginalPosition
+                }):Play()
+
                 tweenToOriginal(newHotbar, hotbarProperties)
             end)
         end

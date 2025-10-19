@@ -7,8 +7,6 @@ local Signal = require(ReplicatedStorage.Signal)
 local Serializer = require(ReplicatedStorage.Seralizer)
 
 local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
-
-local Base = require(ReplicatedStorage.Effects.Base)
 local Library = Server.Library
 -- local AnimationManager = require(ReplicatedStorage.AnimationHandler)
 
@@ -542,8 +540,7 @@ end
 
 function MainConfig.SpawnEffect(position): Vector3
 	--TODO: Effect
-
-	Base.Spawn(position)
+	Server.Visuals.Ranged(position, 300, { Module = "Base", Function = "Spawn", Arguments = { Position = position } })
 	print("doing spawn effect for npcs")
 	print("position:", position)
 end

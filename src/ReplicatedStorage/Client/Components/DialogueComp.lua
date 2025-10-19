@@ -47,14 +47,17 @@ local function fadeDivergeAnimation(textFrame, delayPerChar)
 		local distanceFromCenter = i - centerIndex
 		local divergeAmount = 8
 		local xOffset = distanceFromCenter * (divergeAmount / totalChars) * 2
-		local yOffset = math.abs(distanceFromCenter) * 0.5
+
+		-- Alternate between top and bottom: odd indices from top, even from bottom
+		local verticalOffset = (i % 2 == 1) and -15 or 15
+		local yOffset = verticalOffset
 
 		if isImageLabel then
 			character.ImageTransparency = 1
 		else
 			character.TextTransparency = 1
 		end
-		character.Position = originalPos - UDim2.fromOffset(xOffset, yOffset)
+		character.Position = originalPos - UDim2.fromOffset(xOffset, -yOffset)
 
 		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out)
 		local props = { Position = originalPos }
@@ -170,8 +173,8 @@ end
 local function animateTextIn(textFrame, delayPerChar)
 	task.wait(0.05)
 
-	-- fadeDivergeAnimation(textFrame, delayPerChar)
-	slideUpAnimation(textFrame, delayPerChar)
+	fadeDivergeAnimation(textFrame, delayPerChar)
+	-- slideUpAnimation(textFrame, delayPerChar)
 	-- popInAnimation(textFrame, delayPerChar)
 end
 
