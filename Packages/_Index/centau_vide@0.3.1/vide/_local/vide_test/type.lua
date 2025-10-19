@@ -37,17 +37,17 @@ local function Bouncy(p: any)
         [Layout] = p[Layout],
 
         [Event.MouseEnter] = function()
-            print("entered")
+            -- print("entered")
             size.value = V
         end,
 
         [Event.MouseLeave] = function()
-            print("left")
+            -- print("left")
             size.value = U
         end
     }
 
-    print(sprung)
+    -- print(sprung)
 
     return frame
 end

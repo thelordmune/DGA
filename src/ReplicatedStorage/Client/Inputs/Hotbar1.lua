@@ -31,19 +31,19 @@ InputModule.InputBegan = function(input, Client)
 
     -- Check if player is dashing
     if Client.Dodging then
-        print("[Hotbar1] Cannot use skill while dashing")
+        -- print("[Hotbar1] Cannot use skill while dashing")
         return
     end
 
-    print("Hotbar slot pressed:", hotbarSlot)
+    -- print("Hotbar slot pressed:", hotbarSlot)
 
     local item = InventoryManager.getHotbarItem(pent, hotbarSlot)
     if not item then
-        print("No item in hotbar slot:", hotbarSlot)
+        -- print("No item in hotbar slot:", hotbarSlot)
         return
     end
 
-    print("Using item:", item.name, "from hotbar slot:", hotbarSlot)
+    -- print("Using item:", item.name, "from hotbar slot:", hotbarSlot)
 
     -- Store the item for InputEnded
     heldSkills[hotbarSlot] = item
@@ -54,7 +54,7 @@ InputModule.InputBegan = function(input, Client)
         hotbarSlot = hotbarSlot,
         inputType = "began" -- Track input type
     }
-    print("[Hotbar1] Sending InputBegan packet:", packet.inputType)
+    -- print("[Hotbar1] Sending InputBegan packet:", packet.inputType)
     Client.Packets.UseItem.send(packet)
 end
 
@@ -65,7 +65,7 @@ InputModule.InputEnded = function(input, Client)
     local item = heldSkills[hotbarSlot]
     if not item then return end
 
-    print("Hotbar slot released:", hotbarSlot, "Item:", item.name)
+    -- print("Hotbar slot released:", hotbarSlot, "Item:", item.name)
 
     -- Send to server (InputEnded)
     local packet = {
@@ -73,7 +73,7 @@ InputModule.InputEnded = function(input, Client)
         hotbarSlot = hotbarSlot,
         inputType = "ended" -- Track input type
     }
-    print("[Hotbar1] Sending InputEnded packet:", packet.inputType)
+    -- print("[Hotbar1] Sending InputEnded packet:", packet.inputType)
     Client.Packets.UseItem.send(packet)
 
     -- Clear held skill

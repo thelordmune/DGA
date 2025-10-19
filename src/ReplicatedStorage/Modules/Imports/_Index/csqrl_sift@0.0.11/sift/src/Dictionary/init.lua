@@ -10,7 +10,7 @@
 		dogs = 1
 	}
 
-	print(dictionary.cats) -- 2
+	-- print(dictionary.cats) -- 2
 	```
 ]=]
 local Dictionary = {

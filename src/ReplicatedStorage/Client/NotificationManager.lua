@@ -54,7 +54,7 @@ local function initializeContainer()
 	holderFrame.Size = UDim2.fromOffset(320, 500)
 	holderFrame.Parent = notificationContainer
 
-	print("[NotificationManager] Container initialized")
+	-- print("[NotificationManager] Container initialized")
 end
 
 -- Find an available slot (0-4)
@@ -115,7 +115,7 @@ local function showNextNotification()
 		return
 	end
 
-	print("[NotificationManager] Showing notification:", notif.type, notif.name, "in slot", slot)
+	-- print("[NotificationManager] Showing notification:", notif.type, notif.name, "in slot", slot)
 
 	-- Create a new scope for this notification
 	local notifScope = scoped(Fusion, {
@@ -139,7 +139,7 @@ local function showNextNotification()
 		Parent = holderFrame,
 		slot = slot,
 		onComplete = function()
-			print("[NotificationManager] Notification complete for slot", slot)
+			-- print("[NotificationManager] Notification complete for slot", slot)
 
 			-- Find and remove this notification from active list
 			local notifData = nil
@@ -187,7 +187,7 @@ local function queueNotification(notifType, itemName)
 		name = itemName
 	})
 	
-	print("[NotificationManager] Queued notification:", notifType, itemName, "Queue size:", #notificationQueue)
+	-- print("[NotificationManager] Queued notification:", notifType, itemName, "Queue size:", #notificationQueue)
 	
 	-- Try to show it
 	showNextNotification()
@@ -230,13 +230,13 @@ function NotificationManager.ClearAll()
 		notificationContainer = nil
 	end
 
-	print("[NotificationManager] Cleared all notifications")
+	-- print("[NotificationManager] Cleared all notifications")
 end
 
 -- Initialize on require
 initializeContainer()
 
-print("[NotificationManager] Loaded")
+-- print("[NotificationManager] Loaded")
 
 return NotificationManager
 

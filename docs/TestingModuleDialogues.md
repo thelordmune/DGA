@@ -217,14 +217,14 @@ DialogueBuilder.BuildDialogue("Magnus")
 ### Check if dialogue exists:
 ```lua
 local dialogue = game.ReplicatedStorage.Dialogues:FindFirstChild("Magnus")
-print(dialogue and "Found!" or "Not found")
+-- print(dialogue and "Found!" or "Not found")
 ```
 
 ### List all nodes:
 ```lua
 local dialogue = game.ReplicatedStorage.Dialogues.Magnus
 for _, node in ipairs(dialogue:GetChildren()) do
-    print(node.Name, node:GetAttribute("Type"), node:GetAttribute("Priority"))
+    -- print(node.Name, node:GetAttribute("Type"), node:GetAttribute("Priority"))
 end
 ```
 

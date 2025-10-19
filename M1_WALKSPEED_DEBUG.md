@@ -71,10 +71,10 @@ Run this in console (F9) when you M1:
 
 ```lua
 -- Check StringValue
-print("Speeds StringValue:", game.Players.LocalPlayer.Character.Speeds.Value)
+-- print("Speeds StringValue:", game.Players.LocalPlayer.Character.Speeds.Value)
 
 -- Check actual walkspeed
-print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
+-- print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
 
 -- Check if state_sync is running
 local world = require(game.ReplicatedStorage.Modules.ECS.jecs_world)
@@ -84,9 +84,9 @@ local ref = require(game.ReplicatedStorage.Modules.ECS.jecs_ref)
 local entity = ref.get("character", game.Players.LocalPlayer.Character)
 if entity then
     local speedsComponent = world:get(entity, comps.StateSpeeds)
-    print("ECS StateSpeeds component:", speedsComponent)
+    -- print("ECS StateSpeeds component:", speedsComponent)
 else
-    print("No entity found for character!")
+    -- print("No entity found for character!")
 end
 ```
 
@@ -265,19 +265,19 @@ local character = workspace:FindFirstChild("PlayerName")
 local entity = ref.get("character", character)
 if entity then
     local speedsComponent = world:get(entity, comps.StateSpeeds)
-    print("Server ECS StateSpeeds:", speedsComponent)
+    -- print("Server ECS StateSpeeds:", speedsComponent)
 end
 ```
 
 ### **2. Check if StringValue is updated (Server Console):**
 ```lua
 local character = workspace:FindFirstChild("PlayerName")
-print("Server Speeds StringValue:", character.Speeds.Value)
+-- print("Server Speeds StringValue:", character.Speeds.Value)
 ```
 
 ### **3. Check if StringValue replicated (Client Console F9):**
 ```lua
-print("Client Speeds StringValue:", game.Players.LocalPlayer.Character.Speeds.Value)
+-- print("Client Speeds StringValue:", game.Players.LocalPlayer.Character.Speeds.Value)
 ```
 
 ### **4. Check if walkspeed_controller is reading it (Client Console):**

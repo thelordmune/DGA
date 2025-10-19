@@ -176,7 +176,7 @@ Every Frame (PreRender):
 
 3. **Check if Actions states are being added:**
    - Open console (F9)
-   - Type: `print(game.Players.LocalPlayer.Character.Actions.Value)`
+   - Type: `-- print(game.Players.LocalPlayer.Character.Actions.Value)`
    - Should see JSON array like: `["Attacking"]` during M1
    - If empty `[]`, states aren't being added properly
 
@@ -206,13 +206,13 @@ Every Frame (PreRender):
    ```lua
    -- In console:
    local jabby = require(game.ReplicatedStorage.Modules.Imports.jabby)
-   print(jabby) -- Should show new version info
+   -- print(jabby) -- Should show new version info
    ```
 
 4. **Verify jecs version:**
    ```lua
    -- In console:
-   print(require(game.ReplicatedStorage.Modules.Imports.jecs))
+   -- print(require(game.ReplicatedStorage.Modules.Imports.jecs))
    -- Should show version 0.9.0
    ```
 

@@ -106,10 +106,10 @@ Added a second "EntityReady" event that fires AFTER all components are initializ
 ```lua
 world:set(e, comps.Hotbar, {slots = {}, activeSlot = 1})
 
-print(`[Character] Finished initializing {rig.Name} for {player.Name}`)
+-- print(`[Character] Finished initializing {rig.Name} for {player.Name}`)
 
 -- Notify client that all components are ready
-print(`[Character] Notifying client that entity {e} is fully initialized`)
+-- print(`[Character] Notifying client that entity {e} is fully initialized`)
 Bridges.ECSClient:Fire(player, {
     Module = "EntitySync",
     Action = "EntityReady",
@@ -121,7 +121,7 @@ Bridges.ECSClient:Fire(player, {
 ```lua
 elseif data.Module == "EntitySync" and data.Action == "EntityReady" then
     local entityId = data.EntityId
-    print(`[ECS] ✅ Entity {entityId} is fully initialized, loading weapon skills`)
+    -- print(`[ECS] ✅ Entity {entityId} is fully initialized, loading weapon skills`)
     
     -- Try to load weapon skills now that all components are ready
     if Client.Modules and Client.Modules.Interface and Client.Modules.Interface.Stats then

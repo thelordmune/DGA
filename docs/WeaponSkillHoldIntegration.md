@@ -193,7 +193,7 @@ execute = function(self, player, character, holdDuration)
     -- Bonus for holding
     if holdDuration > 0.5 then
         damage = damage * (1 + holdDuration * 0.2) -- +20% per second
-        print(`⚡ Charged damage: {damage}`)
+        -- print(`⚡ Charged damage: {damage}`)
     end
     
     -- Your existing skill code with bonuses

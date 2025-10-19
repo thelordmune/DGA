@@ -50,12 +50,12 @@ function LeaderboardManager.new()
 end
 
 function LeaderboardManager:Initialize()
-	print("[Leaderboard] Initializing...")
+	-- print("[Leaderboard] Initializing...")
 
 	-- Disable default Roblox player list
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
-		print("[Leaderboard] Disabled default player list")
+		-- print("[Leaderboard] Disabled default player list")
 	end)
 
 	-- Clean up old UI if it exists (for respawns)
@@ -79,7 +79,7 @@ function LeaderboardManager:Initialize()
 		self.keybindSetup = true
 	end
 
-	print("[Leaderboard] Initialized successfully")
+	-- print("[Leaderboard] Initialized successfully")
 end
 
 function LeaderboardManager:CreateUI()
@@ -109,7 +109,7 @@ function LeaderboardManager:CreateUI()
 		if frame then
 			self.playerListContainer = frame:FindFirstChild("Folder")
 			if self.playerListContainer then
-				print("[Leaderboard] Found player list container")
+				-- print("[Leaderboard] Found player list container")
 				-- Remove the placeholder IGN frame
 				local placeholder = self.playerListContainer:FindFirstChild("IGN")
 				if placeholder then
@@ -148,13 +148,13 @@ function LeaderboardManager:SetupPlayerTracking()
 end
 
 function LeaderboardManager:AddPlayer(player)
-	print("[Leaderboard] Adding player:", player.Name)
+	-- print("[Leaderboard] Adding player:", player.Name)
 
 	-- Wait for character to load and DisplayName to be set
 	task.delay(5, function()
 		-- Check if player is still in the game
 		if not player:IsDescendantOf(Players) then
-			print("[Leaderboard] Player left before being added:", player.Name)
+			-- print("[Leaderboard] Player left before being added:", player.Name)
 			return
 		end
 
@@ -169,12 +169,12 @@ function LeaderboardManager:AddPlayer(player)
 		-- Create player UI component
 		self:CreatePlayerComponent(playerData)
 
-		print("[Leaderboard] Added player after delay:", playerData.IGN)
+		-- print("[Leaderboard] Added player after delay:", playerData.IGN)
 	end)
 end
 
 function LeaderboardManager:RemovePlayer(player)
-	print("[Leaderboard] Removing player:", player.Name)
+	-- print("[Leaderboard] Removing player:", player.Name)
 
 	-- Remove from player data array
 	local currentData = peek(self.playerData)
@@ -206,7 +206,7 @@ function LeaderboardManager:RemovePlayer(player)
 		end
 
 		self.playerComponents[player.UserId] = nil
-		print("[Leaderboard] Removed UI for player:", player.Name)
+		-- print("[Leaderboard] Removed UI for player:", player.Name)
 	end
 end
 
@@ -295,7 +295,7 @@ function LeaderboardManager:CreatePlayerComponent(playerData)
 		Faction = factionValue,
 	}
 	
-	print("[Leaderboard] Created UI for player:", playerData.IGN)
+	-- print("[Leaderboard] Created UI for player:", playerData.IGN)
 end
 
 function LeaderboardManager:UpdateAllPlayers()
@@ -333,7 +333,7 @@ end
 function LeaderboardManager:Toggle()
 	local newState = not peek(self.isVisible)
 	self.isVisible:set(newState)
-	print("[Leaderboard] Toggled:", newState and "Visible" or "Hidden")
+	-- print("[Leaderboard] Toggled:", newState and "Visible" or "Hidden")
 end
 
 function LeaderboardManager:Show()

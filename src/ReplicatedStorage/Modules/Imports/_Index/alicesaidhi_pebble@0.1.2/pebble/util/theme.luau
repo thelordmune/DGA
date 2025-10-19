@@ -57,7 +57,7 @@ type ColorPalette = {
 local function compute_bg(depth: Depth)
     local function get()
         local bg = background()
-        -- print(bg.l + 0.01 * depth, depth, bg.c, bg.h)
+        -- -- print(bg.l + 0.01 * depth, depth, bg.c, bg.h)
 
         return oklch {
             math.clamp(bg.l + 0.02 * depth, 0, 1),
@@ -88,7 +88,7 @@ end
 local function compute_acc(depth: Depth)
     local function get()
         local bg = accent()
-        -- print(bg.l + 0.01 * depth, depth, bg.c, bg.h)
+        -- -- print(bg.l + 0.01 * depth, depth, bg.c, bg.h)
         return oklch {
             math.clamp(bg.l + 0.02 * depth, 0, 1),
             bg.c,

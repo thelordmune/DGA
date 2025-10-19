@@ -13,7 +13,7 @@ end
 -- Set metatable on the existing table
 setmetatable(MetaData.Cache, {
 	__index = function(_, index)
-		print("a")
+		-- print("a")
 		return nil
 	end,
 

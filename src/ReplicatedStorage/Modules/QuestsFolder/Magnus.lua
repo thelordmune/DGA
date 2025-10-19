@@ -16,7 +16,7 @@ if isServer then
     return {
         -- Called when quest is accepted
         Start = function(player)
-            print("[Magnus Quest] Starting quest for player:", player and player.Name or "UNKNOWN")
+            -- print("[Magnus Quest] Starting quest for player:", player and player.Name or "UNKNOWN")
 
             -- Validate player parameter
             if not player or not player:IsA("Player") then
@@ -60,11 +60,11 @@ if isServer then
                     return
                 end
 
-                print("[Magnus Quest] Pocketwatch touched by:", touchingPlayer.Name)
+                -- print("[Magnus Quest] Pocketwatch touched by:", touchingPlayer.Name)
 
                 -- Only allow the quest owner to pick it up
                 if touchingPlayer ~= player then
-                    print("[Magnus Quest] Wrong player tried to pick up pocketwatch!")
+                    -- print("[Magnus Quest] Wrong player tried to pick up pocketwatch!")
                     return
                 end
 
@@ -80,8 +80,8 @@ if isServer then
                     return
                 end
 
-                print("[Magnus Quest] Player entity found:", playerEntity)
-                print("[Magnus Quest] Entity exists in world:", world:contains(playerEntity))
+                -- print("[Magnus Quest] Player entity found:", playerEntity)
+                -- print("[Magnus Quest] Entity exists in world:", world:contains(playerEntity))
 
                 -- Check if entity has Character component (means it's initialized)
                 if not world:has(playerEntity, comps.Character) then
@@ -90,12 +90,12 @@ if isServer then
                 end
 
                 local character = world:get(playerEntity, comps.Character)
-                print("[Magnus Quest] Character:", character and character.Name or "nil")
+                -- print("[Magnus Quest] Character:", character and character.Name or "nil")
 
                 -- Check for required components
-                print("[Magnus Quest] Has ActiveQuest:", world:has(playerEntity, comps.ActiveQuest))
-                print("[Magnus Quest] Has Inventory:", world:has(playerEntity, comps.Inventory))
-                print("[Magnus Quest] Has Player:", world:has(playerEntity, comps.Player))
+                -- print("[Magnus Quest] Has ActiveQuest:", world:has(playerEntity, comps.ActiveQuest))
+                -- print("[Magnus Quest] Has Inventory:", world:has(playerEntity, comps.Inventory))
+                -- print("[Magnus Quest] Has Player:", world:has(playerEntity, comps.Player))
 
                 -- Check if player still has the active quest
                 if not world:has(playerEntity, comps.ActiveQuest) then
@@ -105,7 +105,7 @@ if isServer then
                 end
 
                 local activeQuest = world:get(playerEntity, comps.ActiveQuest)
-                print("[Magnus Quest] Active quest:", activeQuest.npcName, activeQuest.questName)
+                -- print("[Magnus Quest] Active quest:", activeQuest.npcName, activeQuest.questName)
 
                 if activeQuest.npcName ~= "Magnus" or activeQuest.questName ~= "Missing Pocketwatch" then
                     warn("[Magnus Quest] Player has different active quest:", activeQuest.npcName, activeQuest.questName)
@@ -113,24 +113,24 @@ if isServer then
                 end
 
                 -- Set QuestItemCollected component
-                print("[Magnus Quest] Setting QuestItemCollected component...")
+                -- print("[Magnus Quest] Setting QuestItemCollected component...")
                 world:set(playerEntity, comps.QuestItemCollected, {
                     npcName = "Magnus",
                     questName = "Missing Pocketwatch",
                     itemName = "Pocketwatch",
                     collectedTime = os.clock(),
                 })
-                print("[Magnus Quest] QuestItemCollected component set!")
+                -- print("[Magnus Quest] QuestItemCollected component set!")
 
                 -- Add pocketwatch to inventory (server-side)
-                print("[Magnus Quest] Attempting to add pocketwatch to inventory...")
-                print("[Magnus Quest] Player entity:", playerEntity)
-                print("[Magnus Quest] Has Inventory component:", world:has(playerEntity, comps.Inventory))
+                -- print("[Magnus Quest] Attempting to add pocketwatch to inventory...")
+                -- print("[Magnus Quest] Player entity:", playerEntity)
+                -- print("[Magnus Quest] Has Inventory component:", world:has(playerEntity, comps.Inventory))
 
                 if world:has(playerEntity, comps.Inventory) then
                     local inv = world:get(playerEntity, comps.Inventory)
-                    print("[Magnus Quest] Current inventory items count:", inv and inv.items and #inv.items or "nil")
-                    print("[Magnus Quest] Max slots:", inv and inv.maxSlots or "nil")
+                    -- print("[Magnus Quest] Current inventory items count:", inv and inv.items and #inv.items or "nil")
+                    -- print("[Magnus Quest] Max slots:", inv and inv.maxSlots or "nil")
                 end
 
                 local addSuccess, slot = InventoryManager.addItem(
@@ -142,16 +142,16 @@ if isServer then
                     "A pocketwatch, seems to be used for something important."
                 )
 
-                print("[Magnus Quest] addItem returned - success:", addSuccess, "slot:", slot)
+                -- print("[Magnus Quest] addItem returned - success:", addSuccess, "slot:", slot)
 
                 if addSuccess then
-                    print("[Magnus Quest] ✅ Pocketwatch added to", touchingPlayer.Name, "'s inventory in slot", slot)
+                    -- print("[Magnus Quest] ✅ Pocketwatch added to", touchingPlayer.Name, "'s inventory in slot", slot)
 
                     -- Verify it was actually added
                     if world:has(playerEntity, comps.Inventory) then
                         local verifyInv = world:get(playerEntity, comps.Inventory)
                         if verifyInv.items[slot] then
-                            print("[Magnus Quest] ✅ VERIFIED: Pocketwatch is in slot", slot)
+                            -- print("[Magnus Quest] ✅ VERIFIED: Pocketwatch is in slot", slot)
                         else
                             warn("[Magnus Quest] ❌ VERIFICATION FAILED: Pocketwatch NOT in slot", slot)
                         end
@@ -164,7 +164,7 @@ if isServer then
 
         -- Called when quest is completed
         Complete = function(player, questName, choice)
-            print("[Magnus Quest] Complete called for:", player.Name, "Choice:", choice)
+            -- print("[Magnus Quest] Complete called for:", player.Name, "Choice:", choice)
 
             local playerEntity = ref.get("player", player)
             if not playerEntity then
@@ -177,18 +177,18 @@ if isServer then
             if dialogueFolder then
                 local magnusNPC = dialogueFolder:FindFirstChild("Magnus")
                 if magnusNPC then
-                    print("[Magnus Quest] Removing Magnus from Dialogue folder - no longer talkable")
+                    -- print("[Magnus Quest] Removing Magnus from Dialogue folder - no longer talkable")
                     magnusNPC.Parent = workspace.World.Live
                 end
             end
 
             if choice == "CompleteGood" then
                 -- Player returned the pocketwatch - remove it from inventory
-                print("[Magnus Quest] Player returned pocketwatch - removing from inventory")
+                -- print("[Magnus Quest] Player returned pocketwatch - removing from inventory")
                 local success = InventoryManager.removeItem(playerEntity, "Pocketwatch", 1)
 
                 if success then
-                    print("[Magnus Quest] ✅ Pocketwatch removed from inventory")
+                    -- print("[Magnus Quest] ✅ Pocketwatch removed from inventory")
                     -- Inventory sync happens automatically via markInventoryChanged
                 else
                     warn("[Magnus Quest] ❌ Failed to remove pocketwatch from inventory!")
@@ -196,7 +196,7 @@ if isServer then
 
             elseif choice == "CompleteEvil" then
                 -- Player kept the pocketwatch - spawn an aggressive guard!
-                print("[Magnus Quest] 🚨 Player chose evil option - spawning aggressive guard!")
+                -- print("[Magnus Quest] 🚨 Player chose evil option - spawning aggressive guard!")
 
                 local character = player.Character
                 if not character or not character:FindFirstChild("HumanoidRootPart") then
@@ -250,7 +250,7 @@ if isServer then
 
                 npcFile.Parent = npcsContainer
 
-                print("[Magnus Quest] Quest guard NPC file created!")
+                -- print("[Magnus Quest] Quest guard NPC file created!")
 
                 -- Wait for the guard to spawn and be fully loaded
                 task.spawn(function()
@@ -275,7 +275,7 @@ if isServer then
                     end
 
                     if spawnedGuard then
-                        print("[Magnus Quest] Found spawned guard:", spawnedGuard.Name)
+                        -- print("[Magnus Quest] Found spawned guard:", spawnedGuard.Name)
 
                         local damageLog = spawnedGuard:WaitForChild("Damage_Log", 5)
                         if damageLog then
@@ -285,7 +285,7 @@ if isServer then
                             attackRecord.Name = "Attack_" .. os.clock()
                             attackRecord.Value = character
                             attackRecord.Parent = damageLog
-                            print("[Magnus Quest] Guard set to target:", player.Name)
+                            -- print("[Magnus Quest] Guard set to target:", player.Name)
                         else
                             warn("[Magnus Quest] Damage_Log not found on guard!")
                         end

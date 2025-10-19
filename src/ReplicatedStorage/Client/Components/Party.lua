@@ -196,7 +196,7 @@ return function(scope, props: {})
 					if peek(user) then
 						for _, v in Players:GetChildren() do
 							if v.Name == peek(user) then
-								print("valid user found proceeding")
+								-- print("valid user found proceeding")
                                 invited:set(true)
 								task.delay(3, function()
 									invited:set(false)
@@ -205,7 +205,7 @@ return function(scope, props: {})
 							end
 						end
 					elseif not peek(user) then
-                        print("invalid user found")
+                        -- print("invalid user found")
 						--notification alert system here for invalid user
 					end
 				end,
@@ -277,7 +277,7 @@ return function(scope, props: {})
 						},
 						
 						[OnChange "Text"] = function(newtext)
-							print("changing text to " .. newtext)
+							-- print("changing text to " .. newtext)
 							user:set(newtext)
 						end,
 					},

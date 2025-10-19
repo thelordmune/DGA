@@ -9,14 +9,14 @@ local RockMod = require(ReplicatedStorage.Modules.Utils.RockMod)
 local BaseEffects = require(ReplicatedStorage.Effects.Base)
 local Library = require(ReplicatedStorage.Modules.Library)
 
-print("[RagdollImpactClient] ✅ Client handler loaded")
-print("[RagdollImpactClient] 📦 RockMod:", RockMod)
-print("[RagdollImpactClient] 📦 BaseEffects:", BaseEffects)
-print("[RagdollImpactClient] 🌉 Bridges.ECSClient:", Bridges.ECSClient)
+-- print("[RagdollImpactClient] ✅ Client handler loaded")
+-- print("[RagdollImpactClient] 📦 RockMod:", RockMod)
+-- print("[RagdollImpactClient] 📦 BaseEffects:", BaseEffects)
+-- print("[RagdollImpactClient] 🌉 Bridges.ECSClient:", Bridges.ECSClient)
 
 -- Listen for impact events from server
 Bridges.ECSClient:Connect(function(data)
-    print(`[RagdollImpactClient] 📨 Received event:`, data)
+    -- print(`[RagdollImpactClient] 📨 Received event:`, data)
 
     if not data or type(data) ~= "table" then
         warn("[RagdollImpactClient] ⚠️ Received non-table data:", data)
@@ -24,7 +24,7 @@ Bridges.ECSClient:Connect(function(data)
     end
 
     if data.Module ~= "RagdollImpact" or data.Action ~= "CreateImpact" then
-        print(`[RagdollImpactClient] ⏭️ Skipping event - Module: {data.Module}, Action: {data.Action}`)
+        -- print(`[RagdollImpactClient] ⏭️ Skipping event - Module: {data.Module}, Action: {data.Action}`)
         return
     end
     
@@ -32,7 +32,7 @@ Bridges.ECSClient:Connect(function(data)
     local impactVelocity = data.Velocity
     local characterName = data.CharacterName
 
-    print(`[RagdollImpactClient] 💥 Received impact event for {characterName} at {impactPosition}`)
+    -- print(`[RagdollImpactClient] 💥 Received impact event for {characterName} at {impactPosition}`)
 
     -- Find the character to apply downslam effect
     local character = Workspace.World.Live:FindFirstChild(characterName)
@@ -45,11 +45,11 @@ Bridges.ECSClient:Connect(function(data)
     local sizeMultiplier = math.clamp(velocityMagnitude / 100, 0.2, 0.5)
     local debrisCount = math.clamp(math.floor(velocityMagnitude / 10), 5, 15)
 
-    print(`[RagdollImpactClient] 🌋 Creating crater - Size: {sizeMultiplier}, Debris: {debrisCount}`)
+    -- print(`[RagdollImpactClient] 🌋 Creating crater - Size: {sizeMultiplier}, Debris: {debrisCount}`)
 
     -- Play downslam kick "Land" effect at GROUND impact position (not character position)
     if character then
-        print(`[RagdollImpactClient] 💥 Playing Downslam Land effect at ground position: {impactPosition}`)
+        -- print(`[RagdollImpactClient] 💥 Playing Downslam Land effect at ground position: {impactPosition}`)
 
         -- Create the effect manually at the ground position instead of using character position
         local eff = ReplicatedStorage.Assets.VFX.Slam:Clone()
@@ -67,7 +67,7 @@ Bridges.ECSClient:Connect(function(data)
         -- Play impact sound on the character
         local impactSound = ReplicatedStorage.Assets.SFX.Extra:FindFirstChild("Impact")
         if impactSound then
-            print(`[RagdollImpactClient] 🔊 Playing impact sound for {characterName}`)
+            -- print(`[RagdollImpactClient] 🔊 Playing impact sound for {characterName}`)
             Library.PlaySound(character, impactSound, true, 0.1)
         else
             warn("[RagdollImpactClient] ⚠️ Impact sound not found at ReplicatedStorage.Assets.SFX.Extra.Impact")
@@ -77,10 +77,10 @@ Bridges.ECSClient:Connect(function(data)
     -- Create crater effect on client at GROUND position
     -- Offset the crater slightly upward so rocks aren't buried underground
     local craterPosition = impactPosition + Vector3.new(0, 1, 0) -- Raise 1 stud above ground
-    print(`[RagdollImpactClient] 🪨 Creating crater at position: {craterPosition} (offset +1Y from ground)`)
+    -- print(`[RagdollImpactClient] 🪨 Creating crater at position: {craterPosition} (offset +1Y from ground)`)
     local success, err = pcall(function()
         local craterCFrame = CFrame.new(craterPosition)
-        print(`[RagdollImpactClient] 🪨 Crater CFrame: {craterCFrame}`)
+        -- print(`[RagdollImpactClient] 🪨 Crater CFrame: {craterCFrame}`)
 
         local effect = RockMod.New("Crater", craterCFrame, {
             Distance = { 5.5, 15 },
@@ -107,10 +107,10 @@ Bridges.ECSClient:Connect(function(data)
             },
         })
 
-        print(`[RagdollImpactClient] 🪨 RockMod.New returned: {effect}`)
+        -- print(`[RagdollImpactClient] 🪨 RockMod.New returned: {effect}`)
 
         if effect then
-            print(`[RagdollImpactClient] ✅ Crater created, adding debris...`)
+            -- print(`[RagdollImpactClient] ✅ Crater created, adding debris...`)
             effect:Debris("Normal", {
                 Size = { 0.75, 2.5 },
                 UpForce = { 0.55, 0.95 },
@@ -136,7 +136,7 @@ Bridges.ECSClient:Connect(function(data)
                     },
                 },
             })
-            print(`[RagdollImpactClient] ✅ Debris added successfully`)
+            -- print(`[RagdollImpactClient] ✅ Debris added successfully`)
         else
             warn(`[RagdollImpactClient] ⚠️ RockMod.New returned nil - crater type may not exist`)
         end
@@ -145,9 +145,9 @@ Bridges.ECSClient:Connect(function(data)
     if not success then
         warn(`[RagdollImpactClient] ❌ Failed to create crater effect: {err}`)
     else
-        print(`[RagdollImpactClient] ✅ Impact effect created successfully!`)
+        -- print(`[RagdollImpactClient] ✅ Impact effect created successfully!`)
     end
 end)
 
-print("[RagdollImpactClient] 🎧 Listening for ragdoll impact events...")
+-- print("[RagdollImpactClient] 🎧 Listening for ragdoll impact events...")
 

@@ -65,14 +65,14 @@ local function shouldLockMovement(character)
 		end
 		if not isAllowed then
 			-- Found a blocking state
-			print(`[MovementLock] Blocking state found: {state}`)
+			-- print(`[MovementLock] Blocking state found: {state}`)
 			return true
 		end
 	end
 
 	-- Check Stuns states (directly from ECS)
 	if StateManager.StateCount(character, "Stuns") then
-		print("[MovementLock] Stun state found")
+		-- print("[MovementLock] Stun state found")
 		return true
 	end
 
@@ -104,12 +104,12 @@ local function movement_lock()
 		-- Disable controls
 		controls:Enable(false)
 		controlModuleDisabled = true
-		print("[MovementLock] Movement disabled")
+		-- print("[MovementLock] Movement disabled")
 	elseif not shouldLock and controlModuleDisabled then
 		-- Re-enable controls
 		controls:Enable(true)
 		controlModuleDisabled = false
-		print("[MovementLock] Movement enabled")
+		-- print("[MovementLock] Movement enabled")
 	end
 end
 
@@ -118,7 +118,7 @@ return {
 		movement_lock()
 	end,
 	settings = {
-		phase = "PreRender", -- Run before rendering on client
+		phase = "Heartbeat", -- Run before rendering on client
 		depends_on = {},
 		client_only = true, -- Only run on client
 	}

@@ -41,7 +41,7 @@ function MagnusActiveQuest.Run()
 	
 	-- Check if player has an active quest
 	if not world:has(playerEntity, comps.ActiveQuest) then
-		print("[Magnus Dialogue] Player has no active quests")
+		-- print("[Magnus Dialogue] Player has no active quests")
 		return false
 	end
 	
@@ -53,10 +53,10 @@ function MagnusActiveQuest.Run()
 	
 	-- Check if it's Magnus's quest
 	if activeQuest.npcName == "Magnus" then
-		print("[Magnus Dialogue] Player has active quest from Magnus:", activeQuest.questName)
+		-- print("[Magnus Dialogue] Player has active quest from Magnus:", activeQuest.questName)
 		return true
 	else
-		print("[Magnus Dialogue] Player has quest from different NPC:", activeQuest.npcName)
+		-- print("[Magnus Dialogue] Player has quest from different NPC:", activeQuest.npcName)
 		return false
 	end
 end

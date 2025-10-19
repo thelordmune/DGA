@@ -18,7 +18,7 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 	execute = function(self, Player, Character, holdDuration)
 		local Server = require(script.Parent.Parent.Parent)
 
-		print(`[Grand Cleave] Executed after {holdDuration}s hold`)
+		-- print(`[Grand Cleave] Executed after {holdDuration}s hold`)
 
 		if not Character then
 			return
@@ -75,7 +75,7 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 		if holdDuration > 0.5 then
 			damageMultiplier = 1 + (holdDuration * 0.2) -- +20% per second
 			rangeMultiplier = 1 + (holdDuration * 0.1) -- +10% per second
-			print(`⚡ Grand Cleave charged! Damage: {damageMultiplier}x, Range: {rangeMultiplier}x`)
+			-- print(`⚡ Grand Cleave charged! Damage: {damageMultiplier}x, Range: {rangeMultiplier}x`)
 		end
 
 		local hittimes = {}
@@ -118,7 +118,7 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 						damageTable.Damage = (damageTable.Damage or 0) * damageMultiplier
 
 						Server.Modules.Damage.Tag(Character, Target, damageTable)
-						print("Grand Cleave Slash1 hit:", Target.Name, "Damage:", damageTable.Damage)
+						-- print("Grand Cleave Slash1 hit:", Target.Name, "Damage:", damageTable.Damage)
 						hitSomething = true
 					end
 				end
@@ -178,7 +178,7 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 						damageTable.Damage = (damageTable.Damage or 0) * damageMultiplier
 
 						Server.Modules.Damage.Tag(Character, Target, damageTable)
-						print("Grand Cleave Slash2 hit:", Target.Name, "Damage:", damageTable.Damage)
+						-- print("Grand Cleave Slash2 hit:", Target.Name, "Damage:", damageTable.Damage)
 						hitSomething = true
 					end
 				end
@@ -224,7 +224,7 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 						damageTable.Damage = (damageTable.Damage or 0) * damageMultiplier
 
 						Server.Modules.Damage.Tag(Character, Target, damageTable)
-						print("Grand Cleave Slash3 hit:", Target.Name, "Damage:", damageTable.Damage)
+						-- print("Grand Cleave Slash3 hit:", Target.Name, "Damage:", damageTable.Damage)
 						hitSomething = true
 					end
 				end

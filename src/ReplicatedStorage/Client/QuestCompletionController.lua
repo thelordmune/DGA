@@ -19,7 +19,7 @@ local currentPopupUI = nil
 local currentScope = nil
 
 function QuestCompletionController.ShowCompletion(data)
-	print("[QuestCompletionController] Showing quest completion:", data.questName)
+	-- print("[QuestCompletionController] Showing quest completion:", data.questName)
 	
 	-- Clean up existing popup
 	if currentPopupUI then
@@ -81,21 +81,21 @@ end
 
 -- Listen for quest completion events from server
 function QuestCompletionController.Initialize()
-	print("[QuestCompletionController] Initializing...")
+	-- print("[QuestCompletionController] Initializing...")
 
 	-- Listen for quest completion bridge
 	Bridges.QuestCompleted:Connect(function(data)
-		print("[QuestCompletionController] 🎉 Received quest completion data:")
-		print("  Quest Name:", data.questName)
-		print("  Experience Gained:", data.experienceGained)
-		print("  Alignment Gained:", data.alignmentGained)
-		print("  Leveled Up:", data.leveledUp)
-		print("  New Level:", data.newLevel)
+		-- print("[QuestCompletionController] 🎉 Received quest completion data:")
+		-- print("  Quest Name:", data.questName)
+		-- print("  Experience Gained:", data.experienceGained)
+		-- print("  Alignment Gained:", data.alignmentGained)
+		-- print("  Leveled Up:", data.leveledUp)
+		-- print("  New Level:", data.newLevel)
 
 		QuestCompletionController.ShowCompletion(data)
 	end)
 
-	print("[QuestCompletionController] ✅ Initialized and listening for QuestCompleted bridge!")
+	-- print("[QuestCompletionController] ✅ Initialized and listening for QuestCompleted bridge!")
 end
 
 return QuestCompletionController

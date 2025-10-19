@@ -109,7 +109,7 @@ The dialogue system uses Fusion's `scope` which gets cleaned up when the player 
 **Current Code (Dialogue.lua line 803-806):**
 ```lua
 -- Clear any existing dialogue state BEFORE creating UI
-DebugPrint("Clearing previous dialogue state")
+Debug-- print("Clearing previous dialogue state")
 dpText:set("")
 resp:set({})
 respMode:set(false)

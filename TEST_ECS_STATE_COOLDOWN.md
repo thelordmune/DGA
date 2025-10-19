@@ -29,135 +29,135 @@ if not character then
     return
 end
 
-print("=== Testing ECS State & Cooldown Systems ===")
-print("Player:", player.Name)
-print("Character:", character.Name)
+-- print("=== Testing ECS State & Cooldown Systems ===")
+-- print("Player:", player.Name)
+-- print("Character:", character.Name)
 
 -- Get entity
 local entity = RefManager.player.get("player", player)
-print("Entity ID:", entity)
+-- print("Entity ID:", entity)
 
 -- Test 1: Direct ECS State Management
-print("\n--- Test 1: Direct ECS State Management ---")
+-- print("\n--- Test 1: Direct ECS State Management ---")
 StateManager.AddState(character, "Actions", "TestState1")
 StateManager.AddState(character, "Actions", "TestState2")
-print("Added states: TestState1, TestState2")
+-- print("Added states: TestState1, TestState2")
 
 local hasState1 = StateManager.StateCheck(character, "Actions", "TestState1")
-print("Has TestState1:", hasState1)  -- Should be true
+-- print("Has TestState1:", hasState1)  -- Should be true
 
 local allStates = StateManager.GetAllStates(character, "Actions")
-print("All Actions states:", table.concat(allStates, ", "))
+-- print("All Actions states:", table.concat(allStates, ", "))
 
 StateManager.RemoveState(character, "Actions", "TestState1")
-print("Removed TestState1")
+-- print("Removed TestState1")
 
 local hasState1After = StateManager.StateCheck(character, "Actions", "TestState1")
-print("Has TestState1 after removal:", hasState1After)  -- Should be false
+-- print("Has TestState1 after removal:", hasState1After)  -- Should be false
 
 -- Test 2: Library Backwards Compatibility
-print("\n--- Test 2: Library Backwards Compatibility ---")
+-- print("\n--- Test 2: Library Backwards Compatibility ---")
 if character:FindFirstChild("Actions") then
     Library.AddState(character.Actions, "LibraryTest")
-    print("Added LibraryTest via Library.AddState")
+    -- print("Added LibraryTest via Library.AddState")
     
     local hasLibraryTest = Library.StateCheck(character.Actions, "LibraryTest")
-    print("Has LibraryTest:", hasLibraryTest)  -- Should be true
+    -- print("Has LibraryTest:", hasLibraryTest)  -- Should be true
     
     Library.RemoveState(character.Actions, "LibraryTest")
-    print("Removed LibraryTest")
+    -- print("Removed LibraryTest")
     
     local hasLibraryTestAfter = Library.StateCheck(character.Actions, "LibraryTest")
-    print("Has LibraryTest after removal:", hasLibraryTestAfter)  -- Should be false
+    -- print("Has LibraryTest after removal:", hasLibraryTestAfter)  -- Should be false
 else
     warn("Character has no Actions StringValue - this is expected with pure ECS")
 end
 
 -- Test 3: Direct ECS Cooldown Management
-print("\n--- Test 3: Direct ECS Cooldown Management ---")
+-- print("\n--- Test 3: Direct ECS Cooldown Management ---")
 CooldownManager.SetCooldown(character, "TestCooldown", 5)
-print("Set TestCooldown for 5 seconds")
+-- print("Set TestCooldown for 5 seconds")
 
 local isOnCooldown = CooldownManager.CheckCooldown(character, "TestCooldown")
-print("Is on cooldown:", isOnCooldown)  -- Should be true
+-- print("Is on cooldown:", isOnCooldown)  -- Should be true
 
 local remainingTime = CooldownManager.GetCooldownTime(character, "TestCooldown")
-print("Remaining time:", remainingTime, "seconds")
+-- print("Remaining time:", remainingTime, "seconds")
 
 CooldownManager.ResetCooldown(character, "TestCooldown")
-print("Reset TestCooldown")
+-- print("Reset TestCooldown")
 
 local isOnCooldownAfter = CooldownManager.CheckCooldown(character, "TestCooldown")
-print("Is on cooldown after reset:", isOnCooldownAfter)  -- Should be false
+-- print("Is on cooldown after reset:", isOnCooldownAfter)  -- Should be false
 
 -- Test 4: Library Cooldown Backwards Compatibility
-print("\n--- Test 4: Library Cooldown Backwards Compatibility ---")
+-- print("\n--- Test 4: Library Cooldown Backwards Compatibility ---")
 Library.SetCooldown(character, "LibraryCooldown", 3)
-print("Set LibraryCooldown for 3 seconds via Library")
+-- print("Set LibraryCooldown for 3 seconds via Library")
 
 local isOnLibraryCooldown = Library.CheckCooldown(character, "LibraryCooldown")
-print("Is on cooldown:", isOnLibraryCooldown)  -- Should be true
+-- print("Is on cooldown:", isOnLibraryCooldown)  -- Should be true
 
 local libraryRemainingTime = Library.GetCooldownTime(character, "LibraryCooldown")
-print("Remaining time:", libraryRemainingTime, "seconds")
+-- print("Remaining time:", libraryRemainingTime, "seconds")
 
 -- Test 5: ECS Component Verification
-print("\n--- Test 5: ECS Component Verification ---")
+-- print("\n--- Test 5: ECS Component Verification ---")
 if world:has(entity, comps.StateActions) then
     local stateActions = world:get(entity, comps.StateActions)
-    print("StateActions component:", table.concat(stateActions, ", "))
+    -- print("StateActions component:", table.concat(stateActions, ", "))
 else
-    print("No StateActions component (will be created on first use)")
+    -- print("No StateActions component (will be created on first use)")
 end
 
 if world:has(entity, comps.Cooldowns) then
     local cooldowns = world:get(entity, comps.Cooldowns)
-    print("Cooldowns component:")
+    -- print("Cooldowns component:")
     for skill, expiry in pairs(cooldowns) do
         local remaining = math.max(0, expiry - os.clock())
-        print("  -", skill, ":", remaining, "seconds remaining")
+        -- print("  -", skill, ":", remaining, "seconds remaining")
     end
 else
-    print("No Cooldowns component (will be created on first use)")
+    -- print("No Cooldowns component (will be created on first use)")
 end
 
 -- Test 6: Timed State
-print("\n--- Test 6: Timed State ---")
+-- print("\n--- Test 6: Timed State ---")
 StateManager.TimedState(character, "Actions", "TimedTest", 2)
-print("Added TimedTest state for 2 seconds")
+-- print("Added TimedTest state for 2 seconds")
 
 local hasTimedTest = StateManager.StateCheck(character, "Actions", "TimedTest")
-print("Has TimedTest immediately:", hasTimedTest)  -- Should be true
+-- print("Has TimedTest immediately:", hasTimedTest)  -- Should be true
 
 task.wait(2.5)
 
 local hasTimedTestAfter = StateManager.StateCheck(character, "Actions", "TimedTest")
-print("Has TimedTest after 2.5 seconds:", hasTimedTestAfter)  -- Should be false
+-- print("Has TimedTest after 2.5 seconds:", hasTimedTestAfter)  -- Should be false
 
 -- Test 7: Multiple State Categories
-print("\n--- Test 7: Multiple State Categories ---")
+-- print("\n--- Test 7: Multiple State Categories ---")
 StateManager.AddState(character, "Actions", "Action1")
 StateManager.AddState(character, "Stuns", "Stun1")
 StateManager.AddState(character, "IFrames", "IFrame1")
-print("Added states to Actions, Stuns, and IFrames")
+-- print("Added states to Actions, Stuns, and IFrames")
 
 local allCharacterStates = StateManager.GetAllStatesFromCharacter(character)
-print("All character states:")
+-- print("All character states:")
 for category, states in pairs(allCharacterStates) do
     if #states > 0 then
-        print("  -", category, ":", table.concat(states, ", "))
+        -- print("  -", category, ":", table.concat(states, ", "))
     end
 end
 
 -- Cleanup
-print("\n--- Cleanup ---")
+-- print("\n--- Cleanup ---")
 StateManager.ClearCategory(character, "Actions")
 StateManager.ClearCategory(character, "Stuns")
 StateManager.ClearCategory(character, "IFrames")
 CooldownManager.ClearAllCooldowns(character)
-print("Cleared all test states and cooldowns")
+-- print("Cleared all test states and cooldowns")
 
-print("\n=== All Tests Complete! ===")
+-- print("\n=== All Tests Complete! ===")
 ```
 
 ---
@@ -281,7 +281,7 @@ for i = 1, 1000 do
 end
 
 local addTime = os.clock() - start
-print("Time to add 1000 states:", addTime, "seconds")
+-- print("Time to add 1000 states:", addTime, "seconds")
 
 start = os.clock()
 
@@ -291,7 +291,7 @@ for i = 1, 1000 do
 end
 
 local checkTime = os.clock() - start
-print("Time to check 1000 states:", checkTime, "seconds")
+-- print("Time to check 1000 states:", checkTime, "seconds")
 
 start = os.clock()
 
@@ -301,9 +301,9 @@ for i = 1, 1000 do
 end
 
 local removeTime = os.clock() - start
-print("Time to remove 1000 states:", removeTime, "seconds")
+-- print("Time to remove 1000 states:", removeTime, "seconds")
 
-print("Total time:", addTime + checkTime + removeTime, "seconds")
+-- print("Total time:", addTime + checkTime + removeTime, "seconds")
 ```
 
 **Expected:** Should complete in < 0.1 seconds total
@@ -322,13 +322,13 @@ local Library = require(game.ReplicatedStorage.Modules.Library)
 Library.SetCooldown(character, "M1", 0.3)
 Library.TimedState(character.Actions, "Attacking", 0.5)
 
-print("M1 on cooldown:", Library.CheckCooldown(character, "M1"))
-print("Is attacking:", Library.StateCheck(character.Actions, "Attacking"))
+-- print("M1 on cooldown:", Library.CheckCooldown(character, "M1"))
+-- print("Is attacking:", Library.StateCheck(character.Actions, "Attacking"))
 
 task.wait(0.6)
 
-print("M1 on cooldown after 0.6s:", Library.CheckCooldown(character, "M1"))
-print("Is attacking after 0.6s:", Library.StateCheck(character.Actions, "Attacking"))
+-- print("M1 on cooldown after 0.6s:", Library.CheckCooldown(character, "M1"))
+-- print("Is attacking after 0.6s:", Library.StateCheck(character.Actions, "Attacking"))
 ```
 
 ---

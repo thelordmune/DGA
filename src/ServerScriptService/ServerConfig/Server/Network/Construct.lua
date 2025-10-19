@@ -52,7 +52,7 @@ local function getFloorMaterial(character)
 end
 
 NetworkModule.EndPoint = function(Player, Data)
-	print("fired construction wall")
+	-- print("fired construction wall")
 	local Character = Player.Character
 
 	if not Character then
@@ -89,12 +89,12 @@ NetworkModule.EndPoint = function(Player, Data)
 
 			local Alchemy = Library.PlayAnimation(Character, Animation)
 			if not Alchemy then
-				print("Failed to load Construct animation")
+				-- print("Failed to load Construct animation")
 				return
 			end
 
 			Alchemy.Looped = false
-			print("Construct animation loaded, Length:", Alchemy.Length)
+			-- print("Construct animation loaded, Length:", Alchemy.Length)
 
 			-- Get floor material and color for wall
 			local floorMaterial, floorColor = getFloorMaterial(Character)
@@ -246,7 +246,7 @@ NetworkModule.EndPoint = function(Player, Data)
 			-- PROPER ANIMATION CLEANUP - Fix looping issue
 			local animEndConn
 			animEndConn = Alchemy.Stopped:Connect(function()
-				print("Construct animation stopped, cleaning up")
+				-- print("Construct animation stopped, cleaning up")
 				-- Disconnect keyframe connection
 				if kfConn then
 					kfConn:Disconnect()
@@ -264,7 +264,7 @@ NetworkModule.EndPoint = function(Player, Data)
 						break
 					end
 				end
-				print("Construct animation cleanup complete")
+				-- print("Construct animation cleanup complete")
 			end)
 			table.insert(connections, animEndConn)
 		end

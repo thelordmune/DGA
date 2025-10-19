@@ -16,7 +16,7 @@ local indexes = vide.indexes
 
 --     effect(function()
 --         local v = outer()[1]()
---         print(v)
+--         -- print(v)
 --     end)
 
 --     outer()[1](100)

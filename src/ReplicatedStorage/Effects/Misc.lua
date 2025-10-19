@@ -141,7 +141,7 @@ function Misc.StartHyperarmor(Character: Model)
 	highlight.OutlineTransparency = 0
 	highlight.Parent = Character
 
-	print("Hyperarmor visual started for", Character.Name)
+	-- print("Hyperarmor visual started for", Character.Name)
 end
 
 function Misc.UpdateHyperarmor(Character: Model, damagePercent: number)
@@ -162,8 +162,8 @@ function Misc.UpdateHyperarmor(Character: Model, damagePercent: number)
 	-- Increase intensity as damage increases
 	highlight.FillTransparency = 0.3 - (damagePercent * 0.2) -- Gets more opaque as damage increases
 
-	print(string.format("Hyperarmor visual updated for %s: %.0f%% damage (Color: R%.0f G%.0f B%.0f)",
-		Character.Name, damagePercent * 100, currentColor.R * 255, currentColor.G * 255, currentColor.B * 255))
+	-- print(string.format("Hyperarmor visual updated for %s: %.0f%% damage (Color: R%.0f G%.0f B%.0f)",
+		--Character.Name, damagePercent * 100, currentColor.R * 255, currentColor.G * 255, currentColor.B * 255))
 end
 
 function Misc.RemoveHyperarmor(Character: Model)
@@ -183,7 +183,7 @@ function Misc.RemoveHyperarmor(Character: Model)
 			highlight:Destroy()
 		end)
 
-		print("Hyperarmor visual removed for", Character.Name)
+		-- print("Hyperarmor visual removed for", Character.Name)
 	end
 end
 

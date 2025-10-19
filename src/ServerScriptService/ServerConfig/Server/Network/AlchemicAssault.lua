@@ -87,7 +87,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
 		repeat task.wait() until Alchemy.Length > 0 
     	local duration = Alchemy:GetTimeOfKeyframe("Land")
-		print(duration)
+		-- print(duration)
 		Server.Library.TimedState(Character.Actions, "AlchemicAssault", Alchemy.Length)
 		
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)

@@ -56,7 +56,7 @@ Look for any of these error messages:
 Run this in console when you M1:
 
 ```lua
-print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
+-- print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
 ```
 
 Should show something like:
@@ -71,7 +71,7 @@ Speeds: ["M1Speed12"]
 Run this in console:
 
 ```lua
-print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
+-- print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
 ```
 
 Should show the current walkspeed.
@@ -118,7 +118,7 @@ Should show the current walkspeed.
 
 **Fix:** Check if character has Speeds StringValue:
 ```lua
-print(game.Players.LocalPlayer.Character:FindFirstChild("Speeds"))
+-- print(game.Players.LocalPlayer.Character:FindFirstChild("Speeds"))
 ```
 
 ---
@@ -157,13 +157,13 @@ local character = game.Players.LocalPlayer.Character
 local humanoid = character:FindFirstChildOfClass("Humanoid")
 local speedsStringValue = character:FindFirstChild("Speeds")
 
-print("Character:", character)
-print("Humanoid:", humanoid)
-print("Speeds StringValue:", speedsStringValue)
-print("Speeds Value:", speedsStringValue.Value)
+-- print("Character:", character)
+-- print("Humanoid:", humanoid)
+-- print("Speeds StringValue:", speedsStringValue)
+-- print("Speeds Value:", speedsStringValue.Value)
 
 local speedStates = HttpService:JSONDecode(speedsStringValue.Value)
-print("Parsed states:", speedStates)
+-- print("Parsed states:", speedStates)
 
 -- Test ConvertToNumber function
 local function ConvertToNumber(String)
@@ -178,7 +178,7 @@ end
 for _, state in ipairs(speedStates) do
     if string.match(state, "Speed") then
         local Number = ConvertToNumber(state)
-        print(`State: {state}, Number: {Number}`)
+        -- print(`State: {state}, Number: {Number}`)
     end
 end
 ```
@@ -245,7 +245,7 @@ local frameCount = 0
 local function walkspeed_controller()
     frameCount = frameCount + 1
     if frameCount % 60 == 0 then -- Print every 60 frames (1 second)
-        print(`[WalkspeedController] Frame {frameCount} - System is running!`)
+        -- print(`[WalkspeedController] Frame {frameCount} - System is running!`)
     end
     
     -- ... rest of code ...

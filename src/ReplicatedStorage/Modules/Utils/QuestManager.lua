@@ -44,12 +44,12 @@ function QuestManager.acceptQuest(player, npcname, questName)
 		acceptedAt = os.clock(),
 	})
 
-	print("[QuestManager] Quest accepted on client:", npcname, questName)
+	-- print("[QuestManager] Quest accepted on client:", npcname, questName)
 
 	-- Send packet to server to set QuestAccepted on server-side
 	if RunService:IsClient() then
 		local Client = require(ReplicatedStorage.Client)
-		print("[QuestManager] Sending quest start packet to server:", npcname, questName)
+		-- print("[QuestManager] Sending quest start packet to server:", npcname, questName)
 		Client.Packets.Quests.send({
 			Module = npcname,
 			Function = "Start",

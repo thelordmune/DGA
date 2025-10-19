@@ -188,10 +188,10 @@ NetworkModule["PIBvel"] = function(Character)
 	local rootPart = Character.PrimaryPart
 
 	-- Clean up any existing body movers FIRST
-	--print(`[PIBvel] Cleaning body movers before creating new velocity`)
+	---- print(`[PIBvel] Cleaning body movers before creating new velocity`)
 	for _, child in pairs(rootPart:GetChildren()) do
 		if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
-			--print(`[PIBvel] Destroying existing {child.ClassName}: {child.Name}`)
+			---- print(`[PIBvel] Destroying existing {child.ClassName}: {child.Name}`)
 			child:Destroy()
 		end
 	end
@@ -419,15 +419,15 @@ NetworkModule["RemoveBvel"] = function(Character: Model)
 	local rootPart = Character:FindFirstChild("HumanoidRootPart")
 	if not rootPart then return end
 
-	--print(`[RemoveBvel] [{startTime}] START - Cleaning body movers from {Character.Name}`)
-	--print(`[RemoveBvel] Current position: {rootPart.Position}`)
-	--print(`[RemoveBvel] Current velocity: {rootPart.AssemblyLinearVelocity}`)
+	---- print(`[RemoveBvel] [{startTime}] START - Cleaning body movers from {Character.Name}`)
+	---- print(`[RemoveBvel] Current position: {rootPart.Position}`)
+	---- print(`[RemoveBvel] Current velocity: {rootPart.AssemblyLinearVelocity}`)
 
 	local moversFound = 0
 	-- Remove all body movers from HumanoidRootPart
 	for _, v in pairs(Character:GetDescendants()) do
 		if v:IsA("LinearVelocity") or v:IsA("BodyVelocity") or v:IsA("BodyPosition") or v:IsA("BodyGyro") then
-			--print(`[RemoveBvel] Destroying {v.ClassName}: {v.Name} (Parent: {v.Parent.Name})`)
+			---- print(`[RemoveBvel] Destroying {v.ClassName}: {v.Name} (Parent: {v.Parent.Name})`)
 			moversFound = moversFound + 1
 			v:Destroy()
 		end
@@ -438,9 +438,9 @@ NetworkModule["RemoveBvel"] = function(Character: Model)
 	rootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
 
 	local endTime = os.clock()
-	--print(`[RemoveBvel] [{endTime}] COMPLETE - Removed {moversFound} body movers in {(endTime - startTime) * 1000}ms`)
-	--print(`[RemoveBvel] Final position: {rootPart.Position}`)
-	--print(`[RemoveBvel] Final velocity: {rootPart.AssemblyLinearVelocity}`)
+	---- print(`[RemoveBvel] [{endTime}] COMPLETE - Removed {moversFound} body movers in {(endTime - startTime) * 1000}ms`)
+	---- print(`[RemoveBvel] Final position: {rootPart.Position}`)
+	---- print(`[RemoveBvel] Final velocity: {rootPart.AssemblyLinearVelocity}`)
 end
 
 NetworkModule["MineM1Bvel"] = function(Character)
@@ -546,7 +546,7 @@ end
 
 NetworkModule["AABvel"] = function(Character: Model)
 	local tim = 0.71
-	--print(tim)
+	---- print(tim)
 	local lv = Instance.new("LinearVelocity")
 	local attachment = Instance.new("Attachment")
 	attachment.Parent = Character.HumanoidRootPart

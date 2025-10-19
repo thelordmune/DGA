@@ -46,7 +46,7 @@ function Global.SetData(player: Player, modifier: ({[string]: any})->({[string]:
 	local PlayerReplion = Replion.Server:WaitReplionFor(player, "Data", yield)
 	if PlayerReplion then
 		--local path = "Slot_"..PlayerReplion:Get("Current_Slot")
-		--print(PlayerReplion,PlayerReplion.Data)
+		---- print(PlayerReplion,PlayerReplion.Data)
 		local newData = Global.GetDeepCopy(PlayerReplion.Data)
 		newData = modifier(newData) or newData
 

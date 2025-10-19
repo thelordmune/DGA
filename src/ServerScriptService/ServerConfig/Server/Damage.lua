@@ -92,7 +92,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	-- if TargetPlayer and not world:get then
 	-- 	world:set
-	-- 	-- print("in combat for " .. Target.Name)
+	-- 	-- -- print("in combat for " .. Target.Name)
 	-- 	Visuals.FireClient(TargetPlayer, {
 	-- 		Module = "Base",
 	-- 		Function = "InCombat",
@@ -142,7 +142,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 				if accumulatedDamage >= threshold then
 					-- Break hyperarmor - cancel the move
-					-- print("Hyperarmor broken for", Target.Name, "- took", accumulatedDamage, "damage during", currentAction)
+					-- -- print("Hyperarmor broken for", Target.Name, "- took", accumulatedDamage, "damage during", currentAction)
 					Library.RemoveState(actions, currentAction)
 					Library.StopAllAnims(Target)
 					Target:SetAttribute("HyperarmorDamage", nil)
@@ -171,7 +171,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					Library.TimedState(Target.Speeds, "DamageSpeedSet4", stunDuration)
 				else
 					-- Hyperarmor holds - don't apply stun, just play hit animation
-					-- print("Hyperarmor active for", Target.Name, "-", accumulatedDamage, "/", threshold, "damage taken during", currentAction)
+					-- -- print("Hyperarmor active for", Target.Name, "-", accumulatedDamage, "/", threshold, "damage taken during", currentAction)
 					if not Table.NoStunAnim then
 						Library.PlayAnimation(
 							Target,
@@ -214,7 +214,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		if not Table.NoParryAnimation then
 			for _, v in script.Parent.Callbacks.Parry:GetChildren() do
 				if v:IsA("ModuleScript") and tData and table.find(tData.Passives, v.Name) then
-					-- print("found passive for" .. v.Name)
+					-- -- print("found passive for" .. v.Name)
 					local func = require(v)
 					func(world, Player, TargetPlayer, Table)
 				end
@@ -363,7 +363,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			)
 		end
 
-		-- print("Damage.Tag called - Target:", Target.Name, "IsNPC:", Target:GetAttribute("IsNPC"))
+		-- -- print("Damage.Tag called - Target:", Target.Name, "IsNPC:", Target:GetAttribute("IsNPC"))
 
 		if Target:GetAttribute("IsNPC") then
         -- Log the attack for NPC aggression system
@@ -393,12 +393,12 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
         -- if iFrames and iFrames:IsA("StringValue") then
         --     Library.TimedState(iFrames, "RecentlyAttacked", 2) -- Short window just for aggression trigger
         --     Library.TimedState(iFrames, "Damaged", 1) -- Very short immediate reaction
-        --     -- print("Set RecentlyAttacked and Damaged states for NPC:", Target.Name)
+        --     -- -- print("Set RecentlyAttacked and Damaged states for NPC:", Target.Name)
         -- else
-        --     -- print("Warning: Could not find IFrames StringValue for NPC:", Target.Name)
+        --     -- -- print("Warning: Could not find IFrames StringValue for NPC:", Target.Name)
         -- end
 
-        -- -- print("NPC", Target.Name, "was attacked by", Invoker.Name, "- logging for aggression system")
+        -- -- -- print("NPC", Target.Name, "was attacked by", Invoker.Name, "- logging for aggression system")
 
         -- Note: Original NPC damage handling removed as Server.Modules.NPC doesn't exist
         -- The aggression system will handle NPC behavior through the behavior trees
@@ -406,7 +406,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		if pData then
 			Target.Humanoid.Health -= Table.Damage + pData.Stats.Damage
-			--[[-- print(
+			--[[-- -- print(
 				"Total damage dealt:",
 				Table.Damage + pData.Stats.Damage,
 				"(Base:",
@@ -420,7 +420,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			Table.Damage = Table.Damage - bonusDamage
 		else
 			Target.Humanoid.Health -= Table.Damage
-			-- print("Total damage dealt:", Table.Damage, "(+ Kinetic:", bonusDamage, ")")
+			-- -- print("Total damage dealt:", Table.Damage, "(+ Kinetic:", bonusDamage, ")")
 		end
 	end
 
@@ -470,14 +470,14 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	local function LightKnockback()
 		if TargetPlayer then
-			-- print("light kb")
+			-- -- print("light kb")
 			Server.Packets.Bvel.sendTo({ Character = Target, Name = "BaseBvel" }, TargetPlayer)
 		else
 		end
 	end
 
 	local function handleWallbang()
-		-- print("handling wallbang")
+		-- -- print("handling wallbang")
 		local raycastParams = RaycastParams.new()
 		raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 		raycastParams.FilterDescendantsInstances = { Target, workspace.World.Live }
@@ -490,7 +490,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		connection = RunService.Heartbeat:Connect(function(dt)
 			if not Target.Parent then
-				-- print("table parent is nil")
+				-- -- print("table parent is nil")
 				connection:Disconnect()
 				return
 			end
@@ -556,7 +556,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			local Animation = Library.PlayAnimation(Target, Replicated.Assets.Animations.Misc.KnockbackStun)
 			Animation.Priority = Enum.AnimationPriority.Action3
 			Server.Packets.Bvel.sendToAll({ Character = Invoker, Name = "KnockbackBvel", Targ = Target })
-			-- print("knocking back")
+			-- -- print("knocking back")
 			handleWallbang()
 		end
 	end
@@ -618,7 +618,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	-- Check for specific immunity states, but don't block all damage for NPCs with minor states
 	if Library.StateCheck(Target.IFrames, "Dodge") then
 		Library.RemoveState(Target.IFrames, "Dodge")
-		-- print("Dodge")
+		-- -- print("Dodge")
 
 		Visuals.Ranged(
 			Target.HumanoidRootPart.Position,
@@ -692,7 +692,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	if Table.Knockback then
-		-- print("knocking abck")
+		-- -- print("knocking abck")
 		Knockback()
 	end
 
@@ -714,13 +714,13 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	if Table then
-		-- print(Table)
+		-- -- print(Table)
 	end
 end
 
 -- Handle destruction of destructible objects (barrels, trees, etc.)
 DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePart, Table: {})
-	-- print("Destroying destructible object:", Target.Name)
+	-- -- print("Destroying destructible object:", Target.Name)
 
 	-- Get VoxBreaker module
 	local VoxBreaker = require(Server.Service.ReplicatedStorage.Modules.Voxel)
@@ -736,7 +736,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 	   targetModel and targetModel:IsA("Model") and targetModel.Name:lower():find("crate") or
 	   targetModel and targetModel:IsA("Model") and targetModel.Name:lower():find("tree") then
 		shouldDestroyWholeModel = true
-		-- print("Destroying entire model:", targetModel.Name)
+		-- -- print("Destroying entire model:", targetModel.Name)
 	end
 
 	-- Get all parts to destroy
@@ -761,7 +761,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 		table.insert(partsToDestroy, Target)
 	end
 
-	-- print("Found", #partsToDestroy, "parts to destroy")
+	-- -- print("Found", #partsToDestroy, "parts to destroy")
 
 	-- Store original properties for respawning
 	local originalCFrame = mainCFrame
@@ -794,11 +794,11 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 
 		-- Use VoxBreaker to shatter the part into pieces
 		local shatteredParts = VoxBreaker:VoxelizePart(partClone, desiredParts, -1) -- -1 means don't auto-destroy
-		-- print("VoxelizePart returned", #shatteredParts, "parts for", part.Name)
+		-- -- print("VoxelizePart returned", #shatteredParts, "parts for", part.Name)
 
 		-- If VoxelizePart didn't work, create manual debris
 		if #shatteredParts == 0 or (#shatteredParts == 1 and shatteredParts[1] == partClone) then
-			-- print("VoxelizePart failed for", part.Name, ", creating manual debris")
+			-- -- print("VoxelizePart failed for", part.Name, ", creating manual debris")
 			shatteredParts = {}
 
 			-- Create manual debris pieces
@@ -929,7 +929,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 					targetModel:Destroy()
 				end
 
-				-- print("Respawned destructible model:", respawnedModel.Name)
+				-- -- print("Respawned destructible model:", respawnedModel.Name)
 			else
 				-- Respawn single part by cloning the stored original
 				-- This preserves all properties including MeshId without permission issues
@@ -948,7 +948,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 					Target:Destroy()
 				end
 
-				-- print("Respawned destructible part:", respawnedPart.Name)
+				-- -- print("Respawned destructible part:", respawnedPart.Name)
 			end
 		end
 	end)
@@ -969,8 +969,8 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 	end
 
 	local targetName = shouldDestroyWholeModel and targetModel.Name or Target.Name
-	-- print("Destructible object destroyed:", targetName, "- Created", #allShatteredParts, "total debris pieces")
-	-- print("Destroyed", #partsToDestroy, "parts from", targetName)
+	-- -- print("Destructible object destroyed:", targetName, "- Created", #allShatteredParts, "total debris pieces")
+	-- -- print("Destroyed", #partsToDestroy, "parts from", targetName)
 end
 
 return DamageService

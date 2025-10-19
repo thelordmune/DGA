@@ -101,7 +101,7 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		if dashTrack then
 			dashTrack.Priority = Enum.AnimationPriority.Action
 			dashTrack:Play()
-			print("[NPC Dash] Playing dash animation:", animationName, "for", npc.Name)
+			-- print("[NPC Dash] Playing dash animation:", animationName, "for", npc.Name)
 		else
 			warn("[NPC Dash] Failed to load animation track for:", animationName)
 		end

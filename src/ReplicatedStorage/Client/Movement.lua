@@ -43,33 +43,33 @@ Movement.Dodge = function()
 
 	-- Check if we can dash
 	if Client.Dodging then
-		print("Dodge blocked: Already dodging")
+		-- print("Dodge blocked: Already dodging")
 		return
 	end
 	if Client.Library.StateCount(Client.Actions) or
 		Client.Library.StateCount(Client.Stuns) or
 		Client.Library.StateCheck(Client.Speeds, "M1Speed8") then
-		print("Dodge blocked: Character has active states")
+		-- print("Dodge blocked: Character has active states")
 		return
 	end
 
 	-- Check cooldown only if out of charges
 	if Client.DodgeCharges <= 0 then
 		if Client.Library.CheckCooldown(Client.Character, "Dodge") then
-			print("Dodge blocked: On cooldown")
+			-- print("Dodge blocked: On cooldown")
 			return
 		end
 		Client.DodgeCharges = 2  -- Reset charges
-		print("Dodge charges reset to 2")
+		-- print("Dodge charges reset to 2")
 	end
 
 	Client.DodgeCharges = Client.DodgeCharges - 1
-	print("Dodge charge used, remaining:", Client.DodgeCharges)
+	-- print("Dodge charge used, remaining:", Client.DodgeCharges)
 
 	-- Set cooldown when out of charges
 	if Client.DodgeCharges <= 0 then
 		Client.Library.SetCooldown(Client.Character, "Dodge", 2.5)
-		print("Dodge cooldown set")
+		-- print("Dodge cooldown set")
 	end
     
     Client.Library.AddState(Client.Statuses, "Dodging")
@@ -119,7 +119,7 @@ Movement.Dodge = function()
         end
     end)
 
-    print("Dash: Speed =", Speed, "Slowdown =", SlowdownSpeed, "Duration =", Duration, "Direction =", Direction)
+    -- print("Dash: Speed =", Speed, "Slowdown =", SlowdownSpeed, "Duration =", Duration, "Direction =", Direction)
     
     Animation.Stopped:Once(function()
         -- Velocity cleanup is handled by the tween completion

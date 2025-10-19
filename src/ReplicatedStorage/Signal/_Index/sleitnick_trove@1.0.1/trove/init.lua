@@ -157,7 +157,7 @@ end
 
 	```lua
 	trove:Connect(workspace.ChildAdded, function(instance)
-		print(instance.Name .. " added to workspace")
+		-- print(instance.Name .. " added to workspace")
 	end)
 	```
 ]=]
@@ -200,7 +200,7 @@ end
 	```lua
 	trove:AddPromise(doSomethingThatReturnsAPromise())
 		:andThen(function()
-			print("Done")
+			-- print("Done")
 		end)
 	-- Will cancel the above promise (assuming it didn't resolve immediately)
 	trove:Clean()
@@ -260,21 +260,21 @@ end
 
 	-- Add a function to the trove:
 	trove:Add(function()
-		print("Cleanup!")
+		-- print("Cleanup!")
 	end)
 	trove:Destroy()
 
 	-- Standard cleanup from table:
 	local tbl = {}
 	function tbl:Destroy()
-		print("Cleanup")
+		-- print("Cleanup")
 	end
 	trove:Add(tbl)
 
 	-- Custom cleanup from table:
 	local tbl = {}
 	function tbl:DoSomething()
-		print("Do something on cleanup")
+		-- print("Do something on cleanup")
 	end
 	trove:Add(tbl, "DoSomething")
 	```

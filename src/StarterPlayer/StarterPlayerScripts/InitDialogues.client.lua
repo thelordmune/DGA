@@ -11,7 +11,7 @@ if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 
-print("[InitDialogues] 🔧 Initializing dialogue system...")
+-- print("[InitDialogues] 🔧 Initializing dialogue system...")
 
 -- Wait for DialogueBuilder to exist
 local DialogueBuilder = ReplicatedStorage.Modules.Utils:WaitForChild("DialogueBuilder", 10)
@@ -28,7 +28,7 @@ if not success then
 end
 
 -- Build all dialogues
-print("[InitDialogues] 📚 Building all dialogue trees...")
+-- print("[InitDialogues] 📚 Building all dialogue trees...")
 local buildSuccess, buildError = pcall(function()
 	builder.BuildAll()
 end)
@@ -38,14 +38,14 @@ if not buildSuccess then
 	return
 end
 
-print("[InitDialogues] ✅ Dialogue system initialized successfully!")
+-- print("[InitDialogues] ✅ Dialogue system initialized successfully!")
 
 -- Debug: List all built dialogues
 local dialoguesFolder = ReplicatedStorage:FindFirstChild("Dialogues")
 if dialoguesFolder then
-	print("[InitDialogues] 📋 Built dialogues:")
+	-- print("[InitDialogues] 📋 Built dialogues:")
 	for _, dialogue in ipairs(dialoguesFolder:GetChildren()) do
-		print("  - " .. dialogue.Name)
+		-- print("  - " .. dialogue.Name)
 	end
 else
 	warn("[InitDialogues] ⚠️ Dialogues folder not found after building!")

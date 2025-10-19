@@ -59,7 +59,7 @@ return function(Player, Data, Server)
 			hittimes[i] = fraction * animlength
 		end
 
-		print(tostring(hittimes[1]))
+		-- print(tostring(hittimes[1]))
 
 		task.delay(hittimes[1], function()
 			-- Safety check - make sure character still exists
@@ -205,7 +205,7 @@ return function(Player, Data, Server)
 								for _, Target in pairs(HitTargets) do
 									if Target ~= Character and Target:IsA("Model") then
 										Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
-										print("Downslam Kick hit:", Target.Name)
+										-- print("Downslam Kick hit:", Target.Name)
 									end
 								end
 							end

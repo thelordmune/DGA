@@ -125,10 +125,10 @@ function NpcBrain._update(params: UpdateParams)
 	local behaviorName = `{params.npcName}_BehaviorTree`
 	local behavior: any = Behaviors[behaviorName]
 
-	-- print("NpcBrain looking for behavior:", behaviorName, "Found:", behavior ~= nil)
+	-- -- print("NpcBrain looking for behavior:", behaviorName, "Found:", behavior ~= nil)
 
 	if not behavior then
-		-- print("Available behaviors:", table.concat(table.keys(Behaviors), ", "))
+		-- -- print("Available behaviors:", table.concat(table.keys(Behaviors), ", "))
 		return
 	end
 
@@ -146,7 +146,7 @@ function NpcBrain.init()
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		local npc = script.Parent:FindFirstChildOfClass("Model")
 
-		--local _ = npc and print(`{npc.Name} <- NpcName`)
+		--local _ = npc and -- print(`{npc.Name} <- NpcName`)
 		--local _ = not npc and MainConfig.cleanup()
 
 		local params: UpdateParams = {

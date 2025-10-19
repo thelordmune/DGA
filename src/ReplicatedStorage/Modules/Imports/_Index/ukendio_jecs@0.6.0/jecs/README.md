@@ -43,10 +43,10 @@ local sara = world:entity()
 world:add(sara, pair(ChildOf, alice))
 world:set(sara, Name, "sara")
 
-print(getName(parent(sara)))
+-- print(getName(parent(sara)))
 
 for e in world:query(pair(ChildOf, alice)) do
-    print(getName(e), "is the child of alice")
+    -- print(getName(e), "is the child of alice")
 end
 
 -- Output

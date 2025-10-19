@@ -614,17 +614,17 @@ function Base.Shake(Type: string, Params: {})
 end
 
 function Base.SpecialShake(Type: string, Params: {})
-	print("SpecialShake function called with Type:", Type, "Params:", Params)
+	-- print("SpecialShake function called with Type:", Type, "Params:", Params)
 	if Type == "Once" then
-		print("firing it brotato chipper - about to create camera shake")
+		-- print("firing it brotato chipper - about to create camera shake")
 		local camShake = CameraShakeModule.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
 			Camera.CFrame = Camera.CFrame * shakeCf
 		end)
-		print("camera shake created, starting...")
+		-- print("camera shake created, starting...")
 		camShake:Start()
-		print("camera shake started, calling ShakeOnce with params:", Params)
+		-- print("camera shake started, calling ShakeOnce with params:", Params)
 		camShake:ShakeOnce(table.unpack(Params))
-		print("ShakeOnce called successfully")
+		-- print("ShakeOnce called successfully")
 	elseif Type == "BloomBlur" then
 		-- Create circular inout bloom and blur tween that lasts for 0.2 seconds
 		local lighting = game:GetService("Lighting")
@@ -832,7 +832,7 @@ function Base.InCombat(Plr: Player, value: boolean)
 
 	-- Update global combat state for sound system
 	_G.PlayerInCombat = value
-	print("[InCombat] Combat state changed to:", value)
+	-- print("[InCombat] Combat state changed to:", value)
 
 	local observer = scope:Observer(incombat)
 
@@ -909,7 +909,7 @@ end
 
 function Base.Lightning(params: {})
 	local Lightning = require(game:GetService("ReplicatedStorage").Lightning)
-	print(params)
+	-- print(params)
 	local lightning = Lightning.new(table.unpack(params))
 end
 
@@ -1132,7 +1132,7 @@ local function meshfunction(CF: CFrame?, Parent: Instance?)
 end
 
 function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun: MeshPart)
-	-- print("Base.Shot called - Character:", Character.Name, "Combo:", Combo, "LeftGun:", LeftGun and LeftGun.Name or "nil", "RightGun:", RightGun and RightGun.Name or "nil")
+	-- -- print("Base.Shot called - Character:", Character.Name, "Combo:", Combo, "LeftGun:", LeftGun and LeftGun.Name or "nil", "RightGun:", RightGun and RightGun.Name or "nil")
 	if Combo == 1 then
 		local eff = Replicated.Assets.VFX.Shot:Clone()
 		eff.Parent = workspace.World.Visuals
@@ -1141,15 +1141,15 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 		if LeftGun and LeftGun:FindFirstChild("EndPart") then
 			local endPart = LeftGun:FindFirstChild("EndPart")
 			effectPosition = endPart.Position
-			-- print("Combo 1: Using LeftGun", endPart.Name, "position")
+			-- -- print("Combo 1: Using LeftGun", endPart.Name, "position")
 		elseif LeftGun then
 			-- Use gun position even without End part
 			effectPosition = LeftGun.Position
-			-- print("Combo 1: Using LeftGun base position")
+			-- -- print("Combo 1: Using LeftGun base position")
 		else
 			-- Fallback to hand position
 			effectPosition = Character:FindFirstChild("RightHand").Position
-			-- print("Combo 1: Using RightHand fallback")
+			-- -- print("Combo 1: Using RightHand fallback")
 		end
 		-- Always face forward in character's direction
 		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector)
@@ -1171,15 +1171,15 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 		if RightGun and RightGun:FindFirstChild("EndPart") then
 			local endPart = RightGun:FindFirstChild("EndPart")
 			effectPosition = endPart.Position
-			-- print("Combo 2: Using RightGun", endPart.Name, "position")
+			-- -- print("Combo 2: Using RightGun", endPart.Name, "position")
 		elseif RightGun then
 			-- Use gun position even without End part
 			effectPosition = RightGun.Position
-			-- print("Combo 2: Using RightGun base position")
+			-- -- print("Combo 2: Using RightGun base position")
 		else
 			-- Fallback to hand position
 			effectPosition = Character:FindFirstChild("LeftHand").Position
-			-- print("Combo 2: Using LeftHand fallback")
+			-- -- print("Combo 2: Using LeftHand fallback")
 		end
 		-- Always face forward in character's direction
 		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector)
@@ -1198,7 +1198,7 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 		eff.Parent = workspace.World.Visuals
 		-- Position in front of character and face forward (no rotation)
 		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 1.5, -2) * CFrame.Angles(0, math.rad(180), 0)
-		-- print("Combo 3: Using Combined effect in front of character")
+		-- -- print("Combo 3: Using Combined effect in front of character")
 
 		for _, v in eff:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
@@ -1217,44 +1217,44 @@ end
 local activeDialogueSessions = {}
 
 function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, state: string })
-	print("🎭 [Effects.Base] COMMENCE FUNCTION CALLED")
-	print("📋 Dialogue data received:", Dialogue)
+	-- print("🎭 [Effects.Base] COMMENCE FUNCTION CALLED")
+	-- print("📋 Dialogue data received:", Dialogue)
 
 	-- Validate dialogue data
 	if not Dialogue then
-		print("❌ [Effects.Base] ERROR: No dialogue data provided!")
+		-- print("❌ [Effects.Base] ERROR: No dialogue data provided!")
 		return
 	end
 
 	if not Dialogue.npc then
-		print("❌ [Effects.Base] ERROR: No NPC model in dialogue data!")
+		-- print("❌ [Effects.Base] ERROR: No NPC model in dialogue data!")
 		return
 	end
 
 	if not Dialogue.name then
-		print("❌ [Effects.Base] ERROR: No NPC name in dialogue data!")
+		-- print("❌ [Effects.Base] ERROR: No NPC name in dialogue data!")
 		return
 	end
 
-	print("✅ [Effects.Base] Dialogue validation passed")
-	print("🎯 [Effects.Base] NPC:", Dialogue.name, "| In Range:", Dialogue.inrange, "| State:", Dialogue.state)
+	-- print("✅ [Effects.Base] Dialogue validation passed")
+	-- print("🎯 [Effects.Base] NPC:", Dialogue.name, "| In Range:", Dialogue.inrange, "| State:", Dialogue.state)
 
 	local npcId = Dialogue.npc:GetDebugId() -- Unique identifier for this NPC instance
 
 	if Dialogue.inrange then
 		-- Check if we already have an active session for this NPC
 		if activeDialogueSessions[npcId] then
-			print("⚠️ [Effects.Base] Dialogue session already active for", Dialogue.name, "- skipping")
+			-- print("⚠️ [Effects.Base] Dialogue session already active for", Dialogue.name, "- skipping")
 			return
 		end
 
-		print("🎯 [Effects.Base] Player is in range, creating proximity UI...")
+		-- print("🎯 [Effects.Base] Player is in range, creating proximity UI...")
 		activeDialogueSessions[npcId] = true
 
 		-- Check if highlight already exists
 		local highlight = Dialogue.npc:FindFirstChild("Highlight")
 		if not highlight then
-			print("✨ [Effects.Base] Creating new highlight for NPC")
+			-- print("✨ [Effects.Base] Creating new highlight for NPC")
 			highlight = Instance.new("Highlight")
 			highlight.Name = "Highlight"
 			highlight.DepthMode = Enum.HighlightDepthMode.Occluded
@@ -1265,9 +1265,9 @@ function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, s
 
 			local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 0 })
 			hTween:Play()
-			print("🎬 [Effects.Base] Highlight tween started")
+			-- print("🎬 [Effects.Base] Highlight tween started")
 		else
-			print("♻️ [Effects.Base] Highlight already exists, reusing it")
+			-- print("♻️ [Effects.Base] Highlight already exists, reusing it")
 			-- Make sure it's visible
 			if highlight.OutlineTransparency > 0.5 then
 				local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 0 })
@@ -1275,66 +1275,66 @@ function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, s
 			end
 		end
 
-		print("📦 [Effects.Base] Loading Fusion scope and Proximity component...")
+		-- print("📦 [Effects.Base] Loading Fusion scope and Proximity component...")
 		local scope = scoped(Fusion, {
 			Proximity = require(Replicated.Client.Components.Proximity),
 		})
 		local start = scope:Value(false)
-		print("✅ [Effects.Base] Fusion scope created successfully")
+		-- print("✅ [Effects.Base] Fusion scope created successfully")
 
 		local Target = scope:New("ScreenGui")({
 			Name = "ScreenGui",
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 			Parent = Player.PlayerGui,
 		})
-		print("🖥️ [Effects.Base] ScreenGui created and parented to PlayerGui")
+		-- print("🖥️ [Effects.Base] ScreenGui created and parented to PlayerGui")
 
 		local parent = Target
 
-		print("🔗 [Effects.Base] Creating Proximity component...")
+		-- print("🔗 [Effects.Base] Creating Proximity component...")
 		scope:Proximity({
 			begin = start,
 			par = parent,
 		})
-		print("✅ [Effects.Base] Proximity component created")
+		-- print("✅ [Effects.Base] Proximity component created")
 
-		print("⏱️ [Effects.Base] Starting proximity animation sequence...")
+		-- print("⏱️ [Effects.Base] Starting proximity animation sequence...")
 		task.wait(0.3)
-		print("🎬 [Effects.Base] Setting start to true")
+		-- print("🎬 [Effects.Base] Setting start to true")
 		start:set(true)
 		task.wait(2.5)
-		print("🎬 [Effects.Base] Setting start to false")
+		-- print("🎬 [Effects.Base] Setting start to false")
 		start:set(false)
 		task.wait(0.5)
-		print("🧹 [Effects.Base] Cleaning up scope")
+		-- print("🧹 [Effects.Base] Cleaning up scope")
 		scope:doCleanup()
 
 		-- Clear the active session
 		activeDialogueSessions[npcId] = nil
-		print("✅ [Effects.Base] Proximity effect complete")
+		-- print("✅ [Effects.Base] Proximity effect complete")
 	else
-		print("🚫 [Effects.Base] Player not in range, removing highlight...")
+		-- print("🚫 [Effects.Base] Player not in range, removing highlight...")
 
 		-- Clear any active session
 		activeDialogueSessions[npcId] = nil
 
 		local highlight = Dialogue.npc:FindFirstChild("Highlight")
 		if highlight then
-			print("✨ [Effects.Base] Found existing highlight, fading out...")
+			-- print("✨ [Effects.Base] Found existing highlight, fading out...")
 			local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 1 })
 			hTween:Play()
 			hTween.Completed:Connect(function()
 				if highlight and highlight.Parent then
 					highlight:Destroy()
-					print("🗑️ [Effects.Base] Highlight destroyed")
+					-- print("🗑️ [Effects.Base] Highlight destroyed")
 				end
 			end)
 		else
-			print("⚠️ [Effects.Base] No highlight found to remove")
+			-- print("⚠️ [Effects.Base] No highlight found to remove")
 		end
 	end
 
-	print("✅ [Effects.Base] COMMENCE FUNCTION COMPLETE")
+	-- print("✅ [Effects.Base] COMMENCE FUNCTION COMPLETE")
 end
 
 function Base.RockSkewer(Character: Model, Frame: string, Wedge: WedgePart)
@@ -1680,14 +1680,14 @@ function Base.ShellPiercer(Character: Model, Frame: string, tim: number)
 		task.delay(3, function()
 			eff:Destroy()
 		end)
-		print("firing it brotato chipper - about to create camera shake")
+		-- print("firing it brotato chipper - about to create camera shake")
 		local camShake = CameraShakeModule.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
 			Camera.CFrame = Camera.CFrame * shakeCf
 		end)
-		print("camera shake created, starting...")
+		-- print("camera shake created, starting...")
 		camShake:Start()
 		camShake:ShakeOnce(6, 11, 0, 0.7, Vector3.new(1.1, 2, 1.1), Vector3.new(0.34, 0.25, 0.34))
-		print("ShakeOnce called successfully")
+		-- print("ShakeOnce called successfully")
 		local lighting = game:GetService("Lighting")
 
 		-- Get or create bloom and blur effects
@@ -2123,7 +2123,7 @@ end
 function Base.Spawn(Position: Vector3)
 	local eff = Replicated.Assets.VFX.SpawnEff:Clone()
 	eff.Position = Position
-	print("Spawning effect at:", tostring(eff.CFrame))
+	-- print("Spawning effect at:", tostring(eff.CFrame))
 	eff.Parent = workspace.World.Visuals
 	for _, v in eff:GetDescendants() do
 		if v:IsA("ParticleEmitter") then

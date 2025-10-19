@@ -72,7 +72,7 @@ function NpcBrain.init()
 		local npcName = script.Parent.Parent.Name -- npc name
 		local npc = script.Parent:FindFirstChildOfClass("Model") 
 
-		--local _ = npc and print(`{npc.Name} <- NpcName`)
+		--local _ = npc and -- print(`{npc.Name} <- NpcName`)
 		--local _ = not npc and MainConfig.cleanup()
 		NpcBrain._update(deltaTime,npcName)	
 

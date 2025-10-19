@@ -415,7 +415,7 @@ task.wait(3)  -- Wait for player to read
 ```lua
 -- In LoadNodes function, comment out the auto-close:
 if #Nodes <= 0 then
-    DebugPrint("No nodes to load")
+    Debug-- print("No nodes to load")
     -- task.wait(2)  -- Disabled
     -- Close(Params)  -- Disabled
     -- Now dialogue stays open until player walks away

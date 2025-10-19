@@ -103,7 +103,7 @@ local function questsystem(world)
     -- Runs EVERY FRAME
     for entity in world:query(comps.QuestAccepted):iter() do
         local questAccepted = world:get(entity, comps.QuestAccepted)
-        print("Quest accepted:", questAccepted.npcName, questAccepted.questName)
+        -- print("Quest accepted:", questAccepted.npcName, questAccepted.questName)
 
         if not world:has(entity, comps.QuestHolder) then
             world:add(entity, comps.QuestHolder)
@@ -150,7 +150,7 @@ function ObserversManager.setupQuestObservers()
         world:query(comps.QuestAccepted),
         function(entity)
             local questAccepted = world:get(entity, comps.QuestAccepted)
-            print("[Quest Observer] Quest accepted:", questAccepted.npcName, questAccepted.questName)
+            -- print("[Quest Observer] Quest accepted:", questAccepted.npcName, questAccepted.questName)
 
             -- Add QuestHolder if not present
             if not world:has(entity, comps.QuestHolder) then

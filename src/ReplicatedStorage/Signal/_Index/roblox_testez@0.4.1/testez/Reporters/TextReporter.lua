@@ -84,21 +84,21 @@ function TextReporter.report(results)
 		)
 	}
 
-	print(table.concat(resultBuffer, "\n"))
+	-- print(table.concat(resultBuffer, "\n"))
 
 	if results.failureCount > 0 then
-		print(("%d test nodes reported failures."):format(results.failureCount))
+		-- print(("%d test nodes reported failures."):format(results.failureCount))
 	end
 
 	if #results.errors > 0 then
-		print("Errors reported by tests:")
-		print("")
+		-- print("Errors reported by tests:")
+		-- print("")
 
 		for _, message in ipairs(results.errors) do
 			TestService:Error(message)
 
 			-- Insert a blank line after each error
-			print("")
+			-- print("")
 		end
 	end
 end

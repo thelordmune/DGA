@@ -1,7 +1,7 @@
 local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
 local Library = Server.Library
 return function(actor: Actor, mainConfig: table)
-	--print("Moving to target...")
+	---- print("Moving to target...")
 
 
 
@@ -14,7 +14,7 @@ return function(actor: Actor, mainConfig: table)
 	if not Library.GetSpecificState(mainConfig.getNpc(),"Block")  then
 		return false
 	end
-	--print(debug.info(2, "sl"))
+	---- print(debug.info(2, "sl"))
 	
 	mainConfig.InitiateBlock(false)
 

@@ -25,7 +25,7 @@ function logger:i(format)
 	end
 
 	local m = "Info/GameAnalytics: " .. format
-	print(m)
+	-- print(m)
 --    GameAnalyticsSendMessage = GameAnalyticsSendMessage or game:GetService("ReplicatedStorage"):WaitForChild("GameAnalyticsSendMessage")
 --    GameAnalyticsSendMessage:FireAllClients({
 --        Text = m,
@@ -67,7 +67,7 @@ function logger:d(format)
 	end
 
 	local m = "Debug/GameAnalytics: " .. format
-	print(m)
+	-- print(m)
 --    GameAnalyticsSendMessage = GameAnalyticsSendMessage or game:GetService("ReplicatedStorage"):WaitForChild("GameAnalyticsSendMessage")
 --    GameAnalyticsSendMessage:FireAllClients({
 --        Text = m,
@@ -83,7 +83,7 @@ function logger:ii(format)
 	end
 
 	local m = "Verbose/GameAnalytics: " .. format
-	print(m)
+	-- print(m)
 --    GameAnalyticsSendMessage = GameAnalyticsSendMessage or game:GetService("ReplicatedStorage"):WaitForChild("GameAnalyticsSendMessage")
 --    GameAnalyticsSendMessage:FireAllClients({
 --        Text = m,

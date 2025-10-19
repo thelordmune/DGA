@@ -45,12 +45,12 @@ local function syncInventoryToClient(entity)
         itemCount = itemCount + 1
     end
 
-    print("[InventoryManager] Syncing inventory - Total items:", itemCount)
+    -- print("[InventoryManager] Syncing inventory - Total items:", itemCount)
 
     -- Convert to array format with slot numbers embedded in each item
     local itemArray = {}
     for slot, item in pairs(inventory.items) do
-        print("[InventoryManager]   Slot", slot, ":", item.name, "(type:", item.typ .. ")")
+        -- print("[InventoryManager]   Slot", slot, ":", item.name, "(type:", item.typ .. ")")
         table.insert(itemArray, {
             name = item.name,
             typ = item.typ,
@@ -65,9 +65,9 @@ local function syncInventoryToClient(entity)
 
     inventoryData.items = itemArray
 
-    print("[InventoryManager] Serialized items array length:", #itemArray)
+    -- print("[InventoryManager] Serialized items array length:", #itemArray)
     for i, item in ipairs(itemArray) do
-        print("[InventoryManager]   Array[" .. i .. "] slot", item.slot, ":", item.name)
+        -- print("[InventoryManager]   Array[" .. i .. "] slot", item.slot, ":", item.name)
     end
 
     local syncData = {
@@ -80,7 +80,7 @@ local function syncInventoryToClient(entity)
 
     -- Fire to client
     local Bridges = require(ReplicatedStorage.Modules.Bridges)
-    print("[InventoryManager] Syncing inventory to", player.Name)
+    -- print("[InventoryManager] Syncing inventory to", player.Name)
     Bridges.Inventory:Fire(player, syncData)
 end
 
@@ -137,12 +137,12 @@ local function autoAssignHotbarSlot(entity, inventorySlot)
         if not hotbar.slots[hotbarSlot] then
             hotbar.slots[hotbarSlot] = inventorySlot
             world:set(entity, comps.Hotbar, hotbar)
-            print("[InventoryManager] Auto-assigned inventory slot", inventorySlot, "to hotbar slot", hotbarSlot)
+            -- print("[InventoryManager] Auto-assigned inventory slot", inventorySlot, "to hotbar slot", hotbarSlot)
             return hotbarSlot
         end
     end
 
-    print("[InventoryManager] All hotbar slots full, skill added to inventory only")
+    -- print("[InventoryManager] All hotbar slots full, skill added to inventory only")
     return nil
 end
 
@@ -178,7 +178,7 @@ function InventoryManager.addItem(entity, itemName, itemType, quantity, singleus
 
         if not emptySlot then
             -- Hotbar full, try inventory slots as fallback
-            print("[InventoryManager] Hotbar full, placing skill in inventory slots")
+            -- print("[InventoryManager] Hotbar full, placing skill in inventory slots")
             emptySlot = findEmptySlotInRange(inventory, INVENTORY_SLOTS.min, INVENTORY_SLOTS.max)
         end
     else
@@ -187,7 +187,7 @@ function InventoryManager.addItem(entity, itemName, itemType, quantity, singleus
 
         if not emptySlot then
             -- Inventory full, try hotbar slots as fallback
-            print("[InventoryManager] Inventory full, placing item in hotbar slots")
+            -- print("[InventoryManager] Inventory full, placing item in hotbar slots")
             emptySlot = findEmptySlotInRange(inventory, HOTBAR_SLOTS.min, HOTBAR_SLOTS.max)
         end
     end
@@ -227,12 +227,12 @@ function InventoryManager.addItem(entity, itemName, itemType, quantity, singleus
         autoAssignHotbarSlot(entity, emptySlot)
     end
 
-    print("[InventoryManager] Added", itemName, "to slot", emptySlot, "(type:", itemType .. ")")
+    -- print("[InventoryManager] Added", itemName, "to slot", emptySlot, "(type:", itemType .. ")")
 
     -- Debug: Verify item was actually added
     local verifyInventory = world:get(entity, comps.Inventory)
     if verifyInventory.items[emptySlot] then
-        print("[InventoryManager] ✅ Verified item in slot", emptySlot, ":", verifyInventory.items[emptySlot].name)
+        -- print("[InventoryManager] ✅ Verified item in slot", emptySlot, ":", verifyInventory.items[emptySlot].name)
     else
         warn("[InventoryManager] ❌ Item NOT found in slot", emptySlot, "after adding!")
     end
@@ -433,7 +433,7 @@ function InventoryManager.clearHotbar(entity)
     hotbar.activeSlot = 1
     world:set(entity, comps.Hotbar, hotbar)
     markInventoryChanged(entity)
-    print("Cleared hotbar for entity")
+    -- print("Cleared hotbar for entity")
 end
 
 -- Clear entire inventory (for character reset)
@@ -446,14 +446,14 @@ function InventoryManager.clearInventory(entity)
     inventory.items = {}
     world:set(entity, comps.Inventory, inventory)
     markInventoryChanged(entity)
-    print("Cleared inventory for entity")
+    -- print("Cleared inventory for entity")
 end
 
 -- Comprehensive cleanup for character reset
 function InventoryManager.resetPlayerInventory(entity)
     InventoryManager.clearInventory(entity)
     InventoryManager.clearHotbar(entity)
-    print("Reset player inventory and hotbar")
+    -- print("Reset player inventory and hotbar")
 end
 
 -- Get available slot counts

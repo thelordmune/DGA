@@ -49,7 +49,7 @@ function HasActiveQuest.Run(npcName)
 	
 	-- Check if the active quest is from this NPC
 	if activeQuest.npcName == npcName then
-		print("[HasActiveQuest] Player has active quest from", npcName, ":", activeQuest.questName)
+		-- print("[HasActiveQuest] Player has active quest from", npcName, ":", activeQuest.questName)
 		return true
 	end
 	

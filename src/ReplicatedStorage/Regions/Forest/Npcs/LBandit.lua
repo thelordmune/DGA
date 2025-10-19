@@ -14,7 +14,7 @@ local function getSpawnLocations()
 
             if leftGuard then
                 table.insert(locations, leftGuard.Position)
-                print("Found LeftGuard spawn at:", leftGuard.Position)
+                -- print("Found LeftGuard spawn at:", leftGuard.Position)
             else
                 warn("LeftGuard spawn not found - using default position")
                 table.insert(locations, Vector3.new(-20, 5, 0))
@@ -22,7 +22,7 @@ local function getSpawnLocations()
 
             if rightGuard then
                 table.insert(locations, rightGuard.Position)
-                print("Found RightGuard spawn at:", rightGuard.Position)
+                -- print("Found RightGuard spawn at:", rightGuard.Position)
             else
                 warn("RightGuard spawn not found - using default position")
                 table.insert(locations, Vector3.new(20, 5, 0))
@@ -38,9 +38,9 @@ local function getSpawnLocations()
         table.insert(locations, Vector3.new(20, 5, 0))  -- Default right
     end
 
-    print("Bandit spawn locations:", #locations, "locations found")
+    -- print("Bandit spawn locations:", #locations, "locations found")
     for i, pos in pairs(locations) do
-        print("- Location", i .. ":", pos)
+        -- print("- Location", i .. ":", pos)
     end
 
     return locations

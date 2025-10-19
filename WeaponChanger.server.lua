@@ -30,7 +30,7 @@ local function changePlayerWeapon(player, weaponName)
     -- Check if player already has this weapon
     local currentWeapon = player:GetAttribute("Weapon")
     if currentWeapon == weaponName then
-        print("Player", player.Name, "already has weapon:", weaponName)
+        -- print("Player", player.Name, "already has weapon:", weaponName)
         return
     end
 
@@ -93,7 +93,7 @@ local function changePlayerWeapon(player, weaponName)
 
     game:GetService("Debris"):AddItem(highlight, 1)
 
-    print("Changed", player.Name, "weapon to:", weaponName)
+    -- print("Changed", player.Name, "weapon to:", weaponName)
 end
 
 -- Function to handle when a player touches the part
@@ -136,8 +136,8 @@ part.AncestryChanged:Connect(function()
     if not part.Parent then
         connection:Disconnect()
         playerLeavingConnection:Disconnect()
-        print("Weapon changer cleaned up for:", WEAPON_NAME)
+        -- print("Weapon changer cleaned up for:", WEAPON_NAME)
     end
 end)
 
-print("Weapon changer active for:", WEAPON_NAME)
+-- print("Weapon changer active for:", WEAPON_NAME)

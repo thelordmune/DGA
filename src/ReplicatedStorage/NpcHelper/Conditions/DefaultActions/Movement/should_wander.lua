@@ -1,7 +1,7 @@
 return function(actor: Actor, mainConfig: table)
-	--print("alr")
+	---- print("alr")
 
-	--print(":herasfdsa")
+	---- print(":herasfdsa")
 	local npc = actor:FindFirstChildOfClass("Model")
 	if not npc then
 		return false

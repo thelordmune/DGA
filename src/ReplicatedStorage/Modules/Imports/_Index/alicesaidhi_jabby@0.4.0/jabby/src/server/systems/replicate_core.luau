@@ -16,7 +16,7 @@ return function()
 			local outgoing = reverse_connector(connector)
 			
 			if not traffic_check.check_no_wl(connector.host) then continue end
-			-- print("help")
+			-- -- print("help")
 
 			table.insert(connected, outgoing)
 			local schedulers = {}

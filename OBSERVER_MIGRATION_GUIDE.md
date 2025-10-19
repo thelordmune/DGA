@@ -130,12 +130,12 @@ local combatMonitor = observers.monitor(
 
 combatMonitor:added(function(entity)
     -- Entity entered combat
-    print("Combat started!")
+    -- print("Combat started!")
 end)
 
 combatMonitor:removed(function(entity)
     -- Entity left combat
-    print("Combat ended!")
+    -- print("Combat ended!")
 end)
 ```
 

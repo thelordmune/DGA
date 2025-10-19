@@ -71,7 +71,7 @@ if isHolding then
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if humanoid then
         humanoid.WalkSpeed = 0
-        print("[WeaponSkillHold] Set WalkSpeed to 0")
+        -- print("[WeaponSkillHold] Set WalkSpeed to 0")
     end
 end
 ```
@@ -83,14 +83,14 @@ And restore it when releasing:
 -- Remove speed lock
 if character:FindFirstChild("Speeds") then
     Library.RemoveState(character.Speeds, "WeaponSkillHoldSpeedSet0")
-    print("[WeaponSkillHold] Removed Speeds state")
+    -- print("[WeaponSkillHold] Removed Speeds state")
 end
 
 -- DIRECTLY restore walkspeed (NEW!)
 local humanoid = character:FindFirstChildOfClass("Humanoid")
 if humanoid then
     humanoid.WalkSpeed = 16 -- Default speed
-    print("[WeaponSkillHold] Restored WalkSpeed to 16")
+    -- print("[WeaponSkillHold] Restored WalkSpeed to 16")
 end
 ```
 
@@ -260,7 +260,7 @@ Modify `RegisteringWorldToJabby()` to include `entities` table and `get_entity_f
 
 ### Test Walkspeed:
 1. Hold a weapon skill
-2. Check: `print(game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)`
+2. Check: `-- print(game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)`
 3. Should show: `0` immediately (not after a delay)
 4. Try to move with WASD
 5. Should NOT be able to move

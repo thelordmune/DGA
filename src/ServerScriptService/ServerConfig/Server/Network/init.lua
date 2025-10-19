@@ -20,7 +20,7 @@ for _, Module in next, script:GetChildren() do
     if Module:IsA("ModuleScript") and not Module:HasTag("NetworkBlacklist") then
         local Required = require(Module);
 
-        print("Setting up listener for:", Module.Name)
+        -- print("Setting up listener for:", Module.Name)
 
         -- Check if packet exists before trying to listen
         if not Server.Packets[Module.Name] then

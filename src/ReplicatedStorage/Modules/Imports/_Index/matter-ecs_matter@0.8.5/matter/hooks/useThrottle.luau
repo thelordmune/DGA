@@ -22,12 +22,12 @@ end
 
 	```lua
 	if useThrottle(1) then -- Keyed by script and line number only
-		print("only prints every second")
+		-- print("only prints every second")
 	end
 
 	for id, enemy in world:query(Enemy) do
 		if useThrottle(5, id) then -- Keyed by script, line number, and the entity id
-			print("Recalculate target...")
+			-- print("Recalculate target...")
 		end
 	end
 	```

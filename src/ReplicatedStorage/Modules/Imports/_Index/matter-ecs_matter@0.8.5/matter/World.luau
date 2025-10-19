@@ -118,7 +118,7 @@ end
 
 	```lua
 	for entityId, entityData in world do
-		print(entityId, entityData[Components.Example])
+		-- print(entityId, entityData[Components.Example])
 	end
 	```
 

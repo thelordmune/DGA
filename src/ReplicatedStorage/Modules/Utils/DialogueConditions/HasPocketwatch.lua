@@ -52,12 +52,12 @@ function HasPocketwatch.Run()
 	-- Check if pocketwatch is in inventory
 	for slot, item in pairs(inventory.items) do
 		if item.name == "Pocketwatch" then
-			print("[HasPocketwatch] Player has pocketwatch in slot", slot)
+			-- print("[HasPocketwatch] Player has pocketwatch in slot", slot)
 			return true
 		end
 	end
 	
-	print("[HasPocketwatch] Player does not have pocketwatch")
+	-- print("[HasPocketwatch] Player does not have pocketwatch")
 	return false
 end
 

@@ -17,8 +17,8 @@ local systemConnections = {}
 
 do
     local callingScript = debug.traceback("jecs_start.lua was called from:")
-    print("JECS Startup Trace:")
-    print(callingScript)
+    -- print("JECS Startup Trace:")
+    -- print(callingScript)
     warn("JECS initialization called from:", callingScript)
 end
 
@@ -44,7 +44,7 @@ local function cleanupSystem(name)
                 systemConnections[name] = nil
             end
             
-            print("Cleaned up system:", name)
+            -- print("Cleaned up system:", name)
         end
     end
 end
@@ -58,8 +58,8 @@ local function start(systemsFolder)
         error("Scheduler not initialized")
     end
 
-    print("starting ecs initialization")
-    print("Systems folder:", systemsFolder and systemsFolder:GetFullName() or "Using default detection")
+    -- print("starting ecs initialization")
+    -- print("Systems folder:", systemsFolder and systemsFolder:GetFullName() or "Using default detection")
 
     local phases = scheduler.SetupPhases()
     if not phases or not next(phases) then
@@ -74,7 +74,7 @@ local function start(systemsFolder)
         table.insert(validPhases, phaseEntity)
         local phaseName = world:get(phaseEntity, comps.Name)
         local event = world:get(phaseEntity, comps.Event)
-        print("Valid phase found:", phaseName, event)
+        -- print("Valid phase found:", phaseName, event)
     end
 
     if #validPhases == 0 then
@@ -98,22 +98,22 @@ local function start(systemsFolder)
     local events = scheduler.COLLECT()
     local connections = scheduler.BEGIN(events)
 
-    print("✅ ECS system connections established")
-    print("📊 Active phases:")
+    -- print("✅ ECS system connections established")
+    -- print("📊 Active phases:")
     for phaseEntity in world:query(comps.Phase):with(comps.Event) do
         local phaseName = world:get(phaseEntity, comps.Name) or "UnknownPhase"
         local systemCount = 0
         for _ in world:query(comps.System):with(pair(comps.DependsOn, phaseEntity)) do
             systemCount = systemCount + 1
         end
-        print(`  - {phaseName}: {systemCount} systems`)
+        -- print(`  - {phaseName}: {systemCount} systems`)
     end
 
     -- Initialize observers (server-side only)
     if RunService:IsServer() then
         local ObserversManager = require(script.Parent.jecs_observers)
         ObserversManager.init()
-        print("✅ Observer system initialized")
+        -- print("✅ Observer system initialized")
     end
 
     -- Note: System loading is now handled by scheduler.FillingSchedulerWithSystems

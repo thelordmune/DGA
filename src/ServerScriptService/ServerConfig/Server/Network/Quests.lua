@@ -7,9 +7,9 @@ local Replicated = game:GetService("ReplicatedStorage")
 local bridges = require(game:GetService("ReplicatedStorage").Modules.Bridges)
 
 NetworkModule.EndPoint = function(Player, Data)
-    print("Quest packet received:", Data.Module, Data.Function)
+    -- print("Quest packet received:", Data.Module, Data.Function)
     if Data.Function == "Start" then
-        print("Starting quest: " .. Data.Module)
+        -- print("Starting quest: " .. Data.Module)
 
         -- Set QuestAccepted component on server so observer can convert it to ActiveQuest
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,7 +20,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
         local playerEntity = ref.get("player", Player)
         if playerEntity then
-            print("[Quest Start] Setting QuestAccepted component on server for:", Player.Name)
+            -- print("[Quest Start] Setting QuestAccepted component on server for:", Player.Name)
             world:set(playerEntity, comps.QuestAccepted, {
                 npcName = Data.Module,
                 questName = Data.Arguments[1] or "Missing Pocketwatch", -- Default for legacy support
@@ -38,7 +38,7 @@ NetworkModule.EndPoint = function(Player, Data)
                 local success, err = pcall(function()
                     local QuestScript = require(questModule)
                     if typeof(QuestScript) == "table" and QuestScript.Start then
-                        print("[Quest Start] 🎯 Calling quest module Start function for player:", Player.Name)
+                        -- print("[Quest Start] 🎯 Calling quest module Start function for player:", Player.Name)
                         QuestScript.Start(Player) -- Pass player parameter
                     end
                 end)
@@ -53,10 +53,10 @@ NetworkModule.EndPoint = function(Player, Data)
         bridges.Quests:Fire(Player, { Module = Data.Module })
 
     elseif Data.Function == "Complete" then
-        print("🎯 [Quest Complete] Received completion request")
-        print("  Full Data:", Data)
-        print("  NPC:", Data.Module)
-        print("  Arguments:", Data.Arguments)
+        -- print("🎯 [Quest Complete] Received completion request")
+        -- print("  Full Data:", Data)
+        -- print("  NPC:", Data.Module)
+        -- print("  Arguments:", Data.Arguments)
 
         if not Data.Arguments or #Data.Arguments < 2 then
             warn("[Quest Complete] ❌ Invalid Arguments! Expected array with [questName, choice]")
@@ -68,8 +68,8 @@ NetworkModule.EndPoint = function(Player, Data)
         local questName = Data.Arguments[1]
         local choice = Data.Arguments[2]
 
-        print("  Quest Name:", questName)
-        print("  Choice:", choice)
+        -- print("  Quest Name:", questName)
+        -- print("  Choice:", choice)
 
         -- Load required modules
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -81,10 +81,10 @@ NetworkModule.EndPoint = function(Player, Data)
         local QuestData = require(ReplicatedStorage.Modules.Quests)
 
         -- Get player entity (server-side uses "player" key)
-        print("[Quest Complete] 🔍 Attempting to get player entity for:", Player.Name, "UserId:", Player.UserId)
+        -- print("[Quest Complete] 🔍 Attempting to get player entity for:", Player.Name, "UserId:", Player.UserId)
 
         local playerEntity = ref.get("player", Player)
-        print("[Quest Complete] 🔍 ref.get returned:", playerEntity)
+        -- print("[Quest Complete] 🔍 ref.get returned:", playerEntity)
 
         if not playerEntity then
             warn("[Quest Complete] ❌ No player entity found for", Player.Name, "UserId:", Player.UserId)
@@ -95,11 +95,11 @@ NetworkModule.EndPoint = function(Player, Data)
             for entity in world:query(comps.Player):iter() do
                 local playerComp = world:get(entity, comps.Player)
                 playerEntitiesFound = playerEntitiesFound + 1
-                print(`[Quest Complete] Found Player entity {entity} for {playerComp.Name} (UserId: {playerComp.UserId})`)
+                -- print(`[Quest Complete] Found Player entity {entity} for {playerComp.Name} (UserId: {playerComp.UserId})`)
 
                 if playerComp == Player then
                     playerEntity = entity
-                    print("[Quest Complete] ✅ Found matching player entity by Player component:", entity)
+                    -- print("[Quest Complete] ✅ Found matching player entity by Player component:", entity)
                     break
                 end
             end
@@ -112,12 +112,12 @@ NetworkModule.EndPoint = function(Player, Data)
             if not playerEntity then
                 local character = Player.Character
                 if character then
-                    print("[Quest Complete] 🔍 Searching by character:", character.Name)
+                    -- print("[Quest Complete] 🔍 Searching by character:", character.Name)
                     for entity in world:query(comps.Character):iter() do
                         local char = world:get(entity, comps.Character)
                         if char == character then
                             playerEntity = entity
-                            print("[Quest Complete] ✅ Found player entity by character:", entity)
+                            -- print("[Quest Complete] ✅ Found player entity by character:", entity)
                             break
                         end
                     end
@@ -132,7 +132,7 @@ NetworkModule.EndPoint = function(Player, Data)
                 return
             end
         else
-            print("[Quest Complete] ✅ Found player entity via ref.get:", playerEntity)
+            -- print("[Quest Complete] ✅ Found player entity via ref.get:", playerEntity)
         end
 
         -- NPC name from Module field
@@ -165,7 +165,7 @@ NetworkModule.EndPoint = function(Player, Data)
             LevelingManager.setLevel(playerEntity, newLevel)
             leveledUp = true
 
-            print("[Quest Complete] ✅ Good choice - XP:", experienceGained, "Alignment: +" .. alignmentGained, "Free level:", newLevel)
+            -- print("[Quest Complete] ✅ Good choice - XP:", experienceGained, "Alignment: +" .. alignmentGained, "Free level:", newLevel)
         elseif choice == "CompleteEvil" then
             -- Evil choice: half XP, -alignment, no free level
             experienceGained = math.floor(baseExperience / 2)
@@ -179,7 +179,7 @@ NetworkModule.EndPoint = function(Player, Data)
                 newLevel = LevelingManager.getLevel(playerEntity)
             end
 
-            print("[Quest Complete] ❌ Evil choice - XP:", experienceGained, "(half)", "Alignment:", alignmentGained, "No free level")
+            -- print("[Quest Complete] ❌ Evil choice - XP:", experienceGained, "(half)", "Alignment:", alignmentGained, "No free level")
         end
 
         -- Mark quest as completed and clean up quest components
@@ -209,7 +209,7 @@ NetworkModule.EndPoint = function(Player, Data)
                 local success, err = pcall(function()
                     local QuestScript = require(questModule)
                     if typeof(QuestScript) == "table" and QuestScript.Complete then
-                        print("[Quest Complete] 🎯 Calling quest module Complete function")
+                        -- print("[Quest Complete] 🎯 Calling quest module Complete function")
                         QuestScript.Complete(Player, questName, choice)
                     end
                 end)
@@ -221,12 +221,12 @@ NetworkModule.EndPoint = function(Player, Data)
         end
 
         -- Send completion notification to client
-        print("🔔 [Quest Complete] Sending completion notification to client:")
-        print("  Quest Name:", questName)
-        print("  Experience:", experienceGained)
-        print("  Alignment:", alignmentGained)
-        print("  Leveled Up:", leveledUp)
-        print("  New Level:", newLevel)
+        -- print("🔔 [Quest Complete] Sending completion notification to client:")
+        -- print("  Quest Name:", questName)
+        -- print("  Experience:", experienceGained)
+        -- print("  Alignment:", alignmentGained)
+        -- print("  Leveled Up:", leveledUp)
+        -- print("  New Level:", newLevel)
 
         bridges.QuestCompleted:Fire(Player, {
             questName = questName,
@@ -236,10 +236,10 @@ NetworkModule.EndPoint = function(Player, Data)
             newLevel = newLevel,
         })
 
-        print("✅ [Quest Complete] Notification sent!")
+        -- print("✅ [Quest Complete] Notification sent!")
 
     elseif Data.Function == "End" then
-        print("Ending quest: " .. Data.Module)
+        -- print("Ending quest: " .. Data.Module)
 
         -- Check if the old Quests folder exists (legacy support)
         local questsFolder = script.Parent.Parent:FindFirstChild("Quests")
@@ -255,7 +255,7 @@ NetworkModule.EndPoint = function(Player, Data)
                 warn("Failed to end quest " .. Data.Module .. ": " .. err)
             end
         else
-            print("No Quests folder found - using new quest system")
+            -- print("No Quests folder found - using new quest system")
         end
     end
 end

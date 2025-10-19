@@ -14,7 +14,7 @@ local function init()
 	for _, character in CollectionService:GetTagged("Humanoids") do
 		if character:IsDescendantOf(workspace.World.Live) and not character:GetAttribute("NotActualRig") then
 			Ragdoll:Setup(character)
-			print(`[RagdollSetup] Successfully set up ragdoll for {character.Name}`)
+			-- print(`[RagdollSetup] Successfully set up ragdoll for {character.Name}`)
 		end
 	end
 
@@ -22,11 +22,11 @@ local function init()
 	CollectionService:GetInstanceAddedSignal("Humanoids"):Connect(function(character)
 		if character:IsDescendantOf(workspace.World.Live) and not character:GetAttribute("NotActualRig") then
 			Ragdoll:Setup(character)
-			print(`[RagdollSetup] Successfully set up ragdoll for {character.Name}`)
+			-- print(`[RagdollSetup] Successfully set up ragdoll for {character.Name}`)
 		end
 	end)
 	
-	print("[RagdollSetup] Ragdoll system initialized")
+	-- print("[RagdollSetup] Ragdoll system initialized")
 end
 
 task.spawn(init)

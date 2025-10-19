@@ -34,7 +34,7 @@ local function changePlayerWeapon(player, weaponName)
     character:SetAttribute("Equipped", true)
     
     -- Update any visual indicators or UI
-    print("Changed", player.Name, "weapon to:", weaponName)
+    -- print("Changed", player.Name, "weapon to:", weaponName)
     
     -- Optional: Send a message to the player
     -- You can uncomment this if you have a messaging system
@@ -69,7 +69,7 @@ end
 local function setupWeaponChanger(part)
     if not part:IsA("BasePart") then return end
     
-    print("Setting up weapon changer for part:", part.Name)
+    -- print("Setting up weapon changer for part:", part.Name)
     
     -- Connect the touch event
     local connection
@@ -81,7 +81,7 @@ local function setupWeaponChanger(part)
     part.AncestryChanged:Connect(function()
         if not part.Parent then
             connection:Disconnect()
-            print("Cleaned up weapon changer for:", part.Name)
+            -- print("Cleaned up weapon changer for:", part.Name)
         end
     end)
 end
@@ -137,4 +137,4 @@ end)
 task.wait(3)
 autoSetupWeaponChangers()
 
-print("Weapon Changer script loaded!")
+-- print("Weapon Changer script loaded!")

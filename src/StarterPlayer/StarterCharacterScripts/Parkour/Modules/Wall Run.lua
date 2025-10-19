@@ -243,7 +243,7 @@ function Sliding:TryAirDash()
 	-- Reset the wall jump flag so we can only dash once per wall jump
 	self.JustWallJumped = false
 
-	print("Air dashing in camera direction:", dashDirection)
+	-- print("Air dashing in camera direction:", dashDirection)
 end
 
 return Sliding

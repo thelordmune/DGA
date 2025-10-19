@@ -249,10 +249,10 @@ local ref = require(game.ReplicatedStorage.Modules.ECS.jecs_ref)
 local player = game.Players.LocalPlayer
 local entity = ref.get("local_player")
 
-print("Level:", LevelingManager.getLevel(entity))
-print("XP:", LevelingManager.getExperience(entity))
-print("Alignment:", LevelingManager.getAlignment(entity))
-print("Tier:", LevelingManager.getAlignmentTier(LevelingManager.getAlignment(entity)))
+-- print("Level:", LevelingManager.getLevel(entity))
+-- print("XP:", LevelingManager.getExperience(entity))
+-- print("Alignment:", LevelingManager.getAlignment(entity))
+-- print("Tier:", LevelingManager.getAlignmentTier(LevelingManager.getAlignment(entity)))
 ```
 
 ## Future Enhancements

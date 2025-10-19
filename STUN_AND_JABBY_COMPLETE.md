@@ -255,8 +255,8 @@ Look for this message in console:
 3. **Check if StringValues Exist**
    ```lua
    -- In console, check:
-   print(workspace.YourCharacter:FindFirstChild("Stuns"))
-   print(workspace.YourCharacter:FindFirstChild("Speeds"))
+   -- print(workspace.YourCharacter:FindFirstChild("Stuns"))
+   -- print(workspace.YourCharacter:FindFirstChild("Speeds"))
    ```
 
 4. **Verify ECS Components**

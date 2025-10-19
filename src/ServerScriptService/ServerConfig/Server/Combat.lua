@@ -33,7 +33,7 @@ Combat.Light = function(Character: Model)
 	local Stats: {} = WeaponStats[Weapon]
 
 	if Stats["Exception"] then
-		print('weapon has an exception')
+		-- print('weapon has an exception')
 		Server.Modules.WeaponExceptions[Weapon](Character, Entity, Weapon, Stats)
 		return
 	end
@@ -274,7 +274,7 @@ Combat.Critical = function(Character: Model)
 					local Ragdoller = require(game.ReplicatedStorage.Modules.Utils.Ragdoll)
 					Ragdoller.Ragdoll(Target, 3)
 
-					print(`[Critical] Knocked back ragdolled target: {Target.Name} and extended ragdoll by 3 seconds`)
+					-- print(`[Critical] Knocked back ragdolled target: {Target.Name} and extended ragdoll by 3 seconds`)
 				end
 			end
 
@@ -356,7 +356,7 @@ Combat.Critical = function(Character: Model)
 								task.wait()
 							end
 						end)
-				print("sending loop to wall")
+				-- print("sending loop to wall")
 			end
 			--if not Target:GetAttribute("")
 		end
@@ -482,7 +482,7 @@ Combat.RunningAttack = function(Character)
 						if not Tagged[Target] then
 							Tagged[Target] = true;
 							Server.Modules.Damage.Tag(Character, Target, Stats["RATable"])
-							print("ra table")
+							-- print("ra table")
 						end
 					end
 					

@@ -1,6 +1,6 @@
 
 return function(actor: Actor, mainConfig: table)
-	--print("Moving to target...")
+	---- print("Moving to target...")
 
 
 
@@ -15,7 +15,7 @@ return function(actor: Actor, mainConfig: table)
 	end
 
 
-	--print("true")
+	---- print("true")
 	mainConfig.InitiateBlock(true)
 	return true
 end

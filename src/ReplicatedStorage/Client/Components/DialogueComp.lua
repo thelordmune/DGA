@@ -45,11 +45,11 @@ local function fadeDivergeAnimation(textFrame, delayPerChar)
 
 		local originalPos = character.Position
 		local distanceFromCenter = i - centerIndex
-		local divergeAmount = 8
+		local divergeAmount = 2
 		local xOffset = distanceFromCenter * (divergeAmount / totalChars) * 2
 
 		-- Alternate between top and bottom: odd indices from top, even from bottom
-		local verticalOffset = (i % 2 == 1) and -15 or 15
+		local verticalOffset = (i % 2 == 1) and math.random(1,5) or math.random(8,15)
 		local yOffset = verticalOffset
 
 		if isImageLabel then
@@ -200,7 +200,7 @@ return function(scope, props: {})
 			task.spawn(function()
 				task.wait(0.5) -- Wait for any ongoing animation
 				if peek(responseMode) then -- Double-check it's still in response mode
-					print("[DialogueComp] Response mode activated, showing responses")
+					-- print("[DialogueComp] Response mode activated, showing responses")
 					showResponses:set(true)
 				end
 			end)
@@ -299,8 +299,8 @@ return function(scope, props: {})
 			scope:Computed(function(use)
 				return if use(framein) then UDim2.fromScale(0.5, 0.611) else UDim2.fromScale(0.5, 1.2)
 			end),
-			18,
-			0.4
+			10,
+			0.8
 		),
 		Size = UDim2.fromOffset(453, 236),
 		Parent = parent,
@@ -551,10 +551,10 @@ return function(scope, props: {})
 					local showRespValue = use(showResponses)
 					local responsesValue = use(responses)
 
-					print("[DialogueComp] ResponseFrame visibility check:")
-					print("  responseMode:", respModeValue)
-					print("  showResponses:", showRespValue)
-					print("  responses count:", responsesValue and #responsesValue or 0)
+					-- print("[DialogueComp] ResponseFrame visibility check:")
+					-- print("  responseMode:", respModeValue)
+					-- print("  showResponses:", showRespValue)
+					-- print("  responses count:", responsesValue and #responsesValue or 0)
 
 					return respModeValue and showRespValue
 				end),
@@ -573,7 +573,7 @@ return function(scope, props: {})
 						-- Get the index from the response order
 						local safeIndex = response.order or 1
 
-						print("[DialogueComp] Creating response button:", safeIndex, response.text)
+						-- print("[DialogueComp] Creating response button:", safeIndex, response.text)
 
 						-- Use Computed to dynamically calculate size based on actual response count
 						local buttonSize = innerScope:Computed(function(use)
@@ -588,7 +588,7 @@ return function(scope, props: {})
 								end
 							end
 
-							print("[DialogueComp] Total response count:", responseCount)
+							-- print("[DialogueComp] Total response count:", responseCount)
 
 							-- Each button gets equal share of width
 							-- UIListLayout handles padding automatically, so we just divide by count
@@ -701,7 +701,7 @@ return function(scope, props: {})
 						-- Add click handler
 						task.spawn(function()
 							button.Activated:Connect(function()
-								print("[DialogueComp] Response button clicked:", response.text)
+								-- print("[DialogueComp] Response button clicked:", response.text)
 
 								-- Fade out all buttons before progressing
 								task.spawn(function()

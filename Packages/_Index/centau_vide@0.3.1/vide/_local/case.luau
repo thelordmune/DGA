@@ -30,7 +30,7 @@ local function App()
 
     name "bob"
 
-    print(cleaned)
+    -- print(cleaned)
 end
 
 mount(App)

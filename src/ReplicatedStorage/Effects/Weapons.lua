@@ -1305,7 +1305,7 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 					flash3:Play()
 					flash3.Completed:Connect(function()
 						-- Start camera shake immediately after flash
-						print("camera shake starting after flash...")
+						-- print("camera shake starting after flash...")
 
 						-- Create shake that updates the offset
 						local camShake = CameraShakeModule.new(Enum.RenderPriority.Camera.Value, function(shakeCf)

@@ -19,9 +19,9 @@ function values.start()
 			storage = Instance.new("Folder")
 			storage.Name = "BytenetStorage"
 			storage.Parent = ReplicatedStorage
-			print("Created new BytenetStorage folder")
+			-- print("Created new BytenetStorage folder")
 		else
-			print("Using existing BytenetStorage folder")
+			-- print("Using existing BytenetStorage folder")
 		end
 
 		valueFolder = storage

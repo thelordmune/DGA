@@ -42,7 +42,7 @@ local function binomial(n: number, p: number, x: number): number
     return choose(n, x) * p^x * (1 - p)^(n-x)
 end
 
-print(
+-- print(
     binomial(11, 0.06, 0) + binomial(11, 0.06, 1)
 )
 
@@ -53,7 +53,7 @@ do
         p += binomial(50, 0.08, i)
     end
 
-    print(1 - p)
+    -- print(1 - p)
 end
 
 --Var[X] = E[X^2] - (E[X])^2

@@ -318,7 +318,7 @@ return function(actor: Actor, mainConfig: table)
     -- Get what the player is doing
     local playerAction = getPlayerAction(target)
     if not playerAction then
-        -- print("[Smart Defense]", npc.Name, "- No player action detected")
+        -- -- print("[Smart Defense]", npc.Name, "- No player action detected")
         return false
     end
 

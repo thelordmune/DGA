@@ -148,7 +148,7 @@ function MagnusActiveQuest.Run()
     
     -- Check if it's Magnus's quest
     if activeQuest.npcName == "Magnus" then
-        print("[Magnus] Player has active quest:", activeQuest.questName)
+        -- print("[Magnus] Player has active quest:", activeQuest.questName)
         return true
     end
     

@@ -262,9 +262,9 @@ end
 ### Test 2: Speed During Skills
 1. Use a weapon skill (hold key)
 2. Character should NOT be able to move (walkspeed = 0)
-3. Console: `print(game.Players.LocalPlayer.Character.Speeds.Value)`
+3. Console: `-- print(game.Players.LocalPlayer.Character.Speeds.Value)`
 4. Should show: `["WeaponSkillHoldSpeedSet0"]`
-5. Console: `print(game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)`
+5. Console: `-- print(game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)`
 6. Should show: `0`
 
 ### Test 3: Movement Lock

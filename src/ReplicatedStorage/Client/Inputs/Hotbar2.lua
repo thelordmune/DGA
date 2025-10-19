@@ -31,19 +31,19 @@ InputModule.InputBegan = function(input, Client)
 
     -- Check if player is dashing
     if Client.Dodging then
-        print("[Hotbar2] Cannot use skill while dashing")
+        -- print("[Hotbar2] Cannot use skill while dashing")
         return
     end
 
-    print("Hotbar slot pressed:", hotbarSlot)
+    -- print("Hotbar slot pressed:", hotbarSlot)
 
     local item = InventoryManager.getHotbarItem(pent, hotbarSlot)
     if not item then
-        print("No item in hotbar slot:", hotbarSlot)
+        -- print("No item in hotbar slot:", hotbarSlot)
         return
     end
 
-    print("Using item:", item.name, "from hotbar slot:", hotbarSlot)
+    -- print("Using item:", item.name, "from hotbar slot:", hotbarSlot)
 
     -- Store the item for InputEnded
     heldSkills[hotbarSlot] = item
@@ -63,7 +63,7 @@ InputModule.InputEnded = function(input, Client)
     local item = heldSkills[hotbarSlot]
     if not item then return end
 
-    print("Hotbar slot released:", hotbarSlot, "Item:", item.name)
+    -- print("Hotbar slot released:", hotbarSlot, "Item:", item.name)
 
     -- Send to server (InputEnded)
     Client.Packets.UseItem.send({

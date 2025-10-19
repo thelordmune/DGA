@@ -2,7 +2,7 @@ local getPathState = require(script.GetPathState)
 local pathfinding = require(script.Pathfinding)
 
 local function updateMovementPattern(mainConfig)
-	--print(mainConfig.Setting.CanStrafe)
+	---- print(mainConfig.Setting.CanStrafe)
 	if not mainConfig.Setting.CanStrafe then
 		return "Direct"
 	end
@@ -55,7 +55,7 @@ local function updateMovementPattern(mainConfig)
 		for _,pattern in patterns do
 			currenmtWeight += pattern.weight
 			if random <= currenmtWeight then
-				--print(`Selected {pattern.name} as new pattern`)
+				---- print(`Selected {pattern.name} as new pattern`)
 				mainConfig.Movement.Patterns.Current = pattern.name
 				break
 			end
@@ -185,7 +185,7 @@ return function(actor: Actor, mainConfig: table )
 
 					local patternBehaviors = {
 						[`Strafe`] = function()
-							--print("strafe")
+							---- print("strafe")
 							local alignOrientation = createAlignment(npc, victim, mainConfig)
 							local patterns = mainConfig.Movement.Patterns.Types.Strafe;
 
@@ -197,7 +197,7 @@ return function(actor: Actor, mainConfig: table )
 						end,
 
 						[`SideApproach`] = function()
-							--print("side approach")
+							---- print("side approach")
 							local alignOrientation = createAlignment(npc, victim, mainConfig)
 
 							local patterns = mainConfig.Movement.Patterns.Types.SideApproach;
@@ -207,7 +207,7 @@ return function(actor: Actor, mainConfig: table )
 						end,
 
 						[`CircleStrafe`] = function()
-							--print("circle strafe")
+							---- print("circle strafe")
 							local alignOrientation = createAlignment(npc, victim, mainConfig)
 
 							local patterns = mainConfig.Movement.Patterns.Types.CircleStrafe;
@@ -221,7 +221,7 @@ return function(actor: Actor, mainConfig: table )
 						end,
 
 						[`ZigZag`] = function()
-							--print("zig zag")
+							---- print("zig zag")
 							local alignOrientation = createAlignment(npc, victim, mainConfig)
 
 							local patterns = mainConfig.Movement.Patterns.Types.ZigZag;
@@ -244,7 +244,7 @@ return function(actor: Actor, mainConfig: table )
 					}
 
 					local currentPattern = updateMovementPattern(mainConfig)
-					--print(currentPattern)
+					---- print(currentPattern)
 					local finalDirection = patternBehaviors[currentPattern]()
 
 					local _ = currentPattern == "Direct" and clearAlignOrientation(npc)

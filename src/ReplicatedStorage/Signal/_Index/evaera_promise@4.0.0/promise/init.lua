@@ -463,7 +463,7 @@ end
 		return math.random(1, 2) == 1 and "ok" or error("Oh an error!")
 	end)
 		:andThen(function(text)
-			print(text)
+			-- print(text)
 		end)
 		:catch(function(err)
 			warn("Something went wrong")
@@ -835,7 +835,7 @@ end
 		"qux"
 	}, function(value, index)
 		return Promise.delay(1):andThen(function()
-		print(("%d) Got %s!"):format(index, value))
+		-- print(("%d) Got %s!"):format(index, value))
 		end)
 	end)
 
@@ -1319,7 +1319,7 @@ end
 		getTheValue()
 		:tap(print)
 		:andThen(function(theValue)
-			print("Got", theValue, "even though print returns nil!")
+			-- print("Got", theValue, "even though print returns nil!")
 		end)
 	```
 
@@ -1539,7 +1539,7 @@ end
 
 	doSomethingWith(thing)
 		:andThen(function()
-			print("It worked!")
+			-- print("It worked!")
 			-- do something..
 		end)
 		:catch(function()
@@ -1653,7 +1653,7 @@ end
 		local worked, value = getTheValue():await()
 
 	if worked then
-		print("got", value)
+		-- print("got", value)
 	else
 		warn("it failed")
 	end
@@ -1680,7 +1680,7 @@ end
 
 	```lua
 	local worked = pcall(function()
-		print("got", getTheValue():expect())
+		-- print("got", getTheValue():expect())
 	end)
 
 	if not worked then
@@ -1877,7 +1877,7 @@ end
 	doSomething()
 		:now()
 		:andThen(function(value)
-			print("Got", value, "synchronously.")
+			-- print("Got", value, "synchronously.")
 		end)
 	```
 

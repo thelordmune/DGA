@@ -21,19 +21,19 @@ local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManage
 local deathConnections = {}
 
 local function failQuest(playerEntity, player)
-    print(`[Quest Failure] ❌ Player {player.Name} died - failing active quest`)
+    -- print(`[Quest Failure] ❌ Player {player.Name} died - failing active quest`)
 
     -- Get active quest info before removing
     local activeQuest = world:get(playerEntity, comps.ActiveQuest)
     if activeQuest then
-        print(`[Quest Failure] Failing quest: {activeQuest.npcName} - {activeQuest.questName}`)
+        -- print(`[Quest Failure] Failing quest: {activeQuest.npcName} - {activeQuest.questName}`)
 
         -- Remove quest items from inventory based on quest
         if activeQuest.npcName == "Magnus" and activeQuest.questName == "Missing Pocketwatch" then
             -- Remove pocketwatch from inventory
             local success = InventoryManager.removeItem(playerEntity, "Pocketwatch", 1)
             if success then
-                print("[Quest Failure] ✅ Removed Pocketwatch from inventory")
+                -- print("[Quest Failure] ✅ Removed Pocketwatch from inventory")
             else
                 warn("[Quest Failure] ⚠️ Failed to remove Pocketwatch from inventory (might not have it)")
             end
@@ -44,7 +44,7 @@ local function failQuest(playerEntity, player)
                 for _, child in ipairs(questFolder:GetDescendants()) do
                     if child.Name == "Pocketwatch" then
                         child:Destroy()
-                        print("[Quest Failure] ✅ Destroyed spawned Pocketwatch in world")
+                        -- print("[Quest Failure] ✅ Destroyed spawned Pocketwatch in world")
                     end
                 end
             end
@@ -52,30 +52,30 @@ local function failQuest(playerEntity, player)
 
         -- Remove quest components
         world:remove(playerEntity, comps.ActiveQuest)
-        print("[Quest Failure] ✅ Removed ActiveQuest component")
+        -- print("[Quest Failure] ✅ Removed ActiveQuest component")
     else
-        print("[Quest Failure] ⚠️ No active quest found")
+        -- print("[Quest Failure] ⚠️ No active quest found")
     end
 
     -- Remove quest item collected component
     if world:has(playerEntity, comps.QuestItemCollected) then
         world:remove(playerEntity, comps.QuestItemCollected)
-        print("[Quest Failure] ✅ Removed QuestItemCollected component")
+        -- print("[Quest Failure] ✅ Removed QuestItemCollected component")
     end
 
     -- Remove quest data component
     if world:has(playerEntity, comps.QuestData) then
         world:remove(playerEntity, comps.QuestData)
-        print("[Quest Failure] ✅ Removed QuestData component")
+        -- print("[Quest Failure] ✅ Removed QuestData component")
     end
 
     -- Remove quest accepted component (in case it's still there)
     if world:has(playerEntity, comps.QuestAccepted) then
         world:remove(playerEntity, comps.QuestAccepted)
-        print("[Quest Failure] ✅ Removed QuestAccepted component")
+        -- print("[Quest Failure] ✅ Removed QuestAccepted component")
     end
 
-    print(`[Quest Failure] ✅ Quest failure complete for {player.Name}`)
+    -- print(`[Quest Failure] ✅ Quest failure complete for {player.Name}`)
 end
 
 local function setupDeathListener(playerEntity, player, character)
@@ -88,7 +88,7 @@ local function setupDeathListener(playerEntity, player, character)
     local humanoid = character:WaitForChild("Humanoid")
     
     deathConnections[player] = humanoid.Died:Connect(function()
-        print(`[Quest Failure] {player.Name} died`)
+        -- print(`[Quest Failure] {player.Name} died`)
         
         -- Check if player has an active quest
         if world:has(playerEntity, comps.ActiveQuest) then

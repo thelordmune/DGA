@@ -60,14 +60,14 @@ local function syncStateToStringValue(character: Model, componentName: string, s
 		lastSyncedStates[cacheKey] = jsonStates
 
 		if DEBUG and #states > 0 then
-			print(`[StateSync/Server] Updated {character.Name}.{stringValueName}: {jsonStates}`)
+			-- print(`[StateSync/Server] Updated {character.Name}.{stringValueName}: {jsonStates}`)
 		end
 	end
 end
 
 local function state_sync()
 	if firstRun then
-		print(`[StateSync] ✅ State sync system started on Server`)
+		-- print(`[StateSync] ✅ State sync system started on Server`)
 		firstRun = false
 	end
 
@@ -75,7 +75,7 @@ local function state_sync()
 	
 	-- Log every 60 frames (1 second) to confirm system is running
 	if DEBUG and frameCount % 60 == 0 then
-		print(`[StateSync/Server] System is running (frame {frameCount})`)
+		-- print(`[StateSync/Server] System is running (frame {frameCount})`)
 	end
 
 	-- Iterate through all entities with Character component
@@ -106,7 +106,7 @@ local function state_sync()
 	
 	-- Log entity count once
 	if not hasLoggedQuery and entityCount > 0 then
-		print(`[StateSync/Server] Found {entityCount} character entities`)
+		-- print(`[StateSync/Server] Found {entityCount} character entities`)
 		hasLoggedQuery = true
 	end
 end

@@ -49,7 +49,7 @@ function HasQuestItem.Run(npcName, questName)
 	
 	-- Check if the quest item matches
 	if questItem.npcName == npcName and questItem.questName == questName then
-		print("[HasQuestItem] Player has quest item:", npcName, questName)
+		-- print("[HasQuestItem] Player has quest item:", npcName, questName)
 		return true
 	end
 	

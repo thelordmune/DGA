@@ -109,7 +109,7 @@ NetworkModule.EndPoint = function(Player, Data)
                 local rowIndex = i - 2
                 local rowName = "Row" .. rowIndex
 
-                print("Spawning", rowName, "at hittime", i, "delay:", hittimes[i])
+                -- print("Spawning", rowName, "at hittime", i, "delay:", hittimes[i])
 
                 -- Get the row folder from cloned Spikes
                 local rowFolder = Spikes:FindFirstChild(rowName)
@@ -125,7 +125,7 @@ NetworkModule.EndPoint = function(Player, Data)
                     return
                 end
 
-                print("Found row model:", rowModel.Name, "with", #rowModel:GetChildren(), "spikes")
+                -- print("Found row model:", rowModel.Name, "with", #rowModel:GetChildren(), "spikes")
 
                 -- Calculate spawn position in front of player - each row further out
                 local baseDistance = (1.5 + (rowIndex * 5)) --rowIndex == 1 and 3 or  -- First row further back
@@ -137,7 +137,7 @@ NetworkModule.EndPoint = function(Player, Data)
                     * CFrame.new(0, targetY, -baseDistance)
                     * CFrame.Angles(0, math.rad(180), 0)
 
-                print("Spawn CFrame for", rowName, ":", startCFrame, "distance:", baseDistance)
+                -- print("Spawn CFrame for", rowName, ":", startCFrame, "distance:", baseDistance)
 
                 -- Clone the entire row model
                 local spikeRow = rowModel:Clone()
@@ -167,11 +167,11 @@ NetworkModule.EndPoint = function(Player, Data)
                 
                 table.insert(activeConnections, connection)
 
-                print("Animation started for row:", rowName)
+                -- print("Animation started for row:", rowName)
 
                 -- Do damage when spikes emerge
                 task.delay(0.1, function()
-                    print("Checking for damage targets around row:", rowName)
+                    -- print("Checking for damage targets around row:", rowName)
 
                     -- Check damage for each spike in the row
                     for _, spike in pairs(spikeRow:GetChildren()) do
@@ -183,9 +183,9 @@ NetworkModule.EndPoint = function(Player, Data)
                                 false
                             )
 
-                            print("Found", #HitTargets, "targets for spike:", spike.Name)
+                            -- print("Found", #HitTargets, "targets for spike:", spike.Name)
                             for _, Target in pairs(HitTargets) do
-                                print("Damaging target:", Target.Name, "with spike:", spike.Name)
+                                -- print("Damaging target:", Target.Name, "with spike:", spike.Name)
                                 Server.Modules.Damage.Tag(Character, Target, Moves.Stone.Cascade["Rapid"])
                             end
                         end
@@ -194,9 +194,9 @@ NetworkModule.EndPoint = function(Player, Data)
 
                 -- Clean up row after a few seconds
                 Debris:AddItem(spikeRow, 5)
-                print("Row cleanup scheduled for:", rowName)
+                -- print("Row cleanup scheduled for:", rowName)
 
-                print("Finished spawning", rowName)
+                -- print("Finished spawning", rowName)
             end)
         end
 	end

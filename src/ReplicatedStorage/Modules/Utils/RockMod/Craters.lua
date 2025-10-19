@@ -11,7 +11,7 @@ function Craters.Orbit(AnchorPoint, Settings, State)
 
 	local CurrentSplit = 1
 	local Parts = {}
-	print(Settings.Size)
+	-- print(Settings.Size)
 
 	local Offsets = State.CircleMath(AnchorPoint, Settings.Radius, Settings.PartCount)
 	for i = 1, math.floor(#Offsets * Settings.CircleFraction + 0.5) - 1 do

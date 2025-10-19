@@ -18,7 +18,7 @@ function CheckValidTarget(TargetPart, Entity)
 
 			-- Check for alchemy walls (parts with the special attribute)
 		elseif TargetPart.Name:find("AbilityWall_") and TargetPart:GetAttribute("Id") then
-			print("youre attempting to attack a wall")
+			-- print("youre attempting to attack a wall")
 			Valid = true
 
 			-- Check for destructible objects (barrels, trees, etc.)
@@ -30,7 +30,7 @@ function CheckValidTarget(TargetPart, Entity)
 			local isInTransmutables = workspace:FindFirstChild("Transmutables") and TargetPart:IsDescendantOf(workspace.Transmutables)
 
 			if isInMap or isInTransmutables then
-				print("youre attempting to attack a destructible object:", TargetPart.Name)
+				-- print("youre attempting to attack a destructible object:", TargetPart.Name)
 				Valid = true
 			else
 				-- Part has Destroyable attribute but is not in Map/Transmutables (probably a character accessory)

@@ -17,7 +17,7 @@ return function(actor: Actor, mainConfig: table)
 	local npc_states = mainConfig.getState()
 
 	if not npc_states then
-		--print("here1")
+		---- print("here1")
 		return false
 	end
 
@@ -27,13 +27,13 @@ return function(actor: Actor, mainConfig: table)
 	--end
 
 	if not mainConfig.getTarget() then
-		--print("here2")
+		---- print("here2")
 		return
 	end
 
 	local runConfig = mainConfig.Run;
 	if not runConfig.RunOnFollowing.Enabled then
-		--print("here3")
+		---- print("here3")
 		return false
 	end
 
@@ -42,7 +42,7 @@ return function(actor: Actor, mainConfig: table)
 	--end
 
 	--if not (humanoid.MoveDirection.Magnitude > 0) then
-	--	print("here4")
+	--	-- print("here4")
 	--	return false
 	--end
 
@@ -52,7 +52,7 @@ return function(actor: Actor, mainConfig: table)
 		else distance >= runConfig.RunOnFollowing.Distance
 
 	if shouldSprint then
-		print(`[NPC Sprint] {npc.Name} should sprint - Distance: {math.floor(distance)} studs`)
+		-- print(`[NPC Sprint] {npc.Name} should sprint - Distance: {math.floor(distance)} studs`)
 	end
 
 	return shouldSprint

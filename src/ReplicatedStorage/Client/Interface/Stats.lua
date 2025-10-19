@@ -59,7 +59,7 @@ Controller.LoadAlchemyMoves = function()
     Controller.UpdateHotbarSlot(9, "Modifier (X)")  -- X key enters modifier mode
     Controller.UpdateHotbarSlot(10, alchemyInfo.Type .. " Alchemy") -- Show alchemy type
 
-    -- print("📋 Loaded", alchemyInfo.Type, "alchemy - Use Z to cast, X for modifiers")
+    -- -- print("📋 Loaded", alchemyInfo.Type, "alchemy - Use Z to cast, X for modifiers")
 end
 
 Controller.LoadWeaponSkills = function()
@@ -111,7 +111,7 @@ Controller.LoadWeaponSkills = function()
         return
     end
 
-    print("[LoadWeaponSkills] Loading weapon skills for player entity:", pent)
+    -- print("[LoadWeaponSkills] Loading weapon skills for player entity:", pent)
 
     -- Check if player has Hotbar and Inventory components
     -- Throw errors instead of returning so retry logic knows it failed
@@ -126,26 +126,26 @@ Controller.LoadWeaponSkills = function()
     local hotbar = world:get(pent, comps.Hotbar)
     local inventory = world:get(pent, comps.Inventory)
 
-    print("[LoadWeaponSkills] 📋 Hotbar slots:", hotbar.slots)
-    print("[LoadWeaponSkills] 📦 Inventory items count:", inventory.items and #inventory.items or 0)
+    -- print("[LoadWeaponSkills] 📋 Hotbar slots:", hotbar.slots)
+    -- print("[LoadWeaponSkills] 📦 Inventory items count:", inventory.items and #inventory.items or 0)
 
     -- Get weapon skills from hotbar slots 1-7
     local skillsLoaded = 0
     for slotNumber = 1, 7 do
         local success3, item = pcall(InventoryManager.getHotbarItem, pent, slotNumber)
         if success3 and item then
-            print("[LoadWeaponSkills] Slot", slotNumber, "- Item:", item.name, "Type:", item.typ)
+            -- print("[LoadWeaponSkills] Slot", slotNumber, "- Item:", item.name, "Type:", item.typ)
             if item.typ == "skill" then
                 Controller.UpdateHotbarSlot(slotNumber, item.name)
                 skillsLoaded = skillsLoaded + 1
             end
         else
-            print("[LoadWeaponSkills] Slot", slotNumber, "- Empty or error:", success3 and "empty" or item)
+            -- print("[LoadWeaponSkills] Slot", slotNumber, "- Empty or error:", success3 and "empty" or item)
             Controller.UpdateHotbarSlot(slotNumber, "") -- Clear slot if no skill
         end
     end
 
-    print("[LoadWeaponSkills] ✅ Loaded", skillsLoaded, "weapon skills")
+    -- print("[LoadWeaponSkills] ✅ Loaded", skillsLoaded, "weapon skills")
 end
 
 Controller.UpdateHotbarSlot = function(slotNumber, itemName)
@@ -165,227 +165,53 @@ Controller.UpdateHotbarSlot = function(slotNumber, itemName)
     end
 end
 
+Controller.InitializeHotbar = function(character, entity)
+	-- print("[Stats] ===== INITIALIZING HOTBAR =====")
+	-- print(`[Stats] Character: {character}`)
+	-- print(`[Stats] Entity: {entity}`)
+	-- print(`[Stats] UI: {UI}`)
+
+	if not UI then
+		-- print("[Stats] ❌ UI not found, skipping hotbar initialization")
+		return
+	end
+
+	-- print(`[Stats] UI type: {typeof(UI)}`)
+	-- print(`[Stats] UI name: {UI.Name}`)
+	-- print(`[Stats] UI children: {#UI:GetChildren()}`)
+
+	-- Find existing Hotbar frame
+	local hotbarFrame = UI:FindFirstChild("Hotbar")
+	if not hotbarFrame then
+		-- print("[Stats] ❌ Hotbar frame not found in UI!")
+		return
+	end
+
+	-- print(`[Stats] ✅ Found existing Hotbar frame: {hotbarFrame}`)
+
+	-- print("[Stats] Loading Hotbar component...")
+	local Fusion = require(Replicated.Modules.Fusion)
+	local Hotbar = require(Replicated.Client.Components.Hotbar)
+	-- print("[Stats] Hotbar component loaded, creating scope...")
+	local scope = Fusion.scoped(Fusion, {})
+	-- print(`[Stats] Scope created: {scope}`)
+
+	-- Create the hotbar component
+	-- print("[Stats] Calling Hotbar function...")
+	Hotbar(scope, {
+		character = character,
+		entity = entity,
+		Parent = hotbarFrame,
+	})
+
+	-- print("[Stats] ✅ Hotbar initialized with Fusion component")
+	-- print("[Stats] ===== HOTBAR INITIALIZATION COMPLETE =====")
+end
+
 Controller.Hotbar = function(Order: string)
-    repeat task.wait() until Character
-    if Order == "Initiate" then
-        -- Get the existing hotbar container
-        local hotbarContainer = UI.Hotbar.Hotbar
-        
-        -- Store original transparency values for all visual elements
-        local originalProperties = {}
-        
-        -- Function to recursively store original transparency values
-        local function storeOriginalProperties(object, propertiesTable)
-            propertiesTable = propertiesTable or originalProperties
-            if object:IsA("GuiObject") then
-                propertiesTable[object] = {
-                    BackgroundTransparency = object.BackgroundTransparency
-                }
-                
-                -- Only store text transparency if it's a text-based object
-                if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
-                    propertiesTable[object].TextTransparency = object.TextTransparency
-                end
-                
-                -- Only store image transparency if it's an image-based object
-                if object:IsA("ImageLabel") or object:IsA("ImageButton") then
-                    propertiesTable[object].ImageTransparency = object.ImageTransparency
-                end
-                
-            end
-            
-            -- Recursively process children
-            for _, child in ipairs(object:GetChildren()) do
-                storeOriginalProperties(child, propertiesTable)
-            end
-        end
-        
-        -- Function to set all transparencies to 1 (fully transparent)
-        local function setTransparent(object)
-            if object:IsA("GuiObject") then
-                object.BackgroundTransparency = 1
-                
-                if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
-                    object.TextTransparency = 1
-                end
-                
-                if object:IsA("ImageLabel") or object:IsA("ImageButton") then
-                    object.ImageTransparency = 1
-                end
-            end
-            
-            -- Recursively process children
-            for _, child in ipairs(object:GetChildren()) do
-                setTransparent(child)
-            end
-        end
-        
-        -- Function to tween back to original transparency with proper type checking
-        local function tweenToOriginal(object, propertiesTable)
-            propertiesTable = propertiesTable or originalProperties
-            if propertiesTable[object] then
-                local props = propertiesTable[object]
-                
-                -- Tween background transparency (always exists for GuiObjects)
-                Client.Service.TweenService:Create(object, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    BackgroundTransparency = props.BackgroundTransparency
-                }):Play()
-                
-                -- Tween text transparency only if it exists and the object supports it
-                if props.TextTransparency ~= nil and (object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox")) then
-                    Client.Service.TweenService:Create(object, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                        TextTransparency = props.TextTransparency
-                    }):Play()
-                end
-                
-                -- Tween image transparency only if it exists and the object supports it
-                if props.ImageTransparency ~= nil and (object:IsA("ImageLabel") or object:IsA("ImageButton")) then
-                    Client.Service.TweenService:Create(object, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                        ImageTransparency = props.ImageTransparency
-                    }):Play()
-                end
-            end
-            
-            -- Recursively process children
-            for _, child in ipairs(object:GetChildren()) do
-                if child:IsA("GuiObject") then
-                    tweenToOriginal(child, propertiesTable)
-                end
-            end
-        end
-        
-        -- Store original properties of the template hotbar
-        storeOriginalProperties(hotbarContainer)
-
-        -- First, set the key labels for the template hotbar
-        local imageLabel = hotbarContainer:FindFirstChild("ImageLabel")
-        if imageLabel then
-            local keyLabel = imageLabel:FindFirstChild("TextLabel")
-            if keyLabel then
-                keyLabel.Text = "1"
-            end
-        end
-
-        -- Store the original position BEFORE any modifications
-        local originalPosition = hotbarContainer.Position
-
-        -- Create a clean template for cloning (before we modify position)
-        local cleanTemplate = hotbarContainer:Clone()
-
-        -- Set the template to transparent initially and offset position (first slot comes from top)
-        setTransparent(hotbarContainer)
-        hotbarContainer.Position = originalPosition + UDim2.fromOffset(0, -15)
-
-        -- Tween the template hotbar back to visible and original position together
-        task.delay(0, function()
-            -- Tween position
-            Client.Service.TweenService:Create(hotbarContainer, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Position = originalPosition
-            }):Play()
-            -- Tween transparency
-            tweenToOriginal(hotbarContainer)
-        end)
-
-        -- Create 9 additional hotbars with delay
-        task.delay(2, function()
-        for i = 2, 10 do
-            task.wait(0.05) -- Small delay between creating each hotbar
-
-            local newHotbar = cleanTemplate:Clone()
-            newHotbar.Name = "Hotbar" .. i
-            newHotbar.Parent = UI.Hotbar
-
-            -- Set the key label for this hotbar
-            local newImageLabel = newHotbar:FindFirstChild("ImageLabel")
-            if newImageLabel then
-                local newKeyLabel = newImageLabel:FindFirstChild("TextLabel")
-                if newKeyLabel then
-                    if i <= 7 then
-                        newKeyLabel.Text = tostring(i)
-                    elseif i == 8 then
-                        newKeyLabel.Text = "Z"
-                    elseif i == 9 then
-                        newKeyLabel.Text = "X"
-                    elseif i == 10 then
-                        newKeyLabel.Text = "C"
-                    end
-                end
-            end
-
-            -- Position the new hotbar next to the previous on
-            -- Store the original properties for this specific hotbar
-            local hotbarProperties = {}
-            storeOriginalProperties(newHotbar, hotbarProperties)
-
-            -- Store the original position
-            local newOriginalPosition = newHotbar.Position
-
-            -- Set the new hotbar to transparent initially
-            setTransparent(newHotbar)
-
-            -- Alternate between top and bottom: even indices come from bottom, odd from top
-            local yOffset = (i % 2 == 0) and 15 or -15
-            newHotbar.Position = newOriginalPosition + UDim2.fromOffset(0, yOffset)
-
-            -- Tween it to visible after a short delay
-            task.delay(2, function()
-                task.wait(0.1 * (i-1)) -- Staggered delay based on index
-
-                -- Tween position and transparency together
-                Client.Service.TweenService:Create(newHotbar, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                    Position = newOriginalPosition
-                }):Play()
-
-                tweenToOriginal(newHotbar, hotbarProperties)
-            end)
-        end
-         for i = 1, 10 do
-            local hotbarName = i == 1 and "Hotbar" or "Hotbar" .. i
-            local hotbar = UI.Hotbar:FindFirstChild(hotbarName)
-            if hotbar then
-                hotbar.Visible = true
-            end
-        end
-
-        -- Load alchemy moves first
-        task.wait(0.1)
-        Controller.LoadAlchemyMoves()
-
-        -- Load weapon skills LAST with retry mechanism to ensure everything is ready
-        task.wait(0.5) -- Extra delay to ensure all systems are initialized
-        local weaponSkillsLoaded = false
-        local maxAttempts = 5
-        local attempt = 0
-
-        while not weaponSkillsLoaded and attempt < maxAttempts do
-            attempt = attempt + 1
-            local success, err = pcall(function()
-                Controller.LoadWeaponSkills()
-            end)
-
-            if success then
-                weaponSkillsLoaded = true
-                print("✅ Weapon skills loaded successfully on attempt", attempt)
-            else
-                warn("⚠️ Failed to load weapon skills (attempt " .. attempt .. "/" .. maxAttempts .. "):", err)
-                if attempt < maxAttempts then
-                    task.wait(0.5) -- Wait before retry
-                end
-            end
-        end
-
-        if not weaponSkillsLoaded then
-            warn("❌ Failed to load weapon skills after", maxAttempts, "attempts")
-        end
-        end)
-        
-        
-        -- Make all hotbars visible
-       
-    elseif Order == "Update" then
-        Controller.LoadAlchemyMoves()
-        Controller.LoadWeaponSkills()
-    end
+    -- Old hotbar initialization - now handled by Fusion Hotbar component
+    -- This function is kept for backwards compatibility but does nothing
+    -- print("[Stats] Hotbar function called with Order:", Order, "- using new Fusion hotbar system")
 end
 
 Controller.Party = function()
@@ -461,7 +287,7 @@ local Children, scoped, peek, out, OnEvent, Value, Tween =
 					},
 				},
 				[OnEvent "Activated"] = function(_,numclicks)
-					print("activated party button")
+					-- print("activated party button")
 					scope:Party{
 						squadselected = squ,
 						tempselected = temper,

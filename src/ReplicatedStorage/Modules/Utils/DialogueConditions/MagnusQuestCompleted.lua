@@ -68,7 +68,7 @@ function MagnusQuestCompleted.Run()
 	
 	-- Player has QuestHolder, no active Magnus quest, and no pocketwatch
 	-- This means they completed the quest!
-	print("[MagnusQuestCompleted] Player has completed Magnus quest!")
+	-- print("[MagnusQuestCompleted] Player has completed Magnus quest!")
 	return true
 end
 

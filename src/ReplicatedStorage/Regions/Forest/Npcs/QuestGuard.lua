@@ -89,6 +89,6 @@ local QuestGuardData = {
 	BehaviorTree = require(game.ReplicatedStorage.NpcHelper.Behaviors.Forest.Guard_BehaviorTree),
 }
 
-print("QuestGuard configuration loaded successfully")
+-- print("QuestGuard configuration loaded successfully")
 return QuestGuardData
 

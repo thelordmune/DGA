@@ -30,7 +30,7 @@ local function changePlayerAlchemy(player, alchemyName)
     -- Check if player already has this alchemy
     local currentAlchemy = player:GetAttribute("Alchemy")
     if currentAlchemy == alchemyName then
-        print("Player", player.Name, "already has alchemy:", alchemyName)
+        -- print("Player", player.Name, "already has alchemy:", alchemyName)
         return
     end
 
@@ -87,7 +87,7 @@ local function changePlayerAlchemy(player, alchemyName)
 
     game:GetService("Debris"):AddItem(highlight, 1)
 
-    print("Changed", player.Name, "alchemy to:", alchemyName)
+    -- print("Changed", player.Name, "alchemy to:", alchemyName)
 end
 
 -- Function to handle when a player touches the part
@@ -145,8 +145,8 @@ part.AncestryChanged:Connect(function()
     if not part.Parent then
         connection:Disconnect()
         playerLeavingConnection:Disconnect()
-        print("Alchemy changer cleaned up for:", ALCHEMY_NAME)
+        -- print("Alchemy changer cleaned up for:", ALCHEMY_NAME)
     end
 end)
 
-print("Alchemy changer active for:", ALCHEMY_NAME)
+-- print("Alchemy changer active for:", ALCHEMY_NAME)

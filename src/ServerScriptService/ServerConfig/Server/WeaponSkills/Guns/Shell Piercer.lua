@@ -61,7 +61,7 @@ return function(Player, Data, Server)
 			hittimes[i] = fraction * animlength
 		end
 
-		print(tostring(hittimes[1]))
+		-- print(tostring(hittimes[1]))
 
 		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 			Module = "Base",
@@ -69,7 +69,7 @@ return function(Player, Data, Server)
 			Arguments = { Character, "Start", hittimes[1] },
 		})
 
-		print("Sending shake to client for player:", Player.Name)
+		-- print("Sending shake to client for player:", Player.Name)
 
 
 		task.delay(hittimes[1], function()
@@ -94,7 +94,7 @@ return function(Player, Data, Server)
 			for _, Target in pairs(HitTargets) do
 				if Target ~= Character and Target:IsA("Model") then
 					Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
-					print("Shell Piercer hit enemy:", Target.Name)
+					-- print("Shell Piercer hit enemy:", Target.Name)
 				end
 			end
 
@@ -234,7 +234,7 @@ return function(Player, Data, Server)
 										}
 
 										Server.Modules.Damage.Tag(Character, hitCharacter, damageTable)
-										print("Shell Piercer debris hit:", hitCharacter.Name)
+										-- print("Shell Piercer debris hit:", hitCharacter.Name)
 									end
 								end
 							end
@@ -247,11 +247,11 @@ return function(Player, Data, Server)
 							end
 						end)
 
-						-- print("Shell Piercer: Flung wall part with velocity:", bodyVelocity.Velocity)
+						-- -- print("Shell Piercer: Flung wall part with velocity:", bodyVelocity.Velocity)
 					end
 				end
 
-				-- print("Shell Piercer: Destroyed", #destroyedParts, "wall parts")
+				-- -- print("Shell Piercer: Destroyed", #destroyedParts, "wall parts")
 			end
 		end)
 	end

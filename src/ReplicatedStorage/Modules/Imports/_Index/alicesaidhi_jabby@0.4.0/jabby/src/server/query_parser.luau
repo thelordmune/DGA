@@ -152,7 +152,7 @@ local function lex(source: string): Stream
 
 		local to = input.pos()
 
-		-- print("t", token, eliminator, input.peek())
+		-- -- print("t", token, eliminator, input.peek())
 
 		if input.peek() ~= eliminator then input.croak("unterminated string") end
 		input.next()

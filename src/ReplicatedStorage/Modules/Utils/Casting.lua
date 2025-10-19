@@ -9,7 +9,7 @@
 		local caster = Casting.new()
 
 		caster.OnSequenceComplete:Connect(function(sequence, isModifier)
-			print("Cast:", sequence, "Modifier:", isModifier)
+			-- print("Cast:", sequence, "Modifier:", isModifier)
 		end)
 
 		caster:StartCasting()
@@ -400,7 +400,7 @@ connection = RunService.Heartbeat:Connect(function()
 	if isCasting or true then
 		local targetTriangle = getTriangleFromMousePosition()
 		highlightTriangle(targetTriangle)
-		print("highlighting stuff")
+		-- print("highlighting stuff")
 	end
 end)
 

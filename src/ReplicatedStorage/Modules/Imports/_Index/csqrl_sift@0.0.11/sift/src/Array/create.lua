@@ -13,7 +13,7 @@
   ```lua
   local array = Create(3, "Hello")
 
-  print(array) -- { "Hello", "Hello", "Hello" }
+  -- print(array) -- { "Hello", "Hello", "Hello" }
   ```
 ]=]
 return table.create

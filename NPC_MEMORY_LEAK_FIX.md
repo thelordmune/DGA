@@ -38,7 +38,7 @@ local function cleanSweep()
         local entity = RefManager.entity.find(npcModel)
         if entity then
             RefManager.entity.delete(npcModel)  -- ✅ DELETE THE ENTITY!
-            print(`[NPC Cleanup] Deleted ECS entity {entity} for {npcModel.Name}`)
+            -- print(`[NPC Cleanup] Deleted ECS entity {entity} for {npcModel.Name}`)
         end
     end
 

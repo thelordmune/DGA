@@ -182,10 +182,10 @@ local allStates = StateManager.GetAllStates(character, "Actions")  -- ✅ Reads 
 **Debug Commands:**
 ```lua
 -- In console (F9):
-print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
+-- print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
 -- Should show: ["WeaponSkillHoldSpeedSet0"]
 
-print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
+-- print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
 -- Should show: 0
 ```
 
@@ -250,18 +250,18 @@ print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
 
 **For Jabby:**
 - Check console for errors
-- Verify: `print(require(game.ReplicatedStorage.Modules.Imports.jabby))`
+- Verify: `-- print(require(game.ReplicatedStorage.Modules.Imports.jabby))`
 - Make sure you restarted Studio after wally install
 
 **For Movement Lock:**
 - Check console for `[MovementLock]` messages
-- Verify: `print(game.Players.LocalPlayer.Character.Actions.Value)`
+- Verify: `-- print(game.Players.LocalPlayer.Character.Actions.Value)`
 - Should show states like `["WeaponSkillHold"]` when holding skill
 
 **For Speed:**
-- Check console: `print(game.Players.LocalPlayer.Character.Speeds.Value)`
+- Check console: `-- print(game.Players.LocalPlayer.Character.Speeds.Value)`
 - Should show `["WeaponSkillHoldSpeedSet0"]` when holding skill
-- Check: `print(game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)`
+- Check: `-- print(game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)`
 - Should show `0` when holding skill
 
 ---

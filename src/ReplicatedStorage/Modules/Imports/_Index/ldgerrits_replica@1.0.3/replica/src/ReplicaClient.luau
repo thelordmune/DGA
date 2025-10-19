@@ -687,7 +687,7 @@ RemoteRequestData.OnClientEvent:Connect(function()
 	end
 
 	Replica.IsReady = true
-	print(`[{script.Name}]: Initial data received`)
+	-- print(`[{script.Name}]: Initial data received`)
 	Replica.OnLocalReady:Fire()
 end)
 

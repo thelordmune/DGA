@@ -221,9 +221,9 @@ local function infoExample(parentFrame)
 	local options = TextPlus.GetOptions(frame)
 	local bounds = TextPlus.GetBounds(frame)
 	
-	print("Text:", text)
-	print("Font Size:", options.Size)
-	print("Text Bounds:", bounds)
+	-- print("Text:", text)
+	-- print("Font Size:", options.Size)
+	-- print("Text Bounds:", bounds)
 	
 	return frame
 end
@@ -246,7 +246,7 @@ local function clearExample(parentFrame)
 	-- Clear text after 3 seconds
 	task.delay(3, function()
 		TextPlus.Clear(frame)
-		print("Text cleared!")
+		-- print("Text cleared!")
 	end)
 	
 	return frame
@@ -279,7 +279,7 @@ local function runDemo()
 	infoExample(scrollFrame)
 	clearExample(scrollFrame)
 	
-	print("TextPlus Demo loaded! Check your screen.")
+	-- print("TextPlus Demo loaded! Check your screen.")
 end
 
 -- Run the demo

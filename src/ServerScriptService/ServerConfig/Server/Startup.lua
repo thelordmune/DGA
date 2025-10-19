@@ -9,20 +9,20 @@ task.delay(5, function()
     -- Monitor workspace.World.Live for new NPCs (including nested in folders)
     local function onNpcAdded(npc)
         if npc:IsA("Model") and npc:IsDescendantOf(workspace.World.Live) then
-            print("NPC detected in Live folder:", npc.Name)
+            -- print("NPC detected in Live folder:", npc.Name)
             -- Ensure NPC is properly initialized with entity system
             local entity = Server.Modules.Entities.Get(npc)
             if not entity then
-                print("Initializing entity for NPC:", npc.Name)
+                -- print("Initializing entity for NPC:", npc.Name)
                 Server.Modules.Entities.Init(npc)
             else
-                print("NPC", npc.Name, "already has entity")
+                -- print("NPC", npc.Name, "already has entity")
             end
         end
     end
 
     local function onNpcRemoved(npc)
-        print("NPC removed from Live folder:", npc.Name)
+        -- print("NPC removed from Live folder:", npc.Name)
     end
 
     -- Connect to CollectionService for NPCs with tags

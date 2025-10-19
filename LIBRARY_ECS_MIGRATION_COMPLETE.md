@@ -208,13 +208,13 @@ local Library = require(game.ReplicatedStorage.Modules.Library)
 Library.AddState(character.Actions, "TestState")
 
 -- Check state (should return true)
-print(Library.StateCheck(character.Actions, "TestState"))  -- true
+-- print(Library.StateCheck(character.Actions, "TestState"))  -- true
 
 -- Remove state
 Library.RemoveState(character.Actions, "TestState")
 
 -- Check state (should return false)
-print(Library.StateCheck(character.Actions, "TestState"))  -- false
+-- print(Library.StateCheck(character.Actions, "TestState"))  -- false
 ```
 
 2. **Check Cooldown Management:**
@@ -223,13 +223,13 @@ print(Library.StateCheck(character.Actions, "TestState"))  -- false
 Library.SetCooldown(character, "TestCooldown", 5)
 
 -- Check cooldown (should return true)
-print(Library.CheckCooldown(character, "TestCooldown"))  -- true
+-- print(Library.CheckCooldown(character, "TestCooldown"))  -- true
 
 -- Wait 5 seconds...
 task.wait(5)
 
 -- Check cooldown (should return false)
-print(Library.CheckCooldown(character, "TestCooldown"))  -- false
+-- print(Library.CheckCooldown(character, "TestCooldown"))  -- false
 ```
 
 3. **Check ECS Integration:**
@@ -246,14 +246,14 @@ local entity = RefManager.player.get("player", player)
 -- Check if entity has state components
 if world:has(entity, comps.StateActions) then
     local states = world:get(entity, comps.StateActions)
-    print("Actions states:", table.concat(states, ", "))
+    -- print("Actions states:", table.concat(states, ", "))
 end
 
 -- Check if entity has cooldowns
 if world:has(entity, comps.Cooldowns) then
     local cooldowns = world:get(entity, comps.Cooldowns)
     for skill, expiry in pairs(cooldowns) do
-        print(skill, "expires at", expiry)
+        -- print(skill, "expires at", expiry)
     end
 end
 ```

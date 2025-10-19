@@ -142,7 +142,7 @@ local function lex(source: string)
 			end
 		end
 
-		-- print("t", token, eliminator, input.peek())
+		-- -- print("t", token, eliminator, input.peek())
 
 		if input.peek() ~= eliminator then input.croak("unterminated string") end
 		input.next()
@@ -361,7 +361,7 @@ local function parse(source: string)
 			if is_symbol(stop) then break end
 			parser()
 			table.insert(a, pop_node())
-			-- print('next')
+			-- -- print('next')
 		end
 		skip_symbol(stop)
 		return a

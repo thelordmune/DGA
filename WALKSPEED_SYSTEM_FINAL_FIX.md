@@ -235,30 +235,30 @@ end
 ### Test Running:
 ```lua
 -- In console (F9):
-print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
+-- print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
 -- When running, should show: ["RunSpeedSet24"]
 
-print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
+-- print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
 -- When running, should show: 24
 ```
 
 ### Test M1 Attacks:
 ```lua
 -- In console:
-print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
+-- print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
 -- When attacking, should show: ["M1Speed12"]
 
-print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
+-- print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
 -- When attacking, should show: 12
 ```
 
 ### Test Weapon Skills:
 ```lua
 -- In console:
-print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
+-- print("Speeds:", game.Players.LocalPlayer.Character.Speeds.Value)
 -- When holding skill, should show: ["WeaponSkillHoldSpeedSet0"]
 
-print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
+-- print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
 -- When holding skill, should show: 0
 ```
 

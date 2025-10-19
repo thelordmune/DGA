@@ -23,8 +23,8 @@ local currentCharacter = nil
 
 -- Handle completed casting sequences
 local function handleCastingComplete(Client, baseSequence, modifierSequence, isModifier)
-	-- print("🔮 Processing alchemy cast...")
-	-- print("Base:", baseSequence, "Modifier:", modifierSequence, "IsModifier:", isModifier)
+	-- -- print("🔮 Processing alchemy cast...")
+	-- -- print("Base:", baseSequence, "Modifier:", modifierSequence, "IsModifier:", isModifier)
 
 	-- Check for matching combinations
 	local matchedMove = nil
@@ -49,7 +49,7 @@ local function handleCastingComplete(Client, baseSequence, modifierSequence, isM
 	end
 
 	if matchedMove then
-		-- print("✨ Matched Alchemy Move:", matchedMove, isAdvanced and "(Advanced)" or "(Basic)")
+		-- -- print("✨ Matched Alchemy Move:", matchedMove, isAdvanced and "(Advanced)" or "(Basic)")
 
 		-- Send the alchemy move to server
 		if Client.Packets[matchedMove] then
@@ -75,9 +75,9 @@ local function handleCastingComplete(Client, baseSequence, modifierSequence, isM
 			-- warn("⚠️ No packet handler found for move:", matchedMove)
 		end
 	else
-		-- print("❌ No matching alchemy move found for sequence:", baseSequence)
+		-- -- print("❌ No matching alchemy move found for sequence:", baseSequence)
 		if modifierSequence ~= "" then
-			-- print("   Modifier sequence:", modifierSequence)
+			-- -- print("   Modifier sequence:", modifierSequence)
 		end
 	end
 end
@@ -119,7 +119,7 @@ local function initializeCasting(Client)
 			end)
 		end
 
-		-- print("🎯 Directional Casting System Initialized")
+		-- -- print("🎯 Directional Casting System Initialized")
 	end
 	return castingInstance
 end

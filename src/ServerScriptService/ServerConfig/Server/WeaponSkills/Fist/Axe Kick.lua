@@ -59,7 +59,7 @@ return function(Player, Data, Server)
 			hittimes[i] = fraction * animlength
 		end
 
-		print(tostring(hittimes[1]))
+		-- print(tostring(hittimes[1]))
 			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.AxeKick.Swing, true)
 		task.delay(hittimes[1], function()
 
@@ -93,7 +93,7 @@ return function(Player, Data, Server)
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Character and Target:IsA("Model") then
 						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
-						print("Axe Kick hit:", Target.Name)
+						-- print("Axe Kick hit:", Target.Name)
 
 						-- Ragdoll the target for 1 second
 						Ragdoller.Ragdoll(Target, 3)

@@ -34,7 +34,7 @@ local function initializeClock()
 
     -- Set initial lighting
     Lighting.TimeOfDay = string.format("%02d:%02d:%02d", START_TIME, 0, 0)
-    print("Day/Night cycle initialized - Starting at", START_TIME, ":00, Cycle length:", DAY_LENGTH, "seconds")
+    -- print("Day/Night cycle initialized - Starting at", START_TIME, ":00, Cycle length:", DAY_LENGTH, "seconds")
 end
 
 local function updateDayNightCycle()
@@ -68,8 +68,8 @@ local function updateDayNightCycle()
     -- Debug output every 30 seconds
     if currentTime - lastDebugTime >= 30 then
         lastDebugTime = currentTime
-        print(string.format("Day/Night Cycle - Time: %02d:%02d:%02d (%.1f%% through day)",
-            hoursPart, minutesPart, secondsPart, cycleProgress * 100))
+        -- print(string.format("Day/Night Cycle - Time: %02d:%02d:%02d (%.1f%% through day)",
+            --hoursPart, minutesPart, secondsPart, cycleProgress * 100))
     end
 
     -- Update the component with new time (keep startTime unchanged)

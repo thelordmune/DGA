@@ -85,12 +85,12 @@ NetworkModule.EndPoint = function(Player, Data)
 
 		local Alchemy = Library.PlayAnimation(Character, Animation)
 		if not Alchemy then
-			print("Failed to load Stone Lance animation")
+			-- print("Failed to load Stone Lance animation")
 			return
 		end
 
 		Alchemy.Looped = false
-		print("Stone Lance animation loaded, Length:", Alchemy.Length)
+		-- print("Stone Lance animation loaded, Length:", Alchemy.Length)
 
 		Server.Library.TimedState(Character.Actions, script.Name, Alchemy.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
@@ -218,7 +218,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
 					for _, Target in pairs(HitTargets) do
 						if Target ~= Character and Target:IsA("Model") and Target:FindFirstChild("Humanoid") then
-							print("Stone Lance hit:", Target.Name)
+							-- print("Stone Lance hit:", Target.Name)
 
 							if moveData and moveData.DamageTable then
 								Server.Modules.Damage.Tag(Character, Target, moveData.DamageTable)

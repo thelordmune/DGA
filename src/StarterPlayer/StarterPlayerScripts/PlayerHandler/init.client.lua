@@ -18,7 +18,7 @@ end
 local ClientThread = require(script.PActor.Thread)
 
 local Success, Client = xpcall(require, function(Error)
-	print("Client Runtime Error | Client Initialization Failed \nError: " .. Error)
+	-- print("Client Runtime Error | Client Initialization Failed \nError: " .. Error)
 end, Replicated:WaitForChild("Client"))
 if not Success then
 	return
@@ -26,8 +26,8 @@ end
 
 -- CRITICAL: Start ECS systems FIRST before loading any client modules
 -- This ensures the client entity exists before InventoryHandler tries to use it
-print("🔧 Starting client ECS systems before loading modules...")
-print("🔍 Checking for Systems folder...")
+-- print("🔧 Starting client ECS systems before loading modules...")
+-- print("🔍 Checking for Systems folder...")
 
 -- Ensure the Systems folder exists before starting
 local modules = Replicated:WaitForChild("Modules", 10)
@@ -40,22 +40,22 @@ if not systemsFolder then
 	systemsFolder = Instance.new("Folder")
 	systemsFolder.Name = "Systems"
 	systemsFolder.Parent = modules
-	print("📁 Created Systems folder in ReplicatedStorage.Modules")
+	-- print("📁 Created Systems folder in ReplicatedStorage.Modules")
 else
-	print("📁 Systems folder found:", systemsFolder:GetFullName())
-	print("📊 Systems in folder:", #systemsFolder:GetChildren())
+	-- print("📁 Systems folder found:", systemsFolder:GetFullName())
+	-- print("📊 Systems in folder:", #systemsFolder:GetChildren())
 	for _, system in systemsFolder:GetChildren() do
 		if system:IsA("ModuleScript") then
-			print("  - " .. system.Name)
+			-- print("  - " .. system.Name)
 		end
 	end
 end
 
 -- Start ECS with a single attempt (no retries to avoid duplicate loading)
-print("🚀 Starting ECS systems...")
+-- print("🚀 Starting ECS systems...")
 local success, err = pcall(start, nil)
 if success then
-	print("✅ Client ECS systems started successfully")
+	-- print("✅ Client ECS systems started successfully")
 	active = true
 else
 	error("❌ CRITICAL: Failed to start client ECS systems: " .. tostring(err))
@@ -66,12 +66,12 @@ local EventsModule = Replicated:WaitForChild("Client"):WaitForChild("Events")
 local Success, EventsReq = xpcall(function()
 	return require(EventsModule)
 end, function(Error)
-	print("Client - Failed Require: Events\n" .. Error)
+	-- print("Client - Failed Require: Events\n" .. Error)
 end)
 
 if Success and EventsReq then
 	Client.Modules["Events"] = EventsReq
-	print("✅ Events module loaded - Bvel and other packet listeners are now active")
+	-- print("✅ Events module loaded - Bvel and other packet listeners are now active")
 end
 
 -- Now load all other modules (ECS is already running, so InventoryHandler will work)
@@ -83,7 +83,7 @@ for __ = 1, #Modules do
 		local Success, Error = xpcall(function()
 			Req = require(Module)
 		end, function(Error)
-			print("Client - Failed Require: " .. Module.Name .. "\n" .. Error)
+			-- print("Client - Failed Require: " .. Module.Name .. "\n" .. Error)
 		end)
 
 		if Success and Req then
@@ -100,7 +100,7 @@ for __ = 1, #EffectModules do
 		local Success, Error = xpcall(function()
 			Req = require(Module)
 		end, function(Error)
-			print("Client - Failed Require: " .. Module.Name .. "\n" .. Error)
+			-- print("Client - Failed Require: " .. Module.Name .. "\n" .. Error)
 		end)
 
 		if Success and Req then
@@ -111,7 +111,7 @@ end
 
 Client.Packets.Visuals.listen(function(Packet)
     -- Process all VFX packets - no duplicate prevention needed with reliable networking
-    -- print("Visual packet received:", Packet.Module, Packet.Function)
+    -- -- print("Visual packet received:", Packet.Module, Packet.Function)
     if Client.Environment[Packet.Module] and Client.Environment[Packet.Module][Packet.Function] then
         Client.Environment[Packet.Module][Packet.Function](unpack(Packet.Arguments))
     else
@@ -121,7 +121,7 @@ end)
 
 -- Signal that the visuals listener is ready
 _G.VisualsListenerReady = true
-print("✅ Visuals listener is ready - dialogue check system can now start")
+-- print("✅ Visuals listener is ready - dialogue check system can now start")
 
 function ConvertToNumber(String)
 	local Number = string.match(String, "%d+$")
@@ -169,7 +169,7 @@ local DisabledStateTypes = {
 Bridges.ECSClient:Connect(function(data)
 	if data.Module == "EntitySync" and data.Action == "SetPlayerEntity" then
 		local entityId = data.EntityId
-		print(`[ECS] 🔗 Received synced entity ID from server: {entityId}`)
+		-- print(`[ECS] 🔗 Received synced entity ID from server: {entityId}`)
 
 		-- Store the synced entity using network_id
 		-- This ensures client uses the same entity ID as the server
@@ -179,23 +179,23 @@ Bridges.ECSClient:Connect(function(data)
 		local player = Players.LocalPlayer
 		ref.define("player", player, entityId)
 
-		print(`[ECS] ✅ Entity {entityId} synced for local player`)
+		-- print(`[ECS] ✅ Entity {entityId} synced for local player`)
 
 		-- Ensure Dialogue component exists on player entity
 		if not world:get(entityId, comps.Dialogue) then
-			print("🔧 Initializing Dialogue component for player entity")
+			-- print("🔧 Initializing Dialogue component for player entity")
 			world:set(entityId, comps.Dialogue, { npc = nil, name = "none", inrange = false, state = "interact" })
 		end
 
 		-- Initialize leveling components on client
 		local LevelingManager = require(Replicated.Modules.Utils.LevelingManager)
 		if not world:has(entityId, comps.Level) then
-			print("🔧 Initializing leveling components on client for player entity")
+			-- print("🔧 Initializing leveling components on client for player entity")
 			LevelingManager.initialize(entityId)
 		end
 	elseif data.Module == "EntitySync" and data.Action == "EntityReady" then
 		local entityId = data.EntityId
-		print(`[ECS] ✅ Entity {entityId} is fully initialized, loading weapon skills`)
+		-- print(`[ECS] ✅ Entity {entityId} is fully initialized, loading weapon skills`)
 
 		-- Try to load weapon skills now that all components are ready
 		if Client.Modules and Client.Modules.Interface and Client.Modules.Interface.Stats then
@@ -214,7 +214,7 @@ local pent = ref.get("local_player")  -- This will now use the synced entity fro
 
 -- Ensure Dialogue component exists on player entity (fallback if sync hasn't happened yet)
 if pent and not world:get(pent, comps.Dialogue) then
-	print("🔧 Initializing Dialogue component for player entity")
+	-- print("🔧 Initializing Dialogue component for player entity")
 	world:set(pent, comps.Dialogue, { npc = nil, name = "none", inrange = false, state = "interact" })
 end
 
@@ -223,20 +223,20 @@ function Initialize(Character: Model)
 	-- This is needed for client-side ECS systems like ragdoll_impact
 	if pent then
 		world:set(pent, comps.Character, Character)
-		print("🔧 Set Character component on client player entity")
+		-- print("🔧 Set Character component on client player entity")
 	end
 	Client.Service["RunService"].RenderStepped:Wait()
 	Client.Character = Character
 
 	-- COMPREHENSIVE CHARACTER REINITIALIZATION
-	print("=== REINITIALIZING CHARACTER ===")
-	print("Character:", Character.Name)
+	-- print("=== REINITIALIZING CHARACTER ===")
+	-- print("Character:", Character.Name)
 
 	-- Reset all client states
 	Client.Dodging = false
 	Client.Running = false
 	Client.DodgeCharges = 2
-	print("Reset client movement states")
+	-- print("Reset client movement states")
 
 	-- Comprehensive cleanup of previous character data
 	if Client.Library and Client.Library.CleanupCharacter then
@@ -249,7 +249,7 @@ function Initialize(Character: Model)
 		if Client.Library.ResetCooldown then
 			Client.Library.ResetCooldown(Character, "Dodge")
 			Client.Library.ResetCooldown(Character, "DodgeCancel")
-			print("Reset all cooldowns for new character")
+			-- print("Reset all cooldowns for new character")
 		end
 	end
 
@@ -298,30 +298,24 @@ function Initialize(Character: Model)
 	end
 
 	-- Wait for loading screen to finish before loading HUD/Interface
-	print("Waiting for loading screen to finish...")
+	-- print("Waiting for loading screen to finish...")
 	while _G.LoadingScreenActive do
 		task.wait(0.1)
 	end
-	print("Loading screen finished, loading HUD...")
+	-- print("Loading screen finished, loading HUD...")
 
 	Client.Modules["Interface"].Check()
-
-	-- Initialize cooldown display
-	if Client.Modules["Interface"].CooldownDisplay and Client.Modules["Interface"].CooldownDisplay.Init then
-		Client.Modules["Interface"].CooldownDisplay.Init()
-		print("Initialized cooldown display")
-	end
 
 	-- Initialize leaderboard
 	if Client.Modules["Interface"].InitLeaderboard then
 		Client.Modules["Interface"].InitLeaderboard()
-		print("Initialized leaderboard")
+		-- print("Initialized leaderboard")
 	end
 
 	-- Initialize Quest Tracker
 	if Client.Modules["Interface"].InitQuestTracker then
 		Client.Modules["Interface"].InitQuestTracker()
-		print("✅ Initialized Quest Tracker")
+		-- print("✅ Initialized Quest Tracker")
 	end
 
 	safeConnect(Humanoid, "HealthChanged", function(Health)
@@ -335,23 +329,28 @@ function Initialize(Character: Model)
 		Client.Modules["Interface"].UpdateStats("Posture", Value, Posture.MaxValue)
 	end)
 
-	-- Energy.Changed:Connect(function(Value)
-	-- 	Client.Modules["Interface"].UpdateStats("Energy", Value, Energy.MaxValue)
-	-- end)
-
-	--Posture.Changed:Connect(function(Value)
-	--	Client.Modules["Interface"].UpdateStats("Posture", Value, Posture.MaxValue)
-	--end)
-
 	Client.Modules["Interface"].UpdateStats("Health", Humanoid.Health, Humanoid.MaxHealth)
 	Client.Modules["Interface"].UpdateStats("Energy", Energy.Value, Energy.MaxValue)
 	Client.Modules["Interface"].UpdateStats("Posture", Posture.Value, Posture.MaxValue)
-	Client.Modules["Interface"].LoadHotbar()
-	task.delay(3, function()
-		Client.Modules["Interface"].Hotbar("Update")
-	end)
-	-- Client.Modules["Interface"].Hotbar("Update")
 	Client.Modules["Interface"].Party()
+
+	-- Initialize Fusion-based Hotbar
+	-- print("[PlayerHandler] ===== HOTBAR INITIALIZATION STARTING =====")
+	-- print(`[PlayerHandler] Interface module: {Client.Modules["Interface"]}`)
+	-- print(`[PlayerHandler] InitializeHotbar function: {Client.Modules["Interface"].InitializeHotbar}`)
+
+	if Client.Modules["Interface"].InitializeHotbar then
+		-- print("[PlayerHandler] Getting player entity...")
+		local playerEntity = ref.get("player", Players.LocalPlayer)
+		-- print(`[PlayerHandler] Player entity: {playerEntity}`)
+		-- print(`[PlayerHandler] Character: {Character}`)
+		-- print("[PlayerHandler] Calling InitializeHotbar...")
+		Client.Modules["Interface"].InitializeHotbar(Character, pent)
+		-- print("✅ Initialized Fusion Hotbar")
+	else
+		-- print("❌ InitializeHotbar function not found!")
+	end
+	-- print("[PlayerHandler] ===== HOTBAR INITIALIZATION COMPLETE =====")
 
 	safeConnect(Actions, "Changed", function()
 		if Client.Library.StateCheck(Speeds, "FlashSpeedSet50") then
@@ -415,39 +414,39 @@ function Initialize(Character: Model)
 	-- local pent = ref.get("player", Players.LocalPlayer)
 
 	-- REINITIALIZE ALL SYSTEMS
-	print("=== REINITIALIZING ALL SYSTEMS ===")
+	-- print("=== REINITIALIZING ALL SYSTEMS ===")
 
 	-- Reinitialize animation system
 	Client.Modules["Animate"].Init()
-	print("Reinitialized animation system")
+	-- print("Reinitialized animation system")
 
 	-- Reinitialize zone controller
 	Client.Modules["ZoneController"]()
-	print("Reinitialized zone controller")
+	-- print("Reinitialized zone controller")
 
 	-- Clear any stuck states in character frames
 	task.wait(0.1) -- Wait for frames to be ready
 	if Character:FindFirstChild("Actions") then
 		Character.Actions.Value = "[]"
-		print("Cleared Actions states")
+		-- print("Cleared Actions states")
 	end
 	if Character:FindFirstChild("Stuns") then
 		Character.Stuns.Value = "[]"
-		print("Cleared Stuns states")
+		-- print("Cleared Stuns states")
 	end
 	if Character:FindFirstChild("Speeds") then
 		Character.Speeds.Value = "[]"
-		print("Cleared Speeds states")
+		-- print("Cleared Speeds states")
 	end
 	if Character:FindFirstChild("Status") then
 		Character.Status.Value = "[]"
-		print("Cleared Status states")
+		-- print("Cleared Status states")
 	end
 
 	-- Reset character attributes
 	Character:SetAttribute("Equipped", false)
 	Character:SetAttribute("DodgeCharges", 2)
-	print("Reset character attributes")
+	-- print("Reset character attributes")
 
 	-- DON'T clear inventory on client - server will sync it
 	-- The server clears and repopulates the inventory, then syncs to client via Bridges.Inventory
@@ -461,7 +460,7 @@ function Initialize(Character: Model)
 				Client.Interface.Stats.UpdateHotbarSlot(i, "")
 			end
 		end
-		print("Cleared hotbar UI display - waiting for server inventory sync")
+		-- print("Cleared hotbar UI display - waiting for server inventory sync")
 	end
 
 	-- Client.Modules["InventoryHandler"]()
@@ -479,7 +478,7 @@ function Initialize(Character: Model)
 	Humanoid.Died:Once(function()
 		-- Clear combat state on death
 		_G.PlayerInCombat = false
-		print("[Death] Cleared combat state")
+		-- print("[Death] Cleared combat state")
 		Remove()
 	end)
 	Character:GetPropertyChangedSignal("PrimaryPart"):Once(function()
@@ -495,7 +494,7 @@ function Initialize(Character: Model)
 	task.spawn(function()
 		task.wait(1) -- Wait for all other systems to initialize
 
-		print("🎯 Loading weapon skills (final initialization step)...")
+		-- print("🎯 Loading weapon skills (final initialization step)...")
 		local weaponSkillsLoaded = false
 		local maxAttempts = 5
 		local attempt = 0
@@ -514,7 +513,7 @@ function Initialize(Character: Model)
 
 					if success then
 						weaponSkillsLoaded = true
-						print("✅ Weapon skills loaded successfully on attempt", attempt)
+						-- print("✅ Weapon skills loaded successfully on attempt", attempt)
 					else
 						warn("⚠️ Failed to load weapon skills (attempt " .. attempt .. "/" .. maxAttempts .. "):", err)
 						if attempt < maxAttempts then
@@ -583,11 +582,11 @@ if Players.LocalPlayer.Character then
 		if data.Action == "FullState" then
 			for compName, compData in pairs(data.Data) do
 				world:set(myEntityId, comps[compName], compData)
-				print("full state", compName, compData)
+				-- print("full state", compName, compData)
 			end
 		elseif data.Action == "ComponentUpdate" then
 			world:set(myEntityId, comps[data.Component], data.Data)
-			print("component update", data.Component, data.Data)
+			-- print("component update", data.Component, data.Data)
 		end
 	end)
 end

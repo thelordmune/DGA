@@ -5,13 +5,7 @@ local RefManager = require(Replicated.Modules.ECS.jecs_ref_manager)
 local ref = RefManager.player -- Use player-specific ref system
 -- local util = Replicated.Modules:WaitForChild("Utilities")
 
-local DEBUG = false -- Toggle debugging
 
-local function debugPrint(...)
-    if DEBUG then
-        print("[EntityClass]", ...)
-    end
-end
 
 export type EntityObject = {
     Player	  : Player?;
@@ -34,20 +28,20 @@ EntityClass.__index = EntityClass;
 local systemsStarted = false
 
 EntityClass.Get = function(Entity) : EntityObject
-    debugPrint("Getting entity:", Entity.Name)
+     -- print("Getting entity:", Entity.Name)
     if Server.Entities[Entity] then
-        debugPrint("Entity found:", Entity.Name)
+         -- print("Entity found:", Entity.Name)
         return Server.Entities[Entity]
     end
-    debugPrint("Entity not found:", Entity.Name)
+     -- print("Entity not found:", Entity.Name)
 end
 
 EntityClass.Remove = function(Entity)
-    debugPrint("Attempting to remove entity:", Entity.Name)
+     -- print("Attempting to remove entity:", Entity.Name)
     if Server.Entities[Entity] then
         -- COMPREHENSIVE CLEANUP BEFORE REMOVAL
-        debugPrint("=== CLEANING UP ENTITY ON DEATH ===")
-        debugPrint("Entity:", Entity.Name)
+         -- print("=== CLEANING UP ENTITY ON DEATH ===")
+         -- print("Entity:", Entity.Name)
 
         -- Clean up equip state before removing entity (prevents stuck states on respawn)
         if Server.Modules.Network and Server.Modules.Network.Equip then
@@ -57,7 +51,7 @@ EntityClass.Remove = function(Entity)
         -- Clean up all character data (animations, cooldowns, etc.)
         if Server.Library and Server.Library.CleanupCharacter then
             Server.Library.CleanupCharacter(Entity)
-            debugPrint("Cleaned up character data for:", Entity.Name)
+             -- print("Cleaned up character data for:", Entity.Name)
         end
 
         -- Stop any playing animations
@@ -66,7 +60,7 @@ EntityClass.Remove = function(Entity)
                 track:Stop(0)
                 track:Destroy()
             end
-            debugPrint("Stopped all animations for:", Entity.Name)
+             -- print("Stopped all animations for:", Entity.Name)
         end
 
         setmetatable(Server.Entities[Entity], nil);
@@ -75,25 +69,25 @@ EntityClass.Remove = function(Entity)
 
         local Player = Server.Service.Players:GetPlayerFromCharacter(Entity);
         if Player then
-            debugPrint("Player found for respawn:", Player.Name)
+             -- print("Player found for respawn:", Player.Name)
             task.wait(Server.Service.Players.RespawnTime)
             if Player and Player:IsDescendantOf(Server.Service.Players) then
-                debugPrint("Respawning player:", Player.Name)
+                 -- print("Respawning player:", Player.Name)
                 Server.Service.RunService.Heartbeat:Wait();
                 Player:LoadCharacter();
             end
         else
-            debugPrint("No player found for entity:", Entity.Name)
+             -- print("No player found for entity:", Entity.Name)
         end
     else
-        debugPrint("Entity not in Server.Entities:", Entity.Name)
+         -- print("Entity not in Server.Entities:", Entity.Name)
     end
 end
 
 EntityClass.Init = function(Entity) : EntityObject
-    debugPrint("Initializing entity:", Entity.Name)
+     -- print("Initializing entity:", Entity.Name)
     if Server.Entities[Entity] then 
-        debugPrint("Entity already exists, returning existing:", Entity.Name)
+         -- print("Entity already exists, returning existing:", Entity.Name)
         return Server.Entities[Entity] 
     end
     
@@ -103,18 +97,18 @@ EntityClass.Init = function(Entity) : EntityObject
     local Player = Server.Service.Players:GetPlayerFromCharacter(Entity);
     if Player then
 		game.CollectionService:AddTag(self.Character, "Players")
-        debugPrint("Player entity detected:", Player.Name, "Weapon:", Player:GetAttribute("Weapon"))
+         -- print("Player entity detected:", Player.Name, "Weapon:", Player:GetAttribute("Weapon"))
         self.Player = Player;
         self.Weapon = Player:GetAttribute("Weapon");
         self.Snapshots = {};
         -- Weapon skills will be given AFTER inventory is cleared (see below in LoadWeapon)
     else
-        debugPrint("NPC entity detected:", Entity.Name, "Weapon:", Entity:GetAttribute("Weapon"))
+         -- print("NPC entity detected:", Entity.Name, "Weapon:", Entity:GetAttribute("Weapon"))
         self.Weapon = Entity:GetAttribute("Weapon")
         -- Ensure NPC has the IsNPC attribute for damage system
         if not Entity:GetAttribute("IsNPC") then
             Entity:SetAttribute("IsNPC", true)
-            debugPrint("Set IsNPC attribute for:", Entity.Name)
+             -- print("Set IsNPC attribute for:", Entity.Name)
         end
     end;
 
@@ -124,31 +118,31 @@ EntityClass.Init = function(Entity) : EntityObject
 
     -- Only start systems once
     if not systemsStarted then
-        debugPrint("Starting ECS systems for the first time")
+         -- print("Starting ECS systems for the first time")
         start(game:GetService("ServerScriptService").Systems)
         systemsStarted = true
     else
-        debugPrint("ECS systems already started")
+         -- print("ECS systems already started")
     end
 
     Server.Entities[Entity] = self;
-    debugPrint("Entity successfully added to Server.Entities:", Entity.Name)
+     -- print("Entity successfully added to Server.Entities:", Entity.Name)
     return self    
 end
 
 function EntityClass:Initialize()
-    debugPrint("Initializing character:", self.Character.Name)
+     -- print("Initializing character:", self.Character.Name)
     
     self.Character.PrimaryPart = self.Character:WaitForChild("HumanoidRootPart");
     self.Character.PrimaryPart:AddTag("Roots");
-    debugPrint("Set PrimaryPart and added Roots tag for:", self.Character.Name)
+     -- print("Set PrimaryPart and added Roots tag for:", self.Character.Name)
     
     for _, v in next, self.Character:GetChildren() do
         if v and (v:IsA("BasePart") or v:IsA("MeshPart")) then
             v.CollisionGroup = "Players";
         end
     end
-    debugPrint("Set collision groups for:", self.Character.Name)
+     -- print("Set collision groups for:", self.Character.Name)
     
     for _, Frame in next, Server.Service.ServerStorage.Frames:GetChildren() do
         local Inst = Frame:Clone();
@@ -159,31 +153,31 @@ function EntityClass:Initialize()
             Frame:AddTag("PostureInstances");
         end
     end
-    debugPrint("Cloned frames for:", self.Character.Name)
+     -- print("Cloned frames for:", self.Character.Name)
     
     -- Only set parent if not already in workspace.World.Live
     if not self.Character:IsDescendantOf(workspace.World.Live) then
-        debugPrint("Moving character to workspace.World.Live:", self.Character.Name)
+         -- print("Moving character to workspace.World.Live:", self.Character.Name)
         self.Character.Parent = workspace.World.Live
     else
-        debugPrint("Character already in workspace.World.Live:", self.Character.Name)
+         -- print("Character already in workspace.World.Live:", self.Character.Name)
     end
     
     if self.Player then
-        debugPrint("Loading appearance for player:", self.Player.Name)
+         -- print("Loading appearance for player:", self.Player.Name)
         task.spawn(Appearance.Load, self.Player)
 
         -- Initialize dodge charges for players
         self.Character:SetAttribute("DodgeCharges", 2)
-        debugPrint("Initialized dodge charges for:", self.Player.Name)
+         -- print("Initialized dodge charges for:", self.Player.Name)
 
         -- Initialize equipped state for players
         self.Character:SetAttribute("Equipped", false)
-        debugPrint("Initialized equipped state for:", self.Player.Name)
+         -- print("Initialized equipped state for:", self.Player.Name)
 
         -- COMPREHENSIVE SERVER-SIDE CLEANUP AND REINITIALIZATION
-        debugPrint("=== SERVER-SIDE CHARACTER REINITIALIZATION ===")
-        debugPrint("Player:", self.Player.Name)
+         -- print("=== SERVER-SIDE CHARACTER REINITIALIZATION ===")
+         -- print("Player:", self.Player.Name)
 
         -- Clear any stuck cooldowns and states from previous character
         if Server.Library then
@@ -195,7 +189,7 @@ function EntityClass:Initialize()
                 Server.Library.ResetCooldown(self.Character, "DodgeCancel")
                 Server.Library.ResetCooldown(self.Character, "Feint")
                 Server.Library.ResetCooldown(self.Character, "Equip")
-                debugPrint("Reset all cooldowns for:", self.Player.Name)
+                 -- print("Reset all cooldowns for:", self.Player.Name)
             end
         end
 
@@ -203,55 +197,55 @@ function EntityClass:Initialize()
         task.wait(0.1) -- Wait for frames to be cloned
         if self.Character:FindFirstChild("Actions") then
             self.Character.Actions.Value = "[]"
-            debugPrint("Initialized Actions frame")
+             -- print("Initialized Actions frame")
         end
         if self.Character:FindFirstChild("Stuns") then
             self.Character.Stuns.Value = "[]"
-            debugPrint("Initialized Stuns frame")
+             -- print("Initialized Stuns frame")
         end
         if self.Character:FindFirstChild("Speeds") then
             self.Character.Speeds.Value = "[]"
-            debugPrint("Initialized Speeds frame")
+             -- print("Initialized Speeds frame")
         end
         if self.Character:FindFirstChild("Status") then
             self.Character.Status.Value = "[]"
-            debugPrint("Initialized Status frame")
+             -- print("Initialized Status frame")
         end
 
         -- Inventory and weapon skills are now handled in playerloader.luau
         -- This ensures components are initialized before skills are added
     else
         -- NPC initialization
-        debugPrint("Initializing NPC frames for:", self.Character.Name)
+         -- print("Initializing NPC frames for:", self.Character.Name)
 
         -- Ensure all character frames are properly initialized for NPCs
         task.wait(0.1) -- Wait for frames to be cloned
         if self.Character:FindFirstChild("Actions") then
             self.Character.Actions.Value = "[]"
-            debugPrint("Initialized Actions frame for NPC")
+             -- print("Initialized Actions frame for NPC")
         end
         if self.Character:FindFirstChild("Stuns") then
             self.Character.Stuns.Value = "[]"
-            debugPrint("Initialized Stuns frame for NPC")
+             -- print("Initialized Stuns frame for NPC")
         end
         if self.Character:FindFirstChild("Speeds") then
             self.Character.Speeds.Value = "[]"
-            debugPrint("Initialized Speeds frame for NPC")
+             -- print("Initialized Speeds frame for NPC")
         end
         if self.Character:FindFirstChild("Status") then
             self.Character.Status.Value = "[]"
-            debugPrint("Initialized Status frame for NPC")
+             -- print("Initialized Status frame for NPC")
         end
         if self.Character:FindFirstChild("IFrames") then
             self.Character.IFrames.Value = "[]"
-            debugPrint("Initialized IFrames frame for NPC")
+             -- print("Initialized IFrames frame for NPC")
         end
         if self.Character:FindFirstChild("Frames") then
             self.Character.Frames.Value = "[]"
-            debugPrint("Initialized Frames frame for NPC")
+             -- print("Initialized Frames frame for NPC")
         end
 
-        debugPrint("Finished initializing NPC frames for:", self.Character.Name)
+         -- print("Finished initializing NPC frames for:", self.Character.Name)
     end
 
     self:LoadWeapon(self.Character)
@@ -272,45 +266,45 @@ function EntityClass:Initialize()
             end
             self.Remove(self.Character)
         else
-            debugPrint(`[ENTITY] PrimaryPart changed for {self.Character.Name} but still exists, not removing`)
+             -- print(`[ENTITY] PrimaryPart changed for {self.Character.Name} but still exists, not removing`)
         end
     end)
 
     self.Character:WaitForChild("Humanoid").Died:Once(RemoveOnDeath)
     
-    debugPrint("Character initialization complete:", self.Character.Name)
+     -- print("Character initialization complete:", self.Character.Name)
 end
 
 function EntityClass:LoadWeapon(Character: Model)
     local WeaponName = self.Weapon
-    debugPrint("Loading weapon for:", Character.Name, "Weapon:", WeaponName)
+     -- print("Loading weapon for:", Character.Name, "Weapon:", WeaponName)
     
 local WeaponName = self.Weapon
     if WeaponName == "Fist" then 
-        -- print("weapon is fist")
+        -- -- print("weapon is fist")
         local WeaponFolder: Folder? = Server.Service.ServerStorage.Assets.Models.Weapons[WeaponName]
         if WeaponFolder then
-            -- print("Found Fist weapon folder")
+            -- -- print("Found Fist weapon folder")
             for _, v in WeaponFolder:GetChildren() do
-                -- print("Processing weapon part:", v.Name)
+                -- -- print("Processing weapon part:", v.Name)
                 if v:GetAttribute("Arm") then
-                    -- print("Found Arms attribute on:", v.Name)
+                    -- -- print("Found Arms attribute on:", v.Name)
                     local rightPart = v:Clone()
                     local leftPart = v:Clone()
                     rightPart.Parent = Character["Right Arm"]
                     leftPart.Parent = Character["Left Arm"]
-                    -- print("Cloned", v.Name, "to both arms")
+                    -- -- print("Cloned", v.Name, "to both arms")
                 elseif v:GetAttribute("RightLeg") then
-                    -- print("Found RightLeg attribute on:", v.Name)
+                    -- -- print("Found RightLeg attribute on:", v.Name)
                     local part = v:Clone()
                     part.Parent = Character["Right Leg"]
-                    -- print("Cloned", v.Name, "to right leg")
+                    -- -- print("Cloned", v.Name, "to right leg")
                 else
-                    -- print("No special attributes found on:", v.Name)
+                    -- -- print("No special attributes found on:", v.Name)
                 end
             end
         else
-            print("Fist weapon folder not found")
+            -- print("Fist weapon folder not found")
         end
         return 
     end
@@ -318,10 +312,10 @@ local WeaponName = self.Weapon
     local WeaponFolder: Folder? = Server.Service.ServerStorage.Assets.Models.Weapons[WeaponName]
 
     if WeaponFolder then
-        debugPrint("Found weapon folder for:", WeaponName, "Character:", Character.Name)
+         -- print("Found weapon folder for:", WeaponName, "Character:", Character.Name)
         for _, WepPart in pairs(Server.Service.ServerStorage.Assets.Models.Weapons[WeaponName]:GetChildren()) do
             local PotentialPart = WepPart:Clone()
-            debugPrint("Cloning weapon part:", WepPart.Name, "for:", Character.Name)
+             -- print("Cloning weapon part:", WepPart.Name, "for:", Character.Name)
 
             if PotentialPart:FindFirstChild("Unequip") then
                 if PotentialPart.Unequip:GetAttribute("Part0") then
@@ -343,9 +337,9 @@ local WeaponName = self.Weapon
 
             PotentialPart.Parent = Character 
         end
-        debugPrint("Weapon loading complete for:", Character.Name, "Weapon:", WeaponName)
+         -- print("Weapon loading complete for:", Character.Name, "Weapon:", WeaponName)
     else
-        debugPrint("Weapon folder not found for:", WeaponName, "Character:", Character.Name)
+         -- print("Weapon folder not found for:", WeaponName, "Character:", Character.Name)
     end
 end
 

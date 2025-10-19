@@ -138,7 +138,7 @@ function TestBootstrap:run(roots, reporter, otherOptions)
 			("Took %f seconds to report tests"):format(afterReport - afterRun),
 		}
 
-		print(table.concat(timing, "\n"))
+		-- print(table.concat(timing, "\n"))
 	end
 
 	return results

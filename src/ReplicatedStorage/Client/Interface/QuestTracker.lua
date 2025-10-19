@@ -52,7 +52,7 @@ function QuestTrackerManager.new()
 end
 
 function QuestTrackerManager:Initialize()
-	-- print("[QuestTracker] Initializing...")
+	-- -- print("[QuestTracker] Initializing...")
 
 	-- Clean up old UI if it exists (for respawns)
 	if self.questTrackerGui and self.questTrackerGui.Parent then
@@ -75,7 +75,7 @@ function QuestTrackerManager:Initialize()
 		self.questUpdatesSetup = true
 	end
 
-	-- print("[QuestTracker] Initialized successfully")
+	-- -- print("[QuestTracker] Initialized successfully")
 end
 
 function QuestTrackerManager:CreateUI()
@@ -100,7 +100,7 @@ function QuestTrackerManager:CreateUI()
 		Parent = self.questTrackerGui,
 	})
 	
-	-- print("[QuestTracker] UI created")
+	-- -- print("[QuestTracker] UI created")
 end
 
 function QuestTrackerManager:SetupQuestUpdates()
@@ -121,19 +121,19 @@ end
 function QuestTrackerManager:UpdateQuestData()
 	local playerEntity = ref.get("local_player")
 	if not playerEntity or not world:contains(playerEntity) then
-		-- print("[QuestTracker] No player entity found")
+		-- -- print("[QuestTracker] No player entity found")
 		return
 	end
 
 	-- Update active quest
 	if world:has(playerEntity, comps.ActiveQuest) then
 		local activeQuest = world:get(playerEntity, comps.ActiveQuest)
-		-- -- print("[QuestTracker] Active quest found:", activeQuest.npcName, activeQuest.questName)
+		-- -- -- print("[QuestTracker] Active quest found:", activeQuest.npcName, activeQuest.questName)
 
 		local questInfo = QuestData[activeQuest.npcName] and QuestData[activeQuest.npcName][activeQuest.questName]
 
 		if questInfo then
-			-- print("[QuestTracker] Quest info found, updating UI")
+			-- -- print("[QuestTracker] Quest info found, updating UI")
 			self.activeQuestData:set({
 				npcName = activeQuest.npcName,
 				questName = activeQuest.questName,
@@ -141,10 +141,10 @@ function QuestTrackerManager:UpdateQuestData()
 				startTime = activeQuest.startTime,
 			})
 		else
-			-- print("[QuestTracker] Quest info not found in QuestData for:", activeQuest.npcName, activeQuest.questName)
+			-- -- print("[QuestTracker] Quest info not found in QuestData for:", activeQuest.npcName, activeQuest.questName)
 		end
 	else
-		-- print("[QuestTracker] No active quest")
+		-- -- print("[QuestTracker] No active quest")
 		self.activeQuestData:set(nil)
 	end
 
@@ -159,7 +159,7 @@ function QuestTrackerManager:UpdateQuestData()
 		})
 	end
 	self.questsList:set(quests)
-	-- -- print("[QuestTracker] Updated quests list, count:", #quests)
+	-- -- -- print("[QuestTracker] Updated quests list, count:", #quests)
 end
 
 function QuestTrackerManager:SetupKeybind()
@@ -181,7 +181,7 @@ function QuestTrackerManager:Toggle()
 		self:UpdateQuestData()
 	end
 	
-	-- print("[QuestTracker] Toggled:", newState and "Open" or "Closed")
+	-- -- print("[QuestTracker] Toggled:", newState and "Open" or "Closed")
 end
 
 function QuestTrackerManager:Show()

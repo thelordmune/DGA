@@ -1,13 +1,16 @@
 --[[
 	Simple Dialogue Proximity System
 	Replaces the ECS dialogue checker with a straightforward proximity detection
-	Shows highlight and "E TO TALK" prompt when near NPCs
+	Shows Prompt UI on a SurfaceGui next to NPCs
 ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Fusion = require(ReplicatedStorage.Modules.Fusion)
+local scoped = Fusion.scoped
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -19,7 +22,10 @@ local CHECK_INTERVAL = 0.5 -- How often to check (in seconds)
 -- State tracking
 local currentNearbyNPC = nil
 local currentHighlight = nil
-local proximityUI = nil
+local promptScope = nil -- Fusion scope for prompt UI
+local promptStarted = nil -- Fusion value for animation state
+local promptFadeIn = nil -- Fusion value for fade in state
+local promptTextStart = nil -- Fusion value for text animation state
 local lastCheckTime = 0
 
 -- Wait for game to load
@@ -33,76 +39,68 @@ player.CharacterAdded:Connect(function(newCharacter)
 		currentHighlight:Destroy()
 		currentHighlight = nil
 	end
-	if proximityUI then
-		proximityUI:Destroy()
-		proximityUI = nil
+	if promptScope then
+		promptScope:doCleanup()
+		promptScope = nil
+		promptStarted = nil
+		promptFadeIn = nil
+		promptTextStart = nil
 	end
 	currentNearbyNPC = nil
 end)
 
--- Create the "E TO TALK" UI
-local function createProximityUI()
-	if proximityUI then
-		proximityUI:Destroy()
+-- Create the prompt UI on a SurfaceGui next to the NPC
+local function createPromptUI(npc)
+	-- Clean up old scope if it exists
+	if promptScope then
+		promptScope:doCleanup()
 	end
-	
-	local screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "DialogueProximityUI"
-	screenGui.ResetOnSpawn = false
-	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	screenGui.Parent = player.PlayerGui
-	
-	local frame = Instance.new("Frame")
-	frame.Name = "ProximityFrame"
-	frame.BackgroundTransparency = 1
-	frame.Position = UDim2.fromScale(0.444, 0.664)
-	frame.Size = UDim2.fromScale(0.112, 0.112)
-	frame.Parent = screenGui
-	
-	local textLabel = Instance.new("TextLabel")
-	textLabel.Name = "ProximityText"
-	textLabel.BackgroundTransparency = 1
-	textLabel.Position = UDim2.fromScale(-0.108, 0.27)
-	textLabel.Size = UDim2.fromScale(1.21, 0.5)
-	textLabel.Font = Enum.Font.SourceSansBold
-	textLabel.Text = "E TO TALK"
-	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	textLabel.TextSize = 14
-	textLabel.TextTransparency = 1 -- Start invisible
-	textLabel.Parent = frame
-	
-	proximityUI = screenGui
-	return textLabel
+
+	-- Find or create a SurfaceGui on the NPC's head
+	local head = npc:FindFirstChild("Torso").Part
+	local surfaceGui = head and head:FindFirstChild("PromptSurfaceGui")
+	if not surfaceGui and head then
+		surfaceGui = Instance.new("SurfaceGui")
+		surfaceGui.Name = "PromptSurfaceGui"
+		surfaceGui.Face = Enum.NormalId.Left
+		surfaceGui.Parent = head
+		surfaceGui.AlwaysOnTop = true
+		surfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		surfaceGui.PixelsPerStud = 50
+	end
+
+	if not surfaceGui then return end
+
+	-- Create Fusion scope with Prompt component
+	promptScope = scoped(Fusion, {
+		Prompt = require(ReplicatedStorage.Client.Components.Prompt),
+	})
+
+	-- Create reactive values for animation states
+	promptStarted = promptScope:Value(false)
+	promptFadeIn = promptScope:Value(false)
+	promptTextStart = promptScope:Value(false)
+
+	-- Create the Prompt component
+	promptScope:Prompt({
+		begin = promptStarted,
+		fadein = promptFadeIn,
+		textstart = promptTextStart,
+		Parent = surfaceGui,
+	})
 end
 
--- Show the proximity UI with animation
-local function showProximityUI()
-	local textLabel = proximityUI and proximityUI:FindFirstChild("ProximityFrame"):FindFirstChild("ProximityText")
-	if not textLabel then
-		textLabel = createProximityUI()
+-- Show the prompt UI with animation
+local function showPromptUI()
+	if promptStarted then
+		promptStarted:set(true)
 	end
-	
-	-- Fade in
-	local tween = TweenService:Create(
-		textLabel,
-		TweenInfo.new(0.7, Enum.EasingStyle.Circular, Enum.EasingDirection.Out),
-		{TextTransparency = 0}
-	)
-	tween:Play()
 end
 
--- Hide the proximity UI with animation
-local function hideProximityUI()
-	if not proximityUI then return end
-	
-	local textLabel = proximityUI:FindFirstChild("ProximityFrame"):FindFirstChild("ProximityText")
-	if textLabel then
-		local tween = TweenService:Create(
-			textLabel,
-			TweenInfo.new(0.7, Enum.EasingStyle.Circular, Enum.EasingDirection.Out),
-			{TextTransparency = 1}
-		)
-		tween:Play()
+-- Hide the prompt UI with animation
+local function hidePromptUI()
+	if promptStarted then
+		promptStarted:set(false)
 	end
 end
 
@@ -189,15 +187,16 @@ end
 -- Update proximity effects
 local function updateProximity()
 	local nearbyNPC = findNearbyNPC()
-	
+
 	-- NPC state changed
 	if nearbyNPC ~= currentNearbyNPC then
 		if nearbyNPC then
 			-- Entered range of an NPC
-			print("📍 Near NPC:", nearbyNPC.Name)
+			-- print("📍 Near NPC:", nearbyNPC.Name)
 			addHighlight(nearbyNPC)
-			showProximityUI()
-			
+			createPromptUI(nearbyNPC)
+			showPromptUI()
+
 			-- Set attribute for other systems to use
 			if character then
 				character:SetAttribute("Commence", true)
@@ -205,17 +204,17 @@ local function updateProximity()
 			end
 		else
 			-- Left range of NPC
-			print("🚶 Left NPC range")
+			-- print("🚶 Left NPC range")
 			removeHighlight()
-			hideProximityUI()
-			
+			hidePromptUI()
+
 			-- Clear attribute
 			if character then
 				character:SetAttribute("Commence", false)
 				character:SetAttribute("NearbyNPC", nil)
 			end
 		end
-		
+
 		currentNearbyNPC = nearbyNPC
 	end
 end
@@ -223,7 +222,7 @@ end
 -- Main update loop
 RunService.Heartbeat:Connect(function()
 	local currentTime = os.clock()
-	
+
 	-- Only check at intervals
 	if currentTime - lastCheckTime >= CHECK_INTERVAL then
 		lastCheckTime = currentTime
@@ -231,9 +230,12 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
+-- Expose hidePromptUI globally so other systems can call it
+_G.DialogueProximity_HidePrompt = hidePromptUI
+
 -- Initial check
 task.wait(1)
 updateProximity()
 
-print("✅ Dialogue Proximity System loaded")
+-- print("✅ Dialogue Proximity System loaded")
 

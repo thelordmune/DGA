@@ -6,11 +6,11 @@ local function getWandererSpawns()
     local wanderersFolder = workspace:FindFirstChild("Wanderers")
 
     if wanderersFolder then
-        print("Found Wanderers folder with", #wanderersFolder:GetChildren(), "spawn points")
+        -- print("Found Wanderers folder with", #wanderersFolder:GetChildren(), "spawn points")
         for _, part in pairs(wanderersFolder:GetChildren()) do
             if part:IsA("BasePart") then
                 table.insert(spawns, part.Position)
-                -- print("Added wanderer spawn at:", part.Position)
+                -- -- print("Added wanderer spawn at:", part.Position)
             end
         end
     else
@@ -21,7 +21,7 @@ local function getWandererSpawns()
             Vector3.new(10, 5, 10),
             Vector3.new(-10, 5, -10)
         }
-        print("Using fallback spawns:", #spawns)
+        -- print("Using fallback spawns:", #spawns)
     end
 
     return spawns
@@ -31,7 +31,7 @@ end
 local wandererSpawns = getWandererSpawns()
 local wandererCount = math.max(1, #wandererSpawns) -- At least 1 wanderer
 
-print("Loading Wanderer configuration - Count:", wandererCount, "Spawns:", #wandererSpawns)
+-- print("Loading Wanderer configuration - Count:", wandererCount, "Spawns:", #wandererSpawns)
 
 local WandererData = {
 	Name = "Wanderer",

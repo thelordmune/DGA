@@ -72,9 +72,9 @@ function InventorySetup.addItemFromDatabase(entity, itemName, quantity)
 end
 
 function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
-    print("========================================")
-    print("[GiveWeaponSkills] CALLED - Weapon:", WeaponName, "Entity:", entity, "Player:", player and player.Name or "nil")
-    print("========================================")
+    -- print("========================================")
+    -- print("[GiveWeaponSkills] CALLED - Weapon:", WeaponName, "Entity:", entity, "Player:", player and player.Name or "nil")
+    -- print("========================================")
 
     local WeaponDirectory = require(ServerStorage.Stats._Skills)
     local WeaponSkills = WeaponDirectory[WeaponName]
@@ -84,7 +84,7 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
         return
     end
 
-    print("[GiveWeaponSkills] Found", #WeaponSkills, "skills for weapon:", WeaponName)
+    -- print("[GiveWeaponSkills] Found", #WeaponSkills, "skills for weapon:", WeaponName)
 
     -- Get player from entity if on server
     if RunService:IsServer() then
@@ -122,7 +122,7 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
         end
 
         -- Clear existing inventory and hotbar before giving new skills
-        print("[GiveWeaponSkills] Clearing inventory and hotbar for weapon change")
+        -- print("[GiveWeaponSkills] Clearing inventory and hotbar for weapon change")
         InventoryManager.clearInventory(entity)
         InventoryManager.clearHotbar(entity)
     end
@@ -144,14 +144,14 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
         )
 
         if success and inventorySlot then
-            print("[GiveWeaponSkills] ✅ Added skill:", skillName, "to slot:", inventorySlot)
+            -- print("[GiveWeaponSkills] ✅ Added skill:", skillName, "to slot:", inventorySlot)
             skillsAdded = skillsAdded + 1
         else
             warn("[GiveWeaponSkills] ❌ Failed to add skill:", skillName)
         end
     end
 
-    print("[GiveWeaponSkills] Successfully added", skillsAdded, "skills for weapon:", WeaponName)
+    -- print("[GiveWeaponSkills] Successfully added", skillsAdded, "skills for weapon:", WeaponName)
 
     -- Verify the inventory was actually updated
     if RunService:IsServer() then
@@ -162,14 +162,14 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
             local inventory = world:get(entity, comps.Inventory)
             local hotbar = world:get(entity, comps.Hotbar)
 
-            print("[GiveWeaponSkills] VERIFICATION - Inventory items:")
+            -- print("[GiveWeaponSkills] VERIFICATION - Inventory items:")
             for slot, item in pairs(inventory.items) do
-                print("  Slot", slot, ":", item.name, "(type:", item.typ, ")")
+                -- print("  Slot", slot, ":", item.name, "(type:", item.typ, ")")
             end
 
-            print("[GiveWeaponSkills] VERIFICATION - Hotbar slots:")
+            -- print("[GiveWeaponSkills] VERIFICATION - Hotbar slots:")
             for slot, invSlot in pairs(hotbar.slots) do
-                print("  Hotbar", slot, "-> Inventory slot", invSlot)
+                -- print("  Hotbar", slot, "-> Inventory slot", invSlot)
             end
         else
             warn("[GiveWeaponSkills] VERIFICATION FAILED - Missing components!")
@@ -216,7 +216,7 @@ function InventorySetup.GiveWeaponSkills(entity, WeaponName: string, player)
             }
         }
         
-        print("Server: Firing inventory sync to", player.Name)
+        -- print("Server: Firing inventory sync to", player.Name)
         Bridges.Inventory:Fire(player, syncData)
     end
 end

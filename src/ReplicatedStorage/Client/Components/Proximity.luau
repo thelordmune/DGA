@@ -1,23 +1,24 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Fusion = require(ReplicatedStorage.Modules.Fusion)
-local Players = game:GetService("Players")
 
-local Children, scoped, peek, out = Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out
+local Children = Fusion.Children
 
 local TInfo = TweenInfo.new(.7, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0)
-local TInfo2 = TweenInfo.new(1.1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0)
 
 return function(scope, props: {})
 	local started: boolean = props.begin
-	local parent: ScreenGui = props.par
+	local parent = props.par -- Can be ScreenGui or SurfaceGui
+	local position = props.position or UDim2.fromScale(0.444, 0.664) -- Default position for ScreenGui
+	local size = props.size or UDim2.fromScale(0.112, 0.112) -- Default size
+
 	return scope:New "Frame" {
 		Name = "Frame",
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BackgroundTransparency = 1,
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
-		Position = UDim2.fromScale(0.444, 0.664),
-		Size = UDim2.fromScale(0.112, 0.112),
+		Position = position,
+		Size = size,
 		Parent = parent,
 
 		[Children] = {

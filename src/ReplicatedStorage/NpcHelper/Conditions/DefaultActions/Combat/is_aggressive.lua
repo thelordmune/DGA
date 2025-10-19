@@ -13,16 +13,16 @@ return function(actor: Actor, mainConfig: table)
 
         if os.clock() - startTime > aggressiveTimeout then
             -- Timeout reached, exit aggressive mode
-            -- print("NPC", npc.Name, "aggressive mode timeout, returning to normal")
+            -- -- print("NPC", npc.Name, "aggressive mode timeout, returning to normal")
             mainConfig.States.AggressiveMode = false
             mainConfig.States.IsPassive = true  -- Return to passive if they were originally passive
             return false
         end
 
-        -- print("is_aggressive check for", npc.Name, "- returning TRUE")
+        -- -- print("is_aggressive check for", npc.Name, "- returning TRUE")
         return true
     end
 
-    -- print("is_aggressive check for", npc.Name, "- returning FALSE (not in aggressive mode)")
+    -- -- print("is_aggressive check for", npc.Name, "- returning FALSE (not in aggressive mode)")
     return false
 end

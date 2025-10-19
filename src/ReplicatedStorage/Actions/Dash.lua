@@ -1,7 +1,7 @@
 return function(character: Model, data: SkillData, ActionData, Skill_Setup)
 	local root = character.PrimaryPart
 
-	print(`{character.Name} is now doing the {data.skill} skill || timestamp: {data.timestamp}`) do
+	-- print(`{character.Name} is now doing the {data.skill} skill || timestamp: {data.timestamp}`) do
 		local attackingValue = Instance.new("StringValue") :: StringValue
 		attackingValue.Name = "Attacking"
 		attackingValue.Value = data.skill

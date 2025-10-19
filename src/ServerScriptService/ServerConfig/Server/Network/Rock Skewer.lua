@@ -66,7 +66,7 @@ NetworkModule.EndPoint = function(Player, Data)
 		cleanUp()
 		Server.Library.SetCooldown(Character, "RockSkewer", 8) -- Increased from 3 to 8 seconds
 		Server.Library.StopAllAnims(Character)
-		print("doing rock skewer")
+		-- print("doing rock skewer")
 
 
 		local Alchemy = Library.PlayAnimation(Character, Animation)

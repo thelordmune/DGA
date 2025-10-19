@@ -22,7 +22,7 @@ return function(npc,mainConfig): PathState
 	end
 	
 	local hitPart = rayResult.Instance
-	--print(`{hitPart.Name} || {hitPart.Parent.Name}`)
+	---- print(`{hitPart.Name} || {hitPart.Parent.Name}`)
 
 	
 	local ToRot = (targetPosition - ownPosition).Magnitude

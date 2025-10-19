@@ -150,7 +150,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
 		local Alchemy = Library.PlayAnimation(Character, Animation)
 		if not Alchemy then
-			print("Failed to load Sky Arc animation")
+			-- print("Failed to load Sky Arc animation")
 			return
 		end
 

@@ -9,12 +9,12 @@ type allTypes = "string" | "number" | "function" | "table"
 
 function Output.silent(info: string)
 	if RunService:IsStudio() then
-		--print(`{PATTERN}{info}`)
+		---- print(`{PATTERN}{info}`)
 	end
 end
 
 function Output.log(info: string)
-	--print(`{PATTERN}{info}`)
+	---- print(`{PATTERN}{info}`)
 end
 
 function Output.logAssert(condition: boolean, info: string)

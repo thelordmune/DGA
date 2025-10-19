@@ -22,7 +22,7 @@ The new Jabby 0.4.0 was installed, but **Studio is still using the old cached ve
 ```lua
 -- After restarting, check in console:
 local jabby = require(game.ReplicatedStorage.Modules.Imports.jabby)
-print(jabby) -- Should show new version
+-- print(jabby) -- Should show new version
 ```
 
 ---
@@ -85,7 +85,7 @@ You said "not stunning me during a move" - but **using a move doesn't stun you**
 
 **If this doesn't work:**
 - Check console for: `Loading client system: movement_lock`
-- Check if Actions state is being added: `print(game.Players.LocalPlayer.Character.Actions.Value)`
+- Check if Actions state is being added: `-- print(game.Players.LocalPlayer.Character.Actions.Value)`
 
 ---
 
@@ -103,7 +103,7 @@ You said "not stunning me during a move" - but **using a move doesn't stun you**
 
 **If this doesn't work:**
 - M1 attacks might not be adding states (M1.lua has commented code)
-- Check: `print(game.Players.LocalPlayer.Character.Actions.Value)` during M1
+- Check: `-- print(game.Players.LocalPlayer.Character.Actions.Value)` during M1
 
 ---
 
@@ -121,7 +121,7 @@ You said "not stunning me during a move" - but **using a move doesn't stun you**
    - You CAN move and attack again
 
 **If this doesn't work:**
-- Check: `print(game.Players.LocalPlayer.Character.Stuns.Value)` when hit
+- Check: `-- print(game.Players.LocalPlayer.Character.Stuns.Value)` when hit
 - Should show: `["DamageStun"]`
 
 ---
@@ -152,7 +152,7 @@ You said "not stunning me during a move" - but **using a move doesn't stun you**
 **If Jabby still doesn't work:**
 - You didn't restart Studio
 - Check console for Jabby errors
-- Verify: `print(require(game.ReplicatedStorage.Modules.Imports.jabby))`
+- Verify: `-- print(require(game.ReplicatedStorage.Modules.Imports.jabby))`
 
 ---
 
@@ -165,13 +165,13 @@ You said "not stunning me during a move" - but **using a move doesn't stun you**
 local char = game.Players.LocalPlayer.Character
 
 -- Check Actions states
-print("Actions:", char.Actions.Value)
+-- print("Actions:", char.Actions.Value)
 
 -- Check Stuns states
-print("Stuns:", char.Stuns.Value)
+-- print("Stuns:", char.Stuns.Value)
 
 -- Check Speeds states
-print("Speeds:", char.Speeds.Value)
+-- print("Speeds:", char.Speeds.Value)
 ```
 
 ### Check if Movement Lock System is Running:
@@ -191,7 +191,7 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerModule = player.PlayerScripts:WaitForChild("PlayerModule")
 local controls = require(playerModule)
-print("Controls enabled:", controls.controlsEnabled)
+-- print("Controls enabled:", controls.controlsEnabled)
 ```
 
 ---
@@ -237,7 +237,7 @@ Successfully loaded client system: state_sync
 1. Movement lock system not loaded
    - Check console for "Loading client system: movement_lock"
 2. States not being added
-   - Check: `print(game.Players.LocalPlayer.Character.Actions.Value)`
+   - Check: `-- print(game.Players.LocalPlayer.Character.Actions.Value)`
 3. Control module not being disabled
    - Enable debug logging in movement_lock.luau
 
@@ -246,7 +246,7 @@ Successfully loaded client system: state_sync
 **Possible causes:**
 1. **You didn't restart Studio** (most common!)
 2. Old Jabby version still cached
-3. Check: `print(require(game.ReplicatedStorage.Modules.Imports.jabby))`
+3. Check: `-- print(require(game.ReplicatedStorage.Modules.Imports.jabby))`
 
 ### "Can't see entities in Jabby World tab"
 
@@ -277,14 +277,14 @@ After restarting Studio and testing, you should see:
 ### For Movement Lock:
 
 1. Share console output when you use a skill
-2. Share output of: `print(game.Players.LocalPlayer.Character.Actions.Value)`
+2. Share output of: `-- print(game.Players.LocalPlayer.Character.Actions.Value)`
 3. Check if movement_lock system is in the Systems folder
 
 ### For Jabby:
 
 1. **RESTART STUDIO FIRST!**
 2. Share console output when you press F4
-3. Share output of: `print(require(game.ReplicatedStorage.Modules.Imports.jabby))`
+3. Share output of: `-- print(require(game.ReplicatedStorage.Modules.Imports.jabby))`
 4. Check if jabby 0.4.0 folder exists in Imports/_Index
 
 ---

@@ -212,7 +212,7 @@ Changed to `"WeaponSkillHoldSpeedSet0"` to follow naming convention.
 ### Check Walkspeed:
 ```lua
 -- In console (F9):
-print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
+-- print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
 -- Should show: 0 when holding skill, 16 when not
 ```
 
@@ -221,7 +221,7 @@ print("WalkSpeed:", game.Players.LocalPlayer.Character.Humanoid.WalkSpeed)
 -- In console:
 local StateManager = require(game.ReplicatedStorage.Modules.ECS.StateManager)
 local char = game.Players.LocalPlayer.Character
-print("Speed States:", table.concat(StateManager.GetAllStates(char, "Speeds"), ", "))
+-- print("Speed States:", table.concat(StateManager.GetAllStates(char, "Speeds"), ", "))
 -- Should show: "WeaponSkillHoldSpeedSet0" when holding skill
 ```
 
@@ -230,7 +230,7 @@ print("Speed States:", table.concat(StateManager.GetAllStates(char, "Speeds"), "
 -- In console:
 local StateManager = require(game.ReplicatedStorage.Modules.ECS.StateManager)
 local char = game.Players.LocalPlayer.Character
-print("Action States:", table.concat(StateManager.GetAllStates(char, "Actions"), ", "))
+-- print("Action States:", table.concat(StateManager.GetAllStates(char, "Actions"), ", "))
 -- Should show: "WeaponSkillHold" when holding skill
 ```
 

@@ -84,7 +84,7 @@ return function(npc: Model, mainConfig, target: Model | Vector3)
 
 			local wayPoints = path:GetWaypoints()
 			local blockedConnection; blockedConnection = path.Blocked:Connect(function(waypointIndex)
-				print("its blocked")
+				-- print("its blocked")
 				if waypointIndex >= currentIndex then
 					humanoid.Jump = true
 

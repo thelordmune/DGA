@@ -66,7 +66,7 @@ local function initializeNPCEntity(npcModel: Model): number
 		world:set(e, comps.NoRagdoll, false)
 		world:set(e, comps.Locked, {duration = 0, value = false})
 
-		print("[Mobs] Initialized NPC:", npcModel.Name, "Entity:", e)
+		-- print("[Mobs] Initialized NPC:", npcModel.Name, "Entity:", e)
 	end)
 
 	return entity

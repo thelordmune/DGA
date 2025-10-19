@@ -110,18 +110,18 @@ Library.CleanupCharacter = function(Char: Model)
 			end
 		end
 		Animations[Char] = nil
-		print("Cleared animation cache for character:", Char.Name)
+		-- print("Cleared animation cache for character:", Char.Name)
 	end
 
 	-- Clear cooldowns for this character (ECS-based)
 	CooldownManager.ClearAllCooldowns(Char)
-	print("Cleared cooldowns for character:", Char.Name)
+	-- print("Cleared cooldowns for character:", Char.Name)
 
 	-- Clear all states for this character (ECS-based)
 	for _, category in ipairs({"Actions", "Stuns", "IFrames", "Speeds", "Frames", "Status"}) do
 		StateManager.ClearCategory(Char, category)
 	end
-	print("Cleared states for character:", Char.Name)
+	-- print("Cleared states for character:", Char.Name)
 
 	-- Stop all playing animation tracks
 	if Char:FindFirstChild("Humanoid") and Char.Humanoid:FindFirstChild("Animator") then
@@ -129,7 +129,7 @@ Library.CleanupCharacter = function(Char: Model)
 			track:Stop(0)
 			track:Destroy()
 		end
-		print("Stopped all animation tracks for character:", Char.Name)
+		-- print("Stopped all animation tracks for character:", Char.Name)
 	end
 
 	-- Clean up all body movers to prevent flinging
@@ -176,7 +176,7 @@ Library.RemoveAllBodyMovers = function(Char: Model)
 	end
 
 	if moversRemoved > 0 then
-		print(`[Library] Removed {moversRemoved} body movers from {Char.Name}`)
+		-- print(`[Library] Removed {moversRemoved} body movers from {Char.Name}`)
 	end
 end
 
