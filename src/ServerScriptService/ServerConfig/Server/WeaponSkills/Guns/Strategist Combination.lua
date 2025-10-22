@@ -158,6 +158,8 @@ return function(Player, Data, Server)
 						Server.Library.TimedState(Target.Actions, "StrategistVictim", animlength)
 						Server.Library.TimedState(Target.Speeds, "AlcSpeed-0", animlength)
 						Server.Library.TimedState(Target.Stuns, "NoRotate", animlength)
+						-- Prevent blocking/parrying during strategist combo
+						Server.Library.TimedState(Target.Stuns, "StrategistComboHit", animlength)
 
 						-- Add invincibility to victim (but allow damage from attacker via special check in Damage.lua)
 						Server.Library.TimedState(Target.IFrames, "StrategistComboVictim", animlength)

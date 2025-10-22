@@ -27,13 +27,14 @@ return function(scope, props: {
 
 	local startOb = scope:Observer(started)
     local tsk
-	local disconnect = startOb:onChange(function()
+	local disconnect
+	disconnect = startOb:onChange(function()
 		if peek(started) == true then
 			task.wait(1)
 			textinit:set(true)
 
 			-- Animate each label one by one
-			tsk =task.spawn(function()
+			tsk = task.spawn(function()
 				task.wait(.2)
 				if damageLabel then
 					SlotMachineText(damageLabel, string.format("Damage: %d", statsData.Damage), {
@@ -65,6 +66,11 @@ return function(scope, props: {
 			end)
         else
             textinit:set(false)
+			-- Clear all text labels when hiding tooltip
+			if damageLabel then damageLabel.Text = "" end
+			if cooldownLabel then cooldownLabel.Text = "" end
+			if augmentsLabel then augmentsLabel.Text = "" end
+			disconnect()
             task.cancel(tsk)
 		end
 	end)

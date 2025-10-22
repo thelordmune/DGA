@@ -508,14 +508,16 @@ local BlockStates = {}
 Combat.HandleBlockInput = function(Character: Model, State: boolean)
     local Entity = Server.Modules["Entities"].Get(Character)
     if not Entity then return end
-    
+
     local Weapon = Entity.Weapon
     local Stats = WeaponStats[Weapon]
     if not Stats then return end
-    
+
     -- If already parrying, don't interrupt
     if Server.Library.StateCheck(Character.Frames, "Parry") then return end
-    
+    -- Prevent blocking during strategist combo
+    if Server.Library.StateCheck(Character.Stuns, "StrategistComboHit") then return end
+
     if State then
         -- Start block if not already blocking
         if not BlockStates[Character] then
@@ -532,8 +534,8 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
 
                 BlockStates[Character].HoldTime = BlockStates[Character].HoldTime + dt
 
-                -- If held long enough, start blocking - increased from 0.15s to 0.25s
-                if BlockStates[Character].HoldTime >= 0.25 and not BlockStates[Character].Blocking then
+                -- If held long enough, start blocking - decreased from 0.25s to 0.2s
+                if BlockStates[Character].HoldTime >= 0.2 and not BlockStates[Character].Blocking then
                     BlockStates[Character].Blocking = true
                     self.StartBlock(Character)
                 end
@@ -544,8 +546,8 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
     else
         -- Release input
         if BlockStates[Character] then
-            -- If released quickly, attempt parry - increased from 0.15s to 0.25s
-            if BlockStates[Character].HoldTime < 0.25 and not BlockStates[Character].Blocking then
+            -- If released quickly, attempt parry - decreased from 0.25s to 0.2s
+            if BlockStates[Character].HoldTime < 0.2 and not BlockStates[Character].Blocking then
                 self.AttemptParry(Character)
             end
             
@@ -566,6 +568,12 @@ end
 Combat.AttemptParry = function(Character: Model)
     if Server.Library.CheckCooldown(Character, "Parry") then return end
     if Server.Library.StateCheck(Character.Stuns, "BlockBreakStun") then return end
+    -- Prevent parrying during ragdoll
+    if Character:FindFirstChild("Ragdoll") then return end
+    -- Prevent parrying during moves
+    if Server.Library.StateCount(Character.Actions) then return end
+    -- Prevent parrying during strategist combo
+    if Server.Library.StateCheck(Character.Stuns, "StrategistComboHit") then return end
 
     local Entity = Server.Modules["Entities"].Get(Character)
     if not Entity then return end

@@ -92,11 +92,21 @@ return function(Player, Data, Server)
 
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Character and Target:IsA("Model") then
-						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
-						-- print("Axe Kick hit:", Target.Name)
+						-- Check if target is blocking or parrying before applying damage
+						local targetFrames = Target:FindFirstChild("Frames")
+						local isBlocking = targetFrames and Library.StateCheck(targetFrames, "Blocking")
+						local isParrying = targetFrames and Library.StateCheck(targetFrames, "Parry")
 
-						-- Ragdoll the target for 1 second
-						Ragdoller.Ragdoll(Target, 3)
+						-- Only ragdoll on direct hits, not when blocked or parried
+						if not isBlocking and not isParrying then
+							Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
+							-- print("Axe Kick hit:", Target.Name)
+							-- Ragdoll the target for 3 seconds
+							Ragdoller.Ragdoll(Target, 3)
+						else
+							-- Still apply damage but without ragdoll
+							Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
+						end
 					end
 				end
 			end

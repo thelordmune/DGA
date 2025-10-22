@@ -143,6 +143,12 @@ NetworkModule.EndPoint = function(Player, Data)
                         if heldData and heldData.skillName == usedItem.name then
                             skill:OnInputEnded(Player)
                             heldWeaponSkills[Player] = nil
+
+                            -- Apply 1 second soft cooldown on cast
+                            local Character = Player.Character
+                            if Character then
+                                Server.Library.SetCooldown(Character, "SkillCast", 1)
+                            end
                         else
                             -- print("[UseItem] No held skill data found for:", usedItem.name)
                         end
@@ -154,6 +160,12 @@ NetworkModule.EndPoint = function(Player, Data)
                     if Data.inputType == "ended" then
                         -- print("[UseItem] Executing skill on 'ended' input")
                         skill(Player, Data, Server)
+
+                        -- Apply 1 second soft cooldown on cast
+                        local Character = Player.Character
+                        if Character then
+                            Server.Library.SetCooldown(Character, "SkillCast", 1)
+                        end
                     else
                         -- print("[UseItem] Ignoring 'began' input for old system skill")
                     end

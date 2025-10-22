@@ -52,6 +52,11 @@ Movement.Dodge = function()
 		-- print("Dodge blocked: Character has active states")
 		return
 	end
+	-- Prevent dashing during ragdoll
+	if Client.Character:FindFirstChild("Ragdoll") then
+		-- print("Dodge blocked: Character is ragdolled")
+		return
+	end
 
 	-- Check cooldown only if out of charges
 	if Client.DodgeCharges <= 0 then

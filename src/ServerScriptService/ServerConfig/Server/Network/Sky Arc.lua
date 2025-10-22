@@ -146,6 +146,8 @@ NetworkModule.EndPoint = function(Player, Data)
 
 		cleanUp()
 		Server.Library.SetCooldown(Character, "Sky Arc", 8)
+		-- Apply 1 second soft cooldown on cast
+		Server.Library.SetCooldown(Character, "SkillCast", 1)
 		Server.Library.StopAllAnims(Character)
 
 		local Alchemy = Library.PlayAnimation(Character, Animation)

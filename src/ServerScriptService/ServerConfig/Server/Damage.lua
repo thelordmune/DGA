@@ -208,8 +208,8 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	local function Parried()
 		-- Apply stun IMMEDIATELY when parry is detected
 		Library.StopAllAnims(Invoker)
-		Library.TimedState(Invoker.Speeds, "ParrySpeedSet4", 1.2)
-		Library.TimedState(Invoker.Stuns, "ParryStun", 1.2)
+		Library.TimedState(Invoker.Speeds, "ParrySpeedSet4", 1.5)
+		Library.TimedState(Invoker.Stuns, "ParryStun", 1.5)
 
 		if not Table.NoParryAnimation then
 			for _, v in script.Parent.Callbacks.Parry:GetChildren() do
@@ -278,8 +278,8 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			world:set(targetEntity, comps.BlockBar, {Value = 0, MaxValue = 100})
 			world:set(targetEntity, comps.BlockBroken, true)
 
-			-- Schedule BlockBroken reset after 4.5 seconds
-			task.delay(4.5, function()
+			-- Schedule BlockBroken reset after 3 seconds
+			task.delay(3, function()
 				if world:contains(targetEntity) then
 					world:set(targetEntity, comps.BlockBroken, false)
 				end
@@ -303,9 +303,11 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		Animation.Priority = Enum.AnimationPriority.Action3
 
 		-- Apply stun and other effects
-		Server.Library.TimedState(Target.Stuns, "BlockBreakStun", 4.5)
-		Server.Library.TimedState(Target.Actions, "BlockBreak", 4.5)
-		Server.Library.TimedState(Target.Speeds, "BlockBreakSpeedSet3", 4.5)
+		Server.Library.TimedState(Target.Stuns, "BlockBreakStun", 3)
+		Server.Library.TimedState(Target.Actions, "BlockBreak", 3)
+		Server.Library.TimedState(Target.Speeds, "BlockBreakSpeedSet3", 3)
+		-- Stun in place - unable to do anything during guardbreak
+		Server.Library.TimedState(Target.Stuns, "GuardbreakStun", 3)
 
 		-- Play sound effect
 		local sound = Replicated.Assets.SFX.Extra.Guardbreak:Clone()
