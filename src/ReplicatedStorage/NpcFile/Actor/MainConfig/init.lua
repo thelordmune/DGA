@@ -540,7 +540,7 @@ end
 
 function MainConfig.SpawnEffect(position): Vector3
 	--TODO: Effect
-	Server.Visuals.Ranged(position, 300, { Module = "Base", Function = "Spawn", Arguments = { Position = position } })
+	Server.Visuals.Ranged(position, 300, { Module = "Base", Function = "Spawn", Arguments = { position} })
 	-- print("doing spawn effect for npcs")
 	-- print("position:", position)
 end
@@ -554,12 +554,15 @@ end
 function MainConfig.LoadAppearance()
 	local npc = MainConfig.getNpc()
 	if not npc or not MainConfig.Appearance then
-		return
+		return Signal.new()
 	end
 
 	if not MainConfig.Appearance.Enabled then
-		return
+		return Signal.new()
 	end
+
+	-- Create a signal to fire when appearance is fully loaded
+	local appearanceLoadedSignal = Signal.new()
 
 	local appearanceData = {
 		Hair = require(MainConfig.Appearance.Hair),
@@ -580,6 +583,13 @@ function MainConfig.LoadAppearance()
 			end
 		end
 	end
+
+	-- Fire the signal to indicate appearance is loaded
+	task.defer(function()
+		appearanceLoadedSignal:Fire()
+	end)
+
+	return appearanceLoadedSignal
 end
 
 function MainConfig.InitiateRun(ShouldRun: boolean)

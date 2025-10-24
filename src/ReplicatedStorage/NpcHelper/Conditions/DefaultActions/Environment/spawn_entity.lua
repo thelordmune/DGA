@@ -140,8 +140,10 @@ return function(actor: Actor, mainConfig: table)
 
 	mainConfig.Spawning.SpawnedAt = spawn_
 
-	npcModel:SetPrimaryPartCFrame(CFrame.new(spawn_) * CFrame.Angles(0, math.rad(90), 0))
-	npcModel:MoveTo(spawn_)
+	-- Position NPC far below the map initially so it's not visible while appearance loads
+	local hiddenPosition = spawn_ + Vector3.new(0, -500, 0)
+	npcModel:SetPrimaryPartCFrame(CFrame.new(hiddenPosition) * CFrame.Angles(0, math.rad(90), 0))
+	npcModel:MoveTo(hiddenPosition)
 
 	if VISUALIZE_SPAWN_PART then
 		local visualziedPart = Instance.new("Part")
@@ -186,7 +188,8 @@ return function(actor: Actor, mainConfig: table)
 		end
 	end)
 
-	mainConfig.LoadAppearance()
+	-- Load appearance and wait for it to complete
+	local appearanceLoadedSignal = mainConfig.LoadAppearance()
 
 	-- Entity creation will be handled automatically by Startup.lua when NPC is added to workspace.World.Live
 	-- -- print("Spawned NPC:", npcModel.Name, "- entity creation will be handled by monitoring system")
@@ -199,7 +202,22 @@ return function(actor: Actor, mainConfig: table)
 		end
 	end
 
-	local _ = SPAWN_EFFECT and mainConfig.SpawnEffect(mainConfig.Spawning.SpawnedAt)
+	-- Wait for appearance to load, then move NPC to final position and trigger spawn effect
+	if appearanceLoadedSignal then
+		task.spawn(function()
+			appearanceLoadedSignal:Wait()
+
+			-- Move NPC to final spawn position
+			npcModel:SetPrimaryPartCFrame(CFrame.new(spawn_) * CFrame.Angles(0, math.rad(90), 0))
+			npcModel:MoveTo(spawn_)
+
+			-- Trigger spawn effect now that appearance is loaded
+			local _ = SPAWN_EFFECT and mainConfig.SpawnEffect(mainConfig.Spawning.SpawnedAt)
+		end)
+	else
+		-- Fallback if signal is nil
+		local _ = SPAWN_EFFECT and mainConfig.SpawnEffect(mainConfig.Spawning.SpawnedAt)
+	end
 
 	local damageLog = Instance.new("Folder")
 	damageLog.Name = "Damage_Log"
