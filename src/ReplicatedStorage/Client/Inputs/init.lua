@@ -25,18 +25,30 @@ local function ContextAction(ActionName, InputState, InputObject)
 	return Enum.ContextActionResult.Pass;
 end
 
+-- Load all input modules
 for _, Module in script:GetChildren() do
 	if Module:IsA("ModuleScript") then
 		self.InputModules[Module.Name] = {}
 		for Index, Function in require(Module) do
 			self.InputModules[Module.Name][tostring(Index)] = Function;
 		end
+	end
+end
 
-		local KeyCode = Client.Settings.KeyBinds[Module.Name];
+-- Function to bind all input actions (called on init and respawn)
+Inputs.BindAllActions = function()
+	for ModuleName, _ in pairs(self.InputModules) do
+		local KeyCode = Client.Settings.KeyBinds[ModuleName];
 		if KeyCode then
-			Client.Service["ContextActionService"]:BindAction(Module.Name, ContextAction, false, KeyCode);
+			-- Unbind first to avoid duplicate bindings
+			Client.Service["ContextActionService"]:UnbindAction(ModuleName);
+			-- Then bind
+			Client.Service["ContextActionService"]:BindAction(ModuleName, ContextAction, false, KeyCode);
 		end
 	end
 end
+
+-- Initial binding
+Inputs.BindAllActions()
 
 return Inputs

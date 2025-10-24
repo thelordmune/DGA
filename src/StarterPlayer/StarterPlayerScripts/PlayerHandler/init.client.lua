@@ -416,6 +416,12 @@ function Initialize(Character: Model)
 	-- REINITIALIZE ALL SYSTEMS
 	-- print("=== REINITIALIZING ALL SYSTEMS ===")
 
+	-- Rebind all input actions (fixes running not working after respawn)
+	if Client.Modules["Inputs"] and Client.Modules["Inputs"].BindAllActions then
+		Client.Modules["Inputs"].BindAllActions()
+		print("[PlayerHandler] Rebound all input actions")
+	end
+
 	-- Reinitialize animation system
 	Client.Modules["Animate"].Init()
 	-- print("Reinitialized animation system")

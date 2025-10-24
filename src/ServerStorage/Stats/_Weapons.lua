@@ -40,7 +40,7 @@ local Table = {
 		},
 
 		["M1Table"] = {
-			Damage = 10,
+			Damage = 5,
 			PostureDamage = 50,
 			LightKnockback = true,
 			M1 = true,
@@ -235,7 +235,7 @@ local Table = {
 		},
 
 		["M1Table"] = {
-			Damage = 8, -- Nerfed from 10 to 8
+			Damage = 6, -- Nerfed from 10 to 8
 			PostureDamage = 50,
 			LightKnockback = true,
 			M1 = true,
@@ -607,7 +607,7 @@ local Table = {
 		},
 
 		["M1Table"] = {
-			Damage = 10,
+			Damage = 4,
 			PostureDamage = 20,
 			LightKnockback = true,
 			M1 = true,

@@ -7,32 +7,54 @@ local Character = plr.Character or plr.CharacterAdded
 
 local UI = Client.UI or plr.PlayerGui.ScreenGui;
 
+-- Fusion-based Health Component
+local HealthComponent = require(Replicated.Client.Components.Health)
+local healthComponentData = nil
+
 Controller.Check = function()
 	if not UI or not UI:FindFirstChild("Stats") then
        local ui = Replicated.Assets.GUI.ScreenGui:Clone()
 	   ui.Parent = plr.PlayerGui
 	   UI = ui -- Update the UI reference
-        return
+	   -- Reset health component data when UI is recreated
+	   healthComponentData = nil
+    end
+
+    -- Hide the old health bar container
+    if UI and UI:FindFirstChild("Stats") then
+        local statsFrame = UI.Stats
+        if statsFrame:FindFirstChild("Container") then
+            local container = statsFrame.Container
+            if container:FindFirstChild("Health") then
+                container.Health.Visible = false
+            end
+        end
+
+        -- Initialize the new Fusion-based Health component (or reinitialize after respawn)
+        if not healthComponentData or not healthComponentData.frame.Parent then
+            healthComponentData = HealthComponent(statsFrame)
+            print("[Stats] ✅ New Health component initialized")
+        end
     end
 end
 
 Controller.Health = function(Value, MaxValue)
 	if not UI or not UI:FindFirstChild("Stats") then
-        UI = plr.PlayerGui.ScreenGui
-        return
+        UI = plr.PlayerGui:FindFirstChild("ScreenGui")
+        if not UI then
+            warn("[Stats] Health update failed - UI not found")
+            return
+        end
     end
-    local scale = math.clamp(Value / MaxValue, 0, 1)
-    Client.Service.TweenService:Create(UI.Stats.Container.Health.Bar, TweenInfo.new(.1, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut), {
-        Size = UDim2.fromScale(scale, 0.635)
-    }):Play()
-    Client.Service.TweenService:Create(UI.Stats.Container.Health:WaitForChild("Shadow"), TweenInfo.new(.1, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut), {
-        Size = UDim2.fromScale(scale, 0.635)
-    }):Play()
-end
 
-Controller.Posture = function(Value, MaxValue)
-    local scale = math.clamp(Value / MaxValue, 0, 1)
-    UI.Stats.Container.Posture.Bar.Size = UDim2.new(scale, 0, 0.3, 0)
+    -- Update the health value for the Fusion component
+    if healthComponentData and healthComponentData.healthValue then
+        local healthPercent = math.clamp((Value / MaxValue) * 100, 0, 100)
+        healthComponentData.healthValue:set(healthPercent)
+        print(`[Stats] Health updated: {healthPercent}%`)
+    else
+        warn("[Stats] Health component not initialized yet")
+    end
 end
 
 Controller.Energy = function(Value, MaxValue)
