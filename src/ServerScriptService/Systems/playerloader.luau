@@ -249,8 +249,8 @@ local function processPlayer(world, player)
             -- Initialize all components
             -- print(`[Character] Setting ECS components for {rig.Name}`)
             world:set(e, Character, rig)
-            world:set(e, comps.Health, {current = 175, max = 175, tick = 0.5, tickspeed = 0.1})
-            world:set(e, comps.Energy, {current = 100, tick = 0.5, tickspeed = 0.1})
+            world:set(e, comps.Health, {current = 175, max = 175, new = 175, old = 175, tick = 0.5, tickspeed = 0.1})
+            world:set(e, comps.Energy, {current = 100, max = 100, new = 100, old = 100, tick = 0.5, tickspeed = 0.1})
             world:set(e, comps.Combat, { weapon = "Fist", equipped = false, animation = "Fist" })
             world:set(e, comps.Attacking, {duration = 0, value = false})
             world:set(e, comps.Stun, {duration = 0, value = false})
@@ -298,6 +298,7 @@ local function processPlayer(world, player)
             world:set(e, comps.BlockBar, {Value = 100, MaxValue = 100})
             world:set(e, comps.BBRegen, {value = false, duration = 0})
             world:set(e, comps.BlockBroken, false)
+            world:set(e, comps.Adrenaline, {value = 0, comboHits = 0}) -- Initialize adrenaline system
             world:set(e, comps.Armor, {duration = 0, armortype = "None", value = false})
             world:set(e, comps.QDC, {duration = 0, value = false})
             world:set(e, comps.NoRagdoll, false)
@@ -318,6 +319,17 @@ local function processPlayer(world, player)
                 Action = "EntityReady",
                 EntityId = e
             })
+
+            -- Mark components as ready - this signals to systems that they can start processing this entity
+            world:set(e, comps.ComponentsReady, true)
+            print(`[PlayerLoader] ✅ All components initialized for {player.Name} (Entity: {e})`)
+
+            -- Sync initial adrenaline value to client
+            task.defer(function()
+                -- Give the client a moment to initialize UI
+                task.wait(0.5)
+                Bridges.UpdateAdrenaline:Fire(player, { adrenaline = 0 })
+            end)
 
             -- Give weapon skills AFTER components are initialized
             -- Use task.defer to ensure all components are fully set before giving skills

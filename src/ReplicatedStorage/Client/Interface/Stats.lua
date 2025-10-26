@@ -343,4 +343,17 @@ Bridges.UpdateHotbar:Connect(function()
     Controller.LoadWeaponSkills()
 end)
 
+-- Set up BridgeNet2 listener for adrenaline updates
+Bridges.UpdateAdrenaline:Connect(function(data)
+    -- Don't update during loading screen or if UI isn't ready
+    if _G.LoadingScreenActive then
+        return
+    end
+
+    -- Update adrenaline value for the Fusion component
+    if healthComponentData and healthComponentData.adrenalineValue then
+        healthComponentData.adrenalineValue:set(data.adrenaline)
+    end
+end)
+
 return Controller;

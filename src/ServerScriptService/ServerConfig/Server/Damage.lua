@@ -14,6 +14,20 @@ local ref = require(Replicated.Modules.ECS.jecs_ref)
 local comps = require(Replicated.Modules.ECS.jecs_components)
 local Global = require(Replicated.Modules.Shared.Global)
 
+-- Adrenaline system (lazy load to avoid circular dependencies)
+local AdrenalineSystem = nil
+local function getAdrenalineSystem()
+	if not AdrenalineSystem then
+		local success, module = pcall(function()
+			return require(Replicated.Modules.Systems.adrenaline)
+		end)
+		if success then
+			AdrenalineSystem = module
+		end
+	end
+	return AdrenalineSystem
+end
+
 -- D:\iv\src\ReplicatedStorage\Modules\ECS\jecs_world.luau
 
 DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
@@ -717,6 +731,28 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	if Table then
 		-- -- print(Table)
+	end
+
+	-- Adrenaline System Integration
+	local adrenalineSys = getAdrenalineSystem()
+
+	-- Increase adrenaline for attacker when landing a hit
+	if adrenalineSys and Player then
+		local invokerEntity = ref.get("player", Player)
+		if invokerEntity then
+			adrenalineSys.increaseAdrenaline(invokerEntity)
+		end
+	end
+
+	-- Reset adrenaline for target when getting hit (only if they had combo hits)
+	if adrenalineSys and TargetPlayer then
+		local targetEntity = ref.get("player", TargetPlayer)
+		if targetEntity then
+			local adrenalineData = world:get(targetEntity, comps.Adrenaline)
+			if adrenalineData and adrenalineData.comboHits > 0 then
+				adrenalineSys.resetAdrenaline(targetEntity)
+			end
+		end
 	end
 end
 

@@ -43,38 +43,38 @@ Movement.Dodge = function()
 
 	-- Check if we can dash
 	if Client.Dodging then
-		-- print("Dodge blocked: Already dodging")
+		-- -- print("Dodge blocked: Already dodging")
 		return
 	end
 	if Client.Library.StateCount(Client.Actions) or
 		Client.Library.StateCount(Client.Stuns) or
 		Client.Library.StateCheck(Client.Speeds, "M1Speed8") then
-		-- print("Dodge blocked: Character has active states")
+		-- -- print("Dodge blocked: Character has active states")
 		return
 	end
 	-- Prevent dashing during ragdoll
 	if Client.Character:FindFirstChild("Ragdoll") then
-		-- print("Dodge blocked: Character is ragdolled")
+		-- -- print("Dodge blocked: Character is ragdolled")
 		return
 	end
 
 	-- Check cooldown only if out of charges
 	if Client.DodgeCharges <= 0 then
 		if Client.Library.CheckCooldown(Client.Character, "Dodge") then
-			-- print("Dodge blocked: On cooldown")
+			-- -- print("Dodge blocked: On cooldown")
 			return
 		end
 		Client.DodgeCharges = 2  -- Reset charges
-		-- print("Dodge charges reset to 2")
+		-- -- print("Dodge charges reset to 2")
 	end
 
 	Client.DodgeCharges = Client.DodgeCharges - 1
-	-- print("Dodge charge used, remaining:", Client.DodgeCharges)
+	-- -- print("Dodge charge used, remaining:", Client.DodgeCharges)
 
 	-- Set cooldown when out of charges
 	if Client.DodgeCharges <= 0 then
 		Client.Library.SetCooldown(Client.Character, "Dodge", 2.5)
-		-- print("Dodge cooldown set")
+		-- -- print("Dodge cooldown set")
 	end
     
     Client.Library.AddState(Client.Statuses, "Dodging")
@@ -124,7 +124,7 @@ Movement.Dodge = function()
         end
     end)
 
-    -- print("Dash: Speed =", Speed, "Slowdown =", SlowdownSpeed, "Duration =", Duration, "Direction =", Direction)
+    -- -- print("Dash: Speed =", Speed, "Slowdown =", SlowdownSpeed, "Duration =", Duration, "Direction =", Direction)
     
     Animation.Stopped:Once(function()
         -- Velocity cleanup is handled by the tween completion
@@ -135,28 +135,76 @@ end
 
 
 Movement.Run = function(State)
-	if not Client.Character then return end;
-	if not Client.Root or not Client.Humanoid then return end;
-	if not Client.Actions or not Client.Stuns or not Client.Speeds then return end;
-	
+	-- print(`[Movement.Run] Called with State: {State}`)
+
+	-- Basic validation checks
+	if not Client.Character then
+		-- warn("[Movement.Run] Failed: No character")
+		return
+	end
+
+	if not Client.Root or not Client.Humanoid then
+		-- warn("[Movement.Run] Failed: No Root or Humanoid")
+		return
+	end
+
+	-- Verify character is still valid and in workspace
+	if not Client.Character.Parent then
+		-- warn("[Movement.Run] Failed: Character not in workspace")
+		return
+	end
+
+	-- Verify humanoid is alive
+	if Client.Humanoid.Health <= 0 then
+		-- warn("[Movement.Run] Failed: Humanoid is dead")
+		return
+	end
+
+	-- Try to get StringValues if not cached (but don't fail if they don't exist yet)
+	if not Client.Actions then
+		Client.Actions = Client.Character:FindFirstChild("Actions")
+	end
+
+	if not Client.Stuns then
+		Client.Stuns = Client.Character:FindFirstChild("Stuns")
+	end
+
+	if not Client.Speeds then
+		Client.Speeds = Client.Character:FindFirstChild("Speeds")
+	end
+
+	-- Only check for state counts if the StringValues exist
+	if not Client.Actions or not Client.Stuns or not Client.Speeds then
+		-- warn(`[Movement.Run] Failed: StringValues not ready - Actions: {Client.Actions ~= nil}, Stuns: {Client.Stuns ~= nil}, Speeds: {Client.Speeds ~= nil}`)
+		return
+	end
+
+	-- print(`[Movement.Run] Validation passed - Actions: {Client.Library.StateCount(Client.Actions)}, Stuns: {Client.Library.StateCount(Client.Stuns)}, Running: {Client.Running}`)
+
+
 	local Weapon   = Client.Player:GetAttribute("Weapon");
 	local Equipped = Client.Character:GetAttribute("Equipped");
-	
+
 	if State and not Client.Library.StateCount(Client.Stuns) and not Client.Library.StateCount(Client.Actions) and not Client.Running then
 		Client.Library.StopAllAnims(Client.Character);
 		Client.Library.AddState(Client.Speeds, "RunSpeedSet30")
 		Client.Running = true;
 		Client.RunAtk = true;
-		
+
 		if Client["RunAtkDelay"] then
 			task.cancel(Client["RunAtkDelay"])
 			Client["RunAtkDelay"] = nil
 		end
-		
+
 		if Equipped then
 			Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.WeaponRun);
 		else
 			Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.Run);
+		end
+
+		-- Set run animation priority to Action (higher than Movement)
+		if Client.RunAnim then
+			Client.RunAnim.Priority = Enum.AnimationPriority.Action
 		end
 		
 		local function CallStepLeft()

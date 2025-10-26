@@ -416,6 +416,27 @@ function Initialize(Character: Model)
 	-- REINITIALIZE ALL SYSTEMS
 	-- print("=== REINITIALIZING ALL SYSTEMS ===")
 
+	-- Wait for character StringValues to be created
+	local maxWait = 2
+	local waited = 0
+	while waited < maxWait do
+		if Character:FindFirstChild("Actions") and
+		   Character:FindFirstChild("Stuns") and
+		   Character:FindFirstChild("Speeds") then
+			break
+		end
+		task.wait(0.1)
+		waited = waited + 0.1
+	end
+
+	if not Character:FindFirstChild("Actions") or
+	   not Character:FindFirstChild("Stuns") or
+	   not Character:FindFirstChild("Speeds") then
+		warn("[PlayerHandler] StringValues not created after waiting - inputs may not work correctly")
+	else
+		print("[PlayerHandler] StringValues verified - ready to bind inputs")
+	end
+
 	-- Rebind all input actions (fixes running not working after respawn)
 	if Client.Modules["Inputs"] and Client.Modules["Inputs"].BindAllActions then
 		Client.Modules["Inputs"].BindAllActions()

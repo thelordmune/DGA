@@ -68,10 +68,10 @@ local function walkspeed_controller()
 		return
 	end
 
-	-- Get Speeds StringValue (same as Running system uses!)
+	-- Get Speeds StringValue (don't use WaitForChild in a loop - just check if it exists)
 	local speedsStringValue = character:FindFirstChild("Speeds")
 	if not speedsStringValue then
-		warn("[WalkspeedController] No Speeds StringValue found!")
+		-- StringValue not ready yet, skip this frame
 		return
 	end
 

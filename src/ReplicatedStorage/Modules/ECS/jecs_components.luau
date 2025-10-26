@@ -102,6 +102,12 @@ local components: {
     StateFrames: Entity<{string}>,
     StateStatus: Entity<{string}>,
 
+    -- Combat Systems
+    Adrenaline: Entity<{value: number, comboHits: number}>, -- value: 0-100, comboHits: consecutive hits landed
+
+    -- Initialization Tags
+    ComponentsReady: Entity<boolean>, -- Tag to indicate all player components are initialized
+
     -- ECS Cooldown Management (replaces table-based cooldowns)
     Cooldowns: Entity<{[string]: number}>,
 } =
@@ -200,6 +206,12 @@ local components: {
         StateSpeeds = world:component(),
         StateFrames = world:component(),
         StateStatus = world:component(),
+
+        -- Combat Systems
+        Adrenaline = world:component(),
+
+        -- Initialization Tags
+        ComponentsReady = world:component(),
 
         -- ECS Cooldown Management
         Cooldowns = world:component(),
