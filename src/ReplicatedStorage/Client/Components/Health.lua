@@ -169,11 +169,11 @@ return function(Target)
 	local holderFrame = scope:New "Frame" {
 		Parent = Target,
 		Name = "Holder",
-		AnchorPoint = Vector2.new(0.5, 1.25),
+		AnchorPoint = Vector2.new(0.5, 1),
 		BackgroundTransparency = 1,
 		Position = scope:Spring(
 			scope:Computed(function(use)
-				return if use(started) then UDim2.fromScale(0.5, 0.731) else UDim2.fromScale(0.5, 0.731) 
+				return if use(started) then UDim2.fromScale(0.5, 0) else UDim2.fromScale(0.5, 0) 
 			end), 30, 9
 		),
 		Size = scope:Spring(

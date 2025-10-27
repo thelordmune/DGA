@@ -255,14 +255,14 @@ Combat.Critical = function(Character: Model)
 
 		for _, Target: Model in pairs(HitTargets) do
 			Server.Modules.Damage.Tag(Character, Target, Stats["Critical"]["DamageTable"])
-
-			-- Check if target is ragdolled and apply knockback (similar to Pincer Impact)
+			print("[Critical] Stats[Critical][DamageTable]:", Stats["Critical"]["DamageTable"])
+			-- Check if target is ragdolled and apply additional knockback (similar to Pincer Impact)
 			if Target:IsA("Model") and Target:FindFirstChild("HumanoidRootPart") then
 				local isRagdolled = Target:FindFirstChild("Ragdoll") or
 				                   (Target:GetAttribute("Knocked") and Target:GetAttribute("Knocked") > 0)
 
 				if isRagdolled then
-					-- Apply knockback using the same method as Pincer Impact
+					-- Apply extra knockback using the same method as Pincer Impact
 					local direction = Character.HumanoidRootPart.CFrame.LookVector -- Forward from attacker
 					local horizontalPower = 60 -- Strong horizontal knockback
 					local upwardPower = 50 -- Strong upward arc

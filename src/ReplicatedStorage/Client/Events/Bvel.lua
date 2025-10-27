@@ -596,19 +596,69 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		end
 	end
 
-	-- Calculate direction and flatten to horizontal to prevent upward flinging
+	-- Calculate knockback direction (away from attacker)
 	local direction = (eroot.Position - root.Position).Unit
 	direction = Vector3.new(direction.X, 0, direction.Z).Unit  -- Flatten to horizontal
-	local power = 60
+
+	-- Make target face the attacker using BodyGyro (more reliable than setting CFrame)
+	local lookDirection = (root.Position - eroot.Position).Unit
+	lookDirection = Vector3.new(lookDirection.X, 0, lookDirection.Z).Unit -- Flatten to horizontal
+	local targetCFrame = CFrame.new(eroot.Position, eroot.Position + lookDirection)
+
+	local bodyGyro = Instance.new("BodyGyro")
+	bodyGyro.MaxTorque = Vector3.new(0, math.huge, 0) -- Only rotate on Y axis
+	bodyGyro.P = 10000
+	bodyGyro.D = 500
+	bodyGyro.CFrame = targetCFrame
+	bodyGyro.Parent = eroot
+
+	local maxPower = 80
+	local duration = 0.75 -- Match animation duration better
+
+	-- Reset any existing velocity first
+	eroot.AssemblyLinearVelocity = Vector3.zero
+	eroot.AssemblyAngularVelocity = Vector3.zero
 
 	local bv = Instance.new("BodyVelocity")
-	bv.MaxForce = Vector3.new(50000, 0, 50000)  -- Reduced from math.huge, no Y force
-	bv.Velocity = direction * power
+	bv.MaxForce = Vector3.new(50000, 0, 50000)
+	bv.Velocity = Vector3.zero -- Start at zero
 	bv.Parent = eroot
 
-	eroot.AssemblyLinearVelocity = direction * power
+	-- Use Heartbeat to smoothly update velocity
+	local startTime = os.clock()
+	local connection
+	connection = game:GetService("RunService").Heartbeat:Connect(function()
+		local elapsed = os.clock() - startTime
+		if elapsed >= duration then
+			connection:Disconnect()
+			return
+		end
 
-	Debris:AddItem(bv, 0.35)
+		-- Calculate progress using Exponential EaseIn
+		local progress = elapsed / duration
+		local easedProgress = progress ^ 3 -- Exponential ease in (cubic)
+		local currentPower = maxPower * easedProgress
+
+		if bv and bv.Parent then
+			bv.Velocity = direction * currentPower
+			eroot.AssemblyLinearVelocity = direction * currentPower
+		else
+			connection:Disconnect()
+		end
+	end)
+
+	-- Clean up after duration
+	task.delay(duration, function()
+		if connection then
+			connection:Disconnect()
+		end
+		if bv and bv.Parent then
+			bv:Destroy()
+		end
+		if bodyGyro and bodyGyro.Parent then
+			bodyGyro:Destroy()
+		end
+	end)
 end
 
 NetworkModule["NTBvel"] = function(Character)

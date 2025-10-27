@@ -568,11 +568,12 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	local function Knockback()
 		if Target then
+			print("[Knockback] Applying knockback to", Target.Name, "from", Invoker.Name)
 			Library.StopAllAnims(Target)
 			local Animation = Library.PlayAnimation(Target, Replicated.Assets.Animations.Misc.KnockbackStun)
 			Animation.Priority = Enum.AnimationPriority.Action3
 			Server.Packets.Bvel.sendToAll({ Character = Invoker, Name = "KnockbackBvel", Targ = Target })
-			-- -- print("knocking back")
+			print("[Knockback] Sent KnockbackBvel packet")
 			handleWallbang()
 		end
 	end
@@ -708,11 +709,12 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	if Table.Knockback then
-		-- -- print("knocking abck")
+		print("[Damage] Table.Knockback is true, calling Knockback()")
 		Knockback()
 	end
 
 	if Table.LightKnockback then
+		print("[Damage] Table.LightKnockback is true, calling LightKnockback()")
 		LightKnockback()
 	end
 
