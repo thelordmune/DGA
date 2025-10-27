@@ -72,20 +72,55 @@ local function initializeNPCEntity(npcModel: Model): number
 	return entity
 end
 
+-- Track NPCs that have been initialized to avoid rescanning
+local initializedNPCs = {}
+local lastScanTime = 0
+local SCAN_INTERVAL = 2 -- Only scan for new NPCs every 2 seconds instead of every frame
+
+-- Set up DescendantAdded listener for immediate NPC detection (more efficient than polling)
+workspace.World.Live.DescendantAdded:Connect(function(descendant)
+	if descendant:IsA("Model") and not Players:GetPlayerFromCharacter(descendant) then
+		task.wait(0.1) -- Small delay to ensure NPC is fully loaded
+
+		if not initializedNPCs[descendant] then
+			local existingEntity = RefManager.entity.find(descendant)
+			if not existingEntity then
+				initializeNPCEntity(descendant)
+				initializedNPCs[descendant] = true
+			end
+		end
+	end
+end)
+
+-- Clean up tracking when NPCs are removed
+workspace.World.Live.DescendantRemoving:Connect(function(descendant)
+	if initializedNPCs[descendant] then
+		initializedNPCs[descendant] = nil
+	end
+end)
+
 return {
 	run = function(world)
 		-- Skip if more than 1 player (temporary restriction)
 		if #Players:GetPlayers() > 1 then return end
 
-		-- Scan for new NPCs in workspace
+		-- Only do a full scan occasionally as a safety net
+		-- The DescendantAdded listener handles most cases
+		local currentTime = os.clock()
+		if currentTime - lastScanTime < SCAN_INTERVAL then
+			return
+		end
+		lastScanTime = currentTime
+
+		-- Scan for any NPCs that might have been missed
 		for _, descendant in workspace.World.Live:GetDescendants() do
 			if descendant:IsA("Model") and not Players:GetPlayerFromCharacter(descendant) then
-				-- Check if NPC already has an entity
-				local existingEntity = RefManager.entity.find(descendant)
-
-				if not existingEntity then
-					-- Initialize new NPC
-					initializeNPCEntity(descendant)
+				if not initializedNPCs[descendant] then
+					local existingEntity = RefManager.entity.find(descendant)
+					if not existingEntity then
+						initializeNPCEntity(descendant)
+						initializedNPCs[descendant] = true
+					end
 				end
 			end
 		end

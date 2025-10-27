@@ -187,4 +187,32 @@ function Misc.RemoveHyperarmor(Character: Model)
 	end
 end
 
+function Misc.AdrenalineFX(Character: Model)
+	if not Character then return end
+	local ADVfx = Replicated.Assets.VFX.Adrenaline:Clone()
+	ADVfx.Anchored = true
+	ADVfx.CanCollide = false
+	ADVfx.Parent = workspace.World.Visuals
+	ADVfx.CFrame = Character.HumanoidRootPart.CFrame
+
+	for _, particleEmitter in ipairs(ADVfx:GetDescendants()) do
+		if particleEmitter:IsA("ParticleEmitter") then
+	particleEmitter:Emit(particleEmitter:GetAttribute("EmitCount"))
+		end
+	end
+
+	-- Brief up-and-down screen shake for adrenaline level up
+	camShake:Start()
+	camShake:ShakeOnce(
+		13,  -- magnitude (moderate shake)
+		8,    -- roughness
+		0,    -- fadeInTime (instant)
+		0.4,  -- fadeOutTime (brief - 0.4 seconds)
+		Vector3.new(0.1, 0.8, 0.1), -- posInfluence (emphasize vertical Y movement for up-and-down)
+		Vector3.new(0.2, 0.2, 0.2)  -- rotInfluence (minimal rotation)
+	)
+
+	Debris:AddItem(ADVfx, 1)
+end
+
 return Misc

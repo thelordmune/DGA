@@ -28,6 +28,9 @@ local RunService = game:GetService("RunService")
 
 local TInfo = TweenInfo.new(0.35, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0)
 
+-- Store original trail WidthScale values (so they persist across multiple dashes)
+local originalTrailWidths = {}
+
 local Base = {}
 
 function Base.Emit(ToEmit)
@@ -55,11 +58,39 @@ function Base.Emit(ToEmit)
 end
 
 function Base.Slashes(Character: Model, Weapon: string, Combo: number)
-	local Slash: Attachment = Replicated.Assets.VFX[Weapon .. "Slashes"][Combo]:Clone()
+	local Slash: BasePart = Replicated.Assets.VFX[Weapon .. "Slashes"][Combo]:Clone()
 
-	Slash.Parent = Character.HumanoidRootPart
+	-- Store the original orientation (angular rotation) of the slash
+	-- local originalOrientation = Slash.Orientation
 
-	Misc.Emit(Slash)
+	-- Position the slash in front of the player and make it face the player's direction
+	local playerCFrame = Character.HumanoidRootPart.CFrame
+
+	if Weapon == "Fist" then
+		if Combo == 1 then
+		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-77))
+		elseif Combo == 2 then
+			Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,math.rad(-30),math.rad(-77))
+		elseif Combo == 3 then
+			Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-62))
+		elseif Combo == 4 then
+			Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(87))
+		end
+
+	end
+
+	-- Reapply the original angular orientation while preserving the player's facing direction
+	-- Slash.Orientation = originalOrientation + Vector3.new(0, playerCFrame.Rotation.Y * (180 / math.pi), 0)
+
+	Slash.Parent = workspace.World.Visuals
+
+	for _, v in Slash:GetDescendants() do
+		if v:IsA("ParticleEmitter") then
+			v:Emit(v:GetAttribute("EmitCount"))
+		end
+	end
+
+	Debris:AddItem(Slash, 3)
 end
 
 function Base.PerfectDodge(Character: Model)
@@ -212,39 +243,34 @@ end
 function Base.DashFX(Character: Model, Direction: string)
 	if Base[Character.Name .. "DashVFX"] then
 		task.cancel(Base[Character.Name .. "DashVFX"].TimeDelay)
+		if Base[Character.Name .. "DashVFX"].Connection then
+			Base[Character.Name .. "DashVFX"].Connection:Disconnect()
+		end
 		Base[Character.Name .. "DashVFX"] = nil
 	end
 
 	if Character.Humanoid.FloorMaterial ~= Enum.Material.Air then
 		local DashVFX = Replicated.Assets.VFX.DashFX:Clone()
-		--DashVFX.Weld.Part1 = Character.HumanoidRootPart
+		DashVFX.Anchored = true
+		DashVFX.CanCollide = false
 		DashVFX.Parent = workspace.World.Visuals
 
-		-- Set orientation based on direction
-		local lookVector = Character.HumanoidRootPart.CFrame.LookVector
-		local rightVector = Character.HumanoidRootPart.CFrame.RightVector
-		local upVector = Character.HumanoidRootPart.CFrame.UpVector
-
+		-- Get offset based on direction
+		local offsetCFrame
 		if Direction == "Left" then
-			DashVFX.CFrame = Character.HumanoidRootPart.CFrame
-				* CFrame.new(-2, -3, 0)
-				* CFrame.Angles(0, math.rad(90), 0)
+			offsetCFrame = CFrame.new(2, -3, 0) * CFrame.Angles(0, math.rad(90), 0)
 		elseif Direction == "Right" then
-			DashVFX.CFrame = Character.HumanoidRootPart.CFrame
-				* CFrame.new(2, -3, 0)
-				* CFrame.Angles(0, math.rad(-90), 0)
+			offsetCFrame = CFrame.new(-2, -3, 0) * CFrame.Angles(0, math.rad(-90), 0)
 		elseif Direction == "Forward" then
-			DashVFX.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -3, -2)
+			offsetCFrame = CFrame.new(0, -3, 2)
 		elseif Direction == "Backward" then
-			DashVFX.CFrame = Character.HumanoidRootPart.CFrame
-				* CFrame.new(0, -3, 2)
-				* CFrame.Angles(0, math.rad(180), 0)
+			offsetCFrame = CFrame.new(0, -3, -2) * CFrame.Angles(0, math.rad(180), 0)
+		else
+			offsetCFrame = CFrame.new(0, -3, 2)
 		end
-		--elseif Direction == "Up" then
-		--	DashVFX.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-		--elseif Direction == "Down" then
-		--	DashVFX.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2, 0) * CFrame.Angles(math.rad(90), 0, 0)
-		--end
+
+		-- Set initial position
+		DashVFX.CFrame = Character.HumanoidRootPart.CFrame * offsetCFrame
 
 		-- Raycast to get ground color
 		local rayOrigin = Character.HumanoidRootPart.Position
@@ -267,12 +293,144 @@ function Base.DashFX(Character: Model, Direction: string)
 			end
 		end
 
-		local Timer = Misc.Emit(DashVFX)
+		-- Smoothly fade in trail WidthScale when dash starts and enable trails
+		local trailData = {}
+
+		for _, v in Character:GetDescendants() do
+			if v:IsA("Trail") and v:GetAttribute("Dash") then
+				-- Enable the trail
+				v.Enabled = true
+
+				-- Get or store the original WidthScale
+				local originalWidthScale
+				if not originalTrailWidths[v] then
+					-- First time seeing this trail - store its original width
+					originalTrailWidths[v] = v.WidthScale
+					originalWidthScale = v.WidthScale
+				else
+					-- Use the stored original width
+					originalWidthScale = originalTrailWidths[v]
+				end
+
+				-- Create a NumberValue to tween (workaround since WidthScale can't be tweened directly)
+				local widthValue = Instance.new("NumberValue")
+				widthValue.Value = 0
+
+				-- Update WidthScale based on the NumberValue
+				local connection
+				connection = widthValue.Changed:Connect(function(value)
+					if v and v.Parent then
+						-- Scale the original NumberSequence by the value (0 to 1)
+						local keypoints = {}
+						for _, keypoint in ipairs(originalWidthScale.Keypoints) do
+							table.insert(keypoints, NumberSequenceKeypoint.new(
+								keypoint.Time,
+								keypoint.Value * value,
+								keypoint.Envelope * value
+							))
+						end
+						v.WidthScale = NumberSequence.new(keypoints)
+					else
+						connection:Disconnect()
+					end
+				end)
+
+				-- Tween the NumberValue from 0 to 1
+				local tweenIn = TweenService:Create(
+					widthValue,
+					TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ Value = 1 }
+				)
+				tweenIn:Play()
+
+				table.insert(trailData, {
+					trail = v,
+					widthValue = widthValue,
+					connection = connection,
+					originalWidthScale = originalWidthScale
+				})
+			end
+		end
+
+		-- Enable particles for the duration of the dash instead of just emitting once
+		local dashDuration = 0.15  -- Match the dash duration from Movement.lua
+
+		-- Enable all particle emitters
+		for _, particleEmitter in ipairs(DashVFX:GetDescendants()) do
+			if particleEmitter:IsA("ParticleEmitter") then
+				particleEmitter.Enabled = true
+			end
+		end
+
+		-- Update VFX position to follow the character during the dash
+		local RunService = game:GetService("RunService")
+		local updateConnection
+		updateConnection = RunService.Heartbeat:Connect(function()
+			if not Character or not Character.Parent or not Character:FindFirstChild("HumanoidRootPart") then
+				updateConnection:Disconnect()
+				return
+			end
+
+			-- Update position to follow character
+			DashVFX.CFrame = Character.HumanoidRootPart.CFrame * offsetCFrame
+		end)
+
+		-- Disable particles and stop following after dash duration
+		task.delay(dashDuration, function()
+			if updateConnection then
+				updateConnection:Disconnect()
+			end
+
+			-- Smoothly fade out trail WidthScale when dash ends
+			for _, data in ipairs(trailData) do
+				if data.trail and data.trail.Parent and data.widthValue then
+					-- Tween the NumberValue from 1 to 0
+					local tweenOut = TweenService:Create(
+						data.widthValue,
+						TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+						{ Value = 0 }
+					)
+					tweenOut:Play()
+
+					-- Clean up after tween completes (keep trail enabled but at width 0)
+					tweenOut.Completed:Connect(function()
+						if data.connection then
+							data.connection:Disconnect()
+						end
+						if data.widthValue then
+							data.widthValue:Destroy()
+						end
+						-- Don't disable the trail - leave it enabled but at width 0
+						-- This way it will work on the next dash
+					end)
+				end
+			end
+
+			for _, particleEmitter in ipairs(DashVFX:GetDescendants()) do
+				if particleEmitter:IsA("ParticleEmitter") then
+					particleEmitter.Enabled = false
+				end
+			end
+		end)
+
+		-- Clean up the VFX part after particles have faded
+		local maxLifetime = 0
+		for _, particleEmitter in ipairs(DashVFX:GetDescendants()) do
+			if particleEmitter:IsA("ParticleEmitter") then
+				if particleEmitter.Lifetime.Max > maxLifetime then
+					maxLifetime = particleEmitter.Lifetime.Max
+				end
+			end
+		end
+
+		local cleanupTime = dashDuration + maxLifetime
+		Debris:AddItem(DashVFX, cleanupTime)
 
 		Base[Character.Name .. "DashVFX"] = {
 			["Instance"] = DashVFX,
-			["Timer"] = Timer,
-			["TimeDelay"] = task.delay(Timer, function()
+			["Timer"] = cleanupTime,
+			["Connection"] = updateConnection,
+			["TimeDelay"] = task.delay(cleanupTime, function()
 				Base[Character.Name .. "DashVFX"] = nil
 			end),
 		}

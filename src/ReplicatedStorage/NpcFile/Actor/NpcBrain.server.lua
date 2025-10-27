@@ -121,6 +121,10 @@ local function calculateWaitTime(character: Model?): number
 	return waitTime
 end
 
+-- Cache the behavior tree instance to prevent recreating it every frame (MAJOR MEMORY LEAK FIX)
+local cachedBehaviorTree = nil
+local cachedBehaviorName = nil
+
 function NpcBrain._update(params: UpdateParams)
 	local behaviorName = `{params.npcName}_BehaviorTree`
 	local behavior: any = Behaviors[behaviorName]
@@ -132,26 +136,49 @@ function NpcBrain._update(params: UpdateParams)
 		return
 	end
 
-	-- Don't use parallel execution - too many restrictions (no require, no Instance operations, etc.)
-	local btInstance = behavior(BT)
-	btInstance(script.Parent, MainConfig)
+	-- CRITICAL FIX: Cache the behavior tree instance instead of creating it every frame
+	-- This was causing massive memory leaks by creating new closures 60 times per second
+	if cachedBehaviorName ~= behaviorName then
+		cachedBehaviorTree = behavior(BT)
+		cachedBehaviorName = behaviorName
+	end
+
+	cachedBehaviorTree(script.Parent, MainConfig)
 end
 
 function NpcBrain.init()
 	-- Removed Actor requirement - NPCs run in main Lua VM to access Server.Modules
 	-- Actors force parallel execution which has too many restrictions
 
-	-- Run behavior tree every frame for smooth movement
-	-- The behavior tree itself is lightweight enough to run at 60 Hz
+	local lastUpdateTime = 0
+	local npcName = script.Parent.Parent.Name
+
+	-- Clean up cached behavior tree when this NPC file is destroyed
+	script.Parent.Parent.Destroying:Connect(function()
+		cachedBehaviorTree = nil
+		cachedBehaviorName = nil
+	end)
+
+	-- Use throttled updates based on player distance to reduce CPU and memory usage
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		local npc = script.Parent:FindFirstChildOfClass("Model")
 
 		--local _ = npc and -- print(`{npc.Name} <- NpcName`)
 		--local _ = not npc and MainConfig.cleanup()
 
+		-- Throttle updates based on distance to nearest player
+		local currentTime = os.clock()
+		local waitTime = calculateWaitTime(npc)
+
+		if currentTime - lastUpdateTime < waitTime then
+			return
+		end
+
+		lastUpdateTime = currentTime
+
 		local params: UpdateParams = {
 			npc = npc,
-			npcName = script.Parent.Parent.Name,
+			npcName = npcName,
 			deltaTime = deltaTime
 		}
 

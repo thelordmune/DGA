@@ -62,6 +62,7 @@ local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 local VRService = game:GetService("VRService")
 local UserGameSettings = UserSettings():GetService("UserGameSettings")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 
@@ -668,8 +669,27 @@ function BaseCamera:UpdateMouseBehavior()
 		CameraInput.disableCameraToggleInput()
 
 		-- first time transition to first person mode or mouse-locked third person
-		if self.inFirstPerson or self.inMouseLockedMode then
+		if self.inFirstPerson then
+			-- First person: use CameraRelative
 			CameraUtils.setRotationTypeOverride(Enum.RotationType.CameraRelative)
+			CameraUtils.setMouseBehaviorOverride(Enum.MouseBehavior.LockCenter)
+		elseif self.inMouseLockedMode then
+			-- Shift lock (third person): check if sprinting
+			-- If sprinting: use MovementRelative (character rotates with camera)
+			-- If not sprinting: use CameraRelative (character doesn't rotate with camera)
+			local isSprinting = false
+			local success, Client = pcall(function()
+				return require(ReplicatedStorage:WaitForChild("Client"))
+			end)
+			if success and Client then
+				isSprinting = Client.Running == true
+			end
+
+			if isSprinting then
+				CameraUtils.setRotationTypeOverride(Enum.RotationType.MovementRelative)
+			else
+				CameraUtils.setRotationTypeOverride(Enum.RotationType.CameraRelative)
+			end
 			CameraUtils.setMouseBehaviorOverride(Enum.MouseBehavior.LockCenter)
 		else
 			CameraUtils.restoreRotationType()

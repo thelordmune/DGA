@@ -12,15 +12,37 @@ return function(actor: Actor, mainConfig: table)
 	--end
 
 	local humanoid = npc:FindFirstChild("Humanoid")
-	if not humanoid or humanoid.Health <= mainConfig.EnemyDetection.RunAway.RunHp then 
-		return false 
+	if not humanoid or humanoid.Health <= mainConfig.EnemyDetection.RunAway.RunHp then
+		return false
 	end
 
 	if not mainConfig.Setting.CanWander then
 		return false
 	end
-	if mainConfig.EnemyDetection.Current then 
+	if mainConfig.EnemyDetection.Current then
 		return false
+	end
+
+	-- Only wander if a player is nearby (within 50 studs)
+	local root = npc:FindFirstChild("HumanoidRootPart")
+	if root then
+		local playerNearby = false
+		for _, player in game.Players:GetPlayers() do
+			local character = player.Character
+			if character and character:FindFirstChild("HumanoidRootPart") then
+				local distance = (character.HumanoidRootPart.Position - root.Position).Magnitude
+				if distance <= 50 then
+					playerNearby = true
+					break
+				end
+			end
+		end
+
+		if not playerNearby then
+			-- Stop movement when no player is nearby
+			humanoid:Move(Vector3.new(0, 0, 0))
+			return false
+		end
 	end
 
 	if not mainConfig.Idle.NextPause.Current then

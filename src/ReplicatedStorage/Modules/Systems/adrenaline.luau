@@ -23,6 +23,7 @@ local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local Bridges = require(ReplicatedStorage.Modules.Bridges)
+local Visuals = require(ReplicatedStorage.Modules.Visuals)
 
 -- Adrenaline configuration
 local ADRENALINE_PER_HIT = 5 -- Base adrenaline gain per hit
@@ -121,6 +122,17 @@ local function syncAdrenalineToClient(entity: number, adrenalineValue: number)
     end
 end
 
+-- Helper function to get adrenaline level name
+local function getAdrenalineLevel(value: number): string
+    if value <= 33 then
+        return "Low"
+    elseif value <= 66 then
+        return "Medium"
+    else
+        return "High"
+    end
+end
+
 -- Helper function to increase adrenaline when landing a hit
 -- This should be called from the damage system
 local function increaseAdrenaline(entity: number)
@@ -129,6 +141,9 @@ local function increaseAdrenaline(entity: number)
         -- Initialize if doesn't exist
         adrenalineData = { value = 0, comboHits = 0 }
     end
+
+    -- Store old level before increasing
+    local oldLevel = getAdrenalineLevel(adrenalineData.value)
 
     -- Increase combo counter
     adrenalineData.comboHits = adrenalineData.comboHits + 1
@@ -139,6 +154,29 @@ local function increaseAdrenaline(entity: number)
 
     -- Add adrenaline (clamped to max)
     adrenalineData.value = math.min(MAX_ADRENALINE, adrenalineData.value + adrenalineGain)
+
+    -- Check if level increased
+    local newLevel = getAdrenalineLevel(adrenalineData.value)
+    if newLevel ~= oldLevel then
+        print("Adrenaline increased")
+        local sfx = game:GetService("ReplicatedStorage").Assets.SFX.Extra.Adrenaline:Clone()
+        sfx.Parent = world:get(entity, comps.Character).HumanoidRootPart
+        sfx:Play()
+        task.delay(2, function()
+            sfx:Stop()
+            sfx:Destroy()
+        end)
+
+        -- Play adrenaline VFX when level increases
+        local character = world:get(entity, comps.Character)
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            Visuals.Ranged(character.HumanoidRootPart.Position, 300, {
+                Module = "Misc",
+                Function = "AdrenalineFX",
+                Arguments = { character }
+            })
+        end
+    end
 
     -- Update last hit time
     lastHitTimes[entity] = os.clock()

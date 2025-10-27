@@ -31,7 +31,12 @@ end
 local wandererSpawns = getWandererSpawns()
 local wandererCount = math.max(1, #wandererSpawns) -- At least 1 wanderer
 
--- print("Loading Wanderer configuration - Count:", wandererCount, "Spawns:", #wandererSpawns)
+print("[Wanderer] 🚶 Loading Wanderer configuration")
+print("[Wanderer] Spawn count:", wandererCount)
+print("[Wanderer] Spawn locations:", #wandererSpawns)
+for i, spawn in ipairs(wandererSpawns) do
+	print("[Wanderer]   Spawn", i, ":", spawn)
+end
 
 local WandererData = {
 	Name = "Wanderer",
@@ -40,8 +45,8 @@ local WandererData = {
 	SpawnCooldown = 1,
 
 	Type = "Active",
-	AlwaysSpawn = false,
-	-- LoadDistance = 200,
+	AlwaysSpawn = false, -- Use LoadDistance instead for better memory management
+	LoadDistance = 150, -- Only spawn wanderers when player is within 150 studs
 
 	DataToSendOverAndUdpate = {
 		Spawning = {
@@ -116,5 +121,9 @@ local WandererData = {
 	},
 	BehaviorTree = require(game.ReplicatedStorage.NpcHelper.Behaviors.Forest.Wanderer_BehaviorTree),
 }
+
+print("[Wanderer] ✅ Wanderer configuration loaded successfully")
+print("[Wanderer] AlwaysSpawn:", WandererData.AlwaysSpawn)
+print("[Wanderer] LoadDistance:", WandererData.LoadDistance)
 
 return WandererData

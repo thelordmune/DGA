@@ -78,15 +78,17 @@ function RegionSystem:init()
 end
 
 function RegionSystem:prepareNPCFiles(regionName: string, npcData: NPCData)
-	-- -- print("=== PREPARING NPC FILES ===")
-	-- -- print("Region:", regionName)
-	-- -- print("NPC Name:", npcData.Name)
-	-- -- print("Quantity:", npcData.Quantity)
+	print("[PrepareNPC] 📦 === PREPARING NPC FILES ===")
+	print("[PrepareNPC] Region:", regionName)
+	print("[PrepareNPC] NPC Name:", npcData.Name)
+	print("[PrepareNPC] Quantity:", npcData.Quantity)
+	print("[PrepareNPC] AlwaysSpawn:", npcData.AlwaysSpawn)
+	print("[PrepareNPC] LoadDistance:", npcData.LoadDistance)
 
 	local regionContainer = workspace.World.Live:FindFirstChild(regionName) or
 		Instance.new("Folder", workspace.World.Live)
 	regionContainer.Name = regionName
-	-- -- print("Region container:", regionContainer.Name, "created/found")
+	print("[PrepareNPC] Region container:", regionContainer.Name, "created/found")
 
 	-- Check if NPCs already exist for this region
 	-- local npcsContainer = regionContainer:FindFirstChild("NPCs")
@@ -104,25 +106,31 @@ function RegionSystem:prepareNPCFiles(regionName: string, npcData: NPCData)
 	-- -- print("NPCs container created/found for", regionName)
 
 	local spawnTask = task.spawn(function()
-		-- -- print("Starting spawn task for", npcData.Name, "- creating", npcData.Quantity, "NPC files")
-		if npcData.AlwaysSpawn == false then return end
+		print("[PrepareNPC] Starting spawn task for", npcData.Name, "- creating", npcData.Quantity, "NPC files")
+		-- Don't skip if AlwaysSpawn is false - LoadDistance NPCs still need NPC files created
+		-- The LoadDistance system will handle spawning/despawning the actual models
+		if npcData.AlwaysSpawn == false and not npcData.LoadDistance then
+			print("[PrepareNPC] ⚠️ Skipping - AlwaysSpawn is false and no LoadDistance set")
+			return
+		end
+
 		for i = 1, npcData.Quantity do
-			-- -- print("Creating NPC file", i, "of", npcData.Quantity, "for", npcData.Name)
+			print("[PrepareNPC] Creating NPC file", i, "of", npcData.Quantity, "for", npcData.Name)
 			--if os.clock() -
 			if not npcData then
-				-- warn(`Somehow npcData returned: {npcData}, check if it was deleted in {regionName} region.`)
+				warn(`[PrepareNPC] ⚠️ Somehow npcData returned: {npcData}, check if it was deleted in {regionName} region.`)
 				continue
 			end
 
 			local npcFile = toPath:FindFirstChild("NpcFile")
 			if not npcFile then
-				-- warn("NpcFile not found in ReplicatedStorage!")
+				warn("[PrepareNPC] ❌ NpcFile not found in ReplicatedStorage!")
 				continue
 			end
-			-- -- print("Found NpcFile template in ReplicatedStorage")
+			print("[PrepareNPC] Found NpcFile template in ReplicatedStorage")
 
 			local npcFile = npcFile:Clone()
-			-- -- print("Cloned NpcFile for", npcData.Name)
+			print("[PrepareNPC] Cloned NpcFile for", npcData.Name)
 
 			npcFile.Name = npcData.Name--`{npcData.Name}_NpcFile_{i}`
 
@@ -133,7 +141,7 @@ function RegionSystem:prepareNPCFiles(regionName: string, npcData: NPCData)
 			-- For wanderers, assign a specific spawn index based on their creation order
 			if npcData.Name == "Wanderer" then
 				npcFile:SetAttribute("AssignedSpawn", i)
-				-- -- print("Assigned spawn", i, "to wanderer", setName)
+				print("[PrepareNPC] Assigned spawn", i, "to wanderer", setName)
 			end
 
 			-- -- print("Set NPC attributes - SetName:", setName, "DefaultName:", npcData.Name)
@@ -141,21 +149,21 @@ function RegionSystem:prepareNPCFiles(regionName: string, npcData: NPCData)
 			local dataFolder = Instance.new("Folder")
 			dataFolder.Name = `{npcData.Name}_NpcFile_{i}Data`; dataFolder.Name = "Data"
 			seralizer.LoadTableThroughInstance(dataFolder,npcData.DataToSendOverAndUdpate)
-			-- -- print("Created data folder and loaded NPC configuration")
+			print("[PrepareNPC] Created data folder and loaded NPC configuration")
 
 			dataFolder.Parent = npcFile
 			npcFile.Parent = npcsContainer
-			-- -- print("Added NPC file", setName, "to NPCs container")
+			print("[PrepareNPC] ✅ Added NPC file", setName, "to NPCs container")
 			--task.wait(1)
 		end
-		-- -- print("Completed spawn task for", npcData.Name)
+		print("[PrepareNPC] ✅ Completed spawn task for", npcData.Name)
 	end)
 
 	self._loaded[regionName] = self._loaded[regionName] or {}
 	self._loaded[regionName][npcData.Name] = spawnTask
-	-- -- print("Registered spawn task for", regionName, "-", npcData.Name)
-	-- -- print("=== END PREPARING NPC FILES ===")
-	-- -- print()
+	print("[PrepareNPC] Registered spawn task for", regionName, "-", npcData.Name)
+	print("[PrepareNPC] === END PREPARING NPC FILES ===")
+	print()
 end
 
 function RegionSystem:getRegionData(regionName: string): RegionData?
@@ -176,28 +184,38 @@ function RegionSystem:handleDistanceLoading()
 	local INTERVAL = 3;
 	local DEBUG_CENTER_PART = false;
 
+	print("[LoadDistance] 🔧 Distance loading system started")
+
 	task.spawn(function()
 
 		while true do
 			for regionName, regionData in self.regions :: {[string]: RegionModuleData} do
 				local regionContainer = workspace.World.Live:FindFirstChild(regionName)
 				if not regionContainer then
+					print("[LoadDistance] ⚠️ Region container not found:", regionName)
 					continue
 				end
 
 				for npcName, npcData in regionData do
-					if typeof(npcData) ~= "table" 
+					if typeof(npcData) ~= "table"
 						or not npcData.LoadDistance
 					then
 						continue
 					end
 
+					print("[LoadDistance] 🔍 Checking", npcName, "in", regionName)
+					print("[LoadDistance]   - LoadDistance:", npcData.LoadDistance, "studs")
+
 					local spawnLocations = npcData.DataToSendOverAndUdpate.Spawning.Locations
+					print("[LoadDistance]   - Spawn locations count:", #spawnLocations)
+
 					local center = Vector3.new(0, 0, 0)
 					for _, location in spawnLocations do
 						center += location
 					end
 					center /= #spawnLocations
+
+					print("[LoadDistance]   - Center position:", center)
 
 					if DEBUG_CENTER_PART then
 						local debuggingPart = workspace.World.Visuals:FindFirstChild("DebugCenterPart") or Instance.new("Part") do
@@ -212,24 +230,45 @@ function RegionSystem:handleDistanceLoading()
 					end
 
 					local playerInRange = false
+					local closestDistance = math.huge
+					local closestPlayerName = "None"
+
 					for _, player in game.Players:GetPlayers() do
 						local character = player.Character
 						if character and character:FindFirstChild("HumanoidRootPart") then
-							if (character.HumanoidRootPart.Position - center).Magnitude <= npcData.LoadDistance then
+							local distance = (character.HumanoidRootPart.Position - center).Magnitude
+
+							if distance < closestDistance then
+								closestDistance = distance
+								closestPlayerName = player.Name
+							end
+
+							if distance <= npcData.LoadDistance then
 								playerInRange = true
+								print("[LoadDistance]   ✅ Player", player.Name, "is in range! Distance:", math.floor(distance), "studs")
 								break
 							end
 						end
 					end
 
+					if not playerInRange then
+						print("[LoadDistance]   ❌ No players in range. Closest:", closestPlayerName, "at", math.floor(closestDistance), "studs")
+					end
+
+					local isAlreadyLoaded = self._loaded[regionName] and self._loaded[regionName][npcData.Name] ~= nil
+					print("[LoadDistance]   - Already loaded:", isAlreadyLoaded)
+
 					if playerInRange then
 						if not self._loaded[regionName] or not self._loaded[regionName][npcData.Name] then
+							print("[LoadDistance]   🚀 SPAWNING", npcData.Name, "in", regionName)
 							local nameIndex = regionName :: string
 							self:prepareNPCFiles(nameIndex, npcData)
+						else
+							print("[LoadDistance]   ✓ Already spawned, keeping alive")
 						end
 					else
 						if self._loaded[regionName] and self._loaded[regionName][npcData.Name] then
-							--warn"CLEANING REGION"
+							print("[LoadDistance]   🗑️ DESPAWNING", npcData.Name, "in", regionName)
 							if self._loaded[regionName][npcData.Name] then
 								task.cancel(self._loaded[regionName][npcData.Name])
 							end
@@ -246,6 +285,8 @@ function RegionSystem:handleDistanceLoading()
 							self._loaded[regionName][npcData.Name] = nil;
 						end
 					end
+
+					print("[LoadDistance]   ---")
 				end
 			end
 			task.wait(INTERVAL)	

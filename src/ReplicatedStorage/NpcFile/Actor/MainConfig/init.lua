@@ -554,15 +554,17 @@ end
 function MainConfig.LoadAppearance()
 	local npc = MainConfig.getNpc()
 	if not npc or not MainConfig.Appearance then
-		return Signal.new()
+		return nil
 	end
 
 	if not MainConfig.Appearance.Enabled then
-		return Signal.new()
+		return nil
 	end
 
 	-- Create a signal to fire when appearance is fully loaded
+	-- Store it in MainConfig so it can be cleaned up later
 	local appearanceLoadedSignal = Signal.new()
+	MainConfig.AppearanceSignal = appearanceLoadedSignal
 
 	local appearanceData = {
 		Hair = require(MainConfig.Appearance.Hair),
@@ -712,6 +714,18 @@ function MainConfig.cleanup(boolean: boolean)
 	table.clear(MainConfig.States)
 
 	MainConfig.EnemyDetection.Current = nil
+
+	-- Clean up noise generators to prevent memory leak
+	if MainConfig.Idle then
+		MainConfig.Idle.SwayX = nil
+		MainConfig.Idle.SwayY = nil
+	end
+
+	-- Clean up appearance signal to prevent memory leak
+	if MainConfig.AppearanceSignal then
+		MainConfig.AppearanceSignal:Destroy()
+		MainConfig.AppearanceSignal = nil
+	end
 end
 
 return MainConfig

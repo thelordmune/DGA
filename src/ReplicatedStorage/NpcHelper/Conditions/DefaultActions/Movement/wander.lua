@@ -42,6 +42,7 @@ return function(actor: Actor, mainConfig: mainConfig)
 	end
 
 	-- Initialize noise generators if not already present
+	-- These are stored in mainConfig and will be cleaned up when NPC despawns
 	if not mainConfig.Idle.SwayX then
 		mainConfig.Idle.SwayX = generateNoise()
 	end

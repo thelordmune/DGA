@@ -11,6 +11,9 @@
 	- Diagonal (Backward Right) -> Rightback
 	- Diagonal (Backward Left) -> LeftBack
 
+	ONLY ACTIVE WHEN SHIFT LOCKED!
+	When not in shift lock mode, the system stops all walk animations and returns to default behavior.
+
 	Runs on client-only, every frame (Heartbeat).
 	Uses Library.PlayAnimation and Library.StopAnimation for smooth transitions.
 ]]
@@ -18,6 +21,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 
 local Library = require(ReplicatedStorage.Modules.Library)
 
@@ -135,7 +139,19 @@ local function omnidirectional_movement()
 	local rootPart = character:FindFirstChild("HumanoidRootPart")
 	if not rootPart then return end
 
-	-- Get current movement direction
+	-- Check if player is in shift lock mode
+	local isShiftLocked = UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter
+
+	-- If not in shift lock, stop any playing animations and return
+	if not isShiftLocked then
+		if currentAnimationName then
+			StopWalkAnimation(character)
+			lastDirection = nil
+		end
+		return
+	end
+
+	-- Get current movement direction (only when shift locked)
 	local currentDirection = GetMovementDirection(humanoid, rootPart)
 
 	-- Handle direction changes

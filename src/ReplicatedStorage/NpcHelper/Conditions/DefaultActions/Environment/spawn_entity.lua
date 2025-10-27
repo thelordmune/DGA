@@ -182,11 +182,15 @@ return function(actor: Actor, mainConfig: table)
 
 	npcModel.Parent = actor
 
-	npcModel.AncestryChanged:Connect(function(_, parent)
-		if parent.Name ~= "DataModels" then
-			npcModel:FindFirstChild("hi").Enabled = true
-		end
-	end)
+	-- Store AncestryChanged connection to prevent memory leak
+	table.insert(
+		mainConfig.SpawnConnections,
+		npcModel.AncestryChanged:Connect(function(_, parent)
+			if parent.Name ~= "DataModels" then
+				npcModel:FindFirstChild("hi").Enabled = true
+			end
+		end)
+	)
 
 	-- Load appearance and wait for it to complete
 	local appearanceLoadedSignal = mainConfig.LoadAppearance()
