@@ -1,11 +1,5 @@
---[[
-	Simple Shopkeeper Dialogue Example
-	
-	A basic example showing how easy it is to create dialogue with the module system.
-]]
-
 return {
-	NPCName = "SimpleShopkeeper",
+	NPCName = "Shopkeeper",
 	
 	Nodes = {
 		-- Root

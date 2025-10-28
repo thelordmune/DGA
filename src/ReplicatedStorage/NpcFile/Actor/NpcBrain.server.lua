@@ -121,7 +121,6 @@ local function calculateWaitTime(character: Model?): number
 	return waitTime
 end
 
--- Cache the behavior tree instance to prevent recreating it every frame (MAJOR MEMORY LEAK FIX)
 local cachedBehaviorTree = nil
 local cachedBehaviorName = nil
 
@@ -129,15 +128,11 @@ function NpcBrain._update(params: UpdateParams)
 	local behaviorName = `{params.npcName}_BehaviorTree`
 	local behavior: any = Behaviors[behaviorName]
 
-	-- -- print("NpcBrain looking for behavior:", behaviorName, "Found:", behavior ~= nil)
 
 	if not behavior then
-		-- -- print("Available behaviors:", table.concat(table.keys(Behaviors), ", "))
 		return
 	end
 
-	-- CRITICAL FIX: Cache the behavior tree instance instead of creating it every frame
-	-- This was causing massive memory leaks by creating new closures 60 times per second
 	if cachedBehaviorName ~= behaviorName then
 		cachedBehaviorTree = behavior(BT)
 		cachedBehaviorName = behaviorName
@@ -147,26 +142,18 @@ function NpcBrain._update(params: UpdateParams)
 end
 
 function NpcBrain.init()
-	-- Removed Actor requirement - NPCs run in main Lua VM to access Server.Modules
-	-- Actors force parallel execution which has too many restrictions
 
 	local lastUpdateTime = 0
 	local npcName = script.Parent.Parent.Name
 
-	-- Clean up cached behavior tree when this NPC file is destroyed
 	script.Parent.Parent.Destroying:Connect(function()
 		cachedBehaviorTree = nil
 		cachedBehaviorName = nil
 	end)
 
-	-- Use throttled updates based on player distance to reduce CPU and memory usage
 	RunService.Heartbeat:Connect(function(deltaTime: number)
 		local npc = script.Parent:FindFirstChildOfClass("Model")
 
-		--local _ = npc and -- print(`{npc.Name} <- NpcName`)
-		--local _ = not npc and MainConfig.cleanup()
-
-		-- Throttle updates based on distance to nearest player
 		local currentTime = os.clock()
 		local waitTime = calculateWaitTime(npc)
 
