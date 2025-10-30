@@ -2157,23 +2157,338 @@ function Base.AxeKick(Character: Model, Frame: string)
 	end
 end
 
+local function dsmesh(CF: CFrame, Parent: Instance)
+
+	-- Base Setup 
+
+	if CF then
+		if typeof(CF) == "Vector3" then
+			CF = CFrame.new(CF)
+		elseif typeof(CF) ~= "CFrame" then
+			CF = nil
+		end
+	end
+
+	if not Parent then
+		local cache = workspace:FindFirstChild("MeshCache")
+		if not cache then
+			cache = Instance.new("Folder")
+			cache.Name = "MeshCache"
+			cache.Parent = workspace
+		end
+		Parent = cache
+	end
+
+	local Main_CFrame = CF or CFrame.new(0,0,0)
+
+	-- Settings
+
+	local Visual_Directory = {
+		["WindRing"] = Replicated.Assets.VFX.DownslamVFX.Jump.Jump.WindRing,
+		["Wind"] = Replicated.Assets.VFX.DownslamVFX.Jump.Slam.Wind,
+		["WindBig"] = Replicated.Assets.VFX.DownslamVFX.Jump.Slam.WindBig,
+		["Kick"] = Replicated.Assets.VFX.DownslamVFX.Jump.Slam.Kick,
+		["Wind1"] = Replicated.Assets.VFX.DownslamVFX.Jump.Slam.Wind1,
+		["Wind2"] = Replicated.Assets.VFX.DownslamVFX.Jump.Jump.Wind2
+	} :: {[string] : Instance}
+
+	local Visual_Data = {
+		[Visual_Directory["WindBig"]] = {
+			General = {
+				Offset = CFrame.new(0.14389044, -6.14201164, 0.147280157, -0.0871312022, 0, 0.996197224, 0, -1, 0, 0.996197283, 0, 0.0871317983),
+				Tween_Duration = 0.3,
+				Transparency = 0.7,
+			},
+
+			Random_Angles = {
+				X = {0, 0},
+				Y = {0, 0},
+				Z = {0, 0},
+			},
+			BasePart = {
+				Property = {
+					Size = Vector3.new(22.354114532470703, 0.42486676573753357, 22.354108810424805),
+					CFrame = Main_CFrame * CFrame.new(0.14389044, -8.68135548, 0.147280157, -0.996199965, 0, -0.0871019065, 0, -1.00000048, 0, -0.08710289, 0, 0.996199727),
+					Color = Color3.new(0.639216, 0.635294, 0.647059),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Mesh = {
+				Property = {
+					Offset = Vector3.new(0, 0, 0),
+					Scale = Vector3.new(-2.9735352993011475, -0.10105361044406891, -2.9735360145568848),
+					VertexColor = Vector3.new(1, 1, 1),
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Decal = {
+				Property = {
+					Color3 = Color3.new(10.0196, 10.0196, 10.0196),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+		},
+
+		[Visual_Directory["Wind1"]] = {
+			General = {
+				Offset = CFrame.new(-0.113482013, -7.26768684, 4.91738319e-07, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+				Tween_Duration = 0.4,
+				Transparency = 0.9,
+			},
+
+			Features = {
+				Random_Angles = {
+					X = {0, 0},
+					Y = {-360, 360},
+					Z = {0, 0},
+				},
+			},
+
+			BasePart = {
+				Property = {
+					Size = Vector3.new(25.763809204101562, 2.8394811153411865, 25.763809204101562),
+					CFrame = Main_CFrame * CFrame.new(-0.113482013, -7.35580206, 4.91738319e-07, -0.783837199, 0, 0.620966434, 0, 1, 0, -0.620966434, 0, -0.783837199),
+					Color = Color3.new(1, 1, 1),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+		},
+
+		[Visual_Directory["Wind"]] = {
+			General = {
+				Offset = CFrame.new(0.1087787, -6.41260242, 0.0389252082, -2.38418579e-07, 0, -1.00000012, 0, 1, 0, 1.00000012, 0, -2.38418579e-07),
+				Tween_Duration = 0.5,
+				Transparency = 0.95,
+			},
+
+			Random_Angles = {
+				X = {0, 0},
+				Y = {0, 0},
+				Z = {0, 0},
+			},
+			BasePart = {
+				Property = {
+					Size = Vector3.new(25.052053451538086, 4.060371398925781, 25.052053451538086),
+					CFrame = Main_CFrame * CFrame.new(0, -7.56635475, 0, 0.336982906, 0, 0.941510856, 0, 1, 0, -0.941510856, 0, 0.336982906),
+					Color = Color3.new(0.972549, 0.972549, 0.972549),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+		},
+
+		[Visual_Directory["Kick"]] = {
+			General = {
+				Offset = CFrame.new(-0.113484487, -4.35610867, 0.625125647, 0, 0, 1, 1, 0, 0, 0, 1, 0),
+				Tween_Duration = 0.15,
+				Transparency = 0.9,
+			},
+
+			Features = {
+				Random_Angles = {
+					X = {0, 0},
+					Y = {-360, 360},
+					Z = {0, 0},
+				},
+			},
+
+			BasePart = {
+				Property = {
+					Size = Vector3.new(0.4741426110267639, 5.183227062225342, 5.183227062225342),
+					CFrame = Main_CFrame * CFrame.new(-0.113484487, -7.55821896, 0.625125647, 0, 0, 1, 1, 0, 0, 0, 1, 0),
+					Color = Color3.new(0.639216, 0.635294, 0.647059),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Mesh = {
+				Property = {
+					Offset = Vector3.new(0, 0, 0),
+					Scale = Vector3.new(0.09007208794355392, 0.5183614492416382, 0.5183614492416382),
+					VertexColor = Vector3.new(1, 1, 1),
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Decal = {
+				Property = {
+					Color3 = Color3.new(100.216, 100.216, 100.216),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+		},
+
+		[Visual_Directory["WindRing"]] = {
+			General = {
+				Offset = CFrame.new(0.152786076, -5.18276215, 0.375100195, 1, 0, 0, 0, 1, 0, 0, 0, 1),
+				Tween_Duration = 0.3,
+				Transparency = 0.7,
+			},
+
+			Random_Angles = {
+				X = {0, 0},
+				Y = {0, 0},
+				Z = {0, 0},
+			},
+			BasePart = {
+				Property = {
+					Size = Vector3.new(15.603704452514648, 3.2936112880706787, 15.603704452514648),
+					CFrame = Main_CFrame * CFrame.new(0.152969867, -8.23160553, 0.375163078, -0.965929806, 0, 0.258804828, 0, 1, 0, -0.258804828, 0, -0.965929806),
+					Color = Color3.new(0.639216, 0.635294, 0.647059),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Mesh = {
+				Property = {
+					Offset = Vector3.new(0, 0, 0),
+					Scale = Vector3.new(7.092589378356934, 3.2938053607940674, 7.092589378356934),
+					VertexColor = Vector3.new(1, 1, 1),
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+
+			Decal = {
+				Property = {
+					Color3 = Color3.new(3.92157, 3.92157, 3.92157),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Cubic,
+				},
+			},
+		},
+
+		[Visual_Directory["Wind2"]] = {
+			General = {
+				Offset = CFrame.new(0.678757071, 2.8957653, 0.832559586, 0, 0, 1, 0, -1, 0, 1, 0, 0),
+				Tween_Duration = 0.3,
+				Transparency = 0.8,
+			},
+
+			Random_Angles = {
+				X = {0, 0},
+				Y = {0, 0},
+				Z = {0, 0},
+			},
+			BasePart = {
+				Property = {
+					Size = Vector3.new(18.56374740600586, 0.9379472136497498, 18.790721893310547),
+					CFrame = Main_CFrame * CFrame.new(0.750563145, -7.59732962, 0.9011935, -0.422593057, 0, -0.906319737, 0, -1, 0, -0.906319737, 0, 0.422593057),
+					Color = Color3.new(0.639216, 0.635294, 0.647059),
+					Transparency = 1,
+				},
+				Tween = {
+					Easing_Direction = Enum.EasingDirection.Out,
+					Easing_Style = Enum.EasingStyle.Quint,
+				},
+			},
+
+		},
+
+	}
+
+	for Origin : any, Data in pairs(Visual_Data) do
+		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
+
+		-- Build
+
+		local function Emit()
+			local Visual = Origin.Start:Clone()
+			Visual.Name = Origin.Name
+			Visual.Transparency = Data.General.Transparency
+			if Visual:FindFirstChildOfClass("Decal") then Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency Visual.Transparency = 1 end
+			Visual.Anchored = true
+			Visual.CanCollide = false
+			Visual.CanQuery = false
+			Visual.CanTouch = false
+			Visual.Locked = true
+			Visual.CFrame = Main_CFrame * Data.General.Offset
+			Visual.Parent = Parent
+
+			-- Random Angles
+
+			if Data.Features and Data.Features.Random_Angles then
+				Data.BasePart.Property.CFrame *= CFrame.Angles(math.random(unpack(Data.Features.Random_Angles.X)), math.random(unpack(Data.Features.Random_Angles.Y)), math.random(unpack(Data.Features.Random_Angles.Z)))
+			end
+
+			-- Initialize
+
+			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
+			if Data.Decal then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("Decal"), TweenInfo.new(Data.General.Tween_Duration, Data.Decal.Tween.Easing_Style, Data.Decal.Tween.Easing_Direction), Data.Decal.Property):Play() end
+			if Data.Mesh then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("SpecialMesh"), TweenInfo.new(Data.General.Tween_Duration, Data.Mesh.Tween.Easing_Style, Data.Mesh.Tween.Easing_Direction), Data.Mesh.Property):Play() end
+
+			-- Clean Up
+
+			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
+		end
+
+		task.spawn(Emit)
+	end
+
+end
+
 function Base.Downslam(Character: Model, Frame: string)
 	if Frame == "Start" then
-		local eff = Replicated.Assets.VFX.DSKStart:Clone()
-		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0)
+		local eff = Replicated.Assets.VFX.DownslamVFX.jumpvfx:Clone()
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, 0)
 		eff.Parent = workspace.World.Visuals
 		for _, v in eff:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
 				v:Emit(v:GetAttribute("EmitCount"))
 			end
 		end
+
+		dsmesh(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
+
 		task.delay(3, function()
 			eff:Destroy()
 		end)
 	end
 	if Frame == "Land" then
-		local eff = Replicated.Assets.VFX.DSKSlam:Clone()
-		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0)
+		local eff = Replicated.Assets.VFX.DownslamVFX.slam:Clone()
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, 0)
 		eff.Parent = workspace.World.Visuals
 		for _, v in eff:GetDescendants() do
 			if v:IsA("ParticleEmitter") then

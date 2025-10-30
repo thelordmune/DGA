@@ -54,6 +54,11 @@ local function shouldLockMovement(character)
 	-- Get all current action states from ECS
 	local allStates = StateManager.GetAllStates(character, "Actions")
 
+	-- Safety check: ensure allStates is a table
+	if not allStates or type(allStates) ~= "table" then
+		allStates = {}
+	end
+
 	-- Check if there are any blocking states
 	for _, state in ipairs(allStates) do
 		local isAllowed = false

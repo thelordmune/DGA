@@ -57,20 +57,22 @@ local function getStateComponent(entity: number, category: string): {string}
 		warn(`[StateManager] Invalid state category: {category}`)
 		return {}
 	end
-	
+
 	local component = comps[componentName]
 	if not component then
 		warn(`[StateManager] Component not found: {componentName}`)
 		return {}
 	end
-	
+
 	-- Get existing state or create empty array
 	if world:has(entity, component) then
-		return world:get(entity, component)
+		local states = world:get(entity, component)
+		return states or {}
 	else
 		local newState = {}
 		world:set(entity, component, newState)
-		return newState
+		local result = world:get(entity, component)
+		return result or {}
 	end
 end
 
@@ -86,16 +88,16 @@ function StateManager.AddState(character: Model, category: string, stateName: st
 		warn(`[StateManager] No entity found for character: {character.Name}`)
 		return
 	end
-	
+
 	local states = getStateComponent(entity, category)
-	
+
 	-- Don't add duplicate states
 	if table.find(states, stateName) then
 		return
 	end
-	
+
 	table.insert(states, stateName)
-	
+
 	-- Update component
 	local componentName = STATE_CATEGORIES[category]
 	world:set(entity, comps[componentName], states)

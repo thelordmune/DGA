@@ -81,11 +81,12 @@ local function createPromptUI(npc)
 	promptFadeIn = promptScope:Value(false)
 	promptTextStart = promptScope:Value(false)
 
-	-- Create the Prompt component
+	-- Create the Prompt component with NPC name
 	promptScope:Prompt({
 		begin = promptStarted,
 		fadein = promptFadeIn,
 		textstart = promptTextStart,
+		npcName = npc.Name, -- Pass the NPC name
 		Parent = surfaceGui,
 	})
 end

@@ -100,19 +100,40 @@ Characters pop in with a bouncy spring effect.
 
 ---
 
+### **Style 4: Pop Fade (Smooth Pop)**
+
+Characters smoothly pop up in size while fading in from invisible.
+
+**Effect:**
+- Characters start at 50% scale and invisible
+- Pop up to full size with Back easing (slight overshoot)
+- Fade in simultaneously
+- Smooth, polished feel with subtle bounce
+
+**Speed:** 0.02s delay per character
+
+**Best for:**
+- Important announcements
+- Quest notifications
+- Emphasis on key dialogue
+- Professional/polished UI feel
+
+---
+
 ## 🔧 How to Switch Styles
 
-Open `src/ReplicatedStorage/Client/Components/DialogueComp.lua` and find the `animateTextIn` function (around line 145):
+Open `src/ReplicatedStorage/Client/Components/DialogueComp.lua` and find the `animateTextIn` function (around line 212):
 
 ```lua
 -- Main animation function (choose your style here!)
 local function animateTextIn(textFrame, delayPerChar)
     task.wait(0.05) -- Wait for TextPlus to render
-    
+
     -- Choose animation style:
     fadeDivergeAnimation(textFrame, delayPerChar)  -- SwagText style (DEFAULT)
     -- slideUpAnimation(textFrame, delayPerChar)   -- Original slide up
     -- popInAnimation(textFrame, delayPerChar)     -- Bouncy pop in
+    -- popFadeAnimation(textFrame, delayPerChar)   -- Smooth pop with fade
 end
 ```
 

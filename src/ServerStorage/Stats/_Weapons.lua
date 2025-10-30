@@ -804,6 +804,23 @@ local Table = {
 			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
 			["Velocity"] = true,
 		},
+
+		["RunningAttack"] = {
+			Linger = 2 / 60,
+			StartVelocity = 0 / 60,
+			EndVelocity = 25 / 60,
+			TweenTime = 15 / 60,
+			DelayToTween = 10 / 60,
+			HitTime = 50 / 60,
+			Endlag = 57 / 60,
+		},
+		["RATable"] = {
+			Damage = 15,
+			PostureDamage = 20,
+			Knockback = true,
+			FX = Replicated.Assets.VFX.RunningHit.Attachment,
+			Stun = 0.7,
+		},
 	},
 }
 

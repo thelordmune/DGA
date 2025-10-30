@@ -1,8 +1,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Fusion = require(ReplicatedStorage.Modules.Fusion)
+local CastingComponent = require(ReplicatedStorage.Client.Components.Casting)
 
-local Children, scoped, peek, out, OnEvent, Value, Computed = 
+local Children, scoped, peek, out, OnEvent, Value, Computed =
 	Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out, Fusion.OnEvent, Fusion.Value, Fusion.Computed
 
 -- Health Bar Column Component (like audio visualizer bar)
@@ -130,6 +131,7 @@ return function(Target)
 	local started = scope:Value(false)
 	local display = scope:Value(false)
 	local circleRotation = scope:Value(0)
+	local showCastingCircle = scope:Value(false) -- Control whether to show casting UI instead of health circle
 
 	-- Health and Adrenaline values (0-100) - exposed for external updates
 	local health = scope:Value(100)
@@ -173,15 +175,15 @@ return function(Target)
 		BackgroundTransparency = 1,
 		Position = scope:Spring(
 			scope:Computed(function(use)
-				return if use(started) then UDim2.fromScale(0.5, 0) else UDim2.fromScale(0.5, 0) 
+				return if use(started) then UDim2.fromScale(0.5, 0) else UDim2.fromScale(0.5, 0)
 			end), 30, 9
 		),
 		Size = scope:Spring(
 			scope:Computed(function(use)
-				return if use(started) then UDim2.fromOffset(612, 115) else UDim2.fromOffset(0, 115)  
+				return if use(started) then UDim2.fromOffset(612, 115) else UDim2.fromOffset(0, 115)
 			end), 30, 2
 		),
-		ClipsDescendants = true,
+		ClipsDescendants = false, -- Allow casting UI to move outside bounds
 
 		[Children] = {
 			-- Corners decoration
@@ -196,7 +198,7 @@ return function(Target)
 				SliceScale = 0.5,
 			},
 
-			-- Rotating circle background
+			-- Rotating circle background (hidden when casting UI is shown)
 			scope:New "ImageLabel" {
 				Name = "Circle",
 				BackgroundTransparency = 1,
@@ -205,6 +207,9 @@ return function(Target)
 				Size = UDim2.fromScale(1, 1),
 				TileSize = UDim2.fromScale(0.025, 1),
 				Rotation = scope:Computed(function(use) return use(circleRotation) end),
+				Visible = scope:Computed(function(use)
+					return not use(showCastingCircle) -- Hide when casting UI is shown
+				end),
 				[Children] = {
 					scope:New "UIGradient" {
 						Rotation = 360,
@@ -500,6 +505,12 @@ return function(Target)
 		}
 	}
 
+	-- Create the Casting component inside the holderFrame
+	local castingAPI = CastingComponent(holderFrame)
+
+	-- Show the casting UI in idle state immediately (replaces the health circle)
+	showCastingCircle:set(true) -- Hide the health circle
+
 	-- Cleanup
 	--scope:doCleanup(function()
 	--	rotationConnection:Disconnect()
@@ -510,5 +521,6 @@ return function(Target)
 		frame = holderFrame,
 		healthValue = health,
 		adrenalineValue = adrenaline,
+		castingAPI = castingAPI, -- Expose casting API for external control
 	}
 end

@@ -1,12 +1,14 @@
 --[[
-	Z Input - Alchemy Casting System
+	G Input - Alchemy Casting System
 
-	Z key now starts/stops directional casting for alchemy moves.
-	Uses the modular DirectionalCasting system with Library StateManager integration.
+	G key now starts casting or confirms combinations for alchemy moves.
+	- Press G to start casting (moves UI to side)
+	- Press Z/X/C to build sequence
+	- Press G again to confirm the combination
+	Uses the Casting component integrated into the Health UI.
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local DirectionalCasting = require(ReplicatedStorage.Modules.Utils.DirectionalCasting)
 local Combinations = require(ReplicatedStorage.Modules.Shared.Combinations)
 local Library = require(ReplicatedStorage.Modules.Library)
 
@@ -14,44 +16,50 @@ local InputModule = {}
 InputModule.__index = InputModule
 local self = setmetatable({}, InputModule)
 
--- Global casting instance (one per client) - exposed for XMove access
-local castingInstance = nil
-InputModule.castingInstance = castingInstance
+-- Track casting state
+local isCasting = false
+local keySequence = ""
+local lastCastTime = 0
+local CAST_COOLDOWN = 3.5 -- Cooldown between casts
 
--- Track current character to detect respawns
-local currentCharacter = nil
-
--- Handle completed casting sequences
-local function handleCastingComplete(Client, baseSequence, modifierSequence, isModifier)
-	-- -- print("🔮 Processing alchemy cast...")
-	-- -- print("Base:", baseSequence, "Modifier:", modifierSequence, "IsModifier:", isModifier)
-
-	-- Check for matching combinations
-	local matchedMove = nil
-	local isAdvanced = false
-
-	if isModifier and modifierSequence ~= "" then
-		-- Check for advanced combinations (base + modifier)
-		for moveName, combination in pairs(Combinations) do
-			if type(combination) == "table" and combination.base and combination.modifier then
-				if combination.base == baseSequence and combination.modifier == modifierSequence then
-					matchedMove = moveName
-					isAdvanced = true
-					break
-				end
+-- Get the casting API from the Health component
+local function getCastingAPI(Client)
+	-- Access through Client.Modules.Interface.Modules.Stats
+	if Client.Modules and Client.Modules.Interface then
+		local Interface = Client.Modules.Interface
+		if Interface.Modules and Interface.Modules.Stats then
+			local Stats = Interface.Modules.Stats
+			if Stats.healthComponentData and Stats.healthComponentData.castingAPI then
+				return Stats.healthComponentData.castingAPI
 			end
 		end
 	end
+	return nil
+end
 
-	-- If no advanced match, check base sequence
-	if not matchedMove then
-		matchedMove = castingInstance:CheckCombination(baseSequence)
-	end
+-- Check combination and execute move
+local function checkAndExecuteMove(Client, sequence)
+	print("[ZMove] Checking sequence:", sequence)
+
+	-- Check for matching combination
+	local matchedMove = Combinations[sequence]
+	print("[ZMove] Matched move:", matchedMove)
 
 	if matchedMove then
-		-- -- print("✨ Matched Alchemy Move:", matchedMove, isAdvanced and "(Advanced)" or "(Basic)")
+		-- Check if the skill is on cooldown
+		local character = Client.Character
+		if character and Library.CheckCooldown(character, matchedMove) then
+			print("[ZMove] Move on cooldown:", matchedMove)
+			-- Show cooldown feedback
+			local castingAPI = getCastingAPI(Client)
+			if castingAPI then
+				castingAPI.ShowCooldownFeedback()
+			end
+			return
+		end
 
 		-- Send the alchemy move to server
+		print("[ZMove] Attempting to send packet for:", matchedMove)
 		if Client.Packets[matchedMove] then
 			-- Get mouse position for moves that need it
 			local mousePos = Vector3.zero
@@ -62,87 +70,89 @@ local function handleCastingComplete(Client, baseSequence, modifierSequence, isM
 				end
 			end
 
+			-- Set client-side cooldown immediately to prevent spam
+			if character then
+				Library.SetCooldown(character, matchedMove, 8)
+			end
+
+			print("[ZMove] Sending packet with data:", {
+				Held = false,
+				Air = Client.InAir,
+				Duration = 0,
+				MousePosition = mousePos
+			})
 			Client.Packets[matchedMove].send({
 				Held = false,
 				Air = Client.InAir,
 				Duration = 0,
 				MousePosition = mousePos
-				-- Sequence = baseSequence,
-				-- Modifier = modifierSequence,
-				-- Advanced = isAdvanced
 			})
+			print("[ZMove] ✅ Packet sent successfully!")
 		else
-			-- warn("⚠️ No packet handler found for move:", matchedMove)
+			warn("⚠️ No packet handler found for move:", matchedMove)
 		end
 	else
-		-- -- print("❌ No matching alchemy move found for sequence:", baseSequence)
-		if modifierSequence ~= "" then
-			-- -- print("   Modifier sequence:", modifierSequence)
-		end
+		print("[ZMove] ⚠️ No matching move found for sequence:", sequence)
 	end
-end
-
--- Initialize casting system
-local function initializeCasting(Client)
-	-- Check if character has changed (respawned)
-	if currentCharacter ~= Client.Character then
-		-- Character changed, destroy old casting instance
-		if castingInstance then
-			castingInstance:Destroy()
-			castingInstance = nil
-		end
-		currentCharacter = Client.Character
-	end
-
-	-- Create new casting instance if needed
-	if not castingInstance then
-		castingInstance = DirectionalCasting.new(Client.Character)
-		InputModule.castingInstance = castingInstance -- Update exposed reference
-
-		-- Connect to sequence completion
-		castingInstance.OnSequenceComplete:Connect(function(baseSequence, modifierSequence, isModifier)
-			handleCastingComplete(Client, baseSequence, modifierSequence, isModifier)
-		end)
-
-		-- Clean up when character is removed (death/respawn)
-		if Client.Character then
-			Client.Character.AncestryChanged:Connect(function()
-				if not Client.Character.Parent then
-					-- Character was removed, clean up casting instance
-					if castingInstance then
-						castingInstance:Destroy()
-						castingInstance = nil
-						InputModule.castingInstance = nil
-						currentCharacter = nil
-					end
-				end
-			end)
-		end
-
-		-- -- print("🎯 Directional Casting System Initialized")
-	end
-	return castingInstance
 end
 
 InputModule.InputBegan = function(_, Client)
-	local caster = initializeCasting(Client)
+	local castingAPI = getCastingAPI(Client)
+	if not castingAPI then
+		warn("[ZMove] Casting API not found!")
+		return
+	end
+
+	-- Check cooldown
+	if tick() - lastCastTime < CAST_COOLDOWN then
+		return
+	end
 
 	-- Check if already casting
-	if caster.isCasting then
-		-- Stop casting and process results
-		caster:StopCasting()
+	if isCasting then
+		print("[ZMove] Confirming cast with sequence:", keySequence)
+
+		-- Confirm the combination (triggers animation)
+		castingAPI.Confirm()
+
+		-- Execute the move
+		checkAndExecuteMove(Client, keySequence)
+
+		-- Reset state
+		isCasting = false
+		keySequence = ""
+		lastCastTime = tick()
 	else
+		print("[ZMove] Starting new cast")
+
 		-- Start new casting session
-		caster:StartCasting()
+		castingAPI.Start()
+		isCasting = true
+		keySequence = ""
 	end
 end
 
 InputModule.InputEnded = function(_, Client)
-	-- Z key uses press-to-toggle, so InputEnded doesn't do anything
+	-- G key uses press-to-toggle, so InputEnded doesn't do anything
 end
 
 InputModule.InputChanged = function()
 	-- No input changes to handle
 end
+
+-- Expose function to add keys to sequence (called by Z/X/C inputs)
+InputModule.AddKey = function(key)
+	if isCasting then
+		keySequence = keySequence .. key
+	end
+end
+
+-- Expose function to check if casting
+InputModule.IsCasting = function()
+	return isCasting
+end
+
+-- Expose function to get casting API
+InputModule.GetCastingAPI = getCastingAPI
 
 return InputModule

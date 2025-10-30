@@ -1,7 +1,7 @@
 --[[
-	X Input - Alchemy Casting System
-
-	X key adds "X" to the casting sequence when casting is active.
+	Z Input - Alchemy Casting System
+	
+	Z key adds "Z" to the casting sequence when casting is active.
 --]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,23 +13,24 @@ local self = setmetatable({}, InputModule)
 InputModule.InputBegan = function(_, Client)
 	-- Get the ZMove module to access casting state and API
 	local ZMove = require(script.Parent.ZMove)
-
-	-- Add "X" to the sequence
-	ZMove.AddKey("X")
-
+	
+	-- Add "Z" to the sequence
+	ZMove.AddKey("Z")
+	
 	-- Update the casting UI to show the key
 	local castingAPI = ZMove.GetCastingAPI and ZMove.GetCastingAPI(Client)
 	if castingAPI and ZMove.IsCasting and ZMove.IsCasting() then
-		castingAPI.StopRotation("X")
+		castingAPI.StopRotation("Z")
 	end
 end
 
 InputModule.InputEnded = function(_, Client)
-	-- X key uses press-to-add, so InputEnded doesn't do anything
+	-- No action needed
 end
 
 InputModule.InputChanged = function()
-	-- No input changes to handle
+	-- No action needed
 end
 
 return InputModule
+

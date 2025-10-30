@@ -24,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- Import required modules
 local Library = require(ReplicatedStorage.Modules.Library)
 local Combinations = require(ReplicatedStorage.Modules.Shared.Combinations)
+local CastingComponent = require(ReplicatedStorage.Client.Components.Casting)
 
 local DirectionalCasting = {}
 DirectionalCasting.__index = DirectionalCasting
@@ -88,92 +89,77 @@ function DirectionalCasting.new(character)
 	self.inDeadZone = false -- Track if currently in dead zone
 	self.deadZoneEnterTime = 0 -- Time when entered dead zone
 
+	-- ZXC sequence tracking
+	self.zxcSequence = {} -- Tracks Z/X/C key presses in order
+
+	-- Casting cooldown
+	self.lastCastTime = 0
+	self.castCooldown = 3.5 -- 3.5 second cooldown between casts (gives time for UI reset)
+
 	-- UI Components
 	self.screenGui = nil
 	self.container = nil
 	self.center = nil
 	self.triangles = {}
 	self.connections = {}
+	self.castingUI = nil -- The new Casting component API
 
 	-- Camera sensitivity control during casting
 	self.originalMouseSensitivity = nil
-	
+
 	-- Initialize UI
 	self:_createUI()
-	
+
 	return self
 end
 
 -- Create the UI elements
 function DirectionalCasting:_createUI()
-	local playerGui = player:WaitForChild("PlayerGui")
-	
-	-- Create ScreenGui
-	self.screenGui = Instance.new("ScreenGui")
-	self.screenGui.Name = "DirectionalCasting"
-	self.screenGui.Parent = playerGui
-	
-	-- Create container
-	self.container = Instance.new("Frame")
-	self.container.Name = "Container"
-	self.container.Size = CONFIG.UI.SIZE
-	self.container.Position = UDim2.fromScale(0.5, 0.5)
-	self.container.AnchorPoint = Vector2.new(0.5, 0.5)
-	self.container.BackgroundColor3 = CONFIG.COLORS.background
-	self.container.BackgroundTransparency = 1
-	self.container.Parent = self.screenGui
+	-- Wait for the Health component to be initialized and get the casting API from it
+	task.spawn(function()
+		local playerGui = player:WaitForChild("PlayerGui")
+		local screenGui = playerGui:WaitForChild("ScreenGui", 10)
+		if not screenGui then
+			warn("[DirectionalCasting] ScreenGui not found!")
+			return
+		end
 
-	-- Add rounded corners to container
-	local containerCorner = Instance.new("UICorner")
-	containerCorner.CornerRadius = UDim.new(0, 10)
-	containerCorner.Parent = self.container
-	
-	-- Create center indicator
-	self.center = Instance.new("Frame")
-	self.center.Name = "Center"
-	self.center.Size = CONFIG.UI.CENTER_SIZE
-	self.center.Position = UDim2.fromScale(0.5, 0.5)
-	self.center.AnchorPoint = Vector2.new(0.5, 0.5)
-	self.center.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	self.center.BackgroundTransparency = 1
-	self.center.Visible = false
-	self.center.Parent = self.container
-	
-	local centerCorner = Instance.new("UICorner")
-	centerCorner.CornerRadius = UDim.new(1, 0)
-	centerCorner.Parent = self.center
-	
-	-- Create triangles
-	self:_createTriangles()
+		local statsFrame = screenGui:WaitForChild("Stats", 10)
+		if not statsFrame then
+			warn("[DirectionalCasting] Stats frame not found!")
+			return
+		end
+
+		-- Wait for the Health component's Holder frame to appear
+		local holderFrame = statsFrame:WaitForChild("Holder", 10)
+		if not holderFrame then
+			warn("[DirectionalCasting] Holder frame not found!")
+			return
+		end
+
+		-- Wait for the Casting Frame to appear inside Holder
+		local castingFrame = holderFrame:WaitForChild("Frame", 10)
+		if not castingFrame then
+			warn("[DirectionalCasting] Casting Frame not found!")
+			return
+		end
+
+		-- Get the casting API from the Stats module
+		-- We'll access it through a global reference set by Stats.lua
+		local Client = require(ReplicatedStorage.Client)
+		if Client.Stats and Client.Stats.healthComponentData and Client.Stats.healthComponentData.castingAPI then
+			self.castingUI = Client.Stats.healthComponentData.castingAPI
+			print("[DirectionalCasting] ✅ Connected to Health component's casting UI")
+		else
+			warn("[DirectionalCasting] Could not find castingAPI in Stats module")
+		end
+	end)
 end
 
 -- Create directional triangles
 function DirectionalCasting:_createTriangles()
-	local directions = {
-		{name = "UP", text = "▲", position = UDim2.fromScale(0.5, 0.15)}, -- Moved closer to center
-		{name = "DOWN", text = "▼", position = UDim2.fromScale(0.5, 0.8)},
-		{name = "LEFT", text = "◀", position = UDim2.fromScale(0.2, 0.5)},
-		{name = "RIGHT", text = "▶", position = UDim2.fromScale(0.8, 0.5)}
-	}
-	
-	for _, dir in pairs(directions) do
-		local triangle = Instance.new("TextLabel")
-		triangle.Name = dir.name
-		triangle.Size = CONFIG.UI.TRIANGLE_SIZE
-		triangle.Position = dir.position
-		triangle.AnchorPoint = Vector2.new(0.5, 0.5)
-		triangle.BackgroundTransparency = 1
-		triangle.Text = dir.text
-		triangle.TextColor3 = CONFIG.COLORS.inactive
-		triangle.TextSize = 30
-		triangle.TextStrokeTransparency = 0
-		triangle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-		triangle.Font = Enum.Font.SourceSansBold
-		triangle.Visible = false
-		triangle.Parent = self.container
-		
-		self.triangles[dir.name] = triangle
-	end
+	-- Directional triangles are disabled for ZXC casting system
+	-- We use the Fusion-based Casting component instead
 end
 
 -- Format sequence to compact string (e.g., "DULR")
@@ -288,7 +274,14 @@ end
 function DirectionalCasting:StartCasting()
 	if self.isCasting then return end
 
+	-- Check cooldown
+	local currentTime = tick()
+	if currentTime - self.lastCastTime < self.castCooldown then
+		return
+	end
+
 	self.isCasting = true
+	self.lastCastTime = currentTime
 	self.isModifying = false
 	self.directionSequence = {}
 	self.modifierSequence = {}
@@ -296,6 +289,7 @@ function DirectionalCasting:StartCasting()
 	self.currentTriangle = nil
 	self.accumulatedMouseDelta = Vector2.new(0, 0) -- Reset accumulated delta
 	self.lastRegisteredDirection = nil -- Reset last registered direction
+	self.zxcSequence = {} -- Reset ZXC sequence
 
 	-- Update states
 	self:_updateStates()
@@ -308,6 +302,11 @@ function DirectionalCasting:StartCasting()
 
 	-- Show UI with animations
 	self:_showUI()
+
+	-- Start the new Casting UI component
+	if self.castingUI then
+		self.castingUI.Start()
+	end
 
 	-- Start input tracking
 	self:_startInputTracking()
@@ -344,29 +343,20 @@ end
 -- Stop casting and process results
 function DirectionalCasting:StopCasting()
 	if not self.isCasting then return end
-	
-	local baseSequence = ""
+
+	-- Use ZXC sequence instead of directional sequence
+	local baseSequence = table.concat(self.zxcSequence, "")
 	local modifierSequence = ""
-	
-	if self.isModifying then
-		-- We're in modifier mode - return both sequences
-		baseSequence = self:_formatSequence(self.savedBaseSequence)
-		modifierSequence = self:_formatSequence(self.modifierSequence)
-		
-		-- -- print("🛑 STOPPED! Final Results:")
-		-- -- print("📋 Base sequence: " .. baseSequence .. " (Total: " .. #self.savedBaseSequence .. ")")
-		-- -- print("🔧 Modifier sequence: " .. modifierSequence .. " (Total: " .. #self.modifierSequence .. ")")
-	else
-		-- Normal casting mode
-		baseSequence = self:_formatSequence(self.directionSequence)
-		
-		-- -- print("✨ CAST COMPLETE! Sequence: " .. baseSequence)
-		-- -- print("📊 Total directions: " .. #self.directionSequence)
-	end
-	
-	-- Fire completion event
-	self._onSequenceCompleteEvent:Fire(baseSequence, modifierSequence, self.isModifying)
-	
+
+	-- For now, we don't use modifier mode with ZXC
+	-- If needed in the future, we can implement it similar to directional mode
+
+	-- Fire completion event with ZXC sequence
+	self._onSequenceCompleteEvent:Fire(baseSequence, modifierSequence, false)
+
+	-- Set the last cast time to prevent immediate recasting
+	self.lastCastTime = tick()
+
 	-- Reset state
 	self.isCasting = false
 	self.isModifying = false
@@ -428,69 +418,13 @@ end
 
 -- Show UI with fade-in animations
 function DirectionalCasting:_showUI()
-	local tweenInfo = TweenInfo.new(CONFIG.ANIMATION.DURATION, CONFIG.ANIMATION.STYLE, CONFIG.ANIMATION.DIRECTION)
-
-	-- Show container background
-	local containerTween = TweenService:Create(self.container, tweenInfo, {
-		BackgroundTransparency = 0.8
-	})
-	containerTween:Play()
-
-	-- Show center indicator
-	self.center.BackgroundTransparency = 1
-	self.center.Visible = true
-	local centerTween = TweenService:Create(self.center, tweenInfo, {
-		BackgroundTransparency = 0
-	})
-	centerTween:Play()
-
-	-- Show triangles
-	for _, triangle in pairs(self.triangles) do
-		triangle.TextTransparency = 1
-		triangle.TextStrokeTransparency = 1
-		triangle.Visible = true
-
-		local triangleTween = TweenService:Create(triangle, tweenInfo, {
-			TextTransparency = 0,
-			TextStrokeTransparency = 0
-		})
-		triangleTween:Play()
-	end
+	-- Old directional UI is now hidden - only the new Casting component is shown
+	-- The new Casting UI is started in StartCasting() via castingUI.Start()
 end
 
 -- Hide UI with fade-out animations
 function DirectionalCasting:_hideUI()
-	local tweenInfo = TweenInfo.new(CONFIG.ANIMATION.DURATION, CONFIG.ANIMATION.STYLE, CONFIG.ANIMATION.DIRECTION)
-
-	-- Hide container background
-	local containerTween = TweenService:Create(self.container, tweenInfo, {
-		BackgroundTransparency = 1
-	})
-	containerTween:Play()
-
-	-- Hide center indicator
-	local centerTween = TweenService:Create(self.center, tweenInfo, {
-		BackgroundTransparency = 1
-	})
-	centerTween:Play()
-	centerTween.Completed:Connect(function()
-		self.center.Visible = false
-	end)
-
-	-- Hide triangles
-	for _, triangle in pairs(self.triangles) do
-		local triangleTween = TweenService:Create(triangle, tweenInfo, {
-			TextTransparency = 1,
-			TextStrokeTransparency = 1,
-			TextColor3 = CONFIG.COLORS.inactive,
-			TextSize = 30
-		})
-		triangleTween:Play()
-
-		triangleTween.Completed:Connect(function()
-			triangle.Visible = false
-		end)
-	end
+	-- Old directional UI is now hidden - the new Casting component handles its own cleanup
 end
 
 -- Update triangle colors based on mode
@@ -510,6 +444,32 @@ function DirectionalCasting:_startInputTracking()
 	self.connections.mouseMove = RunService.RenderStepped:Connect(function()
 		self:_updateMouseTracking()
 	end)
+
+	-- ZXC key tracking for stopping rotations in Casting UI
+	self.connections.keyInput = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end
+		if not self.isCasting then return end
+
+		-- Check for Z, X, or C keys
+		local keyPressed = nil
+		if input.KeyCode == Enum.KeyCode.Z then
+			keyPressed = "Z"
+		elseif input.KeyCode == Enum.KeyCode.X then
+			keyPressed = "X"
+		elseif input.KeyCode == Enum.KeyCode.C then
+			keyPressed = "C"
+		end
+
+		if keyPressed then
+			-- Add to sequence
+			table.insert(self.zxcSequence, keyPressed)
+
+			-- Stop a rotation in the UI and pass the key for display
+			if self.castingUI then
+				self.castingUI.StopRotation(keyPressed)
+			end
+		end
+	end)
 end
 
 -- Stop input tracking
@@ -524,76 +484,9 @@ end
 
 -- Update mouse tracking and direction detection
 function DirectionalCasting:_updateMouseTracking()
-	if not self.isCasting then return end
-
-	local mouse
-	local containerPos = self.container.AbsolutePosition
-	local containerSize = self.container.AbsoluteSize
-	local centerX = containerPos.X + containerSize.X / 2
-	local centerY = containerPos.Y + containerSize.Y / 2
-
-	-- Handle shift lock compatibility
-	if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
-		-- Accumulate mouse delta for shift-lock mode
-		local mouseDelta = UserInputService:GetMouseDelta()
-		self.accumulatedMouseDelta = self.accumulatedMouseDelta + mouseDelta
-		mouse = Vector2.new(centerX + self.accumulatedMouseDelta.X * CONFIG.UI.MOUSE_SENSITIVITY, centerY + self.accumulatedMouseDelta.Y * CONFIG.UI.MOUSE_SENSITIVITY)
-	else
-		mouse = UserInputService:GetMouseLocation()
-	end
-
-	local distance = (mouse - Vector2.new(centerX, centerY)).Magnitude
-
-	-- Check if in dead zone
-	if distance < CONFIG.UI.DEAD_ZONE then
-		self:_setCurrentTriangle(nil)
-		-- Only clear last registered direction if we've been in dead zone
-		-- This prevents spurious directions when quickly passing through center
-		if not self.inDeadZone then
-			self.inDeadZone = true
-			self.deadZoneEnterTime = tick()
-		elseif tick() - self.deadZoneEnterTime > 0.02 then
-			-- Been in dead zone for 20ms, safe to clear (reduced from 50ms for faster input)
-			self.lastRegisteredDirection = nil
-		end
-		return
-	end
-
-	-- Not in dead zone anymore
-	self.inDeadZone = false
-
-	-- Calculate angle and determine direction
-	local angle = math.atan2(mouse.Y - centerY, mouse.X - centerX)
-	local degrees = math.deg(angle)
-	if degrees < 0 then degrees = degrees + 360 end
-
-	local direction = self:_getDirectionFromAngle(degrees)
-	if direction then
-		-- Only register if it's different from the last registered direction
-		if direction ~= self.lastRegisteredDirection then
-			self:_setCurrentTriangle(self.triangles[direction])
-
-			-- Add direction to sequence
-			self:_addDirectionToSequence(direction)
-
-			-- Mark this direction as registered
-			self.lastRegisteredDirection = direction
-
-			-- Reset mouse position to center after logging input
-			if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
-				self.accumulatedMouseDelta = Vector2.new(0, 0)
-			end
-
-			-- Clear the last registered direction for rapid input chaining
-			-- Reduced delay from 50ms to 15ms for faster sequential inputs
-			task.delay(0.015, function()
-				if self.lastRegisteredDirection == direction then
-					self.lastRegisteredDirection = nil
-					self:_setCurrentTriangle(nil)
-				end
-			end)
-		end
-	end
+	-- Mouse tracking is disabled for ZXC casting system
+	-- We use Z/X/C key presses instead of directional mouse input
+	-- This function is kept for backwards compatibility but does nothing
 end
 
 -- Get direction from angle with custom sensitivity zones

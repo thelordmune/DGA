@@ -11,6 +11,9 @@ local UI = Client.UI or plr.PlayerGui.ScreenGui;
 local HealthComponent = require(Replicated.Client.Components.Health)
 local healthComponentData = nil
 
+-- Expose healthComponentData for DirectionalCasting to access
+Controller.healthComponentData = healthComponentData
+
 Controller.Check = function()
 	if not UI or not UI:FindFirstChild("Stats") then
        local ui = Replicated.Assets.GUI.ScreenGui:Clone()
@@ -33,6 +36,7 @@ Controller.Check = function()
         -- Initialize the new Fusion-based Health component (or reinitialize after respawn)
         if not healthComponentData or not healthComponentData.frame.Parent then
             healthComponentData = HealthComponent(statsFrame)
+            Controller.healthComponentData = healthComponentData -- Update the exposed reference
             print("[Stats] ✅ New Health component initialized")
         end
     end

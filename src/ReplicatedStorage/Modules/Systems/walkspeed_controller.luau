@@ -57,7 +57,7 @@ local function walkspeed_controller()
 	end
 
 	if not hasLoggedStartup then
-		-- print("[WalkspeedController] ✅ System started successfully!")
+		-- -- print("[WalkspeedController] ✅ System started successfully!")
 		hasLoggedStartup = true
 	end
 
@@ -89,7 +89,7 @@ local function walkspeed_controller()
 		speedStates = {}
 	end
 
-	-- Debug: Print raw StringValue and parsed states
+	-- Debug: -- print raw StringValue and parsed states
 	if DEBUG and speedsStringValue.Value ~= "[]" then
 		-- print(`[WalkspeedController] Raw Speeds.Value: {speedsStringValue.Value}`)
 		-- print(`[WalkspeedController] Parsed states count: {#speedStates}`)
@@ -141,7 +141,7 @@ local function walkspeed_controller()
 	if finalWalkSpeed ~= lastWalkSpeed then
 		lastWalkSpeed = finalWalkSpeed
 		if DEBUG then
-			-- print(`[WalkspeedController] WalkSpeed set to {finalWalkSpeed} (states: {table.concat(speedStates, ", ")})`)
+			-- print(`[WalkspeedController] ⚡ WalkSpeed set to {finalWalkSpeed} (states: {table.concat(speedStates, ", ")})`)
 		end
 	end
 
@@ -150,7 +150,7 @@ local function walkspeed_controller()
 	if finalJumpPower ~= lastJumpPower then
 		lastJumpPower = finalJumpPower
 		if DEBUG and #speedStates > 0 then
-			-- print(`[WalkspeedController] JumpPower set to {finalJumpPower}`)
+			-- -- print(`[WalkspeedController] JumpPower set to {finalJumpPower}`)
 		end
 	end
 end

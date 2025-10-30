@@ -517,6 +517,8 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
     if Server.Library.StateCheck(Character.Frames, "Parry") then return end
     -- Prevent blocking during strategist combo
     if Server.Library.StateCheck(Character.Stuns, "StrategistComboHit") then return end
+    -- Prevent blocking while BlockBroken (guard broken)
+    if Server.Library.StateCheck(Character.Stuns, "BlockBreakStun") then return end
 
     if State then
         -- Start block if not already blocking

@@ -130,6 +130,45 @@ local function popInAnimation(textFrame, delayPerChar)
 	end
 end
 
+local function popFadeAnimation(textFrame, delayPerChar)
+	delayPerChar = delayPerChar or 0.02
+
+	local characters = getCharacters(textFrame)
+	if #characters == 0 then return end
+
+	for i, character in characters do
+		if not character.Parent then break end
+
+		local isImageLabel = character:IsA("ImageLabel")
+		local isTextLabel = character:IsA("TextLabel")
+		if not isImageLabel and not isTextLabel then continue end
+
+		-- Store original size
+		local originalSize = character.Size
+
+		-- Start invisible and at 50% scale
+		if isImageLabel then
+			character.ImageTransparency = 1
+		else
+			character.TextTransparency = 1
+		end
+		character.Size = UDim2.fromOffset(
+			originalSize.X.Offset * 0.5,
+			originalSize.Y.Offset * 0.5
+		)
+
+		-- Pop up to 120% size then settle to 100% with fade in
+		local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		local props = {
+			Size = originalSize
+		}
+		props[isImageLabel and "ImageTransparency" or "TextTransparency"] = 0
+
+		TweenService:Create(character, tweenInfo, props):Play()
+		task.wait(delayPerChar)
+	end
+end
+
 local function disperseAnimation(textFrame, delayPerChar)
 	delayPerChar = delayPerChar or 0.008
 
@@ -176,6 +215,7 @@ local function animateTextIn(textFrame, delayPerChar)
 	fadeDivergeAnimation(textFrame, delayPerChar)
 	-- slideUpAnimation(textFrame, delayPerChar)
 	-- popInAnimation(textFrame, delayPerChar)
+	-- popFadeAnimation(textFrame, delayPerChar)  -- Pop up with fade in
 end
 
 return function(scope, props: {})

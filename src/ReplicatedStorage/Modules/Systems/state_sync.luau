@@ -58,7 +58,7 @@ local function syncStateToStringValue(character: Model, componentName: string, s
 		lastSyncedStates[cacheKey] = jsonStates
 
 		if DEBUG and #states > 0 then
-			-- print(`[StateSync/Client] Updated {character.Name}.{stringValueName}: {jsonStates}`)
+			print(`[StateSync/Client] ✅ Updated {character.Name}.{stringValueName}: {jsonStates}`)
 		end
 	end
 end

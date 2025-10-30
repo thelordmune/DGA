@@ -361,6 +361,36 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		else
 		end
 
+		-- Apply adrenaline damage buff for attacker
+		if Player then
+			local invokerEntity = ref.get("player", Player)
+			if invokerEntity then
+				local adrenalineData = world:get(invokerEntity, comps.Adrenaline)
+				if adrenalineData then
+					-- Calculate damage multiplier: 1.0x at 0 adrenaline, 1.5x at 100 adrenaline
+					local adrenalineMultiplier = 1.0 + (adrenalineData.value / 100) * 0.5
+					local originalDamage = Table.Damage
+					Table.Damage = Table.Damage * adrenalineMultiplier
+					print(`[Damage] Adrenaline buff applied: {math.floor(adrenalineData.value)}% adrenaline = {adrenalineMultiplier}x damage ({originalDamage} -> {Table.Damage})`)
+				end
+			end
+		end
+
+		-- Apply damage resistance for defender
+		if TargetPlayer then
+			local targetEntity = ref.get("player", TargetPlayer)
+			if targetEntity then
+				local adrenalineData = world:get(targetEntity, comps.Adrenaline)
+				if adrenalineData then
+					-- Calculate damage resistance: 0% at 0 adrenaline, 30% at 100 adrenaline
+					local damageResistance = (adrenalineData.value / 100) * 0.3
+					local originalDamage = Table.Damage
+					Table.Damage = Table.Damage * (1 - damageResistance)
+					print(`[Damage] Damage resistance applied: {math.floor(adrenalineData.value)}% adrenaline = {damageResistance * 100}% resistance ({originalDamage} -> {Table.Damage})`)
+				end
+			end
+		end
+
 		if Table.M1 and not Table.SFX then
 			Library.PlaySound(
 				Target,
@@ -572,6 +602,11 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			Library.StopAllAnims(Target)
 			local Animation = Library.PlayAnimation(Target, Replicated.Assets.Animations.Misc.KnockbackStun)
 			Animation.Priority = Enum.AnimationPriority.Action3
+
+			-- Lock rotation and disable controls during knockback
+			Library.TimedState(Target.Stuns, "NoRotate", 0.65) -- Match knockback duration
+			Library.TimedState(Target.Stuns, "KnockbackStun", 0.65) -- Prevent all actions during knockback
+
 			Server.Packets.Bvel.sendToAll({ Character = Invoker, Name = "KnockbackBvel", Targ = Target })
 			print("[Knockback] Sent KnockbackBvel packet")
 			handleWallbang()

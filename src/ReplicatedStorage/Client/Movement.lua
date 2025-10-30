@@ -29,7 +29,32 @@ self.Connections = {};
 Movement.Dodge = function()
 	if not Client.Character then return end
 	if not Client.Root or not Client.Humanoid then return end
-	if not Client.Actions or not Client.Stuns then return end
+
+	-- Wait for StringValues to be ready (with timeout)
+	local maxWait = 2 -- Maximum 2 seconds wait
+	local startTime = os.clock()
+
+	while (not Client.Actions or not Client.Stuns or not Client.Speeds) and (os.clock() - startTime) < maxWait do
+		if not Client.Actions then
+			Client.Actions = Client.Character:FindFirstChild("Actions")
+		end
+		if not Client.Stuns then
+			Client.Stuns = Client.Character:FindFirstChild("Stuns")
+		end
+		if not Client.Speeds then
+			Client.Speeds = Client.Character:FindFirstChild("Speeds")
+		end
+
+		if not Client.Actions or not Client.Stuns or not Client.Speeds then
+			task.wait(0.1) -- Wait a bit before checking again
+		end
+	end
+
+	-- Final check - if still not ready, fail
+	if not Client.Actions or not Client.Stuns or not Client.Speeds then
+		warn(`[Dodge] Failed: StringValues not ready after {maxWait}s`)
+		return
+	end
 
 	-- Clean up any existing dodges first
 	for _, BodyMover in next, Client.Root:GetChildren() do
@@ -43,38 +68,40 @@ Movement.Dodge = function()
 
 	-- Check if we can dash
 	if Client.Dodging then
-		-- -- print("Dodge blocked: Already dodging")
+		-- print("🚫 Dodge blocked: Already dodging")
 		return
 	end
 	if Client.Library.StateCount(Client.Actions) or
 		Client.Library.StateCount(Client.Stuns) or
 		Client.Library.StateCheck(Client.Speeds, "M1Speed8") then
-		-- -- print("Dodge blocked: Character has active states")
+		-- print("🚫 Dodge blocked: Character has active states")
 		return
 	end
 	-- Prevent dashing during ragdoll
 	if Client.Character:FindFirstChild("Ragdoll") then
-		-- -- print("Dodge blocked: Character is ragdolled")
+		-- print("🚫 Dodge blocked: Character is ragdolled")
 		return
 	end
+
+	-- print(`[Dodge] Current charges: {Client.DodgeCharges}`)
 
 	-- Check cooldown only if out of charges
 	if Client.DodgeCharges <= 0 then
 		if Client.Library.CheckCooldown(Client.Character, "Dodge") then
-			-- -- print("Dodge blocked: On cooldown")
+			-- print("🚫 Dodge blocked: On cooldown")
 			return
 		end
 		Client.DodgeCharges = 2  -- Reset charges
-		-- -- print("Dodge charges reset to 2")
+		-- print("✅ Dodge charges reset to 2")
 	end
 
 	Client.DodgeCharges = Client.DodgeCharges - 1
-	-- -- print("Dodge charge used, remaining:", Client.DodgeCharges)
+	-- print(`✅ Dodge charge used, remaining: {Client.DodgeCharges}`)
 
 	-- Set cooldown when out of charges
 	if Client.DodgeCharges <= 0 then
 		Client.Library.SetCooldown(Client.Character, "Dodge", 2.5)
-		-- -- print("Dodge cooldown set")
+		-- print("⏱️ Dodge cooldown set to 2.5 seconds")
 	end
     
     Client.Library.AddState(Client.Statuses, "Dodging")
@@ -124,7 +151,7 @@ Movement.Dodge = function()
         end
     end)
 
-    -- -- print("Dash: Speed =", Speed, "Slowdown =", SlowdownSpeed, "Duration =", Duration, "Direction =", Direction)
+    -- -- -- print("Dash: Speed =", Speed, "Slowdown =", SlowdownSpeed, "Duration =", Duration, "Direction =", Direction)
     
     Animation.Stopped:Once(function()
         -- Velocity cleanup is handled by the tween completion
@@ -139,46 +166,54 @@ Movement.Run = function(State)
 
 	-- Basic validation checks
 	if not Client.Character then
-		-- warn("[Movement.Run] Failed: No character")
+		warn("[Movement.Run] Failed: No character")
 		return
 	end
 
 	if not Client.Root or not Client.Humanoid then
-		-- warn("[Movement.Run] Failed: No Root or Humanoid")
+		warn("[Movement.Run] Failed: No Root or Humanoid")
 		return
 	end
 
 	-- Verify character is still valid and in workspace
 	if not Client.Character.Parent then
-		-- warn("[Movement.Run] Failed: Character not in workspace")
+		warn("[Movement.Run] Failed: Character not in workspace")
 		return
 	end
 
 	-- Verify humanoid is alive
 	if Client.Humanoid.Health <= 0 then
-		-- warn("[Movement.Run] Failed: Humanoid is dead")
+		warn("[Movement.Run] Failed: Humanoid is dead")
 		return
 	end
 
-	-- Try to get StringValues if not cached (but don't fail if they don't exist yet)
-	if not Client.Actions then
-		Client.Actions = Client.Character:FindFirstChild("Actions")
+	-- Wait for StringValues to be ready (with timeout)
+	local maxWait = 2 -- Maximum 2 seconds wait
+	local startTime = os.clock()
+
+	while (not Client.Actions or not Client.Stuns or not Client.Speeds) and (os.clock() - startTime) < maxWait do
+		if not Client.Actions then
+			Client.Actions = Client.Character:FindFirstChild("Actions")
+		end
+		if not Client.Stuns then
+			Client.Stuns = Client.Character:FindFirstChild("Stuns")
+		end
+		if not Client.Speeds then
+			Client.Speeds = Client.Character:FindFirstChild("Speeds")
+		end
+
+		if not Client.Actions or not Client.Stuns or not Client.Speeds then
+			task.wait(0.1) -- Wait a bit before checking again
+		end
 	end
 
-	if not Client.Stuns then
-		Client.Stuns = Client.Character:FindFirstChild("Stuns")
-	end
-
-	if not Client.Speeds then
-		Client.Speeds = Client.Character:FindFirstChild("Speeds")
-	end
-
-	-- Only check for state counts if the StringValues exist
+	-- Final check - if still not ready, fail
 	if not Client.Actions or not Client.Stuns or not Client.Speeds then
-		-- warn(`[Movement.Run] Failed: StringValues not ready - Actions: {Client.Actions ~= nil}, Stuns: {Client.Stuns ~= nil}, Speeds: {Client.Speeds ~= nil}`)
+		warn(`[Movement.Run] Failed: StringValues not ready after {maxWait}s - Actions: {Client.Actions ~= nil}, Stuns: {Client.Stuns ~= nil}, Speeds: {Client.Speeds ~= nil}`)
 		return
 	end
 
+	-- print(`[Movement.Run] ✅ StringValues ready - Actions: {Client.Actions ~= nil}, Stuns: {Client.Stuns ~= nil}, Speeds: {Client.Speeds ~= nil}`)
 	-- print(`[Movement.Run] Validation passed - Actions: {Client.Library.StateCount(Client.Actions)}, Stuns: {Client.Library.StateCount(Client.Stuns)}, Running: {Client.Running}`)
 
 
@@ -221,9 +256,10 @@ Movement.Run = function(State)
 		self.Connections[#self.Connections + 1] = Client.RunAnim:GetMarkerReachedSignal("Right"):Connect(CallStepRight)
 		
 	elseif not State and Client.Running then
+		-- print("[Movement.Run] ❌ Stopping running - removing RunSpeedSet30 from Speeds")
 		Client.Running = false;
 		Client.Library.RemoveState(Client.Speeds, "RunSpeedSet30")
-		
+
 		if Client.RunAnim then Client.RunAnim:Stop(); Client.RunAnim = nil end;
 		
 		Client["RunAtkDelay"] = task.delay(.1,function()
