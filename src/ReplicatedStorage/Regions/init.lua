@@ -77,7 +77,7 @@ function RegionSystem:init()
 	end
 end
 
-function RegionSystem:prepareNPCFiles(regionName: string, npcData: NPCData)
+function RegionSystem:prepareNPCFiles(regionName: string, npcData: NPCData, spawnIndex: number?)
 	-- print("[PrepareNPC] 📦 === PREPARING NPC FILES ===")
 	-- print("[PrepareNPC] Region:", regionName)
 	-- print("[PrepareNPC] NPC Name:", npcData.Name)
@@ -138,10 +138,11 @@ function RegionSystem:prepareNPCFiles(regionName: string, npcData: NPCData)
 			npcFile:SetAttribute("SetName", setName)
 			npcFile:SetAttribute("DefaultName", npcData.Name)
 
-			-- For wanderers, assign a specific spawn index based on their creation order
+			-- For wanderers, assign a specific spawn index
 			if npcData.Name == "Wanderer" then
-				npcFile:SetAttribute("AssignedSpawn", i)
-				-- print("[PrepareNPC] Assigned spawn", i, "to wanderer", setName)
+				local assignedSpawn = spawnIndex or i
+				npcFile:SetAttribute("AssignedSpawn", assignedSpawn)
+				-- print("[PrepareNPC] Assigned spawn", assignedSpawn, "to wanderer", setName)
 			end
 
 			-- -- -- print("Set NPC attributes - SetName:", setName, "DefaultName:", npcData.Name)
@@ -209,87 +210,117 @@ function RegionSystem:handleDistanceLoading()
 					local spawnLocations = npcData.DataToSendOverAndUdpate.Spawning.Locations
 					-- print("[LoadDistance]   - Spawn locations count:", #spawnLocations)
 
-					local center = Vector3.new(0, 0, 0)
-					for _, location in spawnLocations do
-						center += location
-					end
-					center /= #spawnLocations
+					-- For wanderers, spawn them all once and let should_wander handle movement
+					if npcName == "Wanderer" then
+						-- Get the actual spawn parts from workspace
+						local wanderersFolder = workspace:FindFirstChild("Wanderers")
+						if wanderersFolder then
+							local spawnParts = wanderersFolder:GetChildren()
 
-					-- print("[LoadDistance]   - Center position:", center)
+							-- Only spawn wanderers once, not repeatedly
+							if not self._loaded[regionName] or not self._loaded[regionName][npcData.Name] then
+								print(`[Wanderer] 🚀 Spawning all {#spawnParts} wanderers (one-time spawn)`)
 
-					if DEBUG_CENTER_PART then
-						local debuggingPart = workspace.World.Visuals:FindFirstChild("DebugCenterPart") or Instance.new("Part") do
-							debuggingPart.Color = Color3.fromRGB(255,0,0)
-							debuggingPart.Anchored = true;
-							debuggingPart.CanCollide = false;
-							debuggingPart.Name = "DebugCenterPart"
-							debuggingPart.Size = Vector3.new(15,15,15)
-							debuggingPart.Position = center
-							debuggingPart.Parent = workspace.World.Visuals;
-						end
-					end
+								-- Spawn all wanderers at once
+								local nameIndex = regionName :: string
+								self:prepareNPCFiles(nameIndex, npcData)
 
-					local playerInRange = false
-					local closestDistance = math.huge
-					local closestPlayerName = "None"
+								-- Mark as loaded
+								if not self._loaded[regionName] then
+									self._loaded[regionName] = {}
+								end
+								self._loaded[regionName][npcData.Name] = true
 
-					for _, player in game.Players:GetPlayers() do
-						local character = player.Character
-						if character and character:FindFirstChild("HumanoidRootPart") then
-							local distance = (character.HumanoidRootPart.Position - center).Magnitude
-
-							if distance < closestDistance then
-								closestDistance = distance
-								closestPlayerName = player.Name
+								print(`[Wanderer] ✅ All wanderers spawned. Movement will be controlled by should_wander proximity check.`)
 							end
-
-							if distance <= npcData.LoadDistance then
-								playerInRange = true
-								-- print("[LoadDistance]   ✅ Player", player.Name, "is in range! Distance:", math.floor(distance), "studs")
-								break
-							end
-						end
-					end
-
-					if not playerInRange then
-						-- print("[LoadDistance]   ❌ No players in range. Closest:", closestPlayerName, "at", math.floor(closestDistance), "studs")
-					end
-
-					local isAlreadyLoaded = self._loaded[regionName] and self._loaded[regionName][npcData.Name] ~= nil
-					-- print("[LoadDistance]   - Already loaded:", isAlreadyLoaded)
-
-					if playerInRange then
-						if not self._loaded[regionName] or not self._loaded[regionName][npcData.Name] then
-							-- print("[LoadDistance]   🚀 SPAWNING", npcData.Name, "in", regionName)
-							local nameIndex = regionName :: string
-							self:prepareNPCFiles(nameIndex, npcData)
 						else
-							-- print("[LoadDistance]   ✓ Already spawned, keeping alive")
+							print(`[Wanderer] ⚠️ workspace.Wanderers folder not found!`)
 						end
 					else
-						if self._loaded[regionName] and self._loaded[regionName][npcData.Name] then
-							-- print("[LoadDistance]   🗑️ DESPAWNING", npcData.Name, "in", regionName)
-							if self._loaded[regionName][npcData.Name] then
-								task.cancel(self._loaded[regionName][npcData.Name])
-							end
+						-- For non-wanderer NPCs, use center-based detection (original logic)
+						local center = Vector3.new(0, 0, 0)
+						for _, location in spawnLocations do
+							center += location
+						end
+						center /= #spawnLocations
 
-							local npcsContainer = regionContainer:FindFirstChild("NPCs")
-							if npcsContainer then
-								for _, npcFile in npcsContainer:GetChildren() do
-									if npcFile.Name == npcData.Name then
-										npcFile:Destroy()
-									end
+						-- print("[LoadDistance]   - Center position:", center)
+
+						if DEBUG_CENTER_PART then
+							local debuggingPart = workspace.World.Visuals:FindFirstChild("DebugCenterPart") or Instance.new("Part")
+							do
+								debuggingPart.Color = Color3.fromRGB(255,0,0)
+								debuggingPart.Anchored = true;
+								debuggingPart.CanCollide = false;
+								debuggingPart.Name = "DebugCenterPart"
+								debuggingPart.Size = Vector3.new(15,15,15)
+								debuggingPart.Position = center
+								debuggingPart.Parent = workspace.World.Visuals;
+							end
+						end
+
+						local playerInRange = false
+						local closestDistance = math.huge
+						local closestPlayerName = "None"
+
+						for _, player in game.Players:GetPlayers() do
+							local character = player.Character
+							if character and character:FindFirstChild("HumanoidRootPart") then
+								local distance = (character.HumanoidRootPart.Position - center).Magnitude
+
+								if distance < closestDistance then
+									closestDistance = distance
+									closestPlayerName = player.Name
+								end
+
+								if distance <= npcData.LoadDistance then
+									playerInRange = true
+									-- print("[LoadDistance]   ✅ Player", player.Name, "is in range! Distance:", math.floor(distance), "studs")
+									break
 								end
 							end
-
-							self._loaded[regionName][npcData.Name] = nil;
 						end
-					end
 
-					-- print("[LoadDistance]   ---")
+						if not playerInRange then
+							-- print("[LoadDistance]   ❌ No players in range. Closest:", closestPlayerName, "at", math.floor(closestDistance), "studs")
+						end
+
+						local isAlreadyLoaded = self._loaded[regionName] and self._loaded[regionName][npcData.Name] ~= nil
+						-- print("[LoadDistance]   - Already loaded:", isAlreadyLoaded)
+
+						if playerInRange then
+							if not self._loaded[regionName] or not self._loaded[regionName][npcData.Name] then
+								-- print("[LoadDistance]   🚀 SPAWNING", npcData.Name, "in", regionName)
+								local nameIndex = regionName :: string
+								self:prepareNPCFiles(nameIndex, npcData)
+							else
+								-- print("[LoadDistance]   ✓ Already spawned, keeping alive")
+							end
+						else
+							if self._loaded[regionName] and self._loaded[regionName][npcData.Name] then
+								-- print("[LoadDistance]   🗑️ DESPAWNING", npcData.Name, "in", regionName)
+								if self._loaded[regionName][npcData.Name] then
+									task.cancel(self._loaded[regionName][npcData.Name])
+								end
+
+								local npcsContainer = regionContainer:FindFirstChild("NPCs")
+								if npcsContainer then
+									for _, npcFile in npcsContainer:GetChildren() do
+										if npcFile.Name == npcData.Name then
+											npcFile:Destroy()
+										end
+									end
+								end
+
+								self._loaded[regionName][npcData.Name] = nil;
+							end
+						end
+
+						-- print("[LoadDistance]   ---")
+					end
 				end
+				task.wait(INTERVAL)
 			end
-			task.wait(INTERVAL)	
 		end
 	end)
 end

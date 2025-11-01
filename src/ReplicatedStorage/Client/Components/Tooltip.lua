@@ -86,7 +86,7 @@ return function(scope, props: {
 		Position = UDim2.fromScale(0.097, 0.35),
 		Size = UDim2.fromOffset(115, 15),
 		Text = "",
-		Font = Font.new("rbxassetid://12187607287", Enum.FontWeight.Bold, Enum.FontStyle.Italic),
+		Font = Enum.Font.Sarpanch,
 		TextSize = 12,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
 		TextTransparency = scope:Tween(
@@ -106,7 +106,7 @@ return function(scope, props: {
 		Position = UDim2.fromScale(0.097, 0.50),
 		Size = UDim2.fromOffset(115, 15),
 		Text = "",
-		Font = Font.new("rbxassetid://12187607287", Enum.FontWeight.Bold, Enum.FontStyle.Italic),
+		Font = Enum.Font.Sarpanch,
 		TextSize = 12,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
 		TextTransparency = scope:Tween(
@@ -126,7 +126,7 @@ return function(scope, props: {
 		Position = UDim2.fromScale(0.097, 0.65),
 		Size = UDim2.fromOffset(115, 15),
 		Text = "",
-		Font = Font.new("rbxassetid://12187607287", Enum.FontWeight.Bold, Enum.FontStyle.Italic),
+		Font = Enum.Font.Sarpanch,
 		TextSize = 12,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
 		TextTransparency = scope:Tween(

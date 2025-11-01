@@ -1,6 +1,5 @@
 local Replicated = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
 local isServer = RunService:IsServer()
 
 if isServer then

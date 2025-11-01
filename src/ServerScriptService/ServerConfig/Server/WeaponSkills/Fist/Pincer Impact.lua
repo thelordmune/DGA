@@ -242,10 +242,35 @@ return function(Player, Data, Server)
 		end
 
         task.delay(hittimes[4], function()
-			-- Send "BF" variant if M1 was pressed, otherwise "None"
-			local variant = pressedM1 and "BF" or "None"
+			-- Check adrenaline requirement for BF variant
+			local canUseBF = false
+			if pressedM1 and not isNPC then
+				-- Get player's adrenaline level
+				local ReplicatedStorage = game:GetService("ReplicatedStorage")
+				local ref = require(ReplicatedStorage.Modules.ECS.ref)
+				local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+				local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 
-			if pressedM1 then
+				local playerEntity = ref.find(Char)
+				if playerEntity then
+					local adrenalineData = world:get(playerEntity, comps.Adrenaline)
+					if adrenalineData and adrenalineData.value >= 67 then
+						-- High adrenaline (67-100) required for BF variant
+						canUseBF = true
+						print(`[PINCER IMPACT] ✅ BF variant allowed - Adrenaline: {math.floor(adrenalineData.value)}%`)
+					else
+						print(`[PINCER IMPACT] ❌ BF variant blocked - Adrenaline too low: {adrenalineData and math.floor(adrenalineData.value) or 0}% (need 67%+)`)
+					end
+				end
+			elseif pressedM1 and isNPC then
+				-- NPCs can always use BF variant if they hit the timing
+				canUseBF = true
+			end
+
+			-- Send "BF" variant if M1 was pressed AND adrenaline is high enough, otherwise "None"
+			local variant = canUseBF and "BF" or "None"
+
+			if canUseBF then
 				-- -- print(`[PINCER IMPACT] 💥 Sending DKImpact with variant: {variant} (RED - Player hit the timing!)`)
 			else
 				-- -- print(`[PINCER IMPACT] 💨 Sending DKImpact with variant: {variant} (BLUE - Player missed the timing)`)
@@ -266,8 +291,8 @@ return function(Player, Data, Server)
 				local hitSomeone = false
 				local hitTargets = {}
 
-				-- Choose damage table based on variant
-				local damageTable = pressedM1 and Skills[Weapon][script.Name]["BFDamageTable"] or Skills[Weapon][script.Name]["DamageTable"]
+				-- Choose damage table based on variant (canUseBF instead of pressedM1)
+				local damageTable = canUseBF and Skills[Weapon][script.Name]["BFDamageTable"] or Skills[Weapon][script.Name]["DamageTable"]
 
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Char and Target:IsA("Model") then
@@ -277,7 +302,7 @@ return function(Player, Data, Server)
 						table.insert(hitTargets, Target)
 
 						-- Only apply additional stun for BF variant (non-BF uses damage table stun which is 0)
-						if pressedM1 then
+						if canUseBF then
 							Server.Library.TimedState(Target.Actions, "PincerImpactStun", damageTable.Stun)
 							Server.Library.TimedState(Target.Stuns, "NoAttack", damageTable.Stun)
 						end
@@ -285,7 +310,7 @@ return function(Player, Data, Server)
 				end
 
 				-- If hit someone with BF variant, do cinematic cutscene
-				if hitSomeone and pressedM1 then
+				if hitSomeone and canUseBF then
 					Server.Library.PlaySound(Char, SFX.PI.Zoom, true)	
                     task.delay(.2, function()
                     Server.Library.PlaySound(Char, SFX.PI.Impact4, true)

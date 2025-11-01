@@ -93,6 +93,7 @@ local components: {
     Experience: Entity<{current: number, required: number, total: number}>,
     Alignment: Entity<{value: number, min: number, max: number}>,
     QuestItemCollected: Entity<{npcName: string, questName: string, itemName: string, collectedTime: number}>,
+    QuestMarker: Entity<{markerType: string, npcName: string, questName: string?}>,
 
     -- ECS State Management (replaces StringValue JSON arrays)
     StateActions: Entity<{string}>,

@@ -369,54 +369,7 @@ function Initialize(Character: Model)
 			Humanoid.AutoRotate = true
 		end
 	end)
-
-	-- DISABLED: Replaced by walkspeed_controller ECS system (runs every frame on PreRender)
-	-- The old listener only fired when StringValue changed, causing timing issues
-	-- The new system reads the StringValue every frame for immediate response
-	--[[
-	safeConnect(Speeds, "Changed", function(Value)
-		if not Humanoid then
-			return
-		end
-		local FramesTable = Client.Service["HttpService"]:JSONDecode(Value)
-		local DeltaSpeed = 16 -- Default speed
-		local DeltaJump = 50 -- Default jump
-
-		-- First find all speed modifications
-		local speedModifiers = {}
-		for _, Frame in FramesTable do
-			if string.match(Frame, "Jump") then
-				local Number = ConvertToNumber(Frame)
-				DeltaJump += Number
-			elseif string.match(Frame, "Speed") then
-				local Number = ConvertToNumber(Frame)
-				table.insert(speedModifiers, Number)
-			end
-		end
-
-		-- Apply speed modifications with priority to lowest values
-		for _, modifier in pairs(speedModifiers) do
-			-- For negative modifiers (like -0), use them directly
-			if modifier <= 0 then
-				DeltaSpeed = modifier
-				break -- Negative/zero speeds take priority
-			else
-				DeltaSpeed = math.min(DeltaSpeed + modifier, modifier) -- Cap at modifier if it's a "Set"
-			end
-		end
-
-		-- Final speed assignment
-		Humanoid.WalkSpeed = math.max(0, DeltaSpeed) -- Ensure never negative
-		Humanoid.JumpPower = math.max(0, DeltaJump) -- Ensure never negative
-	end)
-	]]
-
-	-- local pent = ref.get("player", Players.LocalPlayer)
-
-	-- REINITIALIZE ALL SYSTEMS
-	-- print("=== REINITIALIZING ALL SYSTEMS ===")
-
-	-- Wait for character StringValues to be created
+	
 	local maxWait = 2
 	local waited = 0
 	while waited < maxWait do
@@ -500,6 +453,9 @@ function Initialize(Character: Model)
 
 	local QuestCompletionController = require(Replicated.Client.QuestCompletionController)
 	QuestCompletionController.Initialize()
+
+	local QuestMarkers = require(Replicated.Client.QuestMarkers)
+	QuestMarkers.Init()
 
 	--// Clean Up
 	Humanoid.Died:Once(function()

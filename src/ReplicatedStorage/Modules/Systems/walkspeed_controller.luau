@@ -68,10 +68,13 @@ local function walkspeed_controller()
 		return
 	end
 
-	-- Get Speeds StringValue (don't use WaitForChild in a loop - just check if it exists)
+	-- Wait for all character states to load (Speeds, IFrames, Actions)
 	local speedsStringValue = character:FindFirstChild("Speeds")
-	if not speedsStringValue then
-		-- StringValue not ready yet, skip this frame
+	local iframesStringValue = character:FindFirstChild("IFrames")
+	local actionsStringValue = character:FindFirstChild("Actions")
+
+	if not speedsStringValue or not iframesStringValue or not actionsStringValue then
+		-- Character states not ready yet, skip this frame
 		return
 	end
 
