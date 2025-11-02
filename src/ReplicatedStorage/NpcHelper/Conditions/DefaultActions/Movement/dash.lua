@@ -81,7 +81,7 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		end
 	end
 
-	-- Play dash animation
+	-- Play dash animation (same as player dash system)
 	local dashAnimations = ReplicatedStorage.Assets.Animations.Dashes
 	local animationName
 	if direction == "Back" then
@@ -97,10 +97,10 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	local dashAnim = dashAnimations:FindFirstChild(animationName)
 	if dashAnim then
 		Library.StopMovementAnimations(npc)
-		local dashTrack = Library.PlayAnimation(npc, dashAnim)
+		-- Library.PlayAnimation already plays the animation, so we don't need to call :Play() again
+		local dashTrack = Library.PlayAnimation(npc, dashAnim, 0.05) -- Fast transition for responsive dash
 		if dashTrack then
 			dashTrack.Priority = Enum.AnimationPriority.Action
-			dashTrack:Play()
 			-- print("[NPC Dash] Playing dash animation:", animationName, "for", npc.Name)
 		else
 			warn("[NPC Dash] Failed to load animation track for:", animationName)

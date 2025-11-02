@@ -11,8 +11,8 @@ local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManage
 local player = Players.LocalPlayer
 local pent = ref.get("local_player", player)
 
--- Hotbar slot 2
-local HOTBAR_SLOT = 2
+-- Hotbar slot 6
+local HOTBAR_SLOT = 6
 
 -- Track currently held skill
 local heldSkill = nil
@@ -58,3 +58,4 @@ InputModule.InputChanged = function()
 end
 
 return InputModule
+

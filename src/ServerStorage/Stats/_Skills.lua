@@ -190,6 +190,19 @@ local Table = {
             },
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTime"] = {20/189, 47/189, 90/189, 113/189, 55/189, 73/189}
+		},
+		["Triple Kick"] = {
+			["DamageTable"] = {
+			BlockBreak = false,
+			Damage = 3.5,
+			PostureDamage = 5,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.4,
+            },
+            Description = "Lunge yourself at the enemy piercing your blade through their skin.",
+            ["HitTime"] = {10/75, 20/75, 37/75, 49/75}
 		}
     }
 }

@@ -231,8 +231,31 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
--- Expose hidePromptUI globally so other systems can call it
+-- Cleanup function for death/respawn
+local function cleanup()
+	if currentHighlight then
+		currentHighlight:Destroy()
+		currentHighlight = nil
+	end
+	if promptScope then
+		promptScope:doCleanup()
+		promptScope = nil
+		promptStarted = nil
+		promptFadeIn = nil
+		promptTextStart = nil
+	end
+	currentNearbyNPC = nil
+
+	-- Clear character attributes
+	if character then
+		character:SetAttribute("Commence", false)
+		character:SetAttribute("NearbyNPC", nil)
+	end
+end
+
+-- Expose functions globally so other systems can call them
 _G.DialogueProximity_HidePrompt = hidePromptUI
+_G.DialogueProximity_Cleanup = cleanup
 
 -- Initial check
 task.wait(1)

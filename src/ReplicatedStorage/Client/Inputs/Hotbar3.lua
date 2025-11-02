@@ -11,69 +11,46 @@ local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManage
 local player = Players.LocalPlayer
 local pent = ref.get("local_player", player)
 
--- Map keys to hotbar slots
-local keyToSlot = {
-    [Enum.KeyCode.One] = 1,
-    [Enum.KeyCode.Two] = 2,
-    [Enum.KeyCode.Three] = 3,
-    [Enum.KeyCode.Four] = 4,
-    [Enum.KeyCode.Five] = 5,
-    [Enum.KeyCode.Six] = 6,
-    [Enum.KeyCode.Seven] = 7,
-}
+-- Hotbar slot 3
+local HOTBAR_SLOT = 3
 
--- Track currently held skill per hotbar slot
-local heldSkills = {}
+-- Track currently held skill
+local heldSkill = nil
 
 InputModule.InputBegan = function(input, Client)
-    local hotbarSlot = keyToSlot[input.KeyCode]
-    if not hotbarSlot then return end
-
     -- Check if player is dashing
     if Client.Dodging then
-        -- print("[Hotbar3] Cannot use skill while dashing")
         return
     end
 
-    -- print("Hotbar slot pressed:", hotbarSlot)
-
-    local item = InventoryManager.getHotbarItem(pent, hotbarSlot)
+    local item = InventoryManager.getHotbarItem(pent, HOTBAR_SLOT)
     if not item then
-        -- print("No item in hotbar slot:", hotbarSlot)
         return
     end
-
-    -- print("Using item:", item.name, "from hotbar slot:", hotbarSlot)
 
     -- Store the item for InputEnded
-    heldSkills[hotbarSlot] = item
+    heldSkill = item
 
     -- Send to server to use item (InputBegan)
     Client.Packets.UseItem.send({
         itemName = item.name,
-        hotbarSlot = hotbarSlot,
-        inputType = "began" -- Track input type
+        hotbarSlot = HOTBAR_SLOT,
+        inputType = "began"
     })
 end
 
 InputModule.InputEnded = function(input, Client)
-    local hotbarSlot = keyToSlot[input.KeyCode]
-    if not hotbarSlot then return end
-
-    local item = heldSkills[hotbarSlot]
-    if not item then return end
-
-    -- print("Hotbar slot released:", hotbarSlot, "Item:", item.name)
+    if not heldSkill then return end
 
     -- Send to server (InputEnded)
     Client.Packets.UseItem.send({
-        itemName = item.name,
-        hotbarSlot = hotbarSlot,
-        inputType = "ended" -- Track input type
+        itemName = heldSkill.name,
+        hotbarSlot = HOTBAR_SLOT,
+        inputType = "ended"
     })
 
     -- Clear held skill
-    heldSkills[hotbarSlot] = nil
+    heldSkill = nil
 end
 
 InputModule.InputChanged = function()

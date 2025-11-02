@@ -43,7 +43,7 @@ end
 local function isSkillOnCooldown(npc, skillName, mainConfig)
     -- Global attack cooldown - prevent NPCs from attacking too frequently
     local lastAttack = mainConfig.States and mainConfig.States.LastAttack or 0
-    local globalAttackCooldown = 2.0 -- Minimum 2 seconds between ANY attacks
+    local globalAttackCooldown = 1.2 -- Reduced from 2.0 to 1.2 for more aggressive guards
 
     if os.clock() - lastAttack < globalAttackCooldown then
         return true -- Global cooldown still active

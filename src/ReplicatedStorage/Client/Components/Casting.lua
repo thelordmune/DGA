@@ -915,9 +915,9 @@ return function(Target, props)
 	}
 
 	-- Initial fade-in on component load
+	local fadeConnection = nil
 	task.delay(1, function() -- Wait 1 second before appearing
 		local fadeStartTime = tick()
-		local fadeConnection
 		fadeConnection = RunService.RenderStepped:Connect(function()
 			local elapsed = tick() - fadeStartTime
 			local progress = math.min(elapsed / 0.5, 1) -- 0.5 second fade
@@ -925,10 +925,23 @@ return function(Target, props)
 
 			if progress >= 1 then
 				fadeConnection:Disconnect()
+				fadeConnection = nil
 			end
 		end)
 	end)
 
-	-- Return the API for external control
+	-- Cleanup function for fade connection
+	local cleanupFade = function()
+		if fadeConnection then
+			fadeConnection:Disconnect()
+			fadeConnection = nil
+		end
+	end
+
+	-- Add cleanup to scope
+	table.insert(scope, cleanupFade)
+
+	-- Return the API for external control (including scope for cleanup)
+	api.scope = scope
 	return api
 end

@@ -135,6 +135,48 @@ function ConvertToNumber(String)
 end
 
 local function Remove()
+	print("[PlayerHandler] 🧹 Starting cleanup on death...")
+
+	-- Clean up UI components first (Fusion scopes)
+	if Client.Stats and Client.Stats.CleanupUI then
+		Client.Stats.CleanupUI()
+	end
+
+	-- Clean up Quest Tracker
+	local QuestTracker = require(Replicated.Client.Interface.QuestTracker)
+	if QuestTracker and QuestTracker.new then
+		local tracker = QuestTracker.new() -- Gets singleton instance
+		if tracker and tracker.Destroy then
+			tracker:Destroy()
+		end
+	end
+
+	-- Clean up Quest Markers
+	local QuestMarkers = require(Replicated.Client.QuestMarkers)
+	if QuestMarkers and QuestMarkers.Cleanup then
+		QuestMarkers.Cleanup()
+	end
+
+	-- Clean up Leaderboard
+	local Leaderboard = require(Replicated.Client.Interface.Leaderboard)
+	if Leaderboard and Leaderboard.new then
+		local leaderboard = Leaderboard.new() -- Gets singleton instance
+		if leaderboard and leaderboard.Destroy then
+			leaderboard:Destroy()
+		end
+	end
+
+	-- Clean up Notification Manager
+	local NotificationManager = require(Replicated.Client.NotificationManager)
+	if NotificationManager and NotificationManager.ClearAll then
+		NotificationManager.ClearAll()
+	end
+
+	-- Clean up Dialogue Proximity (call global cleanup function)
+	if _G.DialogueProximity_Cleanup then
+		_G.DialogueProximity_Cleanup()
+	end
+
 	if Client.Connections then
 		for _, conn in ipairs(Client.Connections) do
 			conn:Disconnect()
@@ -152,6 +194,8 @@ local function Remove()
 	Client.Actions = nil
 	Client.Posture = nil
 	Client.Energy = nil
+
+	print("[PlayerHandler] ✅ Cleanup complete")
 end
 
 local DisabledStateTypes = {

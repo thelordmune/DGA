@@ -17,11 +17,12 @@ local heldWeaponSkills = {}
 NetworkModule.EndPoint = function(Player, Data)
     local Weapon = Player:GetAttribute("Weapon")
 
-    -- print("=== USE ITEM ENDPOINT ===")
-    -- print("Player:", Player.Name)
-    -- print("Item:", Data.itemName)
-    -- print("Hotbar Slot:", Data.hotbarSlot)
-    -- print("InputType:", Data.inputType or "nil")
+    print("=== USE ITEM ENDPOINT ===")
+    print("Player:", Player.Name)
+    print("Item:", Data.itemName)
+    print("Hotbar Slot:", Data.hotbarSlot)
+    print("InputType:", Data.inputType or "nil")
+    print("Weapon:", Weapon)
 
     local pent = ref.get("player", Player)  -- Fixed: Use "player" on server, not "local_player"
     if not pent then
@@ -155,10 +156,10 @@ NetworkModule.EndPoint = function(Player, Data)
                     end
                 else
                     -- OLD SYSTEM (function-based skills)
-                    -- print("[UseItem] Using OLD SYSTEM (function-based) for:", usedItem.name)
+                    print("[UseItem] Using OLD SYSTEM (function-based) for:", usedItem.name)
                     -- Only execute on 'ended' input to prevent double-triggering
                     if Data.inputType == "ended" then
-                        -- print("[UseItem] Executing skill on 'ended' input")
+                        print("[UseItem] Executing skill on 'ended' input")
                         skill(Player, Data, Server)
 
                         -- Apply 1 second soft cooldown on cast
@@ -167,7 +168,7 @@ NetworkModule.EndPoint = function(Player, Data)
                             Server.Library.SetCooldown(Character, "SkillCast", 1)
                         end
                     else
-                        -- print("[UseItem] Ignoring 'began' input for old system skill")
+                        print("[UseItem] Ignoring 'began' input for old system skill")
                     end
                 end
             else

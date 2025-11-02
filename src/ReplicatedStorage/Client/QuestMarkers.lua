@@ -433,5 +433,17 @@ function QuestMarkers.Init()
 	updateQuestMarkers()
 end
 
+-- Cleanup all markers (called on death)
+function QuestMarkers.Cleanup()
+	print("[QuestMarkers] 🧹 Cleaning up all markers...")
+	for markerKey, scope in pairs(markerScopes) do
+		if scope and scope.doCleanup then
+			scope:doCleanup()
+		end
+	end
+	table.clear(markerScopes)
+	print("[QuestMarkers] ✅ All markers cleaned up")
+end
+
 return QuestMarkers
 

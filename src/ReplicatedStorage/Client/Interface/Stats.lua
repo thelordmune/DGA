@@ -11,8 +11,35 @@ local UI = Client.UI or plr.PlayerGui.ScreenGui;
 local HealthComponent = require(Replicated.Client.Components.Health)
 local healthComponentData = nil
 
+-- Track Fusion scopes for cleanup on death
+local activeScopes = {}
+
 -- Expose healthComponentData for DirectionalCasting to access
 Controller.healthComponentData = healthComponentData
+
+-- Cleanup function to destroy all UI scopes
+Controller.CleanupUI = function()
+	print("[Stats] 🧹 Cleaning up UI components...")
+
+	-- Clean up health component
+	if healthComponentData and healthComponentData.scope then
+		healthComponentData.scope:doCleanup()
+		print("[Stats] ✅ Health component scope cleaned up")
+	end
+	healthComponentData = nil
+	Controller.healthComponentData = nil
+
+	-- Clean up all tracked scopes
+	for i, scopeData in ipairs(activeScopes) do
+		if scopeData.scope then
+			scopeData.scope:doCleanup()
+			print(`[Stats] ✅ Cleaned up scope: {scopeData.name}`)
+		end
+	end
+	table.clear(activeScopes)
+
+	print("[Stats] ✅ All UI components cleaned up")
+end
 
 Controller.Check = function()
 	if not UI or not UI:FindFirstChild("Stats") then
@@ -221,6 +248,12 @@ Controller.InitializeHotbar = function(character, entity)
 	-- print("[Stats] Hotbar component loaded, creating scope...")
 	local scope = Fusion.scoped(Fusion, {})
 	-- print(`[Stats] Scope created: {scope}`)
+
+	-- Track this scope for cleanup
+	table.insert(activeScopes, {
+		name = "Hotbar",
+		scope = scope
+	})
 
 	-- Create the hotbar component
 	-- print("[Stats] Calling Hotbar function...")

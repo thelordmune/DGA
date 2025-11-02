@@ -93,35 +93,35 @@ local function getNextPatternState(mainConfig, npc, target, distance)
         if targetAttacking and distance < 12 then
             return GuardPatterns.COUNTER
         end
-        -- If in defensive too long and target close, go aggressive
-        if timeInState > 2.0 and distance < 10 then
+        -- If in defensive too long and target close, go aggressive (reduced from 2.0 to 1.0)
+        if timeInState > 1.0 and distance < 10 then
             return GuardPatterns.COUNTER
         end
-        
+
     elseif currentState == GuardPatterns.COUNTER then
-        -- After counter, apply pressure
-        if timeInState > 0.8 then
+        -- After counter, apply pressure (reduced from 0.8 to 0.5)
+        if timeInState > 0.5 then
             return GuardPatterns.PRESSURE
         end
-        
+
     elseif currentState == GuardPatterns.PRESSURE then
-        -- After pressure, use special or reset
-        if pattern.ComboCount >= 2 then
+        -- After pressure, use special or reset (increased combo requirement from 2 to 3)
+        if pattern.ComboCount >= 3 then
             return GuardPatterns.SPECIAL
         end
-        if timeInState > 1.5 then
+        if timeInState > 1.2 then -- Reduced from 1.5 to 1.2
             return GuardPatterns.RESET
         end
-        
+
     elseif currentState == GuardPatterns.SPECIAL then
-        -- After special, reset to defensive
-        if timeInState > 1.0 then
+        -- After special, reset to defensive (reduced from 1.0 to 0.7)
+        if timeInState > 0.7 then
             return GuardPatterns.RESET
         end
-        
+
     elseif currentState == GuardPatterns.RESET then
-        -- Return to defensive after brief reset
-        if timeInState > 0.5 then
+        -- Return to defensive after brief reset (reduced from 0.5 to 0.3)
+        if timeInState > 0.3 then
             return GuardPatterns.DEFENSIVE
         end
     end
@@ -145,7 +145,7 @@ local function executePatternAction(mainConfig, npc, target, distance, currentSt
     elseif currentState == GuardPatterns.COUNTER then
         -- Quick M1 counter - check both cooldown and manual timing
         local lastM1 = mainConfig.GuardPattern.LastM1 or 0
-        local m1Cooldown = 1.5 -- Balanced cooldown
+        local m1Cooldown = 0.8 -- Reduced from 1.5 to 0.8 for more aggressive attacks
 
         if os.clock() - lastM1 >= m1Cooldown and not isSkillOnCooldown(npc, "M1") then
             skillToUse = "M1"
@@ -160,7 +160,7 @@ local function executePatternAction(mainConfig, npc, target, distance, currentSt
         else
             -- Check M1 cooldown before using as fallback
             local lastM1 = mainConfig.GuardPattern.LastM1 or 0
-            local m1Cooldown = 1.5 -- Balanced cooldown
+            local m1Cooldown = 0.8 -- Reduced from 1.5 to 0.8 for more aggressive attacks
 
             if os.clock() - lastM1 >= m1Cooldown and not isSkillOnCooldown(npc, "M1") then
                 skillToUse = "M1"

@@ -189,6 +189,13 @@ return function(actor: Actor, mainConfig: table )
 
 	local PathState: PathState = "";
 
+	-- Don't move during attacks to prevent stuttering
+	local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
+	if Server.Library.StateCheck(npc.Actions, "Attacking") then
+		humanoid:Move(Vector3.new(0, 0, 0))
+		return true
+	end
+
 	local config = {
 		[`Direct`] = function()
 			local movementPatterns = {

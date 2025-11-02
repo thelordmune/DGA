@@ -23,15 +23,16 @@ return function(actor: Actor, mainConfig: table)
 		return false
 	end
 
-	-- Only wander if a player is nearby (within 50 studs)
+	-- Only wander if a player is nearby (within 100-130 studs)
 	local root = npc:FindFirstChild("HumanoidRootPart")
 	if root then
 		local playerNearby = false
+		local detectionRange = 115 -- Increased from 50 to 115 studs
 		for _, player in game.Players:GetPlayers() do
 			local character = player.Character
 			if character and character:FindFirstChild("HumanoidRootPart") then
 				local distance = (character.HumanoidRootPart.Position - root.Position).Magnitude
-				if distance <= 50 then
+				if distance <= detectionRange then
 					playerNearby = true
 					break
 				end

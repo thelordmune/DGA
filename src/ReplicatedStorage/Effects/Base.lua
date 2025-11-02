@@ -2608,4 +2608,79 @@ function Base.Spawn(Position: Vector3)
 	end)
 end
 
+function Base.TripleKick(Character: Model, Frame: string)
+	if Frame == "Ground" then
+		local tk = Replicated.Assets.VFX.TripleKick
+		local eff = Replicated.Assets.VFX.TripleKick.Ground:Clone()
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, 0)
+		eff.Parent = workspace.World.Visuals
+		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+
+		-- Add trail effects to right leg
+		local rightLeg = Character:FindFirstChild("Right Leg")
+		if rightLeg then
+			for _, v in tk:GetChildren() do
+				if v:IsA("Attachment") and v.Name == "L" or v.Name == "R" then
+					local clone = v:Clone()
+					clone.Parent = rightLeg
+				elseif v:IsA("Trail") then
+					local clone = v:Clone()
+					clone.Parent = rightLeg
+				end
+			end
+			task.delay(3, function()
+				for _, v in rightLeg:GetDescendants() do
+					if v:IsA("Attachment") or v:IsA("Trail") then
+						v:Destroy()
+					end
+				end
+			end)
+		end
+
+		task.delay(3, function()
+			eff:Destroy()
+		end)
+	elseif Frame == "Hit" then
+		local rightLeg = Character:FindFirstChild("Right Leg")
+		if not rightLeg then return end
+
+		local eff = Replicated.Assets.VFX.TripleKick.Shoot:Clone()
+		eff.CanCollide = false
+		eff.Anchored = false
+		eff.Massless = true
+		eff.Parent = workspace.World.Visuals
+
+		-- Use RenderStepped to continuously update VFX position to follow the leg
+		local RunService = game:GetService("RunService")
+		local connection
+		connection = RunService.RenderStepped:Connect(function()
+			if rightLeg and rightLeg.Parent and eff and eff.Parent then
+				eff.CFrame = rightLeg.CFrame * CFrame.new(0, -1, 0) * CFrame.Angles(0, 0, math.rad(-90))
+			else
+				if connection then
+					connection:Disconnect()
+				end
+			end
+		end)
+
+		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+
+		task.delay(3, function()
+			if connection then
+				connection:Disconnect()
+			end
+			eff:Destroy()
+		end)
+	end
+end
+
+
 return Base

@@ -511,16 +511,28 @@ return function(Target)
 	-- Show the casting UI in idle state immediately (replaces the health circle)
 	showCastingCircle:set(true) -- Hide the health circle
 
-	-- Cleanup
-	--scope:doCleanup(function()
-	--	rotationConnection:Disconnect()
-	--end)
+	-- Cleanup function to disconnect rotation connection and clean up casting component
+	local cleanupRotation = function()
+		if rotationConnection then
+			rotationConnection:Disconnect()
+			rotationConnection = nil
+		end
 
-	-- Return the UI frame and values for external updates
+		-- Clean up casting component scope
+		if castingAPI and castingAPI.scope then
+			castingAPI.scope:doCleanup()
+		end
+	end
+
+	-- Add cleanup to scope
+	table.insert(scope, cleanupRotation)
+
+	-- Return the UI frame, values, and scope for external updates and cleanup
 	return {
 		frame = holderFrame,
 		healthValue = health,
 		adrenalineValue = adrenaline,
 		castingAPI = castingAPI, -- Expose casting API for external control
+		scope = scope, -- Expose scope for cleanup on death
 	}
 end
