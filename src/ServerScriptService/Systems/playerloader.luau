@@ -236,14 +236,21 @@ local function processPlayer(world, player)
 
         return
     end
-            
+
             -- print(`[Character] Starting initialization for {rig.Name}`)
-            
+
+            -- Load appearance AFTER character has stabilized
+            -- This ensures clothing is applied to the final character, not a temporary one
+            local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
+            local Appearance = require(game:GetService("ServerScriptService").ServerConfig.Server.Entities.Appearance)
+            print(`[PlayerLoader] 🎨 Loading appearance for {player.Name} after character stabilization`)
+            Appearance.Load(player)
+
             -- Preload assets before initial state
 
             -- local Entity = Server.Modules["Entities"].Get(Character)
 	        -- if not Entity then return end
-            
+
             -- print(`[Character] Retrieved player data for {player.Name}`)
 
             -- Initialize all components

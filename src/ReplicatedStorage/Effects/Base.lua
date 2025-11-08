@@ -2653,6 +2653,11 @@ function Base.TripleKick(Character: Model, Frame: string)
 		eff.Anchored = false
 		eff.Massless = true
 		eff.Parent = workspace.World.Visuals
+		local eff2 = Replicated.Assets.VFX.TripleKick.Part:Clone()
+		eff2.CanCollide = false
+		eff2.Anchored = false
+		eff2.Massless = true
+		eff2.Parent = workspace.World.Visuals
 
 		-- Use RenderStepped to continuously update VFX position to follow the leg
 		local RunService = game:GetService("RunService")
@@ -2660,6 +2665,7 @@ function Base.TripleKick(Character: Model, Frame: string)
 		connection = RunService.RenderStepped:Connect(function()
 			if rightLeg and rightLeg.Parent and eff and eff.Parent then
 				eff.CFrame = rightLeg.CFrame * CFrame.new(0, -1, 0) * CFrame.Angles(0, 0, math.rad(-90))
+				eff2.CFrame = rightLeg.CFrame * CFrame.new(0, -1, 0) * CFrame.Angles(0, 0, math.rad(-90))
 			else
 				if connection then
 					connection:Disconnect()
@@ -2668,6 +2674,12 @@ function Base.TripleKick(Character: Model, Frame: string)
 		end)
 
 		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+
+		for _, v in eff2:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
 				v:Emit(v:GetAttribute("EmitCount"))
 			end

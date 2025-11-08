@@ -28,9 +28,17 @@ local function getEntity(character: Model): number?
 
 	-- Try player entity first
 	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
 	local player = Players:GetPlayerFromCharacter(character)
 	if player then
-		return RefManager.player.get("player", player)
+		-- On client, use "local_player" for the local player
+		-- On server, use "player" with the player object
+		if RunService:IsClient() and player == Players.LocalPlayer then
+			local ref = require(script.Parent.jecs_ref)
+			return ref.get("local_player")
+		else
+			return RefManager.player.get("player", player)
+		end
 	end
 
 	-- Try NPC entity

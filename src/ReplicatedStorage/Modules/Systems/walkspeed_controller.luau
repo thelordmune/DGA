@@ -16,7 +16,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
-local DEBUG = false -- Enable debug logging
+local DEBUG = true -- Enable debug logging
 
 -- Convert state name to number (e.g., "M1Speed12" -> 12, "RunSpeedSet24" -> 24)
 local function ConvertToNumber(String)
@@ -116,7 +116,9 @@ local function walkspeed_controller()
 		end
 	end
 
-	-- Apply speed modifications with priority to lowest values
+	-- Apply speed modifications
+	-- "Set" speeds (like RunSpeedSet30) should replace the base speed
+	-- Regular speeds (like M1Speed12) should add to the base speed
 	for _, modifier in pairs(speedModifiers) do
 		-- For negative modifiers (like -0), use them directly
 		if modifier <= 0 then
@@ -126,10 +128,11 @@ local function walkspeed_controller()
 			end
 			break -- Negative/zero speeds take priority
 		else
-			local oldSpeed = DeltaSpeed
-			DeltaSpeed = math.min(DeltaSpeed + modifier, modifier) -- Cap at modifier if it's a "Set"
+			-- For "Set" speeds, just use the modifier value directly
+			-- This ensures RunSpeedSet30 always sets speed to 30
+			DeltaSpeed = modifier
 			if DEBUG and #speedStates > 0 then
-				-- print(`[WalkspeedController] Applied modifier: {modifier}, DeltaSpeed: {oldSpeed} -> {DeltaSpeed}`)
+				-- print(`[WalkspeedController] Applied speed modifier: {modifier}, DeltaSpeed set to {DeltaSpeed}`)
 			end
 		end
 	end

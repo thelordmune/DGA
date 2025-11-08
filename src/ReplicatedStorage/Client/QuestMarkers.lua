@@ -43,6 +43,11 @@ local MARKER_CONFIG = {
 		color = Color3.fromRGB(121, 197, 255), -- Blue
 		icon = "rbxassetid://18621831828",
 	},
+	waypoint = {
+		type = "waypoint",
+		color = Color3.fromRGB(255, 255, 255), -- White
+		icon = "rbxassetid://18621831828",
+	},
 }
 
 -- Store marker scopes for cleanup
@@ -418,19 +423,26 @@ function QuestMarkers.Init()
 			player.CharacterAdded:Wait()
 		end
 		task.wait(1) -- Wait for character to fully load
-		updateQuestMarkers()
+		-- Disabled automatic NPC quest markers
+		-- Only waypoint markers created manually via QuestHandler will be shown
+		-- updateQuestMarkers()
 	end)
 
-	-- Update markers periodically
+	-- Disabled automatic marker updates
+	-- Quest markers are now only created manually via CreateWaypoint()
+	--[[
 	task.spawn(function()
 		while task.wait(1) do
 			updateQuestMarkers()
 		end
 	end)
+	]]
 
-	-- Initial update
-	task.wait(2)
-	updateQuestMarkers()
+	-- Initial update disabled
+	-- task.wait(2)
+	-- updateQuestMarkers()
+
+	print("[QuestMarkers] ✅ Initialized (automatic NPC markers disabled)")
 end
 
 -- Cleanup all markers (called on death)
@@ -443,6 +455,168 @@ function QuestMarkers.Cleanup()
 	end
 	table.clear(markerScopes)
 	print("[QuestMarkers] ✅ All markers cleaned up")
+end
+
+--[[
+	Create a custom waypoint marker on a part
+
+	@param part - The BasePart or Model to place the marker on
+	@param label - Optional label text for the marker (defaults to part name)
+	@param config - Optional configuration table with:
+		- color: Color3 (default: white)
+		- icon: string asset ID (default: star icon)
+		- heightOffset: number (default: 5 studs above part)
+		- maxDistance: number (default: 500 studs)
+	@return markerKey - String key that can be used to remove the marker later
+]]
+function QuestMarkers.CreateWaypoint(part: Model | BasePart, label: string?, config: {
+	color: Color3?,
+	icon: string?,
+	heightOffset: number?,
+	maxDistance: number?
+}?): string?
+	if not part or not part.Parent then
+		warn("[QuestMarkers] Cannot create waypoint: invalid part")
+		return nil
+	end
+
+	-- Get or create config
+	local waypointConfig = config or {}
+	local markerColor = waypointConfig.color or Color3.fromRGB(255, 255, 255)
+	local markerIcon = waypointConfig.icon or "rbxassetid://18621831828"
+	local heightOffset = waypointConfig.heightOffset or 5
+	local maxDistance = waypointConfig.maxDistance or 500
+
+	-- Find the root part
+	local targetRoot: BasePart? = nil
+	if part:IsA("Model") then
+		targetRoot = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso") or part.PrimaryPart
+	elseif part:IsA("BasePart") then
+		targetRoot = part
+	end
+
+	if not targetRoot then
+		warn("[QuestMarkers] Cannot create waypoint: part has no valid root")
+		return nil
+	end
+
+	-- Create unique marker key
+	local markerKey = "waypoint_" .. targetRoot:GetFullName():gsub("%.", "_")
+
+	-- Clean up existing marker if it exists
+	if markerScopes[markerKey] then
+		markerScopes[markerKey]:doCleanup()
+		markerScopes[markerKey] = nil
+	end
+
+	-- Create new scope for this marker
+	local markerScope = scoped(Fusion, {
+		MarkerIcon = require(ReplicatedStorage.Client.Components.MarkerIcon),
+	})
+
+	-- Create reactive values
+	local position = markerScope:Value(UDim2.fromScale(0.5, 0.5))
+	local distance = markerScope:Value(0)
+	local visible = markerScope:Value(true)
+	local showArrow = markerScope:Value(false)
+	local arrowRotation = markerScope:Value(0)
+
+	-- Create the marker UI
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "QuestMarker_" .. markerKey
+	screenGui.ResetOnSpawn = false
+	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.DisplayOrder = 100
+	screenGui.Enabled = true
+
+	local playerGui = player:WaitForChild("PlayerGui")
+	screenGui.Parent = playerGui
+
+	markerScope:MarkerIcon({
+		Type = "waypoint",
+		Color = markerColor,
+		Icon = markerIcon,
+		Label = label or part.Name,
+		Position = position,
+		Distance = distance,
+		Visible = visible,
+		ShowArrow = showArrow,
+		ArrowRotation = arrowRotation,
+		Parent = screenGui,
+	})
+
+	-- Update marker position and visibility every frame
+	local updateConnection = RunService.RenderStepped:Connect(function()
+		-- Check if target still exists
+		if not part or not part.Parent or not targetRoot.Parent then
+			markerScopes[markerKey]:doCleanup()
+			markerScopes[markerKey] = nil
+			return
+		end
+
+		-- Calculate marker position above target
+		local markerWorldPos = targetRoot.Position + Vector3.new(0, heightOffset, 0)
+		local dist = getDistanceToPlayer(markerWorldPos)
+		local screenPos, onScreen, rotation = worldToScreen(markerWorldPos)
+
+		-- Update reactive values
+		distance:set(dist)
+		position:set(screenPos)
+		visible:set(dist < maxDistance)
+		showArrow:set(not onScreen)
+		if rotation then
+			arrowRotation:set(rotation)
+		end
+	end)
+
+	-- Store cleanup function
+	table.insert(markerScope, updateConnection)
+	table.insert(markerScope, screenGui)
+	markerScope.screenGui = screenGui
+	markerScope.visible = visible
+
+	markerScopes[markerKey] = markerScope
+
+	print(`[QuestMarkers] ✅ Created waypoint marker: {markerKey}`)
+	return markerKey
+end
+
+--[[
+	Remove a custom waypoint marker
+
+	@param markerKey - The key returned from CreateWaypoint, or the part itself
+]]
+function QuestMarkers.RemoveWaypoint(markerKey: string | Model | BasePart)
+	local key: string
+
+	-- If a part was passed, generate the key from it
+	if typeof(markerKey) ~= "string" then
+		local part = markerKey
+		local targetRoot: BasePart? = nil
+
+		if part:IsA("Model") then
+			targetRoot = part:FindFirstChild("HumanoidRootPart") or part:FindFirstChild("Torso") or part.PrimaryPart
+		elseif part:IsA("BasePart") then
+			targetRoot = part
+		end
+
+		if not targetRoot then
+			warn("[QuestMarkers] Cannot remove waypoint: invalid part")
+			return
+		end
+
+		key = "waypoint_" .. targetRoot:GetFullName():gsub("%.", "_")
+	else
+		key = markerKey
+	end
+
+	if markerScopes[key] then
+		markerScopes[key]:doCleanup()
+		markerScopes[key] = nil
+		print(`[QuestMarkers] 🗑️ Removed waypoint marker: {key}`)
+	else
+		warn(`[QuestMarkers] Cannot remove waypoint: marker not found ({key})`)
+	end
 end
 
 return QuestMarkers

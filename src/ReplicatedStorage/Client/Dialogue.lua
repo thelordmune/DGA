@@ -731,12 +731,8 @@ function ShowQuestPopup(npcName, questName)
 
 	currentQuestUI = questTarget
 
-	-- print("Sending quest packet")
-			Client.Packets.Quests.send({
-				Module = "Magnus",
-				Function = "Start",
-				Arguments = {},
-			})
+	-- Quest packet is already sent by QuestManager.acceptQuest()
+	-- No need to send it again here
 
 	task.wait(0.5)
 	questFramein:set(true)

@@ -65,7 +65,7 @@ EntityClass.Remove = function(Entity)
 
         setmetatable(Server.Entities[Entity], nil);
         Server.Entities[Entity] = nil;
-        warn(("Removed: %s"):format(Entity.Name));
+        -- warn(("Removed: %s"):format(Entity.Name));
 
         local Player = Server.Service.Players:GetPlayerFromCharacter(Entity);
         if Player then
@@ -114,7 +114,7 @@ EntityClass.Init = function(Entity) : EntityObject
 
     self:Initialize();
 
-    warn(("Added: %s"):format(Entity.Name))
+    -- warn(("Added: %s"):format(Entity.Name))
 
     -- Only start systems once
     if not systemsStarted then
@@ -164,8 +164,9 @@ function EntityClass:Initialize()
     end
     
     if self.Player then
-         -- print("Loading appearance for player:", self.Player.Name)
-        task.spawn(Appearance.Load, self.Player)
+        -- NOTE: Appearance loading is now handled in playerloader.luau AFTER character stabilization
+        -- This prevents clothing from being applied to a temporary character that gets replaced
+        -- DO NOT call Appearance.Load here - it will cause duplicate loading
 
         -- Initialize dodge charges for players
         self.Character:SetAttribute("DodgeCharges", 2)
@@ -251,8 +252,8 @@ function EntityClass:Initialize()
     self:LoadWeapon(self.Character)
 
     local function RemoveOnDeath()
-        warn(`[ENTITY REMOVAL] Humanoid died for {self.Character.Name}! Removing entity...`)
-        self.Remove(self.Character)
+        -- warn(`[ENTITY REMOVAL] Humanoid died for {self.Character.Name}! Removing entity...`)
+        EntityClass.Remove(self.Character)
     end
 
     -- Only remove entity when PrimaryPart becomes nil (character being destroyed)
@@ -260,11 +261,11 @@ function EntityClass:Initialize()
     local primaryPartConnection
     primaryPartConnection = self.Character:GetPropertyChangedSignal("PrimaryPart"):Connect(function()
         if not self.Character.PrimaryPart then
-            warn(`[ENTITY REMOVAL] PrimaryPart is nil for {self.Character.Name}! Character being destroyed, removing entity...`)
+            -- warn(`[ENTITY REMOVAL] PrimaryPart is nil for {self.Character.Name}! Character being destroyed, removing entity...`)
             if primaryPartConnection then
                 primaryPartConnection:Disconnect()
             end
-            self.Remove(self.Character)
+            EntityClass.Remove(self.Character)
         else
              -- print(`[ENTITY] PrimaryPart changed for {self.Character.Name} but still exists, not removing`)
         end

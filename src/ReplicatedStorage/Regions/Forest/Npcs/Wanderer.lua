@@ -45,8 +45,8 @@ local WandererData = {
 	SpawnCooldown = 1,
 
 	Type = "Active",
-	AlwaysSpawn = false, -- Use LoadDistance instead for better memory management
-	LoadDistance = 150, -- Only spawn wanderers when player is within 150 studs
+	AlwaysSpawn = false, -- DISABLED - Wanderers are turned off
+	LoadDistance = nil, -- DISABLED - Set to nil to prevent spawning
 
 	DataToSendOverAndUdpate = {
 		Spawning = {
@@ -122,8 +122,8 @@ local WandererData = {
 	BehaviorTree = require(game.ReplicatedStorage.NpcHelper.Behaviors.Forest.Wanderer_BehaviorTree),
 }
 
-print("[Wanderer] ✅ Wanderer configuration loaded successfully")
-print("[Wanderer] AlwaysSpawn:", WandererData.AlwaysSpawn)
-print("[Wanderer] LoadDistance:", WandererData.LoadDistance)
+-- print("[Wanderer] ✅ Wanderer configuration loaded successfully")
+-- print("[Wanderer] AlwaysSpawn:", WandererData.AlwaysSpawn)
+-- print("[Wanderer] LoadDistance:", WandererData.LoadDistance)
 
 return WandererData

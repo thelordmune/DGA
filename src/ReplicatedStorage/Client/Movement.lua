@@ -221,8 +221,10 @@ Movement.Run = function(State)
 	local Equipped = Client.Character:GetAttribute("Equipped");
 
 	if State and not Client.Library.StateCount(Client.Stuns) and not Client.Library.StateCount(Client.Actions) and not Client.Running then
+		print("[Movement.Run] ✅ Starting running - adding RunSpeedSet30 to Speeds")
 		Client.Library.StopAllAnims(Client.Character);
 		Client.Library.AddState(Client.Speeds, "RunSpeedSet30")
+		print(`[Movement.Run] Speeds.Value after AddState: {Client.Speeds.Value}`)
 		Client.Running = true;
 		Client.RunAtk = true;
 

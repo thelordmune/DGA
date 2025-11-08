@@ -147,30 +147,34 @@ function ObserversManager.setupQuestObservers()
 		function(entity)
 			local questAccepted = world:get(entity, comps.QuestAccepted)
 			-- print("[Observers] Quest accepted:", questAccepted.npcName, questAccepted.questName)
-			
+
 			-- Add QuestHolder component
 			if not world:has(entity, comps.QuestHolder) then
 				world:add(entity, comps.QuestHolder)
 			end
-			
-			-- Convert to ActiveQuest
-			world:set(entity, comps.ActiveQuest, {
-				npcName = questAccepted.npcName,
-				questName = questAccepted.questName,
-				startTime = os.clock(),
-				progress = {},
-			})
-			
+
+			-- Only set ActiveQuest if it doesn't already exist
+			-- (Quest module Start() function may have already set it with proper stage/progress data)
+			if not world:has(entity, comps.ActiveQuest) then
+				world:set(entity, comps.ActiveQuest, {
+					npcName = questAccepted.npcName,
+					questName = questAccepted.questName,
+					startTime = os.clock(),
+					stage = questAccepted.stage,
+					progress = {},
+				})
+			end
+
 			-- Load quest data
 			local QuestData = require(ReplicatedStorage.Modules.Quests)
 			local questData = QuestData[questAccepted.npcName] and QuestData[questAccepted.npcName][questAccepted.questName]
 			if questData then
 				world:set(entity, comps.QuestData, questData)
 			end
-			
+
 			-- Remove QuestAccepted component
 			world:remove(entity, comps.QuestAccepted)
-			
+
 			-- print("[Observers] Quest started for entity", entity)
 		end
 	)

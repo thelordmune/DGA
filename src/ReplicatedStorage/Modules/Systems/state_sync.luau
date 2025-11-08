@@ -28,7 +28,7 @@ local STATE_SYNC_MAP = {
 local lastSyncedStates = {}
 
 -- Debug flag (set to true to see sync activity)
-local DEBUG = false
+local DEBUG = true
 
 -- Track first run
 local firstRun = true
@@ -58,7 +58,7 @@ local function syncStateToStringValue(character: Model, componentName: string, s
 		lastSyncedStates[cacheKey] = jsonStates
 
 		if DEBUG and #states > 0 then
-			print(`[StateSync/Client] ✅ Updated {character.Name}.{stringValueName}: {jsonStates}`)
+			-- print(`[StateSync/Client] ✅ Updated {character.Name}.{stringValueName}: {jsonStates}`)
 		end
 	end
 end
@@ -68,7 +68,7 @@ local hasLoggedQuery = false
 
 local function state_sync()
 	if firstRun then
-		-- print(`[StateSync] ✅ State sync system started on Client`)
+		-- -- print(`[StateSync] ✅ State sync system started on Client`)
 		firstRun = false
 	end
 
@@ -76,7 +76,7 @@ local function state_sync()
 
 	-- Log every 60 frames (1 second) to confirm system is running
 	if DEBUG and frameCount % 60 == 0 then
-		-- print(`[StateSync/Client] System is running (frame {frameCount})`)
+		-- -- print(`[StateSync/Client] System is running (frame {frameCount})`)
 	end
 
 	-- Iterate through all entities with Character component
@@ -107,7 +107,7 @@ local function state_sync()
 
 	-- Log entity count once
 	if not hasLoggedQuery and entityCount > 0 then
-		-- print(`[StateSync/Client] Found {entityCount} character entities`)
+		-- -- print(`[StateSync/Client] Found {entityCount} character entities`)
 		hasLoggedQuery = true
 	end
 end

@@ -13,16 +13,29 @@ return function(actor: Actor, mainConfig: table)
 		return false 
 	end
 
-	local lastCheck = mainConfig.States.LastStateCheck or 0 
+	local humanoidRootPart = npc:FindFirstChild("HumanoidRootPart")
+	if not humanoidRootPart then
+		return false
+	end
+
+	local lastCheck = mainConfig.States.LastStateCheck or 0
 	if os.clock() - lastCheck < 0.15 then
 		return true
 	end
-	mainConfig.States.LastStateCheck = os.clock()
 
 	local npcStates = mainConfig.getState(npc)
-	if not npcStates then 
+	if not npcStates then
 		return false
 	end
+
+	mainConfig.States.LastStateCheck = os.clock()
+	if humanoidRootPart and not humanoidRootPart.Anchored and humanoidRootPart:GetNetworkOwner() ~= nil then
+		if not Library.StateCheck(npcStates, "Stunned") and humanoidRootPart:CanSetNetworkOwnership() then
+			humanoidRootPart:SetNetworkOwner(nil)
+		end
+	end
+
+
 
 	-- Update auto-rotate check to use Library
 	humanoid.AutoRotate = not (

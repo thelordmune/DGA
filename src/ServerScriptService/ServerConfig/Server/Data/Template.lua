@@ -69,6 +69,8 @@ return {
 		Knowledge = 0,
 		Vibrance = 0,
 		Strange = 0,
+		Dexerity = 0,
 	},
-	Injury = "None"
+	Injury = "None",
+	Innate = "Survival Instincts"
 }

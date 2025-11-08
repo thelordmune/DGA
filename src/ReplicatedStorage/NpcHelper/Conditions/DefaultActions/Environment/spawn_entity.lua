@@ -142,7 +142,9 @@ return function(actor: Actor, mainConfig: table)
 
 	-- Position NPC far below the map initially so it's not visible while appearance loads
 	local hiddenPosition = spawn_ + Vector3.new(0, -500, 0)
-	npcModel:SetPrimaryPartCFrame(CFrame.new(hiddenPosition) * CFrame.Angles(0, math.rad(90), 0))
+	if npcModel.PrimaryPart then
+		npcModel:SetPrimaryPartCFrame(CFrame.new(hiddenPosition) * CFrame.Angles(0, math.rad(90), 0))
+	end
 	npcModel:MoveTo(hiddenPosition)
 
 	if VISUALIZE_SPAWN_PART then
@@ -212,8 +214,12 @@ return function(actor: Actor, mainConfig: table)
 			appearanceLoadedSignal:Wait()
 
 			-- Move NPC to final spawn position
-			npcModel:SetPrimaryPartCFrame(CFrame.new(spawn_) * CFrame.Angles(0, math.rad(90), 0))
-			npcModel:MoveTo(spawn_)
+			if npcModel and npcModel.PrimaryPart then
+				npcModel:SetPrimaryPartCFrame(CFrame.new(spawn_) * CFrame.Angles(0, math.rad(90), 0))
+			end
+			if npcModel then
+				npcModel:MoveTo(spawn_)
+			end
 
 			-- Trigger spawn effect now that appearance is loaded
 			local _ = SPAWN_EFFECT and mainConfig.SpawnEffect(mainConfig.Spawning.SpawnedAt)

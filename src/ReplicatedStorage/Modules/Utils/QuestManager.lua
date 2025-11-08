@@ -9,12 +9,20 @@ local NotificationManager = require(ReplicatedStorage.Client.NotificationManager
 local QuestManager = {}
 
 function QuestManager.acceptQuest(player, npcname, questName)
-	local playerEntity = ref.get("player", player)
+	-- On client, use "local_player" reference for the local player
+	local playerEntity
+	if RunService:IsClient() then
+		playerEntity = ref.get("local_player")
+	else
+		playerEntity = ref.get("player", player)
+	end
 
 	if not playerEntity then
 		warn("[QuestManager] No player entity found for", player)
 		return
 	end
+
+	print(`[QuestManager] ✅ Player entity found: {playerEntity}`)
 
 	if world:has(playerEntity, comps.ActiveQuest) then
 		local activeQuest = world:get(playerEntity, comps.ActiveQuest)
@@ -37,6 +45,8 @@ function QuestManager.acceptQuest(player, npcname, questName)
 		progress = {},
 	})
 
+	print(`[QuestManager] ✅ Set ActiveQuest on entity {playerEntity}: {npcname} - {questName}`)
+
 	-- Also set QuestAccepted so server knows to process it
 	world:set(playerEntity, comps.QuestAccepted, {
 		npcName = npcname,
@@ -44,7 +54,7 @@ function QuestManager.acceptQuest(player, npcname, questName)
 		acceptedAt = os.clock(),
 	})
 
-	-- print("[QuestManager] Quest accepted on client:", npcname, questName)
+	print("[QuestManager] Quest accepted on client:", npcname, questName)
 
 	-- Send packet to server to set QuestAccepted on server-side
 	if RunService:IsClient() then

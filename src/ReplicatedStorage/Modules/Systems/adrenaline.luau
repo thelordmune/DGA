@@ -26,12 +26,12 @@ local Bridges = require(ReplicatedStorage.Modules.Bridges)
 local Visuals = require(ReplicatedStorage.Modules.Visuals)
 
 -- Adrenaline configuration
-local ADRENALINE_PER_HIT = 5 -- Base adrenaline gain per hit
-local COMBO_MULTIPLIER = 1.5 -- Multiplier for consecutive hits
-local DECAY_RATE = 1 -- Adrenaline lost per second when not hitting
+local ADRENALINE_PER_HIT = 3 -- Base adrenaline gain per hit (reduced from 5)
+local COMBO_MULTIPLIER = 0.5 -- Multiplier for consecutive hits (reduced from 1.5)
+local DECAY_RATE = 3 -- Adrenaline lost per second when not hitting (increased from 1)
 local MIN_ADRENALINE = 0
 local MAX_ADRENALINE = 100
-local COMBO_TIMEOUT = 3 -- Seconds before combo resets
+local COMBO_TIMEOUT = 2 -- Seconds before combo resets (reduced from 3 for faster decay)
 
 -- Track last hit time for combo timeout
 local lastHitTimes = {}

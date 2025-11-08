@@ -3,8 +3,9 @@ local function randominRange(min, max)
 	return min + math.random() * (max - min)
 end
 
-local ishsaturationMin, ishsaturationMax = 0.23852, 0.78735
-local ishvalueMin, ishvalueMax = 0.24592, 0.59832
+-- Adjusted for darker mesh texture - increased saturation and value to compensate
+local ishsaturationMin, ishsaturationMax = 0.65, 0.85  -- Higher saturation for more vibrant red
+local ishvalueMin, ishvalueMax = 0.55, 0.75  -- Higher value to compensate for mesh darkening
 local ishrandomSaturation = randominRange(ishsaturationMin, ishsaturationMax)
 local ishrandomValue = randominRange(ishvalueMin, ishvalueMax)
 
@@ -30,8 +31,14 @@ return {
  	};
 	
 	Clothes = {
-		[1] = {shirt = "rbxassetid://16912251792", pants = "rbxassetid://16912252835", outfit = 1};
-		[2] = {shirt = "rbxassetid://16912251792", pants = "rbxassetid://16912252835", outfit = 2}
+		[1] = {shirt = "rbxassetid://8525392490", pants = "rbxassetid://8525395069", outfit = 1}; -- alchemist
+		[2] = {shirt = "rbxassetid://7986412801", pants = "rbxassetid://7986441333", outfit = 2}; -- rudeus
+		[3] = {shirt = "rbxassetid://6777629858", pants = "rbxassetid://6777631239", outfit = 3}; -- grey suit
+		[4] = {shirt = "rbxassetid://6855117739", pants = "rbxassetid://6855125900", outfit = 4}; -- suspenders
+		[5] = {shirt = "rbxassetid://6856418131", pants = "rbxassetid://6856421445", outfit = 5}; -- tan tux
+		[6] = {shirt = "rbxassetid://8054365458", pants = "rbxassetid://8054371588", outfit = 6}; -- brown jacket
+
+
 	};
 	
 	Hair = {

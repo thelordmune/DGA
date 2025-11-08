@@ -115,7 +115,7 @@ Client.Packets.Visuals.listen(function(Packet)
     if Client.Environment[Packet.Module] and Client.Environment[Packet.Module][Packet.Function] then
         Client.Environment[Packet.Module][Packet.Function](unpack(Packet.Arguments))
     else
-        warn(`Index: {Packet.Function} Does Not Exist`)
+        -- warn(`Index: {Packet.Function} Does Not Exist`)
     end
 end)
 
@@ -155,6 +155,12 @@ local function Remove()
 	local QuestMarkers = require(Replicated.Client.QuestMarkers)
 	if QuestMarkers and QuestMarkers.Cleanup then
 		QuestMarkers.Cleanup()
+	end
+
+	-- Clean up Quest Handler
+	local QuestHandler = require(Replicated.Client.QuestHandler)
+	if QuestHandler and QuestHandler.Cleanup then
+		QuestHandler.Cleanup()
 	end
 
 	-- Clean up Leaderboard
@@ -248,7 +254,7 @@ Bridges.ECSClient:Connect(function(data)
 			end)
 
 			if not success then
-				warn("[ECS] Failed to load weapon skills:", err)
+				-- warn("[ECS] Failed to load weapon skills:", err)
 			end
 		end
 	end
@@ -429,7 +435,7 @@ function Initialize(Character: Model)
 	if not Character:FindFirstChild("Actions") or
 	   not Character:FindFirstChild("Stuns") or
 	   not Character:FindFirstChild("Speeds") then
-		warn("[PlayerHandler] StringValues not created after waiting - inputs may not work correctly")
+		-- warn("[PlayerHandler] StringValues not created after waiting - inputs may not work correctly")
 	else
 		print("[PlayerHandler] StringValues verified - ready to bind inputs")
 	end
@@ -501,6 +507,9 @@ function Initialize(Character: Model)
 	local QuestMarkers = require(Replicated.Client.QuestMarkers)
 	QuestMarkers.Init()
 
+	local QuestHandler = require(Replicated.Client.QuestHandler)
+	QuestHandler.Init()
+
 	--// Clean Up
 	Humanoid.Died:Once(function()
 		-- Clear combat state on death
@@ -542,19 +551,19 @@ function Initialize(Character: Model)
 						weaponSkillsLoaded = true
 						-- print("✅ Weapon skills loaded successfully on attempt", attempt)
 					else
-						warn("⚠️ Failed to load weapon skills (attempt " .. attempt .. "/" .. maxAttempts .. "):", err)
+						-- warn("⚠️ Failed to load weapon skills (attempt " .. attempt .. "/" .. maxAttempts .. "):", err)
 						if attempt < maxAttempts then
 							task.wait(0.5) -- Wait before retry
 						end
 					end
 				else
-					warn("⚠️ LoadWeaponSkills function not found (attempt " .. attempt .. "/" .. maxAttempts .. ")")
+					-- warn("⚠️ LoadWeaponSkills function not found (attempt " .. attempt .. "/" .. maxAttempts .. ")")
 					if attempt < maxAttempts then
 						task.wait(0.5)
 					end
 				end
 			else
-				warn("⚠️ Interface/Stats modules not ready (attempt " .. attempt .. "/" .. maxAttempts .. ")")
+				-- warn("⚠️ Interface/Stats modules not ready (attempt " .. attempt .. "/" .. maxAttempts .. ")")
 				if attempt < maxAttempts then
 					task.wait(0.5)
 				end
@@ -562,7 +571,7 @@ function Initialize(Character: Model)
 		end
 
 		if not weaponSkillsLoaded then
-			warn("❌ Failed to load weapon skills after", maxAttempts, "attempts")
+			-- warn("❌ Failed to load weapon skills after", maxAttempts, "attempts")
 		end
 	end)
 end
@@ -622,7 +631,7 @@ end
 -- 	if Client.Environment[Packet.Module] and Client.Environment[Packet.Module][Packet.Function] then
 -- 		Client.Environment[Packet.Module][Packet.Function](unpack(Packet.Arguments))
 -- 	else
--- 		warn(`Index: {Packet.Function} Does Not Exist`)
+-- 		-- warn(`Index: {Packet.Function} Does Not Exist`)
 -- 	end
 -- end)
 

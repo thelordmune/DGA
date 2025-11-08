@@ -338,7 +338,28 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	local function DealDamage()
-		Table.Damage = Table.Damage
+		-- Store the base damage before any modifications
+		local baseDamage = Table.Damage
+
+		-- Apply adrenaline damage buff to BASE damage only (before any other multipliers)
+		local adrenalineBonusDamage = 0
+		if Player then
+			local invokerEntity = ref.get("player", Player)
+			if invokerEntity then
+				local adrenalineData = world:get(invokerEntity, comps.Adrenaline)
+				if adrenalineData then
+					-- Clamp adrenaline value to 0-100 range (safety check)
+					local clampedAdrenaline = math.clamp(adrenalineData.value, 0, 100)
+
+					-- Calculate damage bonus: 0% at 0 adrenaline, 50% at 100 adrenaline
+					-- This is ADDITIVE bonus damage, not multiplicative
+					local adrenalineBonus = (clampedAdrenaline / 100) * 0.5
+					adrenalineBonusDamage = baseDamage * adrenalineBonus
+					Table.Damage = baseDamage + adrenalineBonusDamage
+					print(`[Damage] Adrenaline buff applied: {math.floor(clampedAdrenaline)} adrenaline = +{string.format("%.1f", adrenalineBonusDamage)} damage ({string.format("%.1f", baseDamage)} -> {string.format("%.1f", Table.Damage)})`)
+				end
+			end
+		end
 
 		local kineticEnergy = Invoker:GetAttribute("KineticEnergy")
 		local kineticExpiry = Invoker:GetAttribute("KineticExpiry")
@@ -361,32 +382,22 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		else
 		end
 
-		-- Apply adrenaline damage buff for attacker
-		if Player then
-			local invokerEntity = ref.get("player", Player)
-			if invokerEntity then
-				local adrenalineData = world:get(invokerEntity, comps.Adrenaline)
-				if adrenalineData then
-					-- Calculate damage multiplier: 1.0x at 0 adrenaline, 1.5x at 100 adrenaline
-					local adrenalineMultiplier = 1.0 + (adrenalineData.value / 100) * 0.5
-					local originalDamage = Table.Damage
-					Table.Damage = Table.Damage * adrenalineMultiplier
-					print(`[Damage] Adrenaline buff applied: {math.floor(adrenalineData.value)}% adrenaline = {adrenalineMultiplier}x damage ({originalDamage} -> {Table.Damage})`)
-				end
-			end
-		end
-
-		-- Apply damage resistance for defender
+		-- Apply damage resistance for defender (based on BASE damage, not modified damage)
 		if TargetPlayer then
 			local targetEntity = ref.get("player", TargetPlayer)
 			if targetEntity then
 				local adrenalineData = world:get(targetEntity, comps.Adrenaline)
 				if adrenalineData then
-					-- Calculate damage resistance: 0% at 0 adrenaline, 30% at 100 adrenaline
-					local damageResistance = (adrenalineData.value / 100) * 0.3
-					local originalDamage = Table.Damage
-					Table.Damage = Table.Damage * (1 - damageResistance)
-					print(`[Damage] Damage resistance applied: {math.floor(adrenalineData.value)}% adrenaline = {damageResistance * 100}% resistance ({originalDamage} -> {Table.Damage})`)
+					-- Clamp adrenaline value to 0-100 range (safety check)
+					local clampedAdrenaline = math.clamp(adrenalineData.value, 0, 100)
+
+					-- Calculate damage reduction: 0% at 0 adrenaline, 30% at 100 adrenaline
+					-- This is based on BASE damage, not current damage
+					local damageReductionPercent = (clampedAdrenaline / 100) * 0.3
+					local damageReduction = baseDamage * damageReductionPercent
+					local beforeResistance = Table.Damage
+					Table.Damage = Table.Damage - damageReduction
+					print(`[Damage] Damage resistance applied: {math.floor(clampedAdrenaline)} adrenaline = -{string.format("%.1f", damageReduction)} damage ({string.format("%.1f", beforeResistance)} -> {string.format("%.1f", Table.Damage)})`)
 				end
 			end
 		end

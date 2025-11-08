@@ -49,9 +49,9 @@ local function applyPlayerHairToDummy(character, humanoid, player, hairColor)
                         
                         if handle and handle:FindFirstChildOfClass("SpecialMesh") then
                             local mesh = handle:FindFirstChildOfClass("SpecialMesh")
-                            mesh.TextureId = "rbxassetid://120868826325554"
+                            mesh.TextureId = "rbxassetid://113724683736061"
                             mesh.VertexColor = Vector3.new(hairColor.R, hairColor.G, hairColor.B)
-                            handle.Material = Enum.Material.CorrodedMetal
+                            handle.Material = Enum.Material.Asphalt
                             handle.Color = hairColor
                         end
                     end
@@ -75,21 +75,59 @@ local function varspin()
     elseif roll == 3 then return "variant3" end
 end
 
+-- Track which characters have had appearance loaded to prevent duplicate calls
+local loadedCharacters = {}
+
 Appearance.Load = function(Player : Player)
+    print("[Appearance] 🎨 Load called for player:", Player.Name)
+
     local PlayerClass = Server.Modules["Players"].Get(Player);
-    if not PlayerClass or not PlayerClass.Character or not PlayerClass.Data then return end;
+    if not PlayerClass or not PlayerClass.Character or not PlayerClass.Data then
+        warn("[Appearance] ⚠️ Missing PlayerClass, Character, or Data for:", Player.Name)
+        return
+    end
 
     local character = PlayerClass.Character
+
+    -- Prevent duplicate calls for the same character instance
+    if loadedCharacters[character] then
+        warn("[Appearance] ⚠️ Appearance already loaded for this character, skipping duplicate call")
+        return
+    end
+
     local humanoid = character:WaitForChild("Humanoid")
     local playerData = PlayerClass.Data
 
-    -- Ensure Shirt and Pants exist
-    if not character:FindFirstChild("Shirt") then
-        Instance.new("Shirt", character)
+    print("[Appearance] Character found:", character.Name)
+    print("[Appearance] FirstJoin:", playerData.FirstJoin)
+
+    -- Mark this character as loaded BEFORE doing any work
+    loadedCharacters[character] = true
+
+    -- Clear the flag when character is removed
+    character.AncestryChanged:Once(function()
+        if not character.Parent then
+            loadedCharacters[character] = nil
+            print("[Appearance] Character removed, cleared loaded flag for:", Player.Name)
+        end
+    end)
+
+    -- Ensure Shirt and Pants exist - DESTROY old ones to prevent conflicts
+    local oldShirt = character:FindFirstChild("Shirt")
+    if oldShirt then
+        print("[Appearance] ⚠️ Found existing Shirt with template:", oldShirt.ShirtTemplate)
+        oldShirt:Destroy()
     end
-    if not character:FindFirstChild("Pants") then
-        Instance.new("Pants", character)
+    local oldPants = character:FindFirstChild("Pants")
+    if oldPants then
+        print("[Appearance] ⚠️ Found existing Pants with template:", oldPants.PantsTemplate)
+        oldPants:Destroy()
     end
+
+    -- Create fresh Shirt and Pants
+    local shirt = Instance.new("Shirt", character)
+    local pants = Instance.new("Pants", character)
+    print("[Appearance] ✅ Created fresh Shirt and Pants instances")
 
     if playerData.FirstJoin == true then
         local raceSpinner = racespin()
@@ -192,11 +230,15 @@ Appearance.Load = function(Player : Player)
             PlayerClass.Data.Customization.HairColor.V
         )
         applyPlayerHairToDummy(character, humanoid, Player, customHairColor)
-            
-        -- Apply clothing
-        character:WaitForChild("Shirt").ShirtTemplate = customizationData.Clothes[initialOutfit].shirt
-        character:WaitForChild("Pants").PantsTemplate = customizationData.Clothes[initialOutfit].pants
-        
+
+        -- Apply clothing (use the shirt/pants we created earlier)
+        shirt.ShirtTemplate = customizationData.Clothes[initialOutfit].shirt
+        pants.PantsTemplate = customizationData.Clothes[initialOutfit].pants
+
+        print("[Appearance] ✅ Applied clothing for first join:")
+        print("  Shirt:", shirt.ShirtTemplate)
+        print("  Pants:", pants.PantsTemplate)
+
         PlayerClass.Data.FirstJoin = false
         -- game.ReplicatedStorage.Status[Player.Name]:SetAttribute("Loaded", true)
     else
@@ -251,18 +293,26 @@ Appearance.Load = function(Player : Player)
         )
         
         applyPlayerHairToDummy(character, humanoid, Player, customHairColor)
-        
-        -- Apply clothing
+
+        -- Apply clothing (use the shirt/pants we created earlier)
         local outfit = PlayerClass.Data.Customization.Outfit
+        print("[Appearance] Applying saved outfit:", outfit)
+
         if outfit and customizationData.Clothes[outfit] then
-            character.Shirt.ShirtTemplate = customizationData.Clothes[outfit].shirt
-            character.Pants.PantsTemplate = customizationData.Clothes[outfit].pants
+            shirt.ShirtTemplate = customizationData.Clothes[outfit].shirt
+            pants.PantsTemplate = customizationData.Clothes[outfit].pants
+
+            print("[Appearance] ✅ Applied saved clothing:")
+            print("  Shirt:", shirt.ShirtTemplate)
+            print("  Pants:", pants.PantsTemplate)
         else
-            warn("Invalid outfit value or missing clothes data")
+            warn("[Appearance] ⚠️ Invalid outfit value or missing clothes data. Outfit:", outfit)
         end
-        
+
         -- game.ReplicatedStorage.Status[Player.Name]:SetAttribute("Loaded", true)
     end
+
+    print("[Appearance] ✅ Appearance.Load completed for:", Player.Name)
 end
 
 return Appearance

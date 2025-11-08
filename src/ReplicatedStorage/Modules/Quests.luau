@@ -10,5 +10,17 @@ return {
                 ["Alignment"] = 1
             }
         }
+    },
+    ["Sam"] = {
+        ["Military Exam"] = {
+            ["Description"] = "Head over to the central command center to begin your exam.",
+            ["Rewards"] = {
+                ["Items"] = {
+                    ["Uniform"] = 1
+                },
+                ["Experience"] = math.random(70, 120),
+                ["Alignment"] = 1
+            }
+        }
     }
 }
