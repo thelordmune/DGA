@@ -85,13 +85,13 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	local dashAnimations = ReplicatedStorage.Assets.Animations.Dashes
 	local animationName
 	if direction == "Back" then
-		animationName = "SDash"
+		animationName = "Back"
 	elseif direction == "Left" then
-		animationName = "ADash"
+		animationName = "Left"
 	elseif direction == "Right" then
-		animationName = "DDash"
+		animationName = "Right"
 	else
-		animationName = "WDash"
+		animationName = "Forward"
 	end
 
 	local dashAnim = dashAnimations:FindFirstChild(animationName)

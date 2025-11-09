@@ -13,10 +13,10 @@ return function(actor: Actor, mainConfig: table)
 		return false 
 	end
 
-	local humanoidRootPart = npc:FindFirstChild("HumanoidRootPart")
-	if not humanoidRootPart then
-		return false
-	end
+	-- local humanoidRootPart = npc:FindFirstChild("HumanoidRootPart")
+	-- if not humanoidRootPart then
+	-- 	return false
+	-- end
 
 	local lastCheck = mainConfig.States.LastStateCheck or 0
 	if os.clock() - lastCheck < 0.15 then
@@ -29,11 +29,11 @@ return function(actor: Actor, mainConfig: table)
 	end
 
 	mainConfig.States.LastStateCheck = os.clock()
-	if humanoidRootPart and not humanoidRootPart.Anchored and humanoidRootPart:GetNetworkOwner() ~= nil then
-		if not Library.StateCheck(npcStates, "Stunned") and humanoidRootPart:CanSetNetworkOwnership() then
-			humanoidRootPart:SetNetworkOwner(nil)
-		end
-	end
+	-- if humanoidRootPart and not humanoidRootPart.Anchored and humanoidRootPart:GetNetworkOwner() ~= nil then
+	-- 	if not Library.StateCheck(npcStates, "Stunned") and humanoidRootPart:CanSetNetworkOwnership() then
+	-- 		humanoidRootPart:SetNetworkOwner(nil)
+	-- 	end
+	-- end
 
 
 

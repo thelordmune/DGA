@@ -98,18 +98,30 @@ local function createAlignment(npc: Model, victim: Model, mainConfig: table)
 	end
 
 	--task.synchronize()
-	local alignOrientation = npc.PrimaryPart:FindFirstChild("AlignOrient")
+	local primaryPart = npc.PrimaryPart or npc:FindFirstChild("HumanoidRootPart")
+	if not primaryPart then
+		warn(`[follow_enemy] NPC {npc.Name} has no PrimaryPart or HumanoidRootPart`)
+		return nil
+	end
+
+	local alignOrientation = primaryPart:FindFirstChild("AlignOrient")
 
 	-- Only create if it doesn't exist
 	if not alignOrientation then
+		local rootAttachment = primaryPart:FindFirstChild("RootAttachment")
+		if not rootAttachment then
+			warn(`[follow_enemy] NPC {npc.Name} PrimaryPart has no RootAttachment`)
+			return nil
+		end
+
 		alignOrientation = Instance.new("AlignOrientation") :: AlignOrientation
 		alignOrientation.Name = "AlignOrient"
 		alignOrientation.MaxTorque = 1000000
 		alignOrientation.Responsiveness = 100
 		alignOrientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
 		alignOrientation.Enabled = true
-		alignOrientation.Attachment0 = npc.PrimaryPart.RootAttachment
-		alignOrientation.Parent = npc.PrimaryPart
+		alignOrientation.Attachment0 = rootAttachment
+		alignOrientation.Parent = primaryPart
 	end
 
 	-- Update the angle to face target
@@ -122,7 +134,12 @@ local function createAlignment(npc: Model, victim: Model, mainConfig: table)
 end
 
 local function clearAlignOrientation(npc)
-	local existingAlign = npc.PrimaryPart:FindFirstChild("AlignOrient")
+	local primaryPart = npc.PrimaryPart or npc:FindFirstChild("HumanoidRootPart")
+	if not primaryPart then
+		return
+	end
+
+	local existingAlign = primaryPart:FindFirstChild("AlignOrient")
 	if existingAlign then
 		--task.synchronize()
 		existingAlign:Destroy()
@@ -193,7 +210,50 @@ return function(actor: Actor, mainConfig: table )
 	local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
 	if Server.Library.StateCheck(npc.Actions, "Attacking") then
 		humanoid:Move(Vector3.new(0, 0, 0))
+		-- Force walk speed during attacks
+		if humanoid.WalkSpeed ~= mainConfig.HumanoidDefaults.WalkSpeed then
+			humanoid.WalkSpeed = mainConfig.HumanoidDefaults.WalkSpeed
+			local Library = require(game.ReplicatedStorage.Modules.Library)
+			local runAnimation = mainConfig.getRunAnimation()
+			if runAnimation then
+				Library.StopAnimation(npc, runAnimation, 0.25)
+			end
+		end
 		return true
+	end
+
+	-- Distance-based running: NPCs run when far from target
+	local distanceToTarget = (vRoot.Position - root.Position).Magnitude
+	local RUN_DISTANCE_THRESHOLD = 15 -- Run if more than 15 studs away
+	local Library = require(game.ReplicatedStorage.Modules.Library)
+
+	-- Check if NPC just attacked - add cooldown before running again
+	local lastAttack = mainConfig.States and mainConfig.States.LastAttack or 0
+	local RUN_COOLDOWN_AFTER_ATTACK = 1.0 -- 1 second cooldown after attacking before running
+	local canRun = (os.clock() - lastAttack) > RUN_COOLDOWN_AFTER_ATTACK
+
+	if distanceToTarget > RUN_DISTANCE_THRESHOLD and canRun then
+		-- Far from target and cooldown expired - run
+		if humanoid.WalkSpeed ~= mainConfig.HumanoidDefaults.RunSpeed then
+			humanoid.WalkSpeed = mainConfig.HumanoidDefaults.RunSpeed
+
+			-- Play run animation
+			local runAnimation = mainConfig.getRunAnimation()
+			if runAnimation then
+				Library.PlayAnimation(npc, runAnimation)
+			end
+		end
+	else
+		-- Close to target or cooldown active - walk
+		if humanoid.WalkSpeed ~= mainConfig.HumanoidDefaults.WalkSpeed then
+			humanoid.WalkSpeed = mainConfig.HumanoidDefaults.WalkSpeed
+
+			-- Stop run animation
+			local runAnimation = mainConfig.getRunAnimation()
+			if runAnimation then
+				Library.StopAnimation(npc, runAnimation, 0.25)
+			end
+		end
 	end
 
 	local config = {

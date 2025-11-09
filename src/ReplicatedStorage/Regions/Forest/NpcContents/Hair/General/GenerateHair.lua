@@ -70,43 +70,12 @@ local function getRandomHairIds(gender: string, isBlack: boolean, count: number)
 end
 
 return function(npc: Model, mainConfig)
-	if not npc then 
+	if not npc then
 		return
 	end
 
-	local HAIR_TEXTURE: number = 4486606505;
-	
-	local HAIR_PARENT = npc;
-	local chosen_color = Color3.new(102, 66, 34)
+	-- DISABLED: InsertService.LoadAsset() is destroying HumanoidRootPart
+	-- TODO: Fix InsertService loading to not corrupt NPCs
 
-	local gender =  "Male" --mainConfig.Gender or "Male"
-	local isBlack = math.random(1,2) == 1 and true or false-- mainConfig.IsBlack or false;
-
-	local hairCount = math.random(1, 4)
-	local hairIds = getRandomHairIds(gender, isBlack, hairCount)
-
-	for _, hairId in hairIds do
-		local success, model = pcall(InsertService.LoadAsset, InsertService, hairId)
-
-		if success and model then
-			local hair = model:FindFirstChildWhichIsA("Accessory")
-			if hair then
-				local special_mesh = hair:FindFirstChildWhichIsA("SpecialMesh", true)
-				if special_mesh then
-					special_mesh.VertexColor = Vector3.new(
-						chosen_color.R/255, 
-						chosen_color.G/255, 
-						chosen_color.B/255
-					)
-					special_mesh.TextureId = `rbxassetid://{HAIR_TEXTURE}`  
-					hair.Handle.Material = Enum.Material.Pavement;
-				end
-				hair.Name = "CharacterHair"
-				hair.Parent = HAIR_PARENT;
-			end
-			model:Destroy()
-		else
-			warn(`Failed to load hair asset: {hairId}`)
-		end
-	end
+	return
 end

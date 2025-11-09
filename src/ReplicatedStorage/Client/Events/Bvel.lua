@@ -814,13 +814,13 @@ NetworkModule["NPCDash"] = function(Character, Direction, DashVector)
 	local dashAnimations = Replicated.Assets.Animations.Dashes
 	local animationName
 	if Direction == "Back" then
-		animationName = "SDash"
+		animationName = "Back"
 	elseif Direction == "Left" then
-		animationName = "ADash"
+		animationName = "Left"
 	elseif Direction == "Right" then
-		animationName = "DDash"
+		animationName = "Right"
 	else
-		animationName = "WDash"
+		animationName = "Front"
 	end
 
 	local dashAnim = dashAnimations:FindFirstChild(animationName)

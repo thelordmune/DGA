@@ -222,8 +222,32 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	local function Parried()
 		-- Apply stun IMMEDIATELY when parry is detected
 		Library.StopAllAnims(Invoker)
+		Library.StopAllAnims(Target) -- Also stop target animations to ensure clean parry reaction
 		Library.TimedState(Invoker.Speeds, "ParrySpeedSet4", 1.5)
 		Library.TimedState(Invoker.Stuns, "ParryStun", 1.5)
+
+		-- Add knockback state and iframes for both characters
+		local knockbackDuration = 0.4
+		Library.TimedState(Invoker.Stuns, "ParryKnockback", knockbackDuration)
+		Library.TimedState(Target.Stuns, "ParryKnockback", knockbackDuration)
+		Library.TimedState(Invoker.IFrames, "ParryIFrame", knockbackDuration)
+		Library.TimedState(Target.IFrames, "ParryIFrame", knockbackDuration)
+
+		-- Cancel run animation for both characters if they're running
+		local MainConfig = require(game.ReplicatedStorage.Modules.MainConfig)
+		local runAnimation = MainConfig.getRunAnimation()
+		if runAnimation then
+			Library.StopAnimation(Invoker, runAnimation, 0)
+			Library.StopAnimation(Target, runAnimation, 0)
+		end
+
+		-- Force walk speed for both characters during knockback
+		if Invoker:FindFirstChild("Humanoid") then
+			Invoker.Humanoid.WalkSpeed = MainConfig.HumanoidDefaults.WalkSpeed
+		end
+		if Target:FindFirstChild("Humanoid") then
+			Target.Humanoid.WalkSpeed = MainConfig.HumanoidDefaults.WalkSpeed
+		end
 
 		if not Table.NoParryAnimation then
 			for _, v in script.Parent.Callbacks.Parry:GetChildren() do
@@ -264,6 +288,17 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				300,
 				{ Module = "Base", Function = "Parry", Arguments = { Target, Invoker, Distance } }
 			)
+
+			-- Apply knockback to both characters (nudge them backwards with snappy easing)
+			local knockbackPower = 30 -- Moderate knockback for a "nudge" (increased from 25 for more impact)
+
+			-- Knockback for invoker (person who got parried) - push them away from target
+			local invokerDirection = (Invoker.HumanoidRootPart.Position - Target.HumanoidRootPart.Position).Unit
+			Server.Modules.ServerBvel.ParryKnockback(Invoker, invokerDirection, knockbackPower)
+
+			-- Knockback for target (person who parried) - push them away from invoker
+			local targetDirection = (Target.HumanoidRootPart.Position - Invoker.HumanoidRootPart.Position).Unit
+			Server.Modules.ServerBvel.ParryKnockback(Target, targetDirection, knockbackPower)
 
 			-- Screen shake for the invoker (person who got parried)
 			if Player then
@@ -338,8 +373,10 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	local function DealDamage()
-		-- Store the base damage before any modifications
-		local baseDamage = Table.Damage
+		-- CRITICAL: Store the ORIGINAL base damage from Table.Damage
+		-- DO NOT modify Table.Damage directly to prevent stacking across multiple hits
+		local originalBaseDamage = Table.Damage
+		local finalDamage = originalBaseDamage
 
 		-- Apply adrenaline damage buff to BASE damage only (before any other multipliers)
 		local adrenalineBonusDamage = 0
@@ -354,9 +391,9 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					-- Calculate damage bonus: 0% at 0 adrenaline, 50% at 100 adrenaline
 					-- This is ADDITIVE bonus damage, not multiplicative
 					local adrenalineBonus = (clampedAdrenaline / 100) * 0.5
-					adrenalineBonusDamage = baseDamage * adrenalineBonus
-					Table.Damage = baseDamage + adrenalineBonusDamage
-					print(`[Damage] Adrenaline buff applied: {math.floor(clampedAdrenaline)} adrenaline = +{string.format("%.1f", adrenalineBonusDamage)} damage ({string.format("%.1f", baseDamage)} -> {string.format("%.1f", Table.Damage)})`)
+					adrenalineBonusDamage = originalBaseDamage * adrenalineBonus
+					finalDamage = finalDamage + adrenalineBonusDamage
+					print(`[Damage] Adrenaline buff applied: {math.floor(clampedAdrenaline)} adrenaline = +{string.format("%.1f", adrenalineBonusDamage)} damage ({string.format("%.1f", originalBaseDamage)} -> {string.format("%.1f", finalDamage)})`)
 				end
 			end
 		end
@@ -368,7 +405,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		if kineticEnergy and kineticExpiry then
 			if os.clock() < kineticExpiry then
 				bonusDamage = kineticEnergy * 0.5
-				Table.Damage = Table.Damage + bonusDamage
+				finalDamage = finalDamage + bonusDamage
 				if not Table.Stun then
 					Table.Stun = 2
 				end
@@ -382,7 +419,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		else
 		end
 
-		-- Apply damage resistance for defender (based on BASE damage, not modified damage)
+		-- Apply damage resistance for defender (based on ORIGINAL BASE damage, not modified damage)
 		if TargetPlayer then
 			local targetEntity = ref.get("player", TargetPlayer)
 			if targetEntity then
@@ -392,12 +429,12 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					local clampedAdrenaline = math.clamp(adrenalineData.value, 0, 100)
 
 					-- Calculate damage reduction: 0% at 0 adrenaline, 30% at 100 adrenaline
-					-- This is based on BASE damage, not current damage
+					-- This is based on ORIGINAL BASE damage, not current damage
 					local damageReductionPercent = (clampedAdrenaline / 100) * 0.3
-					local damageReduction = baseDamage * damageReductionPercent
-					local beforeResistance = Table.Damage
-					Table.Damage = Table.Damage - damageReduction
-					print(`[Damage] Damage resistance applied: {math.floor(clampedAdrenaline)} adrenaline = -{string.format("%.1f", damageReduction)} damage ({string.format("%.1f", beforeResistance)} -> {string.format("%.1f", Table.Damage)})`)
+					local damageReduction = originalBaseDamage * damageReductionPercent
+					local beforeResistance = finalDamage
+					finalDamage = finalDamage - damageReduction
+					print(`[Damage] Damage resistance applied: {math.floor(clampedAdrenaline)} adrenaline = -{string.format("%.1f", damageReduction)} damage ({string.format("%.1f", beforeResistance)} -> {string.format("%.1f", finalDamage)})`)
 				end
 			end
 		end
@@ -461,23 +498,25 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
         -- The aggression system will handle NPC behavior through the behavior trees
     end
 
+		-- Apply the FINAL calculated damage (not Table.Damage which is the original base)
 		if pData then
-			Target.Humanoid.Health -= Table.Damage + pData.Stats.Damage
+			Target.Humanoid.Health -= finalDamage + pData.Stats.Damage
 			--[[-- -- print(
 				"Total damage dealt:",
-				Table.Damage + pData.Stats.Damage,
+				finalDamage + pData.Stats.Damage,
 				"(Base:",
-				Table.Damage,
+				originalBaseDamage,
 				"+ Player Stats:",
 				pData.Stats.Damage,
+				"+ Adrenaline:",
+				adrenalineBonusDamage,
 				"+ Kinetic:",
 				bonusDamage,
 				")"
 			)]]
-			Table.Damage = Table.Damage - bonusDamage
 		else
-			Target.Humanoid.Health -= Table.Damage
-			-- -- print("Total damage dealt:", Table.Damage, "(+ Kinetic:", bonusDamage, ")")
+			Target.Humanoid.Health -= finalDamage
+			-- -- print("Total damage dealt:", finalDamage, "(Base:", originalBaseDamage, "+ Adrenaline:", adrenalineBonusDamage, "+ Kinetic:", bonusDamage, ")")
 		end
 	end
 

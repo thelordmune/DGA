@@ -54,8 +54,24 @@ return function(actor: Actor, mainConfig: table)
 	-- 	-- -- print("- Spawn", i .. ":", loc)
 	-- end
 
+	-- DEBUG: Check DataModel BEFORE cloning
+	warn(`[spawn_entity] 🔍 BEFORE CLONE - DataModel children:`)
+	for i, child in dataModel:GetChildren() do
+		warn(`[spawn_entity]   - {child.Name} ({child.ClassName})`)
+	end
+	local dataModelRoot = dataModel:FindFirstChild("HumanoidRootPart")
+	warn(`[spawn_entity] DataModel has HumanoidRootPart: {dataModelRoot ~= nil}`)
+
 	local npcModel = dataModel:Clone()
 	npcModel.Name = actor.Parent:GetAttribute("SetName") .. tostring(math.random(1, 1000))
+
+	-- DEBUG: Check cloned model IMMEDIATELY after cloning
+	warn(`[spawn_entity] 🔍 AFTER CLONE - npcModel children:`)
+	for i, child in npcModel:GetChildren() do
+		warn(`[spawn_entity]   - {child.Name} ({child.ClassName})`)
+	end
+	local clonedRoot = npcModel:FindFirstChild("HumanoidRootPart")
+	warn(`[spawn_entity] Cloned model has HumanoidRootPart: {clonedRoot ~= nil}`)
 
 	-- Set weapon based on NPC configuration
 	local randomWeapon = "Fist" -- Default to Fist
@@ -183,6 +199,7 @@ return function(actor: Actor, mainConfig: table)
 	end
 
 	npcModel.Parent = actor
+	warn(`[spawn_entity] 🔍 After parenting to actor - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
 
 	-- Store AncestryChanged connection to prevent memory leak
 	table.insert(
@@ -194,8 +211,12 @@ return function(actor: Actor, mainConfig: table)
 		end)
 	)
 
+	warn(`[spawn_entity] 🔍 Before LoadAppearance - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
+
 	-- Load appearance and wait for it to complete
 	local appearanceLoadedSignal = mainConfig.LoadAppearance()
+
+	warn(`[spawn_entity] 🔍 After LoadAppearance - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
 
 	-- Entity creation will be handled automatically by Startup.lua when NPC is added to workspace.World.Live
 	-- -- print("Spawned NPC:", npcModel.Name, "- entity creation will be handled by monitoring system")
@@ -240,7 +261,25 @@ return function(actor: Actor, mainConfig: table)
 	-- connectors (adjust to game framework)
 	-- local statesFolder = game.ReplicatedStorage.PlayerStates:WaitForChild(npcModel.Name)
 	do
-		local root, humanoid = npcModel.HumanoidRootPart, npcModel.Humanoid
+		-- Verify the cloned model has essential parts immediately
+		local root = npcModel:FindFirstChild("HumanoidRootPart")
+		local humanoid = npcModel:FindFirstChild("Humanoid")
+
+		if not root or not humanoid then
+			warn(`[spawn_entity] ❌ Cloned NPC model missing essential parts!`)
+			warn(`[spawn_entity]   - NPC Name: {npcModel.Name}`)
+			warn(`[spawn_entity]   - Region: {regionName}`)
+			warn(`[spawn_entity]   - Has HumanoidRootPart: {root ~= nil}`)
+			warn(`[spawn_entity]   - Has Humanoid: {humanoid ~= nil}`)
+			warn(`[spawn_entity]   - DataModel source: {dataModel:GetFullName()}`)
+			warn(`[spawn_entity]   - DataModel has {#dataModel:GetChildren()} children:`)
+			for i, child in dataModel:GetChildren() do
+				if i <= 10 then -- Only show first 10 to avoid spam
+					warn(`[spawn_entity]     - {child.Name} ({child.ClassName})`)
+				end
+			end
+			return false
+		end
 
 		local function cleanSweep()
 			-- Clear the used spawn when NPC is cleaned up

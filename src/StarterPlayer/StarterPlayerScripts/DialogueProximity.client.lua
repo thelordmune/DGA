@@ -62,7 +62,7 @@ local function createPromptUI(npc)
 	if not surfaceGui and head then
 		surfaceGui = Instance.new("SurfaceGui")
 		surfaceGui.Name = "PromptSurfaceGui"
-		surfaceGui.Face = Enum.NormalId.Left
+		surfaceGui.Face = Enum.NormalId.Front
 		surfaceGui.Parent = head
 		surfaceGui.AlwaysOnTop = true
 		surfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud

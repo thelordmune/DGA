@@ -328,6 +328,14 @@ return function(actor: Actor, mainConfig: table)
         return false
     end
 
+    -- Check global action cooldown to prevent NPCs from doing multiple actions at once
+    local lastAction = mainConfig.States.LastAction or 0
+    local globalActionCooldown = 0.3 -- 300ms minimum between ANY actions (attack, block, parry, dodge)
+
+    if os.clock() - lastAction < globalActionCooldown then
+        return false
+    end
+
     -- Check cooldown for defensive actions
     local lastDefense = mainConfig.States.LastDefense or 0
     local defenseCooldown = 0.5 -- Very short cooldown - react to every attack!
@@ -340,6 +348,8 @@ return function(actor: Actor, mainConfig: table)
     local success = executeDefense(npc, defenseType, mainConfig)
 
     if success then
+        -- Track global action time to prevent simultaneous actions
+        mainConfig.States.LastAction = os.clock()
         mainConfig.States.LastDefense = os.clock()
     end
 

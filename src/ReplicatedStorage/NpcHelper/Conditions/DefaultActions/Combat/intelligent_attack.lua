@@ -41,6 +41,15 @@ end
 
 -- Helper function to check if skill is on cooldown (uses Library.CheckCooldown like players)
 local function isSkillOnCooldown(npc, skillName, mainConfig)
+    -- Global action cooldown - prevent NPCs from performing ANY action too frequently
+    -- This prevents NPCs from attempting attacks, blocks, and parries in the same frame
+    local lastAction = mainConfig.States and mainConfig.States.LastAction or 0
+    local globalActionCooldown = 0.3 -- 300ms minimum between ANY actions (attack, block, parry, dodge)
+
+    if os.clock() - lastAction < globalActionCooldown then
+        return true -- Global action cooldown still active
+    end
+
     -- Global attack cooldown - prevent NPCs from attacking too frequently
     local lastAttack = mainConfig.States and mainConfig.States.LastAttack or 0
     local globalAttackCooldown = 1.2 -- Reduced from 2.0 to 1.2 for more aggressive guards
@@ -367,10 +376,12 @@ return function(actor: Actor, mainConfig: table)
             mainConfig.States = {}
         end
 
+        -- Track global action time to enforce cooldown between ALL actions (attack, block, parry, dodge)
+        mainConfig.States.LastAction = os.clock()
+
         -- Track global attack time to enforce cooldown between all attacks
         mainConfig.States.LastAttack = os.clock()
         mainConfig.States.LastSkillUsed = bestSkill
-        mainConfig.States.LastAttack = os.clock()
     end
 
     return success

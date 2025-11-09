@@ -498,6 +498,9 @@ function Initialize(Character: Model)
 	local DialogueTracker = require(Replicated.Client.Misc.DialogueTracker)
 	DialogueTracker.Start()
 
+	local NPCBodyTracking = require(Replicated.Client.Misc.NPCBodyTracking)
+	NPCBodyTracking.Start()
+
 	local QuestEvents = require(Replicated.Modules.Utils.QuestEvents)
 	QuestEvents.Connect()
 

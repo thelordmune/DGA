@@ -45,7 +45,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.45,
+			Stun = 0.65, -- Increased from 0.45 for heavier stuns
 		},
 
 		["Critical"] = {
@@ -240,7 +240,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.35,
+			Stun = 0.55, -- Increased from 0.35 for heavier stuns
 		},
 
 		["Critical"] = {

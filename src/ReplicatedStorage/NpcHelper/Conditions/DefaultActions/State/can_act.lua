@@ -30,11 +30,19 @@ return function(actor: Actor, mainConfig: table)
         end
     end
 
-    -- Check if NPC is stunned
+    -- Check if NPC is stunned or knocked back
     local stuns = npc:FindFirstChild("Stuns")
-    if stuns and Library.StateCount(stuns) then
-        -- -- print("NPC", npc.Name, "is stunned, cannot act")
-        return false
+    if stuns then
+        if Library.StateCount(stuns) then
+            -- -- print("NPC", npc.Name, "is stunned, cannot act")
+            return false
+        end
+
+        -- Specifically check for parry knockback
+        if Library.StateCheck(stuns, "ParryKnockback") then
+            -- -- print("NPC", npc.Name, "is in parry knockback, cannot act")
+            return false
+        end
     end
 
     -- Check if NPC is in certain action states that prevent other actions

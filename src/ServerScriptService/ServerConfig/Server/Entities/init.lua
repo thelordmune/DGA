@@ -132,8 +132,15 @@ end
 
 function EntityClass:Initialize()
      -- print("Initializing character:", self.Character.Name)
-    
-    self.Character.PrimaryPart = self.Character:WaitForChild("HumanoidRootPart");
+
+    -- Wait for HumanoidRootPart with timeout
+    local humanoidRootPart = self.Character:WaitForChild("HumanoidRootPart", 10)
+    if not humanoidRootPart then
+        warn(`[EntityClass] Failed to find HumanoidRootPart for {self.Character.Name} - cannot initialize`)
+        return
+    end
+
+    self.Character.PrimaryPart = humanoidRootPart
     self.Character.PrimaryPart:AddTag("Roots");
      -- print("Set PrimaryPart and added Roots tag for:", self.Character.Name)
     

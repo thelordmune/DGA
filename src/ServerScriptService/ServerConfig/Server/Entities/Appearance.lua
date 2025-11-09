@@ -1,4 +1,4 @@
-local Appearance = {}; 
+local Appearance = {};
 local Server = require(script.Parent.Parent);
 Appearance.__index = Appearance;
 local self = setmetatable({}, Appearance);
@@ -6,7 +6,105 @@ local self = setmetatable({}, Appearance);
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local InsertService = game:GetService("InsertService")
+local ContentProvider = game:GetService("ContentProvider")
 local customizationData = require(replicatedStorage.Modules.CustomizationData)
+
+-- Preload all clothing assets
+local clothingAssetsPreloaded = false
+local preloadedShirts = {}
+local preloadedPants = {}
+
+local function preloadClothingAssets()
+	if clothingAssetsPreloaded then return end
+
+	print("[Appearance] 🔄 Starting clothing asset preload...")
+	local totalAssets = 0
+	local successCount = 0
+	local failCount = 0
+
+	-- Preload each outfit's shirt and pants individually
+	for outfitId, outfit in pairs(customizationData.Clothes) do
+		-- Preload shirt
+		if outfit.shirt then
+			totalAssets += 1
+			local shirtTemplate = outfit.shirt
+			print(`[Appearance] 📥 Preloading Outfit {outfitId} Shirt: {shirtTemplate}`)
+
+			local success, result = pcall(function()
+				-- Extract asset ID from rbxassetid:// URL
+				local assetId = string.match(shirtTemplate, "%d+")
+				if assetId then
+					-- Load the asset using InsertService
+					local model = InsertService:LoadAsset(tonumber(assetId))
+					if model then
+						local shirt = model:FindFirstChildWhichIsA("Shirt", true)
+						if shirt then
+							-- Store the preloaded shirt template
+							preloadedShirts[outfitId] = shirt.ShirtTemplate
+							print(`[Appearance] ✅ Preloaded Shirt {outfitId}: {shirt.ShirtTemplate}`)
+							model:Destroy()
+							return true
+						end
+						model:Destroy()
+					end
+				end
+				return false
+			end)
+
+			if success and result then
+				successCount += 1
+			else
+				failCount += 1
+				warn(`[Appearance] ❌ Failed to preload Outfit {outfitId} Shirt:`, result)
+			end
+
+			task.wait(0.1) -- Small delay between loads
+		end
+
+		-- Preload pants
+		if outfit.pants then
+			totalAssets += 1
+			local pantsTemplate = outfit.pants
+			print(`[Appearance] 📥 Preloading Outfit {outfitId} Pants: {pantsTemplate}`)
+
+			local success, result = pcall(function()
+				-- Extract asset ID from rbxassetid:// URL
+				local assetId = string.match(pantsTemplate, "%d+")
+				if assetId then
+					-- Load the asset using InsertService
+					local model = InsertService:LoadAsset(tonumber(assetId))
+					if model then
+						local pants = model:FindFirstChildWhichIsA("Pants", true)
+						if pants then
+							-- Store the preloaded pants template
+							preloadedPants[outfitId] = pants.PantsTemplate
+							print(`[Appearance] ✅ Preloaded Pants {outfitId}: {pants.PantsTemplate}`)
+							model:Destroy()
+							return true
+						end
+						model:Destroy()
+					end
+				end
+				return false
+			end)
+
+			if success and result then
+				successCount += 1
+			else
+				failCount += 1
+				warn(`[Appearance] ❌ Failed to preload Outfit {outfitId} Pants:`, result)
+			end
+
+			task.wait(0.1) -- Small delay between loads
+		end
+	end
+
+	clothingAssetsPreloaded = true
+	print(`[Appearance] 🎉 Preloading complete! Success: {successCount}/{totalAssets}, Failed: {failCount}`)
+end
+
+-- Preload assets when module loads
+task.spawn(preloadClothingAssets)
 
 local function getSpinResult()
     local roll = math.random(1, 1000)
@@ -81,6 +179,12 @@ local loadedCharacters = {}
 Appearance.Load = function(Player : Player)
     print("[Appearance] 🎨 Load called for player:", Player.Name)
 
+    -- Ensure clothing assets are preloaded before applying appearance
+    if not clothingAssetsPreloaded then
+        print("[Appearance] ⏳ Waiting for clothing assets to preload...")
+        preloadClothingAssets()
+    end
+
     local PlayerClass = Server.Modules["Players"].Get(Player);
     if not PlayerClass or not PlayerClass.Character or not PlayerClass.Data then
         warn("[Appearance] ⚠️ Missing PlayerClass, Character, or Data for:", Player.Name)
@@ -112,21 +216,26 @@ Appearance.Load = function(Player : Player)
         end
     end)
 
-    -- Ensure Shirt and Pants exist - DESTROY old ones to prevent conflicts
-    local oldShirt = character:FindFirstChild("Shirt")
-    if oldShirt then
-        print("[Appearance] ⚠️ Found existing Shirt with template:", oldShirt.ShirtTemplate)
-        oldShirt:Destroy()
-    end
-    local oldPants = character:FindFirstChild("Pants")
-    if oldPants then
-        print("[Appearance] ⚠️ Found existing Pants with template:", oldPants.PantsTemplate)
-        oldPants:Destroy()
+    -- DELETE ALL existing Shirt and Pants instances to prevent conflicts
+    for _, child in character:GetChildren() do
+        if child:IsA("Shirt") or child:IsA("Pants") then
+            print("[Appearance] 🗑️ Deleting existing", child.ClassName, "with template:", child:IsA("Shirt") and child.ShirtTemplate or child.PantsTemplate)
+            child:Destroy()
+        end
     end
 
-    -- Create fresh Shirt and Pants
-    local shirt = Instance.new("Shirt", character)
-    local pants = Instance.new("Pants", character)
+    -- Wait a frame to ensure deletion completes
+    task.wait()
+
+    -- Create fresh Shirt and Pants instances
+    local shirt = Instance.new("Shirt")
+    shirt.Name = "Shirt"
+    shirt.Parent = character
+
+    local pants = Instance.new("Pants")
+    pants.Name = "Pants"
+    pants.Parent = character
+
     print("[Appearance] ✅ Created fresh Shirt and Pants instances")
 
     if playerData.FirstJoin == true then
@@ -231,9 +340,30 @@ Appearance.Load = function(Player : Player)
         )
         applyPlayerHairToDummy(character, humanoid, Player, customHairColor)
 
-        -- Apply clothing (use the shirt/pants we created earlier)
-        shirt.ShirtTemplate = customizationData.Clothes[initialOutfit].shirt
-        pants.PantsTemplate = customizationData.Clothes[initialOutfit].pants
+        -- Apply clothing (use preloaded templates if available, otherwise use config)
+        local shirtTemplate = preloadedShirts[initialOutfit] or customizationData.Clothes[initialOutfit].shirt
+        local pantsTemplate = preloadedPants[initialOutfit] or customizationData.Clothes[initialOutfit].pants
+
+        print("[Appearance] 🎨 Applying clothing templates:")
+        print("  Outfit ID:", initialOutfit)
+        print("  Shirt Template:", shirtTemplate)
+        print("  Pants Template:", pantsTemplate)
+        print("  Using Preloaded:", preloadedShirts[initialOutfit] ~= nil)
+
+        -- Delete and recreate to ensure fresh application
+        if shirt then shirt:Destroy() end
+        if pants then pants:Destroy() end
+        task.wait()
+
+        shirt = Instance.new("Shirt")
+        shirt.Name = "Shirt"
+        shirt.ShirtTemplate = shirtTemplate
+        shirt.Parent = character
+
+        pants = Instance.new("Pants")
+        pants.Name = "Pants"
+        pants.PantsTemplate = pantsTemplate
+        pants.Parent = character
 
         print("[Appearance] ✅ Applied clothing for first join:")
         print("  Shirt:", shirt.ShirtTemplate)
@@ -294,13 +424,34 @@ Appearance.Load = function(Player : Player)
         
         applyPlayerHairToDummy(character, humanoid, Player, customHairColor)
 
-        -- Apply clothing (use the shirt/pants we created earlier)
+        -- Apply clothing (use preloaded templates if available)
         local outfit = PlayerClass.Data.Customization.Outfit
         print("[Appearance] Applying saved outfit:", outfit)
 
         if outfit and customizationData.Clothes[outfit] then
-            shirt.ShirtTemplate = customizationData.Clothes[outfit].shirt
-            pants.PantsTemplate = customizationData.Clothes[outfit].pants
+            local shirtTemplate = preloadedShirts[outfit] or customizationData.Clothes[outfit].shirt
+            local pantsTemplate = preloadedPants[outfit] or customizationData.Clothes[outfit].pants
+
+            print("[Appearance] 🎨 Applying saved clothing templates:")
+            print("  Outfit ID:", outfit)
+            print("  Shirt Template:", shirtTemplate)
+            print("  Pants Template:", pantsTemplate)
+            print("  Using Preloaded:", preloadedShirts[outfit] ~= nil)
+
+            -- Delete and recreate to ensure fresh application
+            if shirt then shirt:Destroy() end
+            if pants then pants:Destroy() end
+            task.wait()
+
+            shirt = Instance.new("Shirt")
+            shirt.Name = "Shirt"
+            shirt.ShirtTemplate = shirtTemplate
+            shirt.Parent = character
+
+            pants = Instance.new("Pants")
+            pants.Name = "Pants"
+            pants.PantsTemplate = pantsTemplate
+            pants.Parent = character
 
             print("[Appearance] ✅ Applied saved clothing:")
             print("  Shirt:", shirt.ShirtTemplate)

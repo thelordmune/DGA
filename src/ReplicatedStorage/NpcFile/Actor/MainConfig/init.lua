@@ -481,7 +481,7 @@ function MainConfig.getState(player: Model | Player)
 		return stunState
 	else
 		-- If no Stuns state exists, the character hasn't been properly initialized
-		warn("Character", character.Name, "missing Stuns state - may need entity initialization")
+		--warn("Character", character.Name, "missing Stuns state - may need entity initialization")
 		-- Create a temporary state to prevent errors
 		local tempState = Instance.new("StringValue")
 		tempState.Name = "TempStuns"
@@ -567,14 +567,17 @@ function MainConfig.LoadAppearance()
 	MainConfig.AppearanceSignal = appearanceLoadedSignal
 
 	local appearanceData = {
-		Hair = require(MainConfig.Appearance.Hair),
-		Face = require(MainConfig.Appearance.Face),
-		Shirt = require(MainConfig.Appearance.Shirt),
-		Pants = require(MainConfig.Appearance.Pants),
-		SkinColor = require(MainConfig.Appearance.SkinColor),
+		{name = "Hair", module = require(MainConfig.Appearance.Hair)},
+		{name = "Face", module = require(MainConfig.Appearance.Face)},
+		{name = "Shirt", module = require(MainConfig.Appearance.Shirt)},
+		{name = "Pants", module = require(MainConfig.Appearance.Pants)},
+		{name = "SkinColor", module = require(MainConfig.Appearance.SkinColor)},
 	}
-	for _, apperanceModule in appearanceData do
-		apperanceModule(npc, MainConfig)
+
+	for _, appearanceEntry in appearanceData do
+		warn(`[LoadAppearance] 🔍 BEFORE {appearanceEntry.name} - HumanoidRootPart exists: {npc:FindFirstChild("HumanoidRootPart") ~= nil}`)
+		appearanceEntry.module(npc, MainConfig)
+		warn(`[LoadAppearance] 🔍 AFTER {appearanceEntry.name} - HumanoidRootPart exists: {npc:FindFirstChild("HumanoidRootPart") ~= nil}`)
 	end
 
 	local accessories = MainConfig.Appearance.Accessories

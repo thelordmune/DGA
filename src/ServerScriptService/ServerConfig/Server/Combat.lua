@@ -15,6 +15,11 @@ Combat.Light = function(Character: Model)
 	local Player : Player;
 	if Entity.Player then Player = Entity.Player end;
 
+	-- Prevent actions during parry knockback for both NPCs and players
+	if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then
+		return
+	end
+
 	-- Allow NPCs to attack even with states, but block players with certain states
 	local isNPC = Character:GetAttribute("IsNPC")
 	if not isNPC and (Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns)) then
@@ -157,14 +162,29 @@ Combat.Critical = function(Character: Model)
 	local Player : Player;
 	if Entity.Player then Player = Entity.Player end;
 
+	-- Prevent critical during parry knockback
+	if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then return end
+
 	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then return end
 
 	Server.Library.StopAllAnims(Character)
 
+	-- For NPCs, clear any lingering body movers to prevent stuttering
+	if not Player then
+		local root = Character:FindFirstChild("HumanoidRootPart")
+		if root then
+			for _, bodyMover in pairs(root:GetChildren()) do
+				if bodyMover:IsA("LinearVelocity") or bodyMover:IsA("BodyVelocity") or bodyMover:IsA("BodyGyro") then
+					bodyMover:Destroy()
+				end
+			end
+		end
+	end
+
 	local Weapon: string = Entity.Weapon
 	local Stats: {} = WeaponStats[Weapon]
 
-	Server.Library.SetCooldown(Character,"Critical",5)	
+	Server.Library.SetCooldown(Character,"Critical",5)
 
 	Server.Visuals.Ranged(Character.HumanoidRootPart.Position,300, {Module = "Base", Function = "CriticalIndicator", Arguments = {Character}})		
 
@@ -513,6 +533,8 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
     local Stats = WeaponStats[Weapon]
     if not Stats then return end
 
+    -- Prevent blocking during parry knockback
+    if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then return end
     -- If already parrying, don't interrupt
     if Server.Library.StateCheck(Character.Frames, "Parry") then return end
     -- Prevent blocking during strategist combo
@@ -569,6 +591,8 @@ end
 
 Combat.AttemptParry = function(Character: Model)
     if Server.Library.CheckCooldown(Character, "Parry") then return end
+    -- Prevent parrying during parry knockback
+    if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then return end
     if Server.Library.StateCheck(Character.Stuns, "BlockBreakStun") then return end
     -- Prevent parrying during ragdoll
     if Character:FindFirstChild("Ragdoll") then return end
@@ -584,7 +608,7 @@ Combat.AttemptParry = function(Character: Model)
     local Stats = WeaponStats[Weapon]
     if not Stats then return end
     
-    Server.Library.SetCooldown(Character, "Parry", 0.5)
+    Server.Library.SetCooldown(Character, "Parry", 1.5) -- Increased from 0.5 to 1.5 for longer cooldown
     Server.Library.StopAllAnims(Character)
 
     -- Play parry animation
