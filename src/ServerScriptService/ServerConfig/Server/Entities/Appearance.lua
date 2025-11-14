@@ -242,7 +242,7 @@ Appearance.Load = function(Player : Player)
         local raceSpinner = racespin()
         local rarity = getSpinResult()
         local variant = varspin()
-        local initialOutfit = math.random(1, 2)
+        local initialOutfit = math.random(1, 6)
 
         -- Set initial data
         PlayerClass.Data.Customization.Outfit = initialOutfit
