@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CombatProperties = require(ReplicatedStorage.Modules.CombatProperties)
 local Library = require(ReplicatedStorage.Modules.Library)
+local PlayerStateDetector = require(script.Parent.player_state_detector)
 
 -- Get Server from main VM (Actors have separate module caches, so use _G)
 local function getServer()
@@ -155,14 +156,42 @@ local function scoreSkill(skillName, distance, mainConfig, npc, target)
     elseif distance >= targetProps.MinRange and distance <= targetProps.MaxRange then
         score = score * 1.0 -- In range
     end
-    
+
+    -- NEW: React to player states
+    local playerBlocking = PlayerStateDetector.IsBlocking(target)
+    local playerRagdolled = PlayerStateDetector.IsRagdolled(target)
+    local playerHasHyperArmor = PlayerStateDetector.HasHyperArmor(target)
+
+    -- If player is blocking, heavily prioritize guard breaks
+    if playerBlocking and properties.IsGuardBreak then
+        score = score * 3.0 -- Massive bonus for guard breaks when player is blocking
+    elseif playerBlocking and not properties.IsGuardBreak then
+        score = score * 0.3 -- Heavily penalize non-guard-break attacks when player is blocking
+    end
+
+    -- If player is ragdolled, prioritize combo extenders
+    if playerRagdolled and properties.IsComboExtender then
+        score = score * 2.5 -- Big bonus for combo extenders on ragdolled targets
+    end
+
+    -- If player has hyper armor, avoid using this skill (unless it's ranged or has hyper armor too)
+    if playerHasHyperArmor then
+        if properties.HasHyperArmor then
+            score = score * 1.2 -- Slight bonus for hyper armor vs hyper armor
+        elseif properties.RangeType == "Long" or properties.RangeType == "Medium" then
+            score = score * 1.0 -- Ranged attacks are fine
+        else
+            score = score * 0.2 -- Heavily penalize close-range attacks against hyper armor
+        end
+    end
+
     -- Aggressive mode bonus for offensive skills
     if mainConfig.States and mainConfig.States.AggressiveMode then
         if properties.SkillType == "Offensive" then
             score = score * 1.3
         end
     end
-    
+
     -- Low health - prefer defensive or retreating skills
     local npcHumanoid = npc:FindFirstChild("Humanoid")
     if npcHumanoid then
@@ -175,7 +204,7 @@ local function scoreSkill(skillName, distance, mainConfig, npc, target)
             end
         end
     end
-    
+
     -- Combo context
     local lastSkill = mainConfig.States.LastSkillUsed
     if lastSkill then
@@ -187,7 +216,7 @@ local function scoreSkill(skillName, distance, mainConfig, npc, target)
             end
         end
     end
-    
+
     -- Range type preference based on distance
     if distance > 20 and properties.RangeType == "Long" then
         score = score * 1.3
@@ -196,7 +225,7 @@ local function scoreSkill(skillName, distance, mainConfig, npc, target)
     elseif distance <= 10 and properties.RangeType == "Close" then
         score = score * 1.2
     end
-    
+
     return score
 end
 
@@ -259,45 +288,6 @@ return function(actor: Actor, mainConfig: table)
                     end
                 end
             end
-        end
-    end
-
-    -- Check if player is blocking
-    local targetActions = target:FindFirstChild("Actions")
-    local playerIsBlocking = false
-    if targetActions then
-        playerIsBlocking = Library.StateCheck(targetActions, "Blocking")
-    end
-
-    -- If player is blocking, prioritize Critical or blockbreak skills
-    if playerIsBlocking then
-        -- Check if we have blockbreak skills available
-        local availableSkills = getAvailableSkills(npc, mainConfig)
-        for _, skillName in ipairs(availableSkills) do
-            local properties = CombatProperties[skillName]
-            if properties and properties.SkillType == "Offensive" then
-                -- Prefer skills that can break blocks
-                if skillName ~= "M1" and skillName ~= "Block" then
-                    -- Execute the skill immediately
-                    local Combat = Server.Modules.Combat
-                    if skillName == "Critical" or skillName == "M2" then
-                        Combat.Critical(npc)
-                        return true
-                    else
-                        local success = mainConfig.performAction(skillName)
-                        if success then
-                            return true
-                        end
-                    end
-                end
-            end
-        end
-
-        -- Fallback to Critical if no skills available
-        local Combat = Server.Modules.Combat
-        if not Library.CheckCooldown(npc, "Critical") then
-            Combat.Critical(npc)
-            return true
         end
     end
 

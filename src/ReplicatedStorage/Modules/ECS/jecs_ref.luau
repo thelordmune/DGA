@@ -92,6 +92,10 @@ ref.get = (
 		elseif type == "network_id" then
 			return network_id_refs[data]
 		elseif type == "player" then
+			if not data or not data.UserId then
+				warn("[jecs_ref] Attempted to get player entity with nil or invalid player data")
+				return nil
+			end
 			return player_refs[`{data.UserId}`]
 		elseif type == "current_run" then
 			return current_run :: jecs.Entity

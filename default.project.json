@@ -1,5 +1,5 @@
 {
-  "name": "project",
+  "name": "ironveil-maingame",
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
@@ -31,7 +31,5 @@
       },
       "$ignoreUnknownInstances": true
     }
-    
-    
   }
 }

@@ -349,7 +349,7 @@ local function begin()
 		-- Create connection
 		connections[phaseEntity] = event:Connect(function(...)
 			local args = {...}
-			debug.profilebegin(phaseName)
+			pcall(debug.profilebegin, phaseName)
 			for _, sysData in pairs(systems) do
 				if sysData.callback and sysData.id then
 					-- Use scheduler:run() to automatically track execution time for Jabby
@@ -362,7 +362,7 @@ local function begin()
 					end
 				end
 			end
-			debug.profileend()
+			pcall(debug.profileend)
 		end)
 	end
 

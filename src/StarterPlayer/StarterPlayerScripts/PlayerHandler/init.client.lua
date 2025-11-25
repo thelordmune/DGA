@@ -601,6 +601,9 @@ Players.LocalPlayer:GetAttributeChangedSignal("Weapon"):Connect(function()
 	Client.Weapon = Players.LocalPlayer:GetAttribute("Weapon")
 end)
 
+local EmitModule = require(game.ReplicatedStorage.Modules.Utils.EmitModule)
+EmitModule.init()
+
 if Players.LocalPlayer.Character then
 	if not ID then
 		-- ECS already started at the top, no need to start again

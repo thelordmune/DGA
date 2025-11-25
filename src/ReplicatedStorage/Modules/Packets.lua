@@ -95,6 +95,20 @@ return ByteNet.defineNamespace("Networking", function()
 				Air = ByteNet.bool,
 			})
 		});
+		Branch = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Held = ByteNet.bool,
+				Air = ByteNet.bool,
+			})
+		});
+		["Ground Decay"] = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Held = ByteNet.bool,
+				Air = ByteNet.bool,
+			})
+		});
 		UseItem = ByteNet.definePacket({
 			reliabilityType = "reliable";
 			value = ByteNet.struct({
@@ -112,6 +126,11 @@ return ByteNet.defineNamespace("Networking", function()
 		});
 		
 		DodgeCancel = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.nothing;
+		});
+
+		CancelSprint = ByteNet.definePacket({
 			reliabilityType = "reliable";
 			value = ByteNet.nothing;
 		});

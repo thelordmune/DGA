@@ -302,7 +302,7 @@ local function processPlayer(world, player)
             world:set(e, comps.Utility, {duration = 0, value = false})
             world:set(e, comps.Victim, nil)
             world:set(e, comps.Action, {duration = 0, value = false})
-            world:set(e, comps.BlockBar, {Value = 100, MaxValue = 100})
+            world:set(e, comps.BlockBar, {Value = 0, MaxValue = 100})  -- Start at 0, increases to 100 when blocking hits
             world:set(e, comps.BBRegen, {value = false, duration = 0})
             world:set(e, comps.BlockBroken, false)
             world:set(e, comps.Adrenaline, {value = 0, comboHits = 0}) -- Initialize adrenaline system

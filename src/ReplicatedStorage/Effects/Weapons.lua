@@ -15,7 +15,7 @@ local Player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local VFX = Replicated:WaitForChild("Assets").VFX
 local SFX = Replicated:WaitForChild("Assets").SFX
-local CameraShakeModule = require(Replicated.Modules._CameraShake)
+local CamShake = require(Replicated.Modules.Utils.CamShake)
 
 local Fusion = require(Replicated.Modules.Fusion)
 local Children, scoped, peek, out = Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out
@@ -1305,14 +1305,15 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 					flash3:Play()
 					flash3.Completed:Connect(function()
 						-- Start camera shake immediately after flash
-						-- print("camera shake starting after flash...")
-
-						-- Create shake that updates the offset
-						local camShake = CameraShakeModule.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
-							shakeOffset = shakeCf
-						end)
-						camShake:Start()
-						camShake:ShakeOnce(7, 14, 0, 1.3, Vector3.new(1.5, 2, 1.5), Vector3.new(0.34, 0.25, 0.34))
+						-- Impactful camera shake for ultimate move
+						CamShake({
+							Magnitude = 12, -- Very high magnitude for ultimate
+							Frequency = 32,
+							Damp = 0.003,
+							Influence = Vector3.new(1.8, 2.2, 1.2),
+							Location = Character.HumanoidRootPart.Position,
+							Falloff = 150
+						})
 
 						colorCorrection:Destroy()
 					end)

@@ -51,13 +51,13 @@ local Table = {
     ["Guns"] = {
         ["Shell Piercer"] = {
             ["DamageTable"] = {
-            BlockBreak = false,
+            BlockBreak = true, -- Now breaks guard
 			Damage = 3.5,
 			PostureDamage = 5,
 			LightKnockback = false,
 			M2 = false,
 			FX = Replicated.Assets.VFX.Blood.Attachment,
-			Stun = 0.4,
+			Stun = 1.2, -- Increased from 0.4 for better stun
             },
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTime"] = {20/50}
@@ -127,17 +127,19 @@ local Table = {
             Description = "Lunge yourself at the enemy piercing your blade through their skin.",
             ["HitTimes"] = {16/275, 56/275, 130/275, 135/275, 170/275, 175/275, 180/275, 185/275, 190/275, 195/275, 200/275, 205/275, 210/275, 215/275, 220/275, 225/275}
         },
-        -- ["Inverse Rainstorm"] = {
-        --     ["DamageTable"] = {
-        --     BlockBreak = false,
-		-- 	Damage = 3.5,
-		-- 	PostureDamage = 5,
-		-- 	LightKnockback = false,
-		-- 	M2 = false,
-		-- 	FX = Replicated.Assets.VFX.Blood.Attachment,
-		-- 	Stun = 0.4,
-        --     },
-        -- }
+        ["Inverse Slide"] = {
+            ["DamageTable"] = {
+            BlockBreak = false,
+			Damage = 1.5,
+			PostureDamage = 3,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.4,
+			
+            },
+			["HitTimes"] = {1/89, 18/89, 25/89, 50/89}
+        }
     },
     ["Fist"] = {
         ["Downslam Kick"] = {

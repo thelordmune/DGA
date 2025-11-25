@@ -3,6 +3,9 @@ local WeaponStats = require(Server.Service.ServerStorage:WaitForChild("Stats")._
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Voxbreaker = require(ReplicatedStorage.Modules.Voxel)
+local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 
 Combat.__index = Combat;
 local self = setmetatable({}, Combat)
@@ -26,6 +29,11 @@ Combat.Light = function(Character: Model)
 		return
 	end
 
+	-- CANCEL SPRINT when attacking (for players only)
+	if Player then
+		Server.Packets.CancelSprint.sendTo({}, Player)
+	end
+
 	Server.Library.StopAllAnims(Character)
 
 	if not Entity.Combo then Entity.Combo = 0 end
@@ -47,8 +55,8 @@ Combat.Light = function(Character: Model)
 		
 		if Entity["SwingConnection"] then
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
-				Server.Library.RemoveState(Character.Speeds,"M1Speed10")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed13") then
+				Server.Library.RemoveState(Character.Speeds,"M1Speed13")
 			end
 
 			Entity["SwingConnection"]:Disconnect()
@@ -69,7 +77,7 @@ Combat.Light = function(Character: Model)
 		end
 
 		Server.Library.TimedState(Character.Actions,"M1"..Combo,Stats["Endlag"][Combo])
-		Server.Library.AddState(Character.Speeds,"M1Speed10") -- Changed from 8 to 12 for faster combat
+		Server.Library.AddState(Character.Speeds,"M1Speed13") -- Reduced walkspeed to 13 (16 + (-3)) for more consistent hitboxes
 
 		local Swings = Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Swings
 
@@ -86,10 +94,10 @@ Combat.Light = function(Character: Model)
 		Entity["SwingConnection"] = SwingAnimation.Stopped:Once(function()
 			Entity["SwingConnection"] = nil
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
-				Server.Library.RemoveState(Character.Speeds,"M1Speed10")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed13") then
+				Server.Library.RemoveState(Character.Speeds,"M1Speed13")
 			end
-						
+
 			if Stats["Trail"] then
 				Combat.Trail(Character, false)
 			end
@@ -141,11 +149,30 @@ Combat.Light = function(Character: Model)
 		--	Server.Packets.Bvel.sendTo({Character = Character, Name = "M1Bvel"}, Player)
 		--end
 
-		local HitTargets = Hitbox.SpatialQuery(Character, Stats["Hitboxes"][Combo]["HitboxSize"], Entity:GetCFrame() * Stats["Hitboxes"][Combo]["HitboxOffset"])
-		
+		-- Multi-frame hit detection loop for more accurate hits
+		-- Check for hits 3 times over 0.1 seconds to catch fast-moving targets
+		local HitTargets = {}
+		local AlreadyHit = {}
+
+		for i = 1, 3 do
+			local FrameHits = Hitbox.SpatialQuery(Character, Stats["Hitboxes"][Combo]["HitboxSize"], Entity:GetCFrame() * Stats["Hitboxes"][Combo]["HitboxOffset"])
+
+			for _, Target: Model in pairs(FrameHits) do
+				if not AlreadyHit[Target] then
+					table.insert(HitTargets, Target)
+					AlreadyHit[Target] = true
+				end
+			end
+
+			-- Wait a tiny bit between checks (only wait if not the last iteration)
+			if i < 3 then
+				task.wait(0.033) -- ~2 frames at 60fps
+			end
+		end
+
+		-- Apply damage to all detected targets
 		for _, Target: Model in pairs(HitTargets) do
 			Server.Modules.Damage.Tag(Character, Target, Stats["M1Table"])
-			--if not Target:GetAttribute("")
 		end
 		
 		end
@@ -166,6 +193,11 @@ Combat.Critical = function(Character: Model)
 	if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then return end
 
 	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then return end
+
+	-- CANCEL SPRINT when attacking (for players only)
+	if Player then
+		Server.Packets.CancelSprint.sendTo({}, Player)
+	end
 
 	Server.Library.StopAllAnims(Character)
 
@@ -239,8 +271,8 @@ Combat.Critical = function(Character: Model)
 		Entity["M1StunConnection"] = Character.Stuns.Changed:Once(function()
 			Entity["M1StunConnection"] = nil
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
-				Server.Library.RemoveState(Character.Speeds,"M1Speed10")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed16") then
+				Server.Library.RemoveState(Character.Speeds,"M1Speed16")
 			end
 
 			--Sound:Stop()
@@ -416,8 +448,8 @@ Combat.RunningAttack = function(Character)
 
 		if Entity["SwingConnection"] then
 
-			if Server.Library.StateCheck(Character.Speeds, "M1Speed10") then
-				Server.Library.RemoveState(Character.Speeds,"M1Speed10")
+			if Server.Library.StateCheck(Character.Speeds, "M1Speed13") then
+				Server.Library.RemoveState(Character.Speeds,"M1Speed13")
 			end
 
 			Entity["SwingConnection"]:Disconnect()
@@ -525,6 +557,18 @@ end
 
 local BlockStates = {}
 
+-- Clear block state tracking for a character (used during block break)
+Combat.ClearBlockState = function(Character: Model)
+	if BlockStates[Character] then
+		-- Disconnect any active connections
+		if BlockStates[Character].Connection then
+			BlockStates[Character].Connection:Disconnect()
+		end
+		-- Clear the tracking data
+		BlockStates[Character] = nil
+	end
+end
+
 Combat.HandleBlockInput = function(Character: Model, State: boolean)
     local Entity = Server.Modules["Entities"].Get(Character)
     if not Entity then return end
@@ -533,24 +577,42 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
     local Stats = WeaponStats[Weapon]
     if not Stats then return end
 
-    -- Prevent blocking during parry knockback
-    if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then return end
-    -- If already parrying, don't interrupt
-    if Server.Library.StateCheck(Character.Frames, "Parry") then return end
-    -- Prevent blocking during strategist combo
-    if Server.Library.StateCheck(Character.Stuns, "StrategistComboHit") then return end
-    -- Prevent blocking while BlockBroken (guard broken)
-    if Server.Library.StateCheck(Character.Stuns, "BlockBreakStun") then return end
-
     if State then
+        -- PREVENT OVERLAPPING ACTIONS: Cannot START blocking while performing any action
+        if Server.Library.StateCount(Character.Actions) then return end
+
+        -- Prevent blocking during parry knockback
+        if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then return end
+        -- If already parrying, don't interrupt
+        if Server.Library.StateCheck(Character.Frames, "Parry") then return end
+        -- Prevent blocking during strategist combo
+        if Server.Library.StateCheck(Character.Stuns, "StrategistComboHit") then return end
+        -- Prevent blocking while BlockBroken (guard broken)
+        if Server.Library.StateCheck(Character.Stuns, "BlockBreakStun") then return end
+        -- Prevent blocking for 2 seconds after BlockBreak stun ends
+        if Server.Library.StateCheck(Character.Stuns, "BlockBreakCooldown") then return end
+
+        -- Prevent blocking if BlockBroken ECS component is true
+        if Entity.Player then
+            local playerEntity = ref.get("player", Entity.Player)
+            if playerEntity then
+                local blockBroken = world:get(playerEntity, comps.BlockBroken)
+                if blockBroken then return end
+            end
+        end
         -- Start block if not already blocking
         if not BlockStates[Character] then
+            -- CANCEL SPRINT when starting to block (for players only)
+            if Entity.Player then
+                Server.Packets.CancelSprint.sendTo({}, Entity.Player)
+            end
+
             BlockStates[Character] = {
                 Blocking = false,
                 ParryWindow = false,
                 HoldTime = 0
             }
-            
+
             -- Start tracking hold time
             BlockStates[Character].HoldTime = 0
             BlockStates[Character].Connection = Server.Utilities:AddToTempLoop(function(dt)
@@ -590,24 +652,64 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
 end
 
 Combat.AttemptParry = function(Character: Model)
-    if Server.Library.CheckCooldown(Character, "Parry") then return end
+    print(`[PARRY DEBUG] {Character.Name} attempting to parry`)
+
+    if Server.Library.CheckCooldown(Character, "Parry") then
+        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: On cooldown`)
+        return
+    end
+
     -- Prevent parrying during parry knockback
-    if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then return end
-    if Server.Library.StateCheck(Character.Stuns, "BlockBreakStun") then return end
+    if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then
+        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: ParryKnockback state active`)
+        return
+    end
+
+    if Server.Library.StateCheck(Character.Stuns, "BlockBreakStun") then
+        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: BlockBreakStun state active`)
+        return
+    end
+
     -- Prevent parrying during ragdoll
-    if Character:FindFirstChild("Ragdoll") then return end
+    if Character:FindFirstChild("Ragdoll") then
+        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: Ragdoll active`)
+        return
+    end
+
     -- Prevent parrying during moves
-    if Server.Library.StateCount(Character.Actions) then return end
+    if Server.Library.StateCount(Character.Actions) then
+        local actions = Server.Library.GetAllStatesFromCharacter(Character).Actions or {}
+        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: Actions active: {table.concat(actions, ", ")}`)
+        return
+    end
+
     -- Prevent parrying during strategist combo
-    if Server.Library.StateCheck(Character.Stuns, "StrategistComboHit") then return end
+    if Server.Library.StateCheck(Character.Stuns, "StrategistComboHit") then
+        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: StrategistComboHit state active`)
+        return
+    end
+
+    -- Prevent parrying during M1 stun (true stun system)
+    if Server.Library.StateCheck(Character.Stuns, "M1Stun") then
+        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: M1Stun state active (true stun)`)
+        return
+    end
 
     local Entity = Server.Modules["Entities"].Get(Character)
-    if not Entity then return end
-    
+    if not Entity then
+        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: No entity found`)
+        return
+    end
+
     local Weapon = Entity.Weapon
     local Stats = WeaponStats[Weapon]
-    if not Stats then return end
-    
+    if not Stats then
+        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: No weapon stats for {Weapon}`)
+        return
+    end
+
+    print(`[PARRY DEBUG] {Character.Name} - ✅ PARRY STARTED - Weapon: {Weapon}`)
+
     Server.Library.SetCooldown(Character, "Parry", 1.5) -- Increased from 0.5 to 1.5 for longer cooldown
     Server.Library.StopAllAnims(Character)
 
@@ -617,11 +719,13 @@ Combat.AttemptParry = function(Character: Model)
 
     -- Add parry frames - increased from 0.3s to 0.5s to make parrying easier
     Server.Library.TimedState(Character.Frames, "Parry", .5)
-    
+
+    print(`[PARRY DEBUG] {Character.Name} - Parry frames active for 0.5s`)
+
     -- Visual effect
     -- Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-    --     Module = "Base", 
-    --     Function = "Parry", 
+    --     Module = "Base",
+    --     Function = "Parry",
     --     Arguments = {Character}
     -- })
 end

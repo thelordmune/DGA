@@ -2,6 +2,12 @@ return function(actor: Actor, mainConfig: table)
     local npc = mainConfig.getNpc()
     if not npc then return false end
 
+    -- Skip if this is a combat NPC (ECS AI handles movement)
+    local ECSBridge = require(game.ReplicatedStorage.NpcHelper.ECSBridge)
+    if ECSBridge.isCombatNPC(npc) then
+        return false
+    end
+
     local root = npc:FindFirstChild("HumanoidRootPart")
     if not root then return false end
 

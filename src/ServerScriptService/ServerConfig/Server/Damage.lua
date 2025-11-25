@@ -11,9 +11,9 @@ local RunService = game:GetService("RunService")
 local self = setmetatable({}, DamageService)
 local world = require(Replicated.Modules.ECS.jecs_world)
 local ref = require(Replicated.Modules.ECS.jecs_ref)
+local RefManager = require(Replicated.Modules.ECS.jecs_ref_manager)
 local comps = require(Replicated.Modules.ECS.jecs_components)
 local Global = require(Replicated.Modules.Shared.Global)
-
 -- Adrenaline system (lazy load to avoid circular dependencies)
 local AdrenalineSystem = nil
 local function getAdrenalineSystem()
@@ -114,6 +114,68 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	-- 	})
 	-- end
 
+	local function CancelAllActions()
+		-- COMPREHENSIVE ACTION CANCELLATION SYSTEM
+		-- When hit, cancel ALL ongoing actions to prevent overlapping states
+
+		print(`[HIT INTERRUPT] 🛑 {Target.Name} was hit - cancelling all actions`)
+
+		-- 1. Stop all animations immediately
+		Library.StopAllAnims(Target)
+
+		-- 2. Clear ALL action states (skills, M1s, M2s, etc.)
+		local actions = Target:FindFirstChild("Actions")
+		if actions then
+			local allStates = Library.GetAllStates(actions)
+			for _, stateName in ipairs(allStates) do
+				Library.RemoveState(actions, stateName)
+				print(`[HIT INTERRUPT] - Removed action state: {stateName}`)
+			end
+		end
+
+		-- 3. Cancel dash if active (clear Dashing ECS component)
+		-- Only for players (NPCs don't have ECS Dashing component)
+		if TargetEntity and TargetEntity.Player then
+			local targetPlayer = TargetEntity.Player
+			local playerEntity = ref.get("player", targetPlayer)
+			if playerEntity and world:has(playerEntity, comps.Dashing) then
+				local isDashing = world:get(playerEntity, comps.Dashing)
+				if isDashing then
+					world:set(playerEntity, comps.Dashing, false)
+					print(`[HIT INTERRUPT] - Cancelled dash for {Target.Name}`)
+				end
+			end
+		end
+
+		-- 4. Remove ALL velocities and body movers (dash, skill velocities, etc.)
+		local rootPart = Target:FindFirstChild("HumanoidRootPart")
+		if rootPart then
+			for _, child in ipairs(rootPart:GetChildren()) do
+				if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or
+				   child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+					child:Destroy()
+					print(`[HIT INTERRUPT] - Removed {child.ClassName} from {Target.Name}`)
+				end
+			end
+		end
+
+		-- 5. Clear speed modifiers from actions (keep only damage stun speed)
+		local speeds = Target:FindFirstChild("Speeds")
+		if speeds then
+			local allSpeeds = Library.GetAllStates(speeds)
+			for _, speedName in ipairs(allSpeeds) do
+				-- Remove action-related speed states (M1Speed, AlcSpeed, RunSpeed, etc.)
+				if speedName:match("M1Speed") or speedName:match("AlcSpeed") or
+				   speedName:match("RunSpeed") or speedName:match("DashSpeed") then
+					Library.RemoveState(speeds, speedName)
+					print(`[HIT INTERRUPT] - Removed speed state: {speedName}`)
+				end
+			end
+		end
+
+		print(`[HIT INTERRUPT] ✅ All actions cancelled for {Target.Name}`)
+	end
+
 	local function DealStun()
 		-- Check if target is victim of Strategist Combination - if so, skip all stun logic
 		local actions = Target:FindFirstChild("Actions")
@@ -169,6 +231,9 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 						Arguments = { Target }
 					})
 
+					-- Cancel all actions before applying stun
+					CancelAllActions()
+
 					-- Apply stun normally
 					if not Table.NoStunAnim then
 						Library.PlayAnimation(
@@ -201,6 +266,9 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			end
 		end
 
+		-- CANCEL ALL ACTIONS WHEN HIT (no hyperarmor)
+		CancelAllActions()
+
 		-- Normal stun (no hyperarmor)
 		if not Table.NoStunAnim then
 			Library.PlayAnimation(
@@ -217,14 +285,34 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		Library.TimedState(Target.Stuns, "DamageStun", stunDuration)
 		Library.TimedState(Target.Speeds, "DamageSpeedSet4", stunDuration)
+
+		-- M1 True Stun System: Apply M1Stun state that prevents parrying
+		-- Only allow parrying on 3rd M1 hit
+		if Table.M1 then
+			-- Get the invoker's combo count to determine which M1 hit this is
+			local InvokerEntity = Server.Modules["Entities"].Get(Invoker)
+			local comboCount = InvokerEntity and InvokerEntity.Combo or 1
+
+			-- Apply M1Stun state for all M1 hits except the 3rd
+			if comboCount ~= 3 then
+				Library.TimedState(Target.Stuns, "M1Stun", stunDuration)
+				print(`[M1 STUN] Applied M1Stun to {Target.Name} - Combo: {comboCount}, Duration: {stunDuration}s`)
+			else
+				print(`[M1 STUN] Skipped M1Stun for {Target.Name} - Combo 3 allows parrying`)
+			end
+		end
 	end
 
 	local function Parried()
+		print(`[PARRY DEBUG] ⚔️ PARRY EXECUTED - Invoker: {Invoker.Name}, Target (Parrier): {Target.Name}`)
+
 		-- Apply stun IMMEDIATELY when parry is detected
 		Library.StopAllAnims(Invoker)
 		Library.StopAllAnims(Target) -- Also stop target animations to ensure clean parry reaction
 		Library.TimedState(Invoker.Speeds, "ParrySpeedSet4", 1.5)
 		Library.TimedState(Invoker.Stuns, "ParryStun", 1.5)
+
+		print(`[PARRY DEBUG] - Applied ParryStun to {Invoker.Name} for 1.5s`)
 
 		-- Add knockback state and iframes for both characters
 		local knockbackDuration = 0.4
@@ -234,21 +322,24 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		Library.TimedState(Target.IFrames, "ParryIFrame", knockbackDuration)
 
 		-- Cancel run animation for both characters if they're running
-		local MainConfig = require(game.ReplicatedStorage.Modules.MainConfig)
-		local runAnimation = MainConfig.getRunAnimation()
-		if runAnimation then
-			Library.StopAnimation(Invoker, runAnimation, 0)
-			Library.StopAnimation(Target, runAnimation, 0)
+		-- Try to stop run animation (works for both players and NPCs)
+		local runAnimations = Replicated.Assets.Animations:FindFirstChild("Run")
+		if runAnimations then
+			for _, anim in runAnimations:GetChildren() do
+				Library.StopAnimation(Invoker, anim, 0)
+				Library.StopAnimation(Target, anim, 0)
+			end
 		end
 
-		-- Force walk speed for both characters during knockback
+		-- Force walk speed for both characters during knockback (default walkspeed is 16)
 		if Invoker:FindFirstChild("Humanoid") then
-			Invoker.Humanoid.WalkSpeed = MainConfig.HumanoidDefaults.WalkSpeed
+			Invoker.Humanoid.WalkSpeed = 16
 		end
 		if Target:FindFirstChild("Humanoid") then
-			Target.Humanoid.WalkSpeed = MainConfig.HumanoidDefaults.WalkSpeed
+			Target.Humanoid.WalkSpeed = 16
 		end
 
+		-- Execute parry callbacks for passives
 		if not Table.NoParryAnimation then
 			for _, v in script.Parent.Callbacks.Parry:GetChildren() do
 				if v:IsA("ModuleScript") and tData and table.find(tData.Passives, v.Name) then
@@ -257,71 +348,115 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					func(world, Player, TargetPlayer, Table)
 				end
 			end
-			Library.ResetCooldown(Target, "Parry")
-			Library.PlaySound(
-				Target,
-				Replicated.Assets.SFX.Parries:GetChildren()[Random.new():NextInteger(
-					1,
-					#Replicated.Assets.SFX.Parries:GetChildren()
-				)]
-			)
+		end
 
-			Invoker.Posture.Value += Table.Damage and Table.Damage / 5 or 1
-			Target.Posture.Value -= Table.Damage and Table.Damage / 4 or 1
+		-- Always execute core parry effects (VFX, knockback, animations, sounds)
+		Library.ResetCooldown(Target, "Parry")
+		Library.PlaySound(
+			Target,
+			Replicated.Assets.SFX.Parries:GetChildren()[Random.new():NextInteger(
+				1,
+				#Replicated.Assets.SFX.Parries:GetChildren()
+			)]
+		)
 
-			local Distance = (Target.HumanoidRootPart.Position - Invoker.HumanoidRootPart.Position).Magnitude
+		Invoker.Posture.Value += Table.Damage and Table.Damage / 5 or 1
+		Target.Posture.Value -= Table.Damage and Table.Damage / 4 or 1
 
-			local ParriedAnims = Replicated.Assets.Animations:FindFirstChild("Parried"):GetChildren()
+		local Distance = (Target.HumanoidRootPart.Position - Invoker.HumanoidRootPart.Position).Magnitude
 
-			local ParriedAnimation =
-				Library.PlayAnimation(Invoker, ParriedAnims[Random.new():NextInteger(1, #ParriedAnims)])
+		local ParriedAnims = Replicated.Assets.Animations:FindFirstChild("Parried"):GetChildren()
 
-			ParriedAnimation.Priority = Enum.AnimationPriority.Action2
+		local ParriedAnimation =
+			Library.PlayAnimation(Invoker, ParriedAnims[Random.new():NextInteger(1, #ParriedAnims)])
 
-			local ParriedAnimation2 =
-				Library.PlayAnimation(Target, ParriedAnims[Random.new():NextInteger(1, #ParriedAnims)])
+		ParriedAnimation.Priority = Enum.AnimationPriority.Action2
 
-			ParriedAnimation2.Priority = Enum.AnimationPriority.Action3
+		local ParriedAnimation2 =
+			Library.PlayAnimation(Target, ParriedAnims[Random.new():NextInteger(1, #ParriedAnims)])
 
-			Visuals.Ranged(
-				Target.HumanoidRootPart.Position,
-				300,
-				{ Module = "Base", Function = "Parry", Arguments = { Target, Invoker, Distance } }
-			)
+		ParriedAnimation2.Priority = Enum.AnimationPriority.Action3
 
-			-- Apply knockback to both characters (nudge them backwards with snappy easing)
-			local knockbackPower = 30 -- Moderate knockback for a "nudge" (increased from 25 for more impact)
+		Visuals.Ranged(
+			Target.HumanoidRootPart.Position,
+			300,
+			{ Module = "Base", Function = "Parry", Arguments = { Target, Invoker, Distance } }
+		)
 
-			-- Knockback for invoker (person who got parried) - push them away from target
-			local invokerDirection = (Invoker.HumanoidRootPart.Position - Target.HumanoidRootPart.Position).Unit
-			Server.Modules.ServerBvel.ParryKnockback(Invoker, invokerDirection, knockbackPower)
+		-- Apply knockback to both characters (nudge them backwards with snappy easing)
+		local knockbackPower = 30 -- Moderate knockback for a "nudge" (increased from 25 for more impact)
 
-			-- Knockback for target (person who parried) - push them away from invoker
-			local targetDirection = (Target.HumanoidRootPart.Position - Invoker.HumanoidRootPart.Position).Unit
-			Server.Modules.ServerBvel.ParryKnockback(Target, targetDirection, knockbackPower)
+		-- Knockback for invoker (person who got parried) - push them away from target
+		local invokerDirection = (Invoker.HumanoidRootPart.Position - Target.HumanoidRootPart.Position).Unit
+		Server.Modules.ServerBvel.ParryKnockback(Invoker, invokerDirection, knockbackPower)
 
-			-- Screen shake for the invoker (person who got parried)
+		-- Knockback for target (person who parried) - push them away from invoker
+		local targetDirection = (Target.HumanoidRootPart.Position - Invoker.HumanoidRootPart.Position).Unit
+		Server.Modules.ServerBvel.ParryKnockback(Target, targetDirection, knockbackPower)
+
+		-- Screen shake for the invoker (person who got parried)
+		if Player then
+			Server.Packets.Bvel.sendTo({ Character = Invoker, Name = "ParryShakeInvoker" }, Player)
+		end
+
+		-- Screen shake for the target (person who parried)
+		if TargetPlayer then
+			Server.Packets.Bvel.sendTo({ Character = Target, Name = "ParryShakeTarget" }, TargetPlayer)
+		end
+
+		if Table.M1 or Table.M2 then
 			if Player then
-				Server.Packets.Bvel.sendTo({ Character = Invoker, Name = "ParryShakeInvoker" }, Player)
-			end
-
-			-- Screen shake for the target (person who parried)
-			if TargetPlayer then
-				Server.Packets.Bvel.sendTo({ Character = Target, Name = "ParryShakeTarget" }, TargetPlayer)
-			end
-
-			if Table.M1 or Table.M2 then
-				if Player then
-					Server.Packets.Bvel.sendTo({ Character = Invoker, Name = "RemoveBvel" }, Player)
-				else
-				end
+				Server.Packets.Bvel.sendTo({ Character = Invoker, Name = "RemoveBvel" }, Player)
 			end
 		end
 	end
 
 	local function BlockBreak()
+		-- CLEAR ALL ACTIONS IMMEDIATELY (not just blocking)
+		-- Stop all blocking animations and states
+		Server.Library.StopAllAnims(Target)
+
+		-- Clear ALL action states (not just blocking)
+		if Target:FindFirstChild("Actions") then
+			local allActions = Server.Library.GetAllStates(Target.Actions)
+			for _, actionName in ipairs(allActions) do
+				Server.Library.RemoveState(Target.Actions, actionName)
+			end
+		end
+
+		-- Clear blocking states (Frames, Speeds)
+		if Target:FindFirstChild("Frames") then
+			Server.Library.RemoveState(Target.Frames, "Blocking")
+		end
+		if Target:FindFirstChild("Speeds") then
+			Server.Library.RemoveState(Target.Speeds, "BlockSpeed8")
+		end
+
+		-- For NPCs: Clear the state folder's "Blocking" state (used by MainConfig.InitiateBlock)
+		local isNPC = Target:GetAttribute("IsNPC")
+		if isNPC then
+			local npcStateFolder = Target:FindFirstChild("State")
+			if npcStateFolder and npcStateFolder:IsA("StringValue") then
+				-- Remove "Blocking" state from NPC state folder
+				Server.Library.RemoveState(npcStateFolder, "Blocking")
+			end
+		end
+
+		-- Clear BlockStates tracking for players (used by HandleBlockInput)
+		local Combat = Server.Modules.Combat
+		if Combat and Combat.ClearBlockState then
+			Combat.ClearBlockState(Target)
+		end
+
 		-- Use ECS BlockBar component instead of Posture.Value
-		local targetEntity = ref.get("player", TargetPlayer) or ref.get("mob", Target)
+		local targetEntity = nil
+		if TargetPlayer then
+			targetEntity = ref.get("player", TargetPlayer)
+		else
+			-- For NPCs, use RefManager to find entity
+			targetEntity = RefManager.entity.find(Target)
+		end
+
 		if targetEntity then
 			-- Reset BlockBar to 0 and set BlockBroken to true
 			world:set(targetEntity, comps.BlockBar, {Value = 0, MaxValue = 100})
@@ -340,8 +475,6 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			Target.Posture.Value = 0
 		end
 
-		Server.Library.StopAllAnims(Target)
-
 		local Animation = Library.PlayAnimation(
 			Target,
 			Replicated.Assets.Animations.Guardbreak:GetChildren()[Random.new():NextInteger(
@@ -357,6 +490,10 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		Server.Library.TimedState(Target.Speeds, "BlockBreakSpeedSet3", 3)
 		-- Stun in place - unable to do anything during guardbreak
 		Server.Library.TimedState(Target.Stuns, "GuardbreakStun", 3)
+
+		-- BlockBreakCooldown lasts same duration as stun (3 seconds)
+		-- Blocking is allowed again once the stun ends
+		Server.Library.TimedState(Target.Stuns, "BlockBreakCooldown", 3)
 
 		-- Play sound effect
 		local sound = Replicated.Assets.SFX.Extra.Guardbreak:Clone()
@@ -678,13 +815,23 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		Library.PlaySound(Target, BlockedSounds[Random.new():NextInteger(1, #BlockedSounds)])
 
 		-- Use ECS BlockBar component instead of Posture.Value
-		local targetEntity = ref.get("player", TargetPlayer) or ref.get("mob", Target)
+		local targetEntity = nil
+		if TargetPlayer then
+			targetEntity = ref.get("player", TargetPlayer)
+		else
+			-- For NPCs, use RefManager to find entity
+			targetEntity = RefManager.entity.find(Target)
+		end
+
 		if targetEntity then
 			local blockBar = world:get(targetEntity, comps.BlockBar)
 			if blockBar then
 				-- Increase block damage
 				blockBar.Value = blockBar.Value + (Table.Damage / 3)
 				world:set(targetEntity, comps.BlockBar, blockBar)
+
+				-- Set BBRegen to start regenerating after 2 seconds of not being hit
+				world:set(targetEntity, comps.BBRegen, {value = true, duration = 2})
 
 				-- Check if block is broken
 				if blockBar.Value >= blockBar.MaxValue then
@@ -753,7 +900,19 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	--	return
 	--end
 
-	if Library.StateCheck(Target.Frames, "Parry") and not Table.NoParry then
+	-- Parry detection
+	local hasParryFrame = Library.StateCheck(Target.Frames, "Parry")
+	local isParryable = not Table.NoParry
+	print(`[PARRY DEBUG] Damage check - Target: {Target.Name}, Invoker: {Invoker.Name}`)
+	print(`[PARRY DEBUG] - Has Parry Frame: {hasParryFrame}, Is Parryable: {isParryable}`)
+
+	if hasParryFrame then
+		local targetFrames = Library.GetAllStatesFromCharacter(Target).Frames or {}
+		print(`[PARRY DEBUG] - Target Frames: {table.concat(targetFrames, ", ")}`)
+	end
+
+	if hasParryFrame and isParryable then
+		print(`[PARRY DEBUG] - ✅ PARRY DETECTED! Calling Parried()`)
 		Parried()
 		return
 	end
@@ -807,8 +966,9 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		DealDamage()
 
 		-- Give NPCs brief immunity after taking damage to prevent spam
+		-- Reduced from 0.2 to 0.05 to allow faster combos with increased stun duration
 		if Target:GetAttribute("IsNPC") then
-			Library.TimedState(Target.IFrames, "IFrame", 0.2)
+			Library.TimedState(Target.IFrames, "IFrame", 0.05)
 		end
 	end
 

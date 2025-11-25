@@ -173,7 +173,7 @@ NetworkModule.EndPoint = function(Player, Data)
 					-- Calculate positions
 					local playerLookVector = Character.HumanoidRootPart.CFrame.LookVector
 					playerLookVector = Vector3.new(playerLookVector.X, 0, playerLookVector.Z).Unit
-					local spawnDistance = 5
+					local spawnDistance = 7.5
 					local spawnOffset = Vector3.new(0, -3, 0)
 					local targetPos = Character.HumanoidRootPart.Position
 						+ (playerLookVector * spawnDistance)

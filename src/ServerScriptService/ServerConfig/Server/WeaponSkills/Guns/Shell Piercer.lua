@@ -85,7 +85,7 @@ return function(Player, Data, Server)
 
 			local HitTargets = Hitbox.SpatialQuery(
 				Character,
-				Vector3.new(4, 8, 14), -- Same size as wall hitbox
+				Vector3.new(8, 12, 20), -- Increased hitbox size for better hit detection
 				Entity:GetCFrame() * CFrame.new(0, 0, -10), -- In front of player
 				false -- Don't visualize
 			)

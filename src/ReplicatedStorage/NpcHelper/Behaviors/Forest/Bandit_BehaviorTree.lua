@@ -152,28 +152,17 @@ return function(TREE)
 			end
 			local function close_distance_attack(TREE)
 				return FALLBACK({
-					--SEQUENCE {
-					--	Condition('enemy_has_state', "Attacking", "M1"),
-					--	Condition('block'),
-					--},
-
+					-- Priority 1: Dodge guardbreak attacks
 					SEQUENCE({
 						Condition("enemy_attacking_with", "Guardbreak"),
 						Condition("dash", "Back"),
 					}),
 
-					-- Removed automatic M1 blocking - smart_defense handles this with randomness now
-					-- FALLBACK({
-					-- 	SEQUENCE({
-					-- 		FALLBACK({ -- CONDITIONS TO BLOCK
-					-- 			Condition("enemy_has_state", "Attacking", "M1"),
-					-- 		}),
-					-- 		Condition("block"),
-					-- 	}),
-					-- 	Condition("stop_block"),
-					-- }),
+					-- Priority 2: Use smart defense system (parry/block/dodge with randomness)
+					Condition("smart_defense"),
 
-					Condition("stop_block"), -- Just ensure we stop blocking when not needed
+					-- Priority 3: Stop blocking if no defense needed
+					Condition("stop_block"),
 				})
 			end
 			return FALLBACK({

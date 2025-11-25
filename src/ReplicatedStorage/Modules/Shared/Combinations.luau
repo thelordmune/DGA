@@ -18,9 +18,10 @@ return {
     -- STONE ALCHEMY
     ["ZXC"] = "Cascade",              -- Z -> X -> C (falling rocks)
     ["XZXZ"] = "Rock Skewer",         -- X -> Z -> X -> Z (spikes from ground)
+    ["XXZC"] = "Branch",              -- X -> X -> Z -> C (converging rock paths)
+    ["CXZ"] = "Ground Decay",         -- C -> X -> Z (expanding craters)
 
     -- FLAME ALCHEMY
-    ["XCZ"] = "Cinder",               -- X -> C -> Z (spreading embers)
     ["CXZC"] = "Firestorm",           -- C -> X -> Z -> C (chaotic flames)
 
     ["X"] = "Deconstruct",            -- X (opposite of construct)

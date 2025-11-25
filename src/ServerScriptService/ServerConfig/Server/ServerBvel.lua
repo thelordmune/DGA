@@ -58,12 +58,14 @@ end
 
 -- Parry Knockback (snappier, eased knockback for parry reactions)
 ServerBvel.ParryKnockback = function(Character, direction, horizontalPower)
+    print(`[PARRY KNOCKBACK DEBUG] Called for {Character.Name} with power {horizontalPower}`)
     local TweenService = game:GetService("TweenService")
     local rootPart = Character.PrimaryPart
     if not rootPart then
         warn("[ServerBvel] No PrimaryPart found for ParryKnockback")
         return
     end
+    print(`[PARRY KNOCKBACK DEBUG] {Character.Name} - PrimaryPart found, applying knockback`)
 
     -- Clean up ALL existing BodyMovers and LinearVelocities that might interfere with knockback
     for _, child in ipairs(rootPart:GetChildren()) do

@@ -16,15 +16,26 @@ type Entity = {
 }
 
 NetworkModule.EndPoint = function(Player, Data)
+	if not Data or not Data.Name then
+		warn("[Bvel] EndPoint called with invalid data")
+		return
+	end
+
+	local func = NetworkModule[Data.Name]
+	if not func then
+		warn(`[Bvel] No function found for: {Data.Name}`)
+		return
+	end
+
 	if Data.Name == "BFKnockback" then
-		NetworkModule[Data.Name](Data.Character, Data.Direction, Data.HorizontalPower, Data.UpwardPower)
-	elseif Data.Name == "StoneLaunchVelocity" or Data.Name == "PincerForwardVelocity" or Data.Name == "RemovePincerForwardVelocity" then
-		NetworkModule[Data.Name](Data.Character, Data)
+		func(Data.Character, Data.Direction, Data.HorizontalPower, Data.UpwardPower)
+	elseif Data.Name == "StoneLaunchVelocity" or Data.Name == "PincerForwardVelocity" or Data.Name == "RemovePincerForwardVelocity" or Data.Name == "ISVelocity" or Data.Name == "RemoveISVelocity" then
+		func(Data.Character, Data)
 	elseif Data.Name == "NPCDash" then
 		-- Pass both direction name and velocity vector
-		NetworkModule[Data.Name](Data.Character, Data.Direction, Data.Velocity)
+		func(Data.Character, Data.Direction, Data.Velocity)
 	else
-		NetworkModule[Data.Name](Data.Character, Data.Targ)
+		func(Data.Character, Data.Targ)
 	end
 end
 
@@ -908,6 +919,76 @@ NetworkModule["GunsRunningBvel"] = function(Character)
 		lv:Destroy()
 		attachment:Destroy()
 	end)
+end
+
+-- Inverse Slide velocity (rightward movement with slight upward arc)
+NetworkModule["ISVelocity"] = function(Character, Data)
+	if not Character or not Character.PrimaryPart then
+		warn("ISVelocity: Character or PrimaryPart is nil")
+		return
+	end
+
+	local rootPart = Character.PrimaryPart
+	local attachment = rootPart:FindFirstChild("RootAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "RootAttachment"
+		attachment.Parent = rootPart
+	end
+
+	-- Create LinearVelocity
+	local lv = Instance.new("LinearVelocity")
+	lv.Name = "ISVelocity"
+	lv.MaxForce = math.huge
+	lv.Attachment0 = attachment
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	lv.Parent = rootPart
+
+	local startTime = os.clock()
+	local duration = Data.duration or 0.5 -- Default duration
+	local rightwardSpeed = Data.HorizontalPower or 25
+	local upwardSpeed = Data.UpwardPower or 8
+
+	-- Connection to update velocity every frame
+	local conn
+	conn = RunService.Heartbeat:Connect(function()
+		-- Calculate remaining duration (0 to 1)
+		local elapsed = os.clock() - startTime
+		local progress = math.clamp(1 - (elapsed / duration), 0, 1)
+
+		-- Quad EaseOut easing
+		local easedProgress = 1 - (1 - progress) ^ 2
+
+		-- Get current right direction (flattened to horizontal)
+		local rightVector = rootPart.CFrame.RightVector
+		rightVector = Vector3.new(rightVector.X, 0, rightVector.Z).Unit
+
+		-- Apply velocity with gradual decay
+		local currentRightSpeed = rightwardSpeed * easedProgress
+		local currentUpSpeed = upwardSpeed * easedProgress
+
+		lv.VectorVelocity = rightVector * currentRightSpeed + Vector3.new(0, currentUpSpeed, 0)
+	end)
+
+	-- Cleanup after duration seconds
+	task.delay(duration, function()
+		conn:Disconnect()
+		lv:Destroy()
+	end)
+end
+
+-- Remove Inverse Slide velocity
+NetworkModule["RemoveISVelocity"] = function(Character, Data)
+	if not Character or not Character.PrimaryPart then
+		return
+	end
+
+	local rootPart = Character.PrimaryPart
+	local lv = rootPart:FindFirstChild("ISVelocity")
+	if lv then
+		lv:Destroy()
+	end
 end
 
 -- Stone Lance launch velocity for targets

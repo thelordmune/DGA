@@ -10,16 +10,9 @@ local Debris = Utilities.Debris
 -- Variables
 local Player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local CameraShaker = require(Replicated.Modules._CameraShake)
-local CameraPresets = require(Replicated.Modules._CameraShake.CameraShakePresets)
+local CamShake = require(Replicated.Modules.Utils.CamShake)
 
 local Misc = {}
-
-local camShake = CameraShaker.new(Enum.RenderPriority.Camera.Value, function(shakeCf)
-	Camera.CFrame = Camera.CFrame * shakeCf
-end)
-
-camShake:Start()
 
 function Misc.DoEffect(Character: Model, FX: Part?)
 	local Effect = FX:Clone()
@@ -202,15 +195,14 @@ function Misc.AdrenalineFX(Character: Model)
 	end
 
 	-- Brief up-and-down screen shake for adrenaline level up
-	camShake:Start()
-	camShake:ShakeOnce(
-		13,  -- magnitude (moderate shake)
-		8,    -- roughness
-		0,    -- fadeInTime (instant)
-		0.4,  -- fadeOutTime (brief - 0.4 seconds)
-		Vector3.new(0.1, 0.8, 0.1), -- posInfluence (emphasize vertical Y movement for up-and-down)
-		Vector3.new(0.2, 0.2, 0.2)  -- rotInfluence (minimal rotation)
-	)
+	CamShake({
+		Magnitude = 15, -- High magnitude for adrenaline level up
+		Frequency = 28,
+		Damp = 0.006,
+		Influence = Vector3.new(0.3, 1.5, 0.3), -- Emphasize vertical movement
+		Location = Character.HumanoidRootPart.Position,
+		Falloff = 100
+	})
 
 	Debris:AddItem(ADVfx, 1)
 end

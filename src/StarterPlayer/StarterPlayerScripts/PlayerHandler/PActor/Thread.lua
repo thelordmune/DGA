@@ -66,7 +66,6 @@ ClientThread.Spawn = function()
 			-- Stop running if:
 			-- 1. Player has actions (except dodging) or is stunned
 			-- 2. Player is moving backward
-			-- Note: Removed the "MoveDirection.Magnitude <= 0" check - let the input handler control when to stop running
 			if Client.Running and ((Client.Library.StateCount(Client.Actions) and not Client.Library.StateCheck(Client.Actions, "Dodging")) or Client.Library.StateCount(Client.Stuns) or (MoveDirection.Magnitude > 0 and BackwardDot)) then
 				print("[Thread] 🛑 Auto-stopping running - Actions:", Client.Library.StateCount(Client.Actions), "Stuns:", Client.Library.StateCount(Client.Stuns), "BackwardDot:", BackwardDot)
 				Client.Modules['Movement'].Run(false)

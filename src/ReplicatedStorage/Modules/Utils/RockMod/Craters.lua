@@ -201,6 +201,14 @@ function Craters.Crater(AnchorPoint, Settings, State)
 			Part.Size = ((Vector3.new(25 / 15, 10 / 15, 20 / 15) * PartDistance) / (PartsPerLayer * 0.25))
 				* Settings.SizeMultiplier
 
+			-- Override material and material variant if provided in settings
+			if Settings.Material then
+				Part.Material = Settings.Material
+			end
+			if Settings.MaterialVariant then
+				Part.MaterialVariant = Settings.MaterialVariant
+			end
+
 			-- Adjust position offset based on surface normal
 			if surfaceNormal then
 				Part.Position = Part.Position - (Result.Normal * (Part.Size.Y / 3))

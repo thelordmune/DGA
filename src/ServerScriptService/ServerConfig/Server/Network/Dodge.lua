@@ -15,6 +15,24 @@ NetworkModule.EndPoint = function(Player, Data)
     local Character = Player.Character
     if not Character then return end
 
+    -- PREVENT OVERLAPPING ACTIONS: Cannot dash while performing any action
+    if Character:FindFirstChild("Actions") and Library.StateCount(Character.Actions) then
+        print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while performing action`)
+        return
+    end
+
+    -- Prevent dashing during M1 stun (true stun system)
+    if Character:FindFirstChild("Stuns") and Library.StateCheck(Character.Stuns, "M1Stun") then
+        print(`[DODGE BLOCKED] {Character.Name} - Cannot dash during M1Stun`)
+        return
+    end
+
+    -- Prevent dashing during any stun
+    if Character:FindFirstChild("Stuns") and Library.StateCount(Character.Stuns) then
+        print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while stunned`)
+        return
+    end
+
     -- Initialize charges if needed
     local charges = Character:GetAttribute("DodgeCharges")
     if charges == nil then
@@ -24,8 +42,8 @@ NetworkModule.EndPoint = function(Player, Data)
 
     -- Check if we can dodge
     if charges <= 0 then
-        if Library.CheckCooldown(Character, "Dodge") then 
-            return 
+        if Library.CheckCooldown(Character, "Dodge") then
+            return
         else
             -- Reset charges when cooldown expires
             charges = 2

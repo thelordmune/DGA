@@ -1,12 +1,16 @@
 --[[
     Determines if NPC should dash during combat
-    - Dash forward when far from attacker
+
+    TACTICAL DASHING ONLY - No random dashing!
+    - Dash to avoid incoming attacks (player is attacking)
     - Dash sideways when getting repeatedly hit (better angle)
-    - Dash back when pressured/low health
+    - Dash forward when too far to attack
+    - Dash back when low health and pressured
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Library = require(ReplicatedStorage.Modules.Library)
+local PlayerStateDetector = require(script.Parent.player_state_detector)
 
 return function(actor: Actor, mainConfig: table)
     local npc = actor:FindFirstChildOfClass("Model")
@@ -30,7 +34,7 @@ return function(actor: Actor, mainConfig: table)
 
     -- Check dash cooldown
     local lastDash = mainConfig.States.LastDash or 0
-    local dashCooldown = 3.0 -- Dash moderately - not too spammy
+    local dashCooldown = 2.5 -- Reduced from 3.0 for more responsive dashing
 
     if os.clock() - lastDash < dashCooldown then
         return false
@@ -54,43 +58,53 @@ return function(actor: Actor, mainConfig: table)
         mainConfig.States.LastHitTime = os.clock()
     end
 
-    -- Dash sideways if getting attacked (2+ hits in 3 seconds) - reduced from 3 for more reactive dodging
+    -- PRIORITY 1: Dash sideways if getting attacked (2+ hits in 3 seconds) - dodge to get better angle
     if mainConfig.States.HitsTaken >= 2 then
         mainConfig.States.HitsTaken = 0 -- Reset counter
         return true
     end
 
-    -- Dash forward if too far from target (can't reach to attack)
+    -- PRIORITY 2: Dash to avoid incoming attacks
+    local playerAction = PlayerStateDetector.GetCurrentAction(target)
+    if playerAction and distance < 15 then
+        -- Check if player is using a dangerous attack
+        local dangerousAttacks = {
+            "M11", "M12", "M13", "M14", -- M1 combos
+            "M2", "RunningAttack", "Critical",
+            "Needle Thrust", "Grand Cleave", -- Spear
+            "Shell Piercer", "Strategist Combination", -- Guns
+            "Downslam Kick", "Axe Kick", "Pincer Impact", -- Fist
+            "Gazelle Punch", "Dempsey Roll", -- Boxing
+            "Cascade", "Rock Skewer", "Cinder", "Firestorm", -- Alchemy
+        }
+
+        for _, attack in ipairs(dangerousAttacks) do
+            if playerAction == attack then
+                -- Dash to avoid the attack (40% chance to keep it tactical, not spammy)
+                if math.random() < 0.4 then
+                    return true
+                end
+            end
+        end
+    end
+
+    -- PRIORITY 3: Dash forward if too far from target (can't reach to attack)
     if distance > 12 and distance < 20 then
         return true
     end
 
-    -- Dash back if low health and too close
+    -- PRIORITY 4: Dash back if low health and too close
     local humanoid = npc:FindFirstChild("Humanoid")
     if humanoid and humanoid.Health / humanoid.MaxHealth < 0.3 and distance < 5 then
         return true
     end
 
-    -- NEW: Tactical dashing for better positioning (reduced chances - less spammy)
-    -- Dash to reposition if at awkward mid-range (15% chance)
-    if distance > 6 and distance < 10 and math.random() < 0.15 then
+    -- PRIORITY 5: Dash to reposition if player has hyper armor (avoid trading)
+    if PlayerStateDetector.HasHyperArmor(target) and distance < 10 then
         return true
     end
 
-    -- Dash to close distance if player is far (10% chance)
-    if distance > 15 and distance < 25 and math.random() < 0.1 then
-        return true
-    end
-
-    -- Dash to create space if too close (20% chance)
-    if distance < 4 and math.random() < 0.2 then
-        return true
-    end
-
-    -- Random tactical dash for unpredictability (5% chance when in combat range)
-    if distance > 5 and distance < 15 and math.random() < 0.05 then
-        return true
-    end
+    -- NO RANDOM DASHING - All dashing is now tactical and reactive!
 
     return false
 end

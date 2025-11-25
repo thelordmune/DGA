@@ -13,28 +13,28 @@ local Table = {
 
 	["Fist"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 22 / 60, 19 / 60, 22 / 60, 24 / 60, 21 / 60 },  -- Reduced by ~20% for faster combat
+		["Endlag"] = { 26 / 60, 23 / 60, 26 / 60, 28 / 60, 25 / 60 },  -- Increased for slower combat
 		["HitTimes"] = { 21.7 / 60, 21.7 / 60, 24.3 / 60, 26.9 / 60, 20.9 / 60 },  -- Adjusted for 1.15x speed
 		["SoundTimes"] = {},
-		["Speed"] = 1,  -- Reduced from 1.25 to 1.15 (slightly slower)
+		["Speed"] = 0.85,  -- Reduced from 1 to 0.85 for slower attacks
 		["Hitboxes"] = {
 			[1] = {
-				["HitboxSize"] = Vector3.new(3,5,5),
+				["HitboxSize"] = Vector3.new(7,9,9),  -- Increased for better hit detection
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[2] = {
-				["HitboxSize"] = Vector3.new(3,5,5),
+				["HitboxSize"] = Vector3.new(7,9,9),  -- Increased for better hit detection
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[3] = {
-				["HitboxSize"] = Vector3.new(3,5,5),
+				["HitboxSize"] = Vector3.new(7,9,9),  -- Increased for better hit detection
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[4] = {
-				["HitboxSize"] = Vector3.new(3,5,5),
+				["HitboxSize"] = Vector3.new(7,9,9),  -- Increased for better hit detection
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 		},
@@ -45,7 +45,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.65, -- Increased from 0.45 for heavier stuns
+			Stun = 0.7, -- Reduced from 1.2 to allow faster combat flow
 		},
 
 		["Critical"] = {
@@ -205,31 +205,32 @@ local Table = {
 
 	["Spear"] = {
 		["MaxCombo"] = 5,
-		["Endlag"] = { 26 / 60, 22 / 60, 26 / 60, 28 / 60, 24 / 60, 20/60 }, -- Reduced by ~20% for faster combat
+		["Endlag"] = { 30 / 60, 26 / 60, 30 / 60, 32 / 60, 28 / 60, 24/60 }, -- Increased for slower combat
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60, 25/60 },
 		["SoundTimes"] = {},
+		["Speed"] = 0.85,  -- Reduced for slower attacks
 		["Hitboxes"] = {
 			[1] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[2] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[3] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[4] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 			[5] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 		},
@@ -240,7 +241,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.55, -- Increased from 0.35 for heavier stuns
+			Stun = 0.7, -- Reduced from 1.2 to allow faster combat flow
 		},
 
 		["Critical"] = {
@@ -659,27 +660,28 @@ local Table = {
 	},
 	["Stone"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 26 / 60, 22 / 60, 26 / 60, 28 / 60, 24 / 60 }, -- Reduced by ~20% for faster combat
+		["Endlag"] = { 30 / 60, 26 / 60, 30 / 60, 32 / 60, 28 / 60 }, -- Increased for slower combat
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60 },
 		["SoundTimes"] = {},
+		["Speed"] = 0.85,  -- Reduced for slower attacks
 		["Hitboxes"] = {
 			[1] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[2] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[3] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 
 			[4] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 		},
@@ -690,7 +692,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.7,
+			Stun = 0.7, -- Reduced from 1.3 to allow faster combat flow
 		},
 
 		["Critical"] = {
@@ -745,30 +747,30 @@ local Table = {
 
 	["Guns"] = {
 		["MaxCombo"] = 3,
-		["Endlag"] = { 20 / 60, 24 / 60, 28 / 60, 32 / 60, 28 / 60 },  -- Reduced by ~30% for faster combat
+		["Endlag"] = { 24 / 60, 28 / 60, 32 / 60, 36 / 60, 32 / 60 },  -- Increased for slower combat
 		["HitTimes"] = { 16 / 60, 18 / 60, 22 / 60, 28 / 60, 32 / 60 },  -- Adjusted for 1.0x speed
 		["SoundTimes"] = {},
 		["Exception"] = true,
-		["Speed"] = 1.0,  -- Increased from 0.75 to 1.0 for faster gun combat
+		["Speed"] = 0.85,  -- Reduced for slower attacks
 		["Hitboxes"] = {
 			[1] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 			[2] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 			[3] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 			[4] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 			[5] = {
-				["HitboxSize"] = Vector3.new(5, 7, 8),
+				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
 				["HitboxOffset"] = CFrame.new(0, 0, -4),
 			},
 		},
@@ -778,7 +780,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.44,
+			Stun = 0.7, -- Reduced from 1.2 to allow faster combat flow
 			SFX = "Guns",
 		},
 		["LastTable"] = {

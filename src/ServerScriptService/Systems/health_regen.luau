@@ -23,7 +23,7 @@ local REGEN_IN_COMBAT = 0.5
 -- Accumulator for fractional health
 local healthAccumulators = {}
 
-local function health_regen(dt: number)
+local function health_regen(_world, dt: number)
     -- Only run on server
     if RunService:IsClient() then
         return

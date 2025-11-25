@@ -1,13 +1,19 @@
 return function(actor: Actor, mainConfig: table)
 	local npc = actor:FindFirstChildOfClass("Model")
 	if not npc then
-		return false 
+		return false
+	end
+
+	-- Skip if this is a combat NPC (ECS AI handles movement)
+	local ECSBridge = require(game.ReplicatedStorage.NpcHelper.ECSBridge)
+	if ECSBridge.isCombatNPC(npc) then
+		return false
 	end
 
 	local humanoid = npc:FindFirstChild("Humanoid")
 	local root = npc:FindFirstChild("HumanoidRootPart")
 	if not humanoid or not root then
-		return false 
+		return false
 	end
 
 	if not mainConfig.Idle.GoalPoint then 

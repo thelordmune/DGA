@@ -34,6 +34,7 @@ local RockMod = {
 			Part.Anchored = true
 			Part.CollisionGroup = "CharactersOff"
 			Part.Material = if Raycast.Material == Enum.Material.Grass  then Enum.Material.Sand else Raycast.Material
+			Part.MaterialVariant = Raycast.Instance.MaterialVariant -- Copy material variant from ground
 			Part.Transparency = Raycast.Instance.Transparency
 			Part.Color = if Raycast.Material == Enum.Material.Grass  then Color3.fromRGB(154, 143, 109)  else Raycast.Instance.Color
 			Part.CFrame = CFrame.new(Raycast.Position)

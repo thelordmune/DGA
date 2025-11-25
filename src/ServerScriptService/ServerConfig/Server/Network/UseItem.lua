@@ -127,6 +127,9 @@ NetworkModule.EndPoint = function(Player, Data)
                             end
                         end
 
+                        -- CANCEL SPRINT when using a skill
+                        Server.Packets.CancelSprint.sendTo({}, Player)
+
                         -- Store skill for InputEnded
                         heldWeaponSkills[Player] = {
                             skillName = usedItem.name,
@@ -160,6 +163,10 @@ NetworkModule.EndPoint = function(Player, Data)
                     -- Only execute on 'ended' input to prevent double-triggering
                     if Data.inputType == "ended" then
                         print("[UseItem] Executing skill on 'ended' input")
+
+                        -- CANCEL SPRINT when using a skill
+                        Server.Packets.CancelSprint.sendTo({}, Player)
+
                         skill(Player, Data, Server)
 
                         -- Apply 1 second soft cooldown on cast

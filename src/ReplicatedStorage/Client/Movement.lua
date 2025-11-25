@@ -226,12 +226,22 @@ Movement.Run = function(State)
 		Client.Library.AddState(Client.Speeds, "RunSpeedSet30")
 		print(`[Movement.Run] Speeds.Value after AddState: {Client.Speeds.Value}`)
 		Client.Running = true;
-		Client.RunAtk = true;
+		Client.RunAtk = false; -- Start as false, will be enabled after 1.5 seconds
 
+		-- Cancel any existing running attack delay
 		if Client["RunAtkDelay"] then
 			task.cancel(Client["RunAtkDelay"])
 			Client["RunAtkDelay"] = nil
 		end
+
+		-- Enable running attack after 1.5 seconds of continuous running
+		Client["RunAtkDelay"] = task.delay(1.5, function()
+			if Client.Running then
+				Client.RunAtk = true
+				print("[Movement.Run] ✅ Running attack enabled after 1.5 seconds")
+			end
+			Client["RunAtkDelay"] = nil
+		end)
 
 		if Equipped then
 			Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.WeaponRun);
@@ -263,12 +273,16 @@ Movement.Run = function(State)
 		Client.Library.RemoveState(Client.Speeds, "RunSpeedSet30")
 
 		if Client.RunAnim then Client.RunAnim:Stop(); Client.RunAnim = nil end;
-		
-		Client["RunAtkDelay"] = task.delay(.1,function()
-			Client.RunAtk = false
+
+		-- Cancel the running attack enable delay if it's still pending
+		if Client["RunAtkDelay"] then
+			task.cancel(Client["RunAtkDelay"])
 			Client["RunAtkDelay"] = nil
-		end)
-		
+		end
+
+		-- Disable running attack immediately when stopping
+		Client.RunAtk = false
+
 		for _, v : RBXScriptConnection in next, self.Connections do
 			v:Disconnect()
 		end

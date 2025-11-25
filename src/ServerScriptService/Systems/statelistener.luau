@@ -44,16 +44,22 @@ local function statelistener()
 					local newDuration = componentInstance.duration - deltaTime
 
 					if newDuration <= 0 then
-						-- Duration expired - set value to false
-						world:set(entity, component, Sift.Dictionary.mergeDeep(
-							componentInstance,
-							{
-								value = false,
-								duration = 0
-							}
-						))
+						-- Duration expired - REMOVE component instead of setting value to false
+						-- This ensures observers fire properly
+						world:remove(entity, component)
 
-						-- Observers will handle any notifications needed
+						-- Special handling for InCombat to notify client
+						if componentName == "InCombat" then
+							local playerComponent = world:get(entity, comps.Player)
+							if playerComponent then
+								local Visuals = require(game:GetService("ReplicatedStorage").Modules.Visuals)
+								Visuals.FireClient(playerComponent, {
+									Module = "Base",
+									Function = "InCombat",
+									Arguments = { playerComponent, false },
+								})
+							end
+						end
 					else
 						-- Update duration
 						world:set(entity, component, Sift.Dictionary.mergeDeep(

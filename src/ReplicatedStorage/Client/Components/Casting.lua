@@ -401,6 +401,10 @@ return function(Target, props)
 			return peek(confirmed)
 		end,
 
+		-- Expose state values for external UI
+		keySequence = keySequence,
+		isCasting = isCasting,
+
 		ShowCooldownFeedback = function()
 			-- Tween all gaussians to orange to indicate cooldown
 			local TweenService = game:GetService("TweenService")

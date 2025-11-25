@@ -370,7 +370,7 @@ local function loadAlchemySkills()
 		if networkPath then
 			networkPath = networkPath:FindFirstChild("Network")
 			if networkPath then
-				-- Alchemy skills: Cascade, Cinder, Firestorm, Rock Skewer, Construct, Deconstruct, AlchemicAssault, Stone Lance
+				-- Alchemy skills: Cascade, Cinder, Firestorm, Rock Skewer, Construct, Deconstruct, AlchemicAssault, Stone Lance, Branch
 				local alchemySkills = {
 					"Cascade",
 					"Cinder",
@@ -380,6 +380,8 @@ local function loadAlchemySkills()
 					"Deconstruct",
 					"AlchemicAssault",
 					"Stone Lance",
+					"Branch",
+					"Ground Decay",
 				}
 
 				for _, skillName in alchemySkills do
@@ -672,7 +674,11 @@ function MainConfig.InitiateBlock(ShouldBlock: boolean)
 		return
 	end
 
+	-- Check if NPC can block (not stunned, not block broken, not in block break cooldown)
 	local canBlock = not Library.StateCheck(npcStates, "Stunned")
+		and not Library.StateCheck(npc.Stuns, "BlockBreakStun")
+		and not Library.StateCheck(npc.Stuns, "BlockBreakCooldown")
+
 	ShouldBlock = if canBlock then ShouldBlock else false
 
 	-- Update blocking state

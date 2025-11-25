@@ -27,6 +27,11 @@ CombatProperties = {
     },
     DashProperty = nil, -- nil | "Forward" | "Back" | "Side"
     SkillPriority = 0, -- Higher = more likely to use (for AI decision-making)
+
+    -- NEW: Tactical properties for NPC decision-making
+    IsGuardBreak = false, -- Can break through blocks
+    IsComboExtender = false, -- Works well on ragdolled/knocked targets
+    HasHyperArmor = false, -- Has hyper armor during execution
 }
 ]]
 
@@ -46,6 +51,9 @@ CombatProperties["M1"] = {
     },
     DashProperty = nil,
     SkillPriority = 10, -- High priority - bread and butter
+    IsGuardBreak = false,
+    IsComboExtender = true, -- M1s work great on ragdolled targets
+    HasHyperArmor = false,
 }
 
 CombatProperties["M2"] = {
@@ -63,6 +71,9 @@ CombatProperties["M2"] = {
     },
     DashProperty = nil,
     SkillPriority = 7, -- Medium-high priority
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["Block"] = {
@@ -80,6 +91,9 @@ CombatProperties["Block"] = {
     },
     DashProperty = nil,
     SkillPriority = 15, -- Very high when enemy is attacking
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["Critical"] = {
@@ -97,6 +111,9 @@ CombatProperties["Critical"] = {
     },
     DashProperty = "Forward",
     SkillPriority = 12, -- High priority special attack
+    IsGuardBreak = true, -- Critical breaks blocks
+    IsComboExtender = true, -- Works great on ragdolled targets
+    HasHyperArmor = false,
 }
 
 -- MOVEMENT
@@ -115,6 +132,9 @@ CombatProperties["Dash"] = {
     },
     DashProperty = "Forward",
     SkillPriority = 8, -- Medium priority for repositioning
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 -- SPEAR SKILLS
@@ -133,6 +153,9 @@ CombatProperties["Needle Thrust"] = {
     },
     DashProperty = "Forward",
     SkillPriority = 11, -- High priority gap closer
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = true, -- Has hyper armor during dash
 }
 
 CombatProperties["Grand Cleave"] = {
@@ -150,6 +173,9 @@ CombatProperties["Grand Cleave"] = {
     },
     DashProperty = nil,
     SkillPriority = 13, -- Very high priority - powerful combo
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = true, -- Has hyper armor during spin
 }
 
 -- GUN SKILLS
@@ -168,6 +194,9 @@ CombatProperties["Shell Piercer"] = {
     },
     DashProperty = nil,
     SkillPriority = 14, -- Very high priority ranged attack
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["Strategist Combination"] = {
@@ -185,6 +214,9 @@ CombatProperties["Strategist Combination"] = {
     },
     DashProperty = nil,
     SkillPriority = 15, -- Very high priority - complex combo
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 -- FIST SKILLS
@@ -203,6 +235,9 @@ CombatProperties["Downslam Kick"] = {
     },
     DashProperty = nil,
     SkillPriority = 12, -- High priority close combat
+    IsGuardBreak = false,
+    IsComboExtender = true, -- Great for juggling ragdolled targets
+    HasHyperArmor = false,
 }
 
 CombatProperties["Axe Kick"] = {
@@ -220,6 +255,9 @@ CombatProperties["Axe Kick"] = {
     },
     DashProperty = nil,
     SkillPriority = 11, -- High priority - guard break
+    IsGuardBreak = true, -- Axe Kick breaks blocks
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["Pincer Impact"] = {
@@ -237,6 +275,9 @@ CombatProperties["Pincer Impact"] = {
     },
     DashProperty = nil,
     SkillPriority = 13, -- High priority - powerful combo skill
+    IsGuardBreak = false,
+    IsComboExtender = true, -- Excellent for ragdolled targets
+    HasHyperArmor = true, -- Has hyper armor during execution
 }
 
 -- BOXING SKILLS
@@ -255,6 +296,9 @@ CombatProperties["Jab Rush"] = {
     },
     DashProperty = nil,
     SkillPriority = 10, -- Medium-high priority
+    IsGuardBreak = false,
+    IsComboExtender = true, -- Good for comboing ragdolled targets
+    HasHyperArmor = false,
 }
 
 CombatProperties["Gazelle Punch"] = {
@@ -272,6 +316,9 @@ CombatProperties["Gazelle Punch"] = {
     },
     DashProperty = "Forward",
     SkillPriority = 11, -- High priority gap closer
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = true, -- Has hyper armor during dash
 }
 
 CombatProperties["Dempsey Roll"] = {
@@ -289,6 +336,9 @@ CombatProperties["Dempsey Roll"] = {
     },
     DashProperty = nil,
     SkillPriority = 14, -- Very high priority - ultimate move
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = true, -- Has hyper armor during roll
 }
 
 -- BRAWLER SKILLS
@@ -307,6 +357,9 @@ CombatProperties["Rising Wind"] = {
     },
     DashProperty = nil,
     SkillPriority = 12, -- High priority
+    IsGuardBreak = false,
+    IsComboExtender = true, -- Good for juggling
+    HasHyperArmor = false,
 }
 
 -- ALCHEMY SKILLS - BASIC
@@ -325,6 +378,9 @@ CombatProperties["Construct"] = {
     },
     DashProperty = nil,
     SkillPriority = 9, -- Medium priority - defensive wall
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["Sky Arc"] = {
@@ -342,6 +398,9 @@ CombatProperties["Sky Arc"] = {
     },
     DashProperty = nil,
     SkillPriority = 8, -- Medium priority - mobility/utility
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["Deconstruct"] = {
@@ -359,6 +418,9 @@ CombatProperties["Deconstruct"] = {
     },
     DashProperty = nil,
     SkillPriority = 10, -- Medium-high priority
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["AlchemicAssault"] = {
@@ -376,6 +438,9 @@ CombatProperties["AlchemicAssault"] = {
     },
     DashProperty = nil,
     SkillPriority = 13, -- High priority - complex attack
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 -- STONE ALCHEMY
@@ -394,6 +459,9 @@ CombatProperties["Cascade"] = {
     },
     DashProperty = nil,
     SkillPriority = 12, -- High priority area attack
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["Rock Skewer"] = {
@@ -411,6 +479,9 @@ CombatProperties["Rock Skewer"] = {
     },
     DashProperty = nil,
     SkillPriority = 11, -- High priority ground attack
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["Stone Lance"] = {
@@ -428,6 +499,49 @@ CombatProperties["Stone Lance"] = {
     },
     DashProperty = nil,
     SkillPriority = 13, -- High priority - targets nearest enemy with stone spike
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
+}
+
+CombatProperties["Branch"] = {
+    SkillType = "Offensive",
+    RangeType = "Medium",
+    TargetingProperties = {
+        MinRange = 10,
+        MaxRange = 50,
+        OptimalRange = 25,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = true,
+        FollowupWindow = 0.8,
+    },
+    DashProperty = nil,
+    SkillPriority = 12, -- High priority - converging rock paths
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
+}
+
+CombatProperties["Ground Decay"] = {
+    SkillType = "Offensive",
+    RangeType = "Close",
+    TargetingProperties = {
+        MinRange = 0,
+        MaxRange = 20,
+        OptimalRange = 10,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = true,
+        FollowupWindow = 1.0,
+    },
+    DashProperty = nil,
+    SkillPriority = 11, -- High priority - AOE expanding craters
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 -- FLAME ALCHEMY
@@ -446,6 +560,9 @@ CombatProperties["Cinder"] = {
     },
     DashProperty = nil,
     SkillPriority = 13, -- High priority ranged
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 CombatProperties["Firestorm"] = {
@@ -463,6 +580,9 @@ CombatProperties["Firestorm"] = {
     },
     DashProperty = nil,
     SkillPriority = 14, -- Very high priority - powerful AOE
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
 }
 
 return CombatProperties

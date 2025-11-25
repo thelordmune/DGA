@@ -674,18 +674,25 @@ function BaseCamera:UpdateMouseBehavior()
 			CameraUtils.setRotationTypeOverride(Enum.RotationType.CameraRelative)
 			CameraUtils.setMouseBehaviorOverride(Enum.MouseBehavior.LockCenter)
 		elseif self.inMouseLockedMode then
-			-- Shift lock (third person): check if sprinting
-			-- If sprinting: use MovementRelative (character rotates with camera)
-			-- If not sprinting: use CameraRelative (character doesn't rotate with camera)
+			-- Shift lock (third person): check if sprinting AND not performing actions
+			-- If sprinting without actions: use MovementRelative (character rotates with camera)
+			-- If not sprinting OR performing actions: use CameraRelative (character doesn't rotate with camera)
 			local isSprinting = false
+			local isPerformingAction = false
 			local success, Client = pcall(function()
 				return require(ReplicatedStorage:WaitForChild("Client"))
 			end)
 			if success and Client then
 				isSprinting = Client.Running == true
+				-- Check if performing any action (attacking, blocking, skills, etc.)
+				if Client.Character and Client.Character:FindFirstChild("Actions") then
+					-- StateCount returns a boolean, not a number
+					isPerformingAction = Client.Library.StateCount(Client.Character.Actions)
+				end
 			end
 
-			if isSprinting then
+			-- Only use MovementRelative if sprinting AND not performing any actions
+			if isSprinting and not isPerformingAction then
 				CameraUtils.setRotationTypeOverride(Enum.RotationType.MovementRelative)
 			else
 				CameraUtils.setRotationTypeOverride(Enum.RotationType.CameraRelative)

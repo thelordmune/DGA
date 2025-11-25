@@ -7,31 +7,49 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
       - name: Send Discord Notification
         run: |
           DISCORD_WEBHOOK="https://discordapp.com/api/webhooks/1419064748238180423/rQzkMO5ZErFf5YfZbnspMth8uxWm2rZEsY7U2pd6dTop-yn7zXExeVxO-wWAT7wXUiA0"
-          
+
           # Get the full commit message and preserve newlines
           FULL_MESSAGE="${{ github.event.head_commit.message }}"
-          
+
           # Split into summary (first line) and description (rest)
           SUMMARY=$(echo "$FULL_MESSAGE" | head -n1)
           DESCRIPTION=$(echo "$FULL_MESSAGE" | tail -n +2 | sed '/^$/d')
-          
+
+          # Get stats for lines added/removed
+          STATS=$(git diff --shortstat HEAD~1 HEAD 2>/dev/null || echo "")
+
+          # Extract numbers from stats (format: "X files changed, Y insertions(+), Z deletions(-)")
+          if [ -n "$STATS" ]; then
+            FILES_CHANGED=$(echo "$STATS" | grep -oP '\d+(?= file)' || echo "0")
+            INSERTIONS=$(echo "$STATS" | grep -oP '\d+(?= insertion)' || echo "0")
+            DELETIONS=$(echo "$STATS" | grep -oP '\d+(?= deletion)' || echo "0")
+            STATS_LINE="\\n**Stats:** ${FILES_CHANGED} files changed, +${INSERTIONS} lines added, -${DELETIONS} lines removed"
+          else
+            STATS_LINE=""
+          fi
+
           # Format the message with proper newline handling
           if [ -n "$DESCRIPTION" ]; then
             # Properly escape the description for JSON
             ESCAPED_DESCRIPTION=$(printf '%s' "$DESCRIPTION" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
             ESCAPED_SUMMARY=$(printf '%s' "$SUMMARY" | sed 's/"/\\"/g')
-            FORMATTED_MESSAGE="**${ESCAPED_SUMMARY}**\\n${ESCAPED_DESCRIPTION}"
+            FORMATTED_MESSAGE="**${ESCAPED_SUMMARY}**\\n${ESCAPED_DESCRIPTION}${STATS_LINE}"
           else
             ESCAPED_SUMMARY=$(printf '%s' "$SUMMARY" | sed 's/"/\\"/g')
-            FORMATTED_MESSAGE="**${ESCAPED_SUMMARY}**"
+            FORMATTED_MESSAGE="**${ESCAPED_SUMMARY}**${STATS_LINE}"
           fi
-          
+
           # Create JSON payload manually with proper escaping
           echo "{\"content\": \"${FORMATTED_MESSAGE}\"}" > payload.json
-          
+
           # Send the webhook
           curl -H "Content-Type: application/json" \
                -X POST \

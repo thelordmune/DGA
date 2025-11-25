@@ -168,6 +168,10 @@ return function(Target)
 
 	-- CONTINUATION FROM PART 2 - Main Holder Frame
 
+	-- Key sequence display state (will be set by casting component)
+	local keySequenceText = scope:Value("")
+	local isCasting = scope:Value(false)
+
 	local holderFrame = scope:New "Frame" {
 		Parent = Target,
 		Name = "Holder",
@@ -510,6 +514,34 @@ return function(Target)
 
 	-- Show the casting UI in idle state immediately (replaces the health circle)
 	showCastingCircle:set(true) -- Hide the health circle
+
+	-- Create key sequence display above the HUD
+	local keySequenceDisplay = scope:New "TextLabel" {
+		Parent = Target,
+		Name = "KeySequenceDisplay",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromScale(0.5, 0.88), -- Above the HUD (HUD is at bottom)
+		AnchorPoint = Vector2.new(0.5, 1),
+		Size = UDim2.fromOffset(400, 60),
+		Font = Enum.Font.GothamBold,
+		Text = scope:Computed(function(use)
+			return castingAPI.keySequence and use(castingAPI.keySequence) or ""
+		end),
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextSize = 48,
+		TextStrokeTransparency = 0.3,
+		TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+		TextTransparency = scope:Spring(
+			scope:Computed(function(use)
+				-- Only show when casting
+				local casting = castingAPI.isCasting and use(castingAPI.isCasting) or false
+				return casting and 0 or 1
+			end),
+			25,
+			1
+		),
+		ZIndex = 10,
+	}
 
 	-- Cleanup function to disconnect rotation connection and clean up casting component
 	local cleanupRotation = function()

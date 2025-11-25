@@ -95,7 +95,6 @@ local components: {
     QuestItemCollected: Entity<{npcName: string, questName: string, itemName: string, collectedTime: number}>,
     QuestMarker: Entity<{markerType: string, npcName: string, questName: string?}>,
 
-    -- ECS State Management (replaces StringValue JSON arrays)
     StateActions: Entity<{string}>,
     StateStuns: Entity<{string}>,
     StateIFrames: Entity<{string}>,
@@ -111,6 +110,103 @@ local components: {
 
     -- ECS Cooldown Management (replaces table-based cooldowns)
     Cooldowns: Entity<{[string]: number}>,
+
+    -- AI/Movement Components (for performant ECS-based AI)
+    Locomotion: Entity<{ dir: Vector3, speed: number }>,
+    AIState: Entity<{
+        state: string,   -- "wander" | "chase" | "flee" | "circle" | "idle"
+        t: number,       -- time spent in state
+        dur: number,     -- how long to stay in state (seconds)
+        circleSign: number, -- +1 / -1 for circle direction
+    }>,
+
+    -- NPC Combat AI Components
+    NPCTarget: Entity<Model>, -- Current enemy target
+    NPCCombatState: Entity<{
+        isPassive: boolean,
+        isAggressive: boolean,
+        hasBeenAttacked: boolean,
+        lastAttackTime: number,
+        lastDefenseTime: number,
+        lastActionTime: number,
+        justParried: boolean,
+        parryTime: number,
+        lastM1Time: number,
+        lastSkillUsed: string?,
+        hitsTaken: number,
+    }>,
+    NPCSkillScoring: Entity<{
+        bestSkill: string?,
+        bestScore: number,
+        lastScoringTime: number,
+    }>,
+    NPCGuardPattern: Entity<{
+        enabled: boolean,
+        currentState: string, -- "DEFENSIVE" | "COUNTER" | "PRESSURE" | "SPECIAL" | "RESET"
+        stateStartTime: number,
+        comboCount: number,
+    }>,
+    NPCPathfinding: Entity<{
+        isActive: boolean,
+        pathState: string, -- "Direct" | "Pathfind"
+        stateId: number,
+        waypoints: {Vector3}?,
+        currentWaypointIndex: number,
+        lastRecomputeTime: number,
+    }>,
+    NPCMovementPattern: Entity<{
+        current: string, -- "Direct" | "Strafe" | "SideApproach" | "CircleStrafe" | "ZigZag"
+        lastChanged: number,
+        duration: number,
+        strafeDirection: Vector3?,
+        sideDirection: string?, -- "Left" | "Right"
+        circleDirection: number, -- 1 or -1
+        zigzagDirection: number, -- 1 or -1
+        zigzagTimer: number,
+    }>,
+    NPCWander: Entity<{
+        center: Vector3,
+        radius: number,
+        nextMove: number,
+        swayX: number,
+        swayY: number,
+        noiseOffset: number,
+        currentDirection: Vector3,
+    }>,
+    NPCConfig: Entity<{
+        captureDistance: number,
+        letGoDistance: number,
+        runAwayHP: number,
+        safeRange: number,
+        canStrafe: boolean,
+        canWander: boolean,
+        maxStrafeRadius: number,
+        maxAlignmentDot: number,
+        walkSpeed: number,
+        runSpeed: number,
+        jumpPower: number,
+        smoothingAlpha: number,
+    }>,
+    NPCSpawnData: Entity<{
+        spawnPosition: Vector3,
+        maxWanderDistance: number,
+    }>,
+    Traits: Entity<{
+        baseSpeedMul: number,
+        chaseWeight: number,
+        fleeWeight: number,
+        circleWeight: number,
+        jumpWeight: number,
+        fleeDistance: number,
+        preferDistance: number,
+        detectRange: number,
+        loseSightRange: number,
+    }>,
+    Wander: Entity<{ center: Vector3, radius: number, nextMove: number }>,
+    Size: Entity<number>,
+    Hitbox: Entity<Part>,
+    CombatNPC: Entity<boolean>, -- Marks NPCs that should use ECS AI for combat
+    BehaviorTreeOverride: Entity<boolean>, -- Allows behavior tree to override ECS AI
 } =
 	{
 		Character = world:component(),
@@ -216,6 +312,27 @@ local components: {
 
         -- ECS Cooldown Management
         Cooldowns = world:component(),
+
+        -- AI/Movement Components
+        Locomotion = world:component(),
+        AIState = world:component(),
+        Traits = world:component(),
+        Wander = world:component(),
+        Size = world:component(),
+        Hitbox = world:component(),
+        CombatNPC = world:component(),
+        BehaviorTreeOverride = world:component(),
+
+        -- NPC Combat AI Components
+        NPCTarget = world:component(),
+        NPCCombatState = world:component(),
+        NPCSkillScoring = world:component(),
+        NPCGuardPattern = world:component(),
+        NPCPathfinding = world:component(),
+        NPCMovementPattern = world:component(),
+        NPCWander = world:component(),
+        NPCConfig = world:component(),
+        NPCSpawnData = world:component(),
 	}
 
     for name, component in components :: {[string]: jecs.Entity} do 

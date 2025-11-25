@@ -1,0 +1,265 @@
+--!strict
+--[[
+    NPC Movement System (ECS)
+    
+    Handles all NPC movement:
+    - Wander (noise-based)
+    - Chase target (direct + strafe patterns)
+    - Run away (when low health)
+    - Walk back to spawn
+    - Run/walk speed switching
+    - Smooth movement interpolation
+    
+    Strafe patterns: Direct, Strafe, SideApproach, CircleStrafe, ZigZag
+    Pattern weights: Direct(1), Strafe(8), SideApproach(4), CircleStrafe(15), ZigZag(2)
+    
+    Runs at ~30 Hz
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
+
+-- Cache queries
+local combatNPCQuery = world:query(comps.Character, comps.CombatNPC, comps.NPCTarget, comps.NPCConfig, comps.NPCMovementPattern, comps.NPCWander, comps.NPCSpawnData, comps.Hitbox, comps.Health)
+
+-- Constants
+local RUN_DISTANCE_THRESHOLD = 15
+local STOP_DISTANCE = 3
+local PATTERN_UPDATE_INTERVAL = 0.067
+
+-- Pattern weights
+local PATTERN_WEIGHTS = {
+	{name = "Direct", weight = 1},
+	{name = "Strafe", weight = 8},
+	{name = "SideApproach", weight = 4},
+	{name = "CircleStrafe", weight = 15},
+	{name = "ZigZag", weight = 2},
+}
+
+-- Calculate total weight
+local totalWeight = 0
+for _, pattern in PATTERN_WEIGHTS do
+	totalWeight += pattern.weight
+end
+
+-- Select random pattern based on weights
+local function selectRandomPattern(): string
+	local random = math.random() * totalWeight
+	local currentWeight = 0
+	
+	for _, pattern in PATTERN_WEIGHTS do
+		currentWeight += pattern.weight
+		if random <= currentWeight then
+			return pattern.name
+		end
+	end
+	
+	return "Direct"
+end
+
+-- Update movement pattern
+local function updateMovementPattern(
+	pattern: any,
+	config: any,
+	npcPos: Vector3,
+	targetPos: Vector3
+): string
+	-- Can't strafe
+	if not config.canStrafe then
+		return "Direct"
+	end
+	
+	-- Too far to strafe
+	local distance = (targetPos - npcPos).Magnitude
+	if distance > config.maxStrafeRadius then
+		return "Direct"
+	end
+	
+	-- Check alignment (if player is facing NPC)
+	local toNpc = (npcPos - targetPos).Unit
+	-- We don't have target's look vector in ECS, so skip alignment check for now
+	-- This is a simplification
+	
+	-- Check if pattern needs update
+	local now = os.clock()
+	if not pattern.current or (now - pattern.lastChanged) > pattern.duration then
+		-- Select new pattern
+		pattern.current = selectRandomPattern()
+		pattern.lastChanged = now
+		pattern.duration = math.random(2, 5) -- 2-5 seconds per pattern
+		
+		-- Initialize pattern-specific data
+		if pattern.current == "SideApproach" then
+			pattern.sideDirection = math.random() > 0.5 and "Left" or "Right"
+		elseif pattern.current == "CircleStrafe" then
+			pattern.circleDirection = math.random() > 0.5 and 1 or -1
+		elseif pattern.current == "ZigZag" then
+			pattern.zigzagDirection = math.random() > 0.5 and 1 or -1
+			pattern.zigzagTimer = now
+		end
+	end
+	
+	-- Update zigzag timer
+	if pattern.current == "ZigZag" then
+		if (now - pattern.zigzagTimer) > 0.5 then
+			pattern.zigzagDirection *= -1
+			pattern.zigzagTimer = now
+		end
+	end
+	
+	return pattern.current
+end
+
+-- Calculate movement direction based on pattern
+local function calculateMovementDirection(
+	patternName: string,
+	pattern: any,
+	npcPos: Vector3,
+	targetPos: Vector3
+): Vector3
+	local toTarget = (targetPos - npcPos).Unit
+	local rightVector = Vector3.new(-toTarget.Z, 0, toTarget.X)
+	
+	if patternName == "Direct" then
+		return toTarget
+		
+	elseif patternName == "Strafe" then
+		local strafeDir = pattern.strafeDirection or (math.random() > 0.5 and rightVector or -rightVector)
+		pattern.strafeDirection = strafeDir
+		return (toTarget * 0.5) + (strafeDir * 0.8)
+		
+	elseif patternName == "SideApproach" then
+		local sideDir = pattern.sideDirection == "Right" and rightVector or -rightVector
+		return (toTarget * 0.6) + (sideDir * 0.7)
+		
+	elseif patternName == "CircleStrafe" then
+		local circleVector = rightVector * pattern.circleDirection
+		return (toTarget * 0.4) + (circleVector * 0.8)
+		
+	elseif patternName == "ZigZag" then
+		local sideVector = rightVector * pattern.zigzagDirection
+		return (toTarget * 0.7) + (sideVector * 0.6)
+	end
+	
+	return toTarget
+end
+
+-- Wander using noise
+local function calculateWanderDirection(wander: any, spawnData: any, npcPos: Vector3, dt: number): Vector3
+	-- Update noise
+	wander.noiseOffset += dt * 0.2 -- Frequency
+
+	-- Generate noise values
+	local swayX = math.noise(wander.noiseOffset, 0) * 2 -- Amplitude
+	local swayY = math.noise(0, wander.noiseOffset) * 2
+
+	-- Create direction from noise
+	local direction = Vector3.new(swayX, 0, swayY).Unit
+
+	-- Calculate distance from spawn
+	local toSpawn = spawnData.spawnPosition - npcPos
+	local distanceFromSpawn = toSpawn.Magnitude
+
+	-- Lerp toward spawn when near max distance
+	if distanceFromSpawn > spawnData.maxWanderDistance * 0.8 then
+		local weight = math.clamp(distanceFromSpawn / spawnData.maxWanderDistance, 0, 1)
+		local toSpawnDirection = toSpawn.Unit
+		direction = direction:Lerp(toSpawnDirection, weight)
+	end
+
+	return direction
+end
+
+-- Main system function
+return function(dt: number)
+	for entity, character, _, target, config, pattern, wander, spawnData, hitbox, health in combatNPCQuery do
+		local humanoid = character:FindFirstChild("Humanoid")
+		if not humanoid then continue end
+
+		-- Don't move if performing action
+		if StateManager.StateCount(character, "Actions") then
+			humanoid:Move(Vector3.zero)
+			continue
+		end
+
+		-- Don't move if stunned
+		if StateManager.StateCount(character, "Stuns") then
+			humanoid:Move(Vector3.zero)
+			continue
+		end
+
+		local targetDirection = Vector3.zero
+		local shouldRun = false
+
+		-- Determine movement mode
+		if target and target:IsDescendantOf(workspace) then
+			-- Has target - chase
+			local targetRoot = target:FindFirstChild("HumanoidRootPart")
+			if targetRoot then
+				local distance = (targetRoot.Position - hitbox.Position).Magnitude
+
+				-- Check if low health - run away
+				local healthPercent = health.current / (health.max or 100)
+				if healthPercent < (config.runAwayHP or 0.2) then
+					-- Run away
+					targetDirection = (hitbox.Position - targetRoot.Position).Unit
+					shouldRun = true
+				elseif distance > STOP_DISTANCE then
+					-- Chase target
+					local patternName = updateMovementPattern(pattern, config, hitbox.Position, targetRoot.Position)
+					targetDirection = calculateMovementDirection(patternName, pattern, hitbox.Position, targetRoot.Position)
+
+					-- Run if far
+					if distance > RUN_DISTANCE_THRESHOLD then
+						shouldRun = true
+					end
+
+					-- Update pattern component
+					world:set(entity, comps.NPCMovementPattern, pattern)
+				else
+					-- Too close - stop
+					targetDirection = Vector3.zero
+				end
+			end
+		else
+			-- No target - wander or return to spawn
+			local distanceFromSpawn = (hitbox.Position - spawnData.spawnPosition).Magnitude
+
+			if distanceFromSpawn > spawnData.maxWanderDistance then
+				-- Too far - walk back to spawn
+				targetDirection = (spawnData.spawnPosition - hitbox.Position).Unit
+			elseif config.canWander then
+				-- Wander
+				targetDirection = calculateWanderDirection(wander, spawnData, hitbox.Position, dt)
+
+				-- Update wander component
+				world:set(entity, comps.NPCWander, wander)
+			else
+				-- Idle at spawn
+				targetDirection = Vector3.zero
+			end
+		end
+
+		-- Smooth movement
+		local smoothedDirection = wander.currentDirection:Lerp(targetDirection, config.smoothingAlpha or 0.3)
+		wander.currentDirection = smoothedDirection
+
+		-- Set speed
+		if shouldRun then
+			humanoid.WalkSpeed = config.runSpeed
+		else
+			humanoid.WalkSpeed = config.walkSpeed
+		end
+
+		-- Apply movement
+		humanoid:Move(smoothedDirection)
+
+		-- Update wander component (stores currentDirection)
+		world:set(entity, comps.NPCWander, wander)
+	end
+end
+

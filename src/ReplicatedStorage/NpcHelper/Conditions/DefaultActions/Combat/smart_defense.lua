@@ -116,6 +116,9 @@ local function getBestDefense(playerAction, distance)
         "Cascade",             -- Stone alchemy AOE
         "Grand Cleave",        -- Spear AOE
         "Strategist Combination", -- Guns AOE
+        "Ground Decay",        -- Stone alchemy expanding craters
+        "Branch",              -- Stone alchemy converging paths
+        "Dempsey Roll",        -- Boxing multi-hit
     }
 
     for _, skill in ipairs(dodgeSkills) do
@@ -134,7 +137,12 @@ local function getBestDefense(playerAction, distance)
         "Needle Thrust",       -- Spear thrust
         "Shell Piercer",       -- Guns pierce
         "Downslam Kick",       -- Fist slam
-        "Axe Kick",            -- Fist kick
+        "Axe Kick",            -- Fist kick (guard break!)
+        "Pincer Impact",       -- Fist combo finisher
+        "Gazelle Punch",       -- Boxing heavy
+        "Stone Lance",         -- Stone alchemy spike
+        "Rock Skewer",         -- Stone alchemy ground attack
+        "Cinder",              -- Flame alchemy ranged
     }
 
     for _, skill in ipairs(blockSkills) do
@@ -146,6 +154,32 @@ local function getBestDefense(playerAction, distance)
                     return "Block"
                 elseif roll < 0.80 then
                     return "Parry"
+                else
+                    return nil
+                end
+            else
+                return nil
+            end
+        end
+    end
+
+    -- Check for skills that should be parried (fast attacks)
+    local parrySkills = {
+        "Jab Rush",            -- Boxing fast jabs
+        "Rising Wind",         -- Brawler uppercut
+        "Deconstruct",         -- Alchemy projectile
+        "AlchemicAssault",     -- Alchemy combo
+    }
+
+    for _, skill in ipairs(parrySkills) do
+        if playerAction == skill then
+            -- Parry fast skills 50% of the time, block 30% of the time
+            if distance < 12 then
+                local roll = math.random()
+                if roll < 0.50 then
+                    return "Parry"
+                elseif roll < 0.80 then
+                    return "Block"
                 else
                     return nil
                 end
@@ -182,16 +216,28 @@ local function executeDefense(npc, defenseType, mainConfig)
         return true
 
     elseif defenseType == "Block" then
-        -- Hold block
-        if not Combat.HandleBlockInput then
+        -- Hold block using NPC blocking system (not player system)
+        if not mainConfig.InitiateBlock then
             return false
         end
 
-        Combat.HandleBlockInput(npc, true)
+        mainConfig.InitiateBlock(true)
 
         -- Release block after a short duration
         task.delay(0.5, function()
-            Combat.HandleBlockInput(npc, false)
+            -- Only release if NPC still exists and isn't stunned/guard broken
+            if npc and npc.Parent and mainConfig.InitiateBlock then
+                local npcStuns = npc:FindFirstChild("Stuns")
+                if npcStuns then
+                    -- Don't release block if guard broken or stunned
+                    if not Library.StateCheck(npcStuns, "BlockBreakStun")
+                        and not Library.StateCheck(npcStuns, "GuardbreakStun") then
+                        mainConfig.InitiateBlock(false)
+                    end
+                else
+                    mainConfig.InitiateBlock(false)
+                end
+            end
         end)
         return true
 

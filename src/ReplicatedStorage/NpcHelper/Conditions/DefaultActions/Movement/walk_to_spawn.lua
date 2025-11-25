@@ -11,6 +11,12 @@ return function(actor: Actor, mainConfig: any)
         return false
     end
 
+    -- Skip if this is a combat NPC (ECS AI handles movement)
+    local ECSBridge = require(game.ReplicatedStorage.NpcHelper.ECSBridge)
+    if ECSBridge.isCombatNPC(npc) then
+        return false
+    end
+
     local humanoid, humanoidRootPart = npc:FindFirstChild("Humanoid") :: Humanoid, npc:FindFirstChild("HumanoidRootPart") :: BasePart
     if not humanoid or not humanoidRootPart then
         return false

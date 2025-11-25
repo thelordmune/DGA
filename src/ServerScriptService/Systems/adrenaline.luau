@@ -26,12 +26,12 @@ local Bridges = require(ReplicatedStorage.Modules.Bridges)
 local Visuals = require(ReplicatedStorage.Modules.Visuals)
 
 -- Adrenaline configuration
-local ADRENALINE_PER_HIT = 3 -- Base adrenaline gain per hit (reduced from 5)
-local COMBO_MULTIPLIER = 0.5 -- Multiplier for consecutive hits (reduced from 1.5)
-local DECAY_RATE = 3 -- Adrenaline lost per second when not hitting (increased from 1)
+local ADRENALINE_PER_HIT = 5 -- Base adrenaline gain per hit (increased for easier gain)
+local COMBO_MULTIPLIER = 1 -- Multiplier for consecutive hits (increased for easier gain)
+local DECAY_RATE = 2 -- Adrenaline lost per second when not hitting (reduced for slower decay)
 local MIN_ADRENALINE = 0
 local MAX_ADRENALINE = 100
-local COMBO_TIMEOUT = 2 -- Seconds before combo resets (reduced from 3 for faster decay)
+local COMBO_TIMEOUT = 3 -- Seconds before combo resets (increased for longer combo window)
 
 -- Track last hit time for combo timeout
 local lastHitTimes = {}
@@ -175,6 +175,25 @@ local function increaseAdrenaline(entity: number)
                 Function = "AdrenalineFX",
                 Arguments = { character }
             })
+        end
+
+        -- Health regeneration when reaching high adrenaline
+        if newLevel == "High" and oldLevel ~= "High" then
+            local health = world:get(entity, comps.Health)
+            if health and health.current < health.max then
+                -- Restore 7% of max health
+                local healAmount = math.floor(health.max * 0.07)
+                health.current = math.min(health.current + healAmount, health.max)
+                world:set(entity, comps.Health, health)
+
+                -- Update character's Humanoid
+                local character = world:get(entity, comps.Character)
+                if character and character:FindFirstChild("Humanoid") then
+                    character.Humanoid.Health = health.current
+                end
+
+                print(string.format("[ADRENALINE] High adrenaline reached! Healed %d HP", healAmount))
+            end
         end
     end
 
