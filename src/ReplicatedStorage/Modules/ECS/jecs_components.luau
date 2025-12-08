@@ -94,6 +94,7 @@ local components: {
     Alignment: Entity<{value: number, min: number, max: number}>,
     QuestItemCollected: Entity<{npcName: string, questName: string, itemName: string, collectedTime: number}>,
     QuestMarker: Entity<{markerType: string, npcName: string, questName: string?}>,
+    Grab: Entity<{target: Model, value: boolean, duration: number, startTime: number?, distance: number?}>,
 
     StateActions: Entity<{string}>,
     StateStuns: Entity<{string}>,
@@ -295,6 +296,7 @@ local components: {
         Experience = world:component(),
         Alignment = world:component(),
         QuestItemCollected = world:component(),
+        Grab = world:component(),
 
         -- ECS State Management
         StateActions = world:component(),

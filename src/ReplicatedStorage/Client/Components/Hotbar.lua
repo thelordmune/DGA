@@ -121,10 +121,14 @@ return function(scope, props: {
 		end)
 	end
 
-	-- Cleanup update connection
-	-- scope:Cleanup(function()
-	-- 	updateConnection:Disconnect()
-	-- end)
+	-- Cleanup update connection when scope is destroyed
+	table.insert(scope, function()
+		if updateConnection then
+			updateConnection:Disconnect()
+			updateConnection = nil
+			print("[Hotbar] 🧹 Disconnected RenderStepped update connection")
+		end
+	end)
 
 	-- -- print("[Hotbar] ===== HOTBAR COMPONENT COMPLETE =====")
 	return parent

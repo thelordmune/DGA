@@ -59,6 +59,26 @@ function Base.Emit(ToEmit)
 end
 
 function Base.Slashes(Character: Model, Weapon: string, Combo: number)
+if Weapon == "Fist" then
+	local eff = Replicated.Assets.VFX.M1:Clone()
+	eff.Parent = workspace.World.Visuals
+	if Combo == 1 then
+		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180),0,0))
+		EmitModule.emit(eff["1"])
+	elseif Combo == 2 then
+		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180),0,0))
+		EmitModule.emit(eff["2"])
+	elseif Combo == 3 then	
+		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180),0,0))
+		EmitModule.emit(eff["3"])
+	elseif Combo == 4 then
+		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180),0,0))
+		EmitModule.emit(eff["4"])
+		task.delay(3, function()
+			eff:Destroy()
+		end)
+	end
+else
 	local Slash: BasePart = Replicated.Assets.VFX[Weapon .. "Slashes"][Combo]:Clone()
 
 	-- Store the original orientation (angular rotation) of the slash
@@ -67,18 +87,18 @@ function Base.Slashes(Character: Model, Weapon: string, Combo: number)
 	-- Position the slash in front of the player and make it face the player's direction
 	local playerCFrame = Character.HumanoidRootPart.CFrame
 
-	if Weapon == "Fist" then
-		if Combo == 1 then
-		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-77))
-		elseif Combo == 2 then
-			Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,math.rad(-30),math.rad(-77))
-		elseif Combo == 3 then
-			Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-62))
-		elseif Combo == 4 then
-			Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(87))
-		end
+	-- if Weapon == "Fist" then
+	-- 	if Combo == 1 then
+	-- 	Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-77))
+	-- 	elseif Combo == 2 then
+	-- 		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,math.rad(-30),math.rad(-77))
+	-- 	elseif Combo == 3 then
+	-- 		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-62))
+	-- 	elseif Combo == 4 then
+	-- 		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(87))
+	-- 	end
 
-	end
+	-- end
 
 	-- Reapply the original angular orientation while preserving the player's facing direction
 	-- Slash.Orientation = originalOrientation + Vector3.new(0, playerCFrame.Rotation.Y * (180 / math.pi), 0)
@@ -92,6 +112,9 @@ function Base.Slashes(Character: Model, Weapon: string, Combo: number)
 	end
 
 	Debris:AddItem(Slash, 3)
+end
+
+	
 end
 
 function Base.PerfectDodge(Character: Model)
@@ -3013,7 +3036,7 @@ function Base.Branch(Character: Model, targetPos: Vector3, side: string, customS
 
 		task.delay(baseDelay + (plankCount - 1) * spawnSpeed, function()
 			-- Create plank
-			local plank = Instance.new("Part")
+			local plank = Replicated.Assets.VFX.WALL:Clone()
 			plank.Name = "BranchRock_" .. HttpService:GenerateGUID(false)
 			plank.Anchored = true
 			plank.CanCollide = false
@@ -3207,6 +3230,71 @@ Base.BranchCrater = function(targetPos)
 
 	if not success then
 		warn("[BranchCrater] Error creating crater:", err)
+	end
+end
+
+-- WhirlWind Crater Effect
+Base.WhirlWindCrater = function(targetPos)
+	local craterPosition = targetPos + Vector3.new(0, 1, 0) -- Raise 1 stud above ground
+
+	local success, err = pcall(function()
+		local craterCFrame = CFrame.new(craterPosition)
+
+		local effect = RockMod.New("Crater", craterCFrame, {
+			Distance = { 4, 10 },
+			SizeMultiplier = 0.4,
+			PartCount = 8,
+			Layers = { 2, 2 },
+			ExitIterationDelay = { 0.5, 1 },
+			LifeCycle = {
+				Entrance = {
+					Type = "Elevate",
+					Speed = 0.3,
+					Division = 3,
+					EasingStyle = Enum.EasingStyle.Quad,
+					EasingDirection = Enum.EasingDirection.Out,
+				},
+				Exit = {
+					Type = "SizeDown",
+					Speed = 0.35,
+					Division = 2,
+					EasingStyle = Enum.EasingStyle.Sine,
+					EasingDirection = Enum.EasingDirection.In,
+				},
+			},
+		})
+
+		if effect then
+			effect:Debris("Normal", {
+				Size = { 0.4, 1.2 },
+				UpForce = { 0.3, 0.6 },
+				RotationalForce = {8, 20},
+				Spread = { 5, 5 },
+				PartCount = 6,
+				Radius = 5,
+				LifeTime = 3.5,
+				LifeCycle = {
+					Entrance = {
+						Type = "SizeUp",
+						Speed = 0.25,
+						Division = 3,
+						EasingStyle = Enum.EasingStyle.Quad,
+						EasingDirection = Enum.EasingDirection.Out,
+					},
+					Exit = {
+						Type = "SizeDown",
+						Speed = 0.3,
+						Division = 2,
+						EasingStyle = Enum.EasingStyle.Sine,
+						EasingDirection = Enum.EasingDirection.In,
+					},
+				},
+			})
+		end
+	end)
+
+	if not success then
+		warn("[WhirlWindCrater] Error creating crater:", err)
 	end
 end
 

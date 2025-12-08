@@ -52,7 +52,7 @@ Combat.Light = function(Character: Model)
 	end
 
 	if Stats then
-		
+
 		if Entity["SwingConnection"] then
 
 			if Server.Library.StateCheck(Character.Speeds, "M1Speed13") then
@@ -84,9 +84,9 @@ Combat.Light = function(Character: Model)
 		local SwingAnimation = Character.Humanoid.Animator:LoadAnimation(Swings:FindFirstChild(Combo))
 		SwingAnimation:Play()
 		SwingAnimation.Priority = Enum.AnimationPriority.Action2
-		
+
 		local Sound = Server.Library.PlaySound(Character,Server.Service.ReplicatedStorage.Assets.SFX.Weapons[Weapon].Swings[Random.new():NextInteger(1,#Server.Service.ReplicatedStorage.Assets.SFX.Weapons[Weapon].Swings:GetChildren())])
-		
+
 		if Stats["Trail"] then
 			Combat.Trail(Character, true)
 		end
@@ -102,8 +102,8 @@ Combat.Light = function(Character: Model)
 				Combat.Trail(Character, false)
 			end
 		end)
-		
-	
+
+
 		local Connection Connection = Character.Stuns.Changed:Once(function()
 			-- Connection = nil
 
@@ -132,23 +132,7 @@ Combat.Light = function(Character: Model)
 			end
 		end)
 
-		task.wait(Stats["HitTimes"][Combo])
-
-
-		if Cancel then
-			return
-		end
-
-		-- Clean up connections
-		if Connection then
-			Connection:Disconnect()
-			Connection = nil
-		end
-
-		--if Player then
-		--	Server.Packets.Bvel.sendTo({Character = Character, Name = "M1Bvel"}, Player)
-		--end
-
+		-- NO DELAY - Execute hitbox immediately at hittime
 		-- Multi-frame hit detection loop for more accurate hits
 		-- Check for hits 3 times over 0.1 seconds to catch fast-moving targets
 		local HitTargets = {}
@@ -170,11 +154,25 @@ Combat.Light = function(Character: Model)
 			end
 		end
 
+		if Cancel then
+			return
+		end
+
+		-- Clean up connections
+		if Connection then
+			Connection:Disconnect()
+			Connection = nil
+		end
+
+		--if Player then
+		--	Server.Packets.Bvel.sendTo({Character = Character, Name = "M1Bvel"}, Player)
+		--end
+
 		-- Apply damage to all detected targets
 		for _, Target: Model in pairs(HitTargets) do
 			Server.Modules.Damage.Tag(Character, Target, Stats["M1Table"])
 		end
-		
+
 		end
 end
 
@@ -556,6 +554,21 @@ Combat.RunningAttack = function(Character)
 end
 
 local BlockStates = {}
+local RecentBlockAttempts = {} -- Track recent block attempts for parry window
+
+-- Get BlockStates table (used by Damage.lua to check parry window)
+Combat.GetBlockStates = function()
+	return BlockStates
+end
+
+-- Check if character has a recent block attempt (within parry window)
+Combat.HasRecentBlockAttempt = function(Character: Model)
+	local attempt = RecentBlockAttempts[Character]
+	if not attempt then return false end
+
+	local timeSinceAttempt = os.clock() - attempt.StartTime
+	return timeSinceAttempt <= 0.23 -- Within 0.23s parry window
+end
 
 -- Clear block state tracking for a character (used during block break)
 Combat.ClearBlockState = function(Character: Model)
@@ -591,6 +604,12 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
         if Server.Library.StateCheck(Character.Stuns, "BlockBreakStun") then return end
         -- Prevent blocking for 2 seconds after BlockBreak stun ends
         if Server.Library.StateCheck(Character.Stuns, "BlockBreakCooldown") then return end
+        -- Prevent blocking while ragdolled
+        if Server.Library.StateCheck(Character.Stuns, "Ragdolled") then return end
+        -- Prevent blocking while knocked back (from parry, attacks, etc.)
+        if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then return end
+        if Server.Library.StateCheck(Character.Stuns, "Knockback") then return end
+        if Server.Library.StateCheck(Character.Stuns, "KnockbackRoll") then return end
 
         -- Prevent blocking if BlockBroken ECS component is true
         if Entity.Player then
@@ -607,23 +626,31 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
                 Server.Packets.CancelSprint.sendTo({}, Entity.Player)
             end
 
+            local startTime = os.clock()
             BlockStates[Character] = {
-                Blocking = false,
-                ParryWindow = false,
-                HoldTime = 0
+                Blocking = true, -- Start blocking immediately
+                ParryWindow = true, -- First 0.23s is parry window
+                HoldTime = 0,
+                StartTime = startTime
             }
 
+            -- Track this block attempt for parry window (even if released quickly)
+            RecentBlockAttempts[Character] = {
+                StartTime = startTime
+            }
+
+            -- Start blocking immediately (no delay)
+            self.StartBlock(Character)
+
             -- Start tracking hold time
-            BlockStates[Character].HoldTime = 0
             BlockStates[Character].Connection = Server.Utilities:AddToTempLoop(function(dt)
                 if not BlockStates[Character] then return true end
 
                 BlockStates[Character].HoldTime = BlockStates[Character].HoldTime + dt
 
-                -- If held long enough, start blocking - decreased from 0.25s to 0.2s
-                if BlockStates[Character].HoldTime >= 0.2 and not BlockStates[Character].Blocking then
-                    BlockStates[Character].Blocking = true
-                    self.StartBlock(Character)
+                -- After 0.23s, parry window expires
+                if BlockStates[Character].HoldTime >= 0.23 and BlockStates[Character].ParryWindow then
+                    BlockStates[Character].ParryWindow = false
                 end
 
                 return false
@@ -632,16 +659,11 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
     else
         -- Release input
         if BlockStates[Character] then
-            -- If released quickly, attempt parry - decreased from 0.25s to 0.2s
-            if BlockStates[Character].HoldTime < 0.2 and not BlockStates[Character].Blocking then
-                self.AttemptParry(Character)
-            end
-            
             -- Clean up block if active
             if BlockStates[Character].Blocking then
                 self.EndBlock(Character)
             end
-            
+
             -- Clean up tracking
             if BlockStates[Character].Connection then
                 BlockStates[Character].Connection:Disconnect()

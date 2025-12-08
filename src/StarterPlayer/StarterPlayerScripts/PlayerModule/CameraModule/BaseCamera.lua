@@ -457,7 +457,7 @@ function BaseCamera:GetSubjectPosition(): Vector3?
 
 	local result = rawPosition
 	if self.lastSubjectPosition then
-		local lerpFactor = .15
+		local lerpFactor = .5
 		result = self.lastSubjectPosition:Lerp(cameraSubject.Parent.Head.CFrame.p, lerpFactor)
 	end
 

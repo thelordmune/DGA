@@ -146,6 +146,18 @@ function NpcBrain.init()
 	local lastUpdateTime = 0
 	local npcName = script.Parent.Parent.Name
 
+	-- Check if this NPC is controlled by ECS (combat NPCs)
+	local ECSBridge = require(ReplicatedStorage.NpcHelper.ECSBridge)
+	local npcModel = script.Parent:FindFirstChildOfClass("Model")
+	local isECSControlled = ECSBridge.isCombatNPC(npcModel)
+
+	if isECSControlled then
+		print(`[NpcBrain] {npcName} is a combat NPC - ECS systems handle AI, skipping behavior tree`)
+		-- Combat NPCs are fully controlled by ECS systems
+		-- No need to run behavior tree at all
+		return
+	end
+
 	script.Parent.Parent.Destroying:Connect(function()
 		cachedBehaviorTree = nil
 		cachedBehaviorName = nil

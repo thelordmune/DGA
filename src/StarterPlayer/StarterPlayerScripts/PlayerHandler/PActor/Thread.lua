@@ -84,7 +84,7 @@ ClientThread.Spawn = function()
 				if Humanoid.CameraOffset.Magnitude > 50 or Humanoid.CameraOffset ~= Humanoid.CameraOffset then
 					Humanoid.CameraOffset = offset
 				else
-					Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset, DeltaTime * 1.5)
+					Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset, DeltaTime * 1.8)
 				end
 			else
 				-- Normal mode
@@ -112,9 +112,6 @@ ClientThread.Spawn = function()
 		Client.Service["RunService"].RenderStepped:Wait()
 		task.desynchronize();
 	end)
-
-
-
 	
 end
 

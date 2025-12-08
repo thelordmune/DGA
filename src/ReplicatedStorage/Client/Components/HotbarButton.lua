@@ -73,9 +73,14 @@ return function(scope, props: {
 		end
 	end)
 
-	-- scope:Cleanup(function()
-	-- 	cooldownConnection:Disconnect()
-	-- end)
+	-- Cleanup cooldown connection when scope is destroyed
+	table.insert(scope, function()
+		if cooldownConnection then
+			cooldownConnection:Disconnect()
+			cooldownConnection = nil
+			-- print(`[HotbarButton] 🧹 Disconnected cooldown connection for slot {slotNumber}`)
+		end
+	end)
 
 	-- Calculate gradient progress (0 to 1)
 	local gradientProgress = scope:Computed(function(use)

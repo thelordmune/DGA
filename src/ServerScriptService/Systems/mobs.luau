@@ -18,23 +18,31 @@ local function isCombatNPC(npcModel: Model): boolean
 	local ancestor = npcModel
 	while ancestor do
 		if ancestor.Name == "Dialogue" and ancestor.Parent and ancestor.Parent.Name == "World" then
-			print(`[Mobs] {npcModel.Name} is in World.Dialogue - DIALOGUE NPC`)
+			-- print(`[Mobs] {npcModel.Name} is in World.Dialogue - DIALOGUE NPC`)
 			return false -- Dialogue NPC
 		end
 		ancestor = ancestor.Parent
 	end
 
-	-- Try to find the Actor parent and Data folder
+	-- Check if NPC name contains "Dummy" or "Training" - these are NOT combat NPCs
+	local npcName = npcModel.Name:lower()
+	if npcName:find("dummy") or npcName:find("training") then
+		-- print(`[Mobs] {npcModel.Name} is a training dummy - DIALOGUE NPC`)
+		return false
+	end
+
+	-- OPTIMIZATION: Don't wait for Actor parent - just check immediately
+	-- If Actor doesn't exist yet, the NPC will be reinitialized when it's fully loaded
 	local actor = npcModel.Parent
 	if not actor or not actor:IsA("Actor") then
-		print(`[Mobs] {npcModel.Name} - No Actor parent found, assuming COMBAT NPC (default)`)
-		return true -- Default to combat NPC if no Actor (for backwards compatibility)
+		-- print(`[Mobs] {npcModel.Name} - No Actor parent found, assuming DIALOGUE NPC (safer default)`)
+		return false -- Default to dialogue NPC if no Actor (safer for dummies/static NPCs)
 	end
 
 	local dataFolder = actor:FindFirstChild("Data")
 	if not dataFolder then
-		print(`[Mobs] {npcModel.Name} - No Data folder found, assuming COMBAT NPC (default)`)
-		return true -- Default to combat NPC if no Data folder
+		-- print(`[Mobs] {npcModel.Name} - No Data folder found, assuming DIALOGUE NPC (safer default)`)
+		return false -- Default to dialogue NPC if no Data folder
 	end
 
 	-- Check Combat settings
@@ -42,7 +50,7 @@ local function isCombatNPC(npcModel: Model): boolean
 	if combatFolder then
 		local lightValue = combatFolder:FindFirstChild("Light")
 		if lightValue then
-			print(`[Mobs] {npcModel.Name} - Combat.Light = {lightValue.Value}`)
+			-- print(`[Mobs] {npcModel.Name} - Combat.Light = {lightValue.Value}`)
 			if lightValue.Value == true then
 				return true
 			end
@@ -54,7 +62,7 @@ local function isCombatNPC(npcModel: Model): boolean
 	if weaponsFolder then
 		local enabledValue = weaponsFolder:FindFirstChild("Enabled")
 		if enabledValue then
-			print(`[Mobs] {npcModel.Name} - Weapons.Enabled = {enabledValue.Value}`)
+			-- print(`[Mobs] {npcModel.Name} - Weapons.Enabled = {enabledValue.Value}`)
 			if enabledValue.Value == true then
 				return true
 			end
@@ -66,14 +74,14 @@ local function isCombatNPC(npcModel: Model): boolean
 	if enemyDetectionFolder then
 		local captureDistValue = enemyDetectionFolder:FindFirstChild("CaptureDistance")
 		if captureDistValue then
-			print(`[Mobs] {npcModel.Name} - EnemyDetection.CaptureDistance = {captureDistValue.Value}`)
+			-- print(`[Mobs] {npcModel.Name} - EnemyDetection.CaptureDistance = {captureDistValue.Value}`)
 			if captureDistValue.Value > 0 then
 				return true
 			end
 		end
 	end
 
-	print(`[Mobs] {npcModel.Name} - No combat indicators found, defaulting to DIALOGUE NPC`)
+	-- print(`[Mobs] {npcModel.Name} - No combat indicators found, defaulting to DIALOGUE NPC`)
 	return false
 end
 
@@ -162,7 +170,7 @@ local function initializeNPCEntity(npcModel: Model): number
 
 			world:set(e, comps.AIState, {
 				state = "wander",
-				t = 0,
+				t = randRange(0, 2), -- Random starting time to desync NPCs
 				dur = randRange(2, 5),
 				circleSign = (math.random(0, 1) == 0) and -1 or 1,
 			})
@@ -189,7 +197,7 @@ local function initializeNPCEntity(npcModel: Model): number
 			world:set(e, comps.Wander, {
 				center = spawnPos,
 				radius = 30,
-				nextMove = 0,
+				nextMove = math.random() * 2, -- Random starting time to desync NPCs
 			})
 
 			-- Hitbox component (for debugging/attributes)
@@ -211,8 +219,8 @@ local function initializeNPCEntity(npcModel: Model): number
 			local letGoDistance = 60
 			local runAwayHP = 0.2
 			local canStrafe = true
-			local canWander = true
-			local maxStrafeRadius = 20
+			local canWander = false -- Default to false - NPCs must explicitly opt-in to wandering
+			local maxStrafeRadius = 12 -- REDUCED: Was 20, now 12 for tighter circle strafe
 			local maxAlignmentDot = 0.5
 			local walkSpeed = 16
 			local runSpeed = 24
@@ -273,10 +281,12 @@ local function initializeNPCEntity(npcModel: Model): number
 				end
 			end
 
-			-- NPCCombatState
+			-- NPCCombatState (FIXED: Only start aggressive if they have capture range > 0)
+			-- This prevents wandering NPCs from aggroing without being attacked
+			local shouldStartAggressive = captureDistance > 0
 			world:set(e, comps.NPCCombatState, {
-				isPassive = true,
-				isAggressive = false,
+				isPassive = not shouldStartAggressive, -- FIXED: Passive by default unless capture range set
+				isAggressive = shouldStartAggressive,  -- FIXED: Only aggressive if they hunt players
 				hasBeenAttacked = false,
 				lastAttackTime = 0,
 				lastDefenseTime = 0,
@@ -317,25 +327,31 @@ local function initializeNPCEntity(npcModel: Model): number
 			-- NPCMovementPattern
 			world:set(e, comps.NPCMovementPattern, {
 				current = "Direct",
-				lastChanged = 0,
-				duration = 3,
+				lastChanged = math.random() * 2, -- Random start to desync
+				duration = math.random() * 1 + 2, -- 2-3 seconds
 				strafeDirection = nil,
 				sideDirection = nil,
-				circleDirection = 1,
-				zigzagDirection = 1,
-				zigzagTimer = 0,
+				circleDirection = (math.random() > 0.5) and 1 or -1, -- Random circle direction
+				zigzagDirection = (math.random() > 0.5) and 1 or -1, -- Random zigzag direction
+				zigzagTimer = math.random(), -- Random zigzag phase
 			})
 
-			-- NPCWander
-			world:set(e, comps.NPCWander, {
-				center = spawnPos,
-				radius = 30,
-				nextMove = 0,
-				swayX = 0,
-				swayY = 0,
-				noiseOffset = math.random() * 1000,
-				currentDirection = Vector3.zero,
-			})
+			-- NPCWander (only add if NPC can wander)
+			-- Guards should NOT wander, so they won't have this component
+			if canWander then
+				world:set(e, comps.NPCWander, {
+					center = spawnPos, -- spawnPos is already the NPC's current position (from hrp.Position)
+					radius = maxWanderDistance or 30,
+					nextMove = math.random() * 3, -- Random starting time to desync
+					swayX = 0,
+					swayY = 0,
+					noiseOffset = math.random() * 1000, -- Already randomized, good!
+					currentDirection = Vector3.zero,
+					isPaused = false, -- Initialize pause state
+					pauseEndTime = 0,
+					moveEndTime = 0,
+				})
+			end
 
 			-- NPCConfig
 			world:set(e, comps.NPCConfig, {
@@ -359,9 +375,18 @@ local function initializeNPCEntity(npcModel: Model): number
 				maxWanderDistance = maxWanderDistance,
 			})
 
-			print("[Mobs] ⚔️ Initialized COMBAT NPC:", npcModel.Name, "Entity:", e, "with ECS AI")
+			-- Debug logging for initialization
+		local combatState = world:get(e, comps.NPCCombatState)
+		-- print("[Mobs] ⚔️ Initialized COMBAT NPC:", npcModel.Name, "Entity:", e, "with ECS AI")
+		-- print(`[Mobs]    - isPassive: {combatState.isPassive}, canWander: {canWander}`)
+		-- print(`[Mobs]    - Components: NPCCombatState, NPCMovementPattern, NPCConfig, Transform, Locomotion`)
+		if canWander then
+			-- print(`[Mobs]    - Added NPCWander (radius: {maxWanderDistance or 30})`)
 		else
-			print("[Mobs] 💬 Initialized DIALOGUE NPC:", npcModel.Name, "Entity:", e, "(no ECS AI)")
+			-- print(`[Mobs]    - NPCWander NOT added (guard mode)`)
+		end
+		else
+			-- print("[Mobs] 💬 Initialized DIALOGUE NPC:", npcModel.Name, "Entity:", e, "(no ECS AI)")
 		end
 	end)
 
@@ -370,19 +395,42 @@ end
 
 -- Track NPCs that have been initialized to avoid rescanning
 local initializedNPCs = {}
-local lastScanTime = 0
-local SCAN_INTERVAL = 2 -- Only scan for new NPCs every 2 seconds instead of every frame
+
+-- OPTIMIZATION: Cache Live folder children instead of using GetDescendants
+local liveFolder = workspace.World.Live
+local cachedNPCs = {}
+
+-- Helper to scan a folder for NPCs (non-recursive, more efficient)
+local function scanFolderForNPCs(folder)
+	for _, child in folder:GetChildren() do
+		if child:IsA("Model") and not Players:GetPlayerFromCharacter(child) then
+			if not initializedNPCs[child] and not cachedNPCs[child] then
+				local existingEntity = RefManager.entity.find(child)
+				if not existingEntity then
+					-- FIXED: Initialize immediately instead of deferring to prevent NPCs from not loading
+					initializeNPCEntity(child)
+					initializedNPCs[child] = true
+					cachedNPCs[child] = true
+				else
+					cachedNPCs[child] = true
+				end
+			end
+		end
+	end
+end
 
 -- Set up DescendantAdded listener for immediate NPC detection (more efficient than polling)
 workspace.World.Live.DescendantAdded:Connect(function(descendant)
 	if descendant:IsA("Model") and not Players:GetPlayerFromCharacter(descendant) then
-		task.wait(0.1) -- Small delay to ensure NPC is fully loaded
-
+		-- FIXED: Initialize immediately to ensure NPCs load properly
+		-- Small delay to ensure model is fully loaded
+		task.wait(0.1)
 		if not initializedNPCs[descendant] then
 			local existingEntity = RefManager.entity.find(descendant)
 			if not existingEntity then
 				initializeNPCEntity(descendant)
 				initializedNPCs[descendant] = true
+				cachedNPCs[descendant] = true
 			end
 		end
 	end
@@ -393,33 +441,28 @@ workspace.World.Live.DescendantRemoving:Connect(function(descendant)
 	if initializedNPCs[descendant] then
 		initializedNPCs[descendant] = nil
 	end
+	if cachedNPCs[descendant] then
+		cachedNPCs[descendant] = nil
+	end
 end)
+
+-- OPTIMIZATION: Do initial scan once on startup, then rely on DescendantAdded
+local hasScannedOnce = false
 
 return {
 	run = function()
 		-- Skip if more than 1 player (temporary restriction)
 		if #Players:GetPlayers() > 1 then return end
 
-		-- Only do a full scan occasionally as a safety net
-		-- The DescendantAdded listener handles most cases
-		local currentTime = os.clock()
-		if currentTime - lastScanTime < SCAN_INTERVAL then
-			return
+		-- OPTIMIZATION: Only scan once on startup, then rely on DescendantAdded listener
+		-- This eliminates the expensive GetDescendants() call every 2 seconds
+		if not hasScannedOnce then
+			hasScannedOnce = true
+			-- Scan Live folder (non-recursive, much faster than GetDescendants)
+			scanFolderForNPCs(liveFolder)
 		end
-		lastScanTime = currentTime
 
-		-- Scan for any NPCs that might have been missed
-		for _, descendant in workspace.World.Live:GetDescendants() do
-			if descendant:IsA("Model") and not Players:GetPlayerFromCharacter(descendant) then
-				if not initializedNPCs[descendant] then
-					local existingEntity = RefManager.entity.find(descendant)
-					if not existingEntity then
-						initializeNPCEntity(descendant)
-						initializedNPCs[descendant] = true
-					end
-				end
-			end
-		end
+		-- No periodic scanning needed - DescendantAdded handles everything
 	end,
 
 	settings = {

@@ -100,22 +100,27 @@ for __ = 1, #EffectModules do
 		local Success, Error = xpcall(function()
 			Req = require(Module)
 		end, function(Error)
-			-- print("Client - Failed Require: " .. Module.Name .. "\n" .. Error)
+			print("Client - Failed Require: " .. Module.Name .. "\n" .. Error)
+			return Error
 		end)
 
 		if Success and Req then
 			Client.Environment[Module.Name] = Req
+			--print("✅ Loaded effect module:", Module.Name)
+		else
+			--warn("❌ Failed to load effect module:", Module.Name, "Error:", Error)
 		end
 	end
 end
 
 Client.Packets.Visuals.listen(function(Packet)
     -- Process all VFX packets - no duplicate prevention needed with reliable networking
-    -- -- print("Visual packet received:", Packet.Module, Packet.Function)
+   -- print("Visual packet received:", Packet.Module, Packet.Function)
     if Client.Environment[Packet.Module] and Client.Environment[Packet.Module][Packet.Function] then
         Client.Environment[Packet.Module][Packet.Function](unpack(Packet.Arguments))
     else
-        -- warn(`Index: {Packet.Function} Does Not Exist`)
+       -- warn(`[Visuals] Module: {Packet.Module}, Function: {Packet.Function} Does Not Exist`)
+       -- warn(`[Visuals] Available modules:`, Client.Environment)
     end
 end)
 

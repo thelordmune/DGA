@@ -600,6 +600,12 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 	local root = Character.HumanoidRootPart
 	local eroot = Targ.HumanoidRootPart
 
+	-- Disable AutoRotate for the target
+	local targetHumanoid = Targ:FindFirstChild("Humanoid")
+	if targetHumanoid then
+		targetHumanoid.AutoRotate = false
+	end
+
 	-- Clean up any existing velocities and body movers to prevent flinging
 	for _, child in ipairs(eroot:GetChildren()) do
 		if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
@@ -668,6 +674,14 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		end
 		if bodyGyro and bodyGyro.Parent then
 			bodyGyro:Destroy()
+		end
+		-- Re-enable AutoRotate after knockback ends (will be managed by stun state handler)
+		if targetHumanoid then
+			-- Check if there are still stun states active
+			local stuns = Targ:FindFirstChild("Stuns")
+			if not stuns or not require(game.ReplicatedStorage.Modules.Library).StateCount(stuns) then
+				targetHumanoid.AutoRotate = true
+			end
 		end
 	end)
 end

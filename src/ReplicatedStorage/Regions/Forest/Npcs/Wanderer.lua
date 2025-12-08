@@ -45,8 +45,8 @@ local WandererData = {
 	SpawnCooldown = 1,
 
 	Type = "Active",
-	AlwaysSpawn = false, -- DISABLED - Wanderers are turned off
-	LoadDistance = nil, -- DISABLED - Set to nil to prevent spawning
+	AlwaysSpawn = false, -- DISABLED - Wanderers are disabled
+	LoadDistance = nil, -- Disabled - no proximity spawning
 
 	DataToSendOverAndUdpate = {
 		Spawning = {
@@ -86,16 +86,16 @@ local WandererData = {
 		},
 
 		EnemyDetection = {
-			CaptureDistance = 30, -- Detect players but don't chase
-			LetGoDistance = 50,
+			CaptureDistance = 0, -- No combat targeting - wanderers are peaceful
+			LetGoDistance = 0,
 			AddIfAgroed = 0,
-			TargetGroups = {"Players"},
+			TargetGroups = {},
 			MaxTargetsPerGroup = {
 				Players = 0, -- Don't target players for combat
 			},
 			RunAway = {
 				RunHp = 0.3,
-				Ranges = {SafeRange = 25}, -- Run away from players
+				Ranges = {SafeRange = 25}, -- Run away from players when low health
 			}
 		},
 

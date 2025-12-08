@@ -62,6 +62,12 @@ Controller.Check = function()
 
         -- Initialize the new Fusion-based Health component (or reinitialize after respawn)
         if not healthComponentData or not healthComponentData.frame.Parent then
+            -- CLEANUP OLD HEALTH COMPONENT FIRST to prevent memory leak
+            if healthComponentData and healthComponentData.scope then
+                healthComponentData.scope:doCleanup()
+                print("[Stats] 🧹 Cleaned up old Health component before creating new one")
+            end
+
             healthComponentData = HealthComponent(statsFrame)
             Controller.healthComponentData = healthComponentData -- Update the exposed reference
             print("[Stats] ✅ New Health component initialized")
@@ -241,6 +247,17 @@ Controller.InitializeHotbar = function(character, entity)
 	end
 
 	-- print(`[Stats] ✅ Found existing Hotbar frame: {hotbarFrame}`)
+
+	-- CLEANUP OLD HOTBAR SCOPE FIRST to prevent memory leak
+	for i = #activeScopes, 1, -1 do
+		if activeScopes[i].name == "Hotbar" then
+			if activeScopes[i].scope then
+				activeScopes[i].scope:doCleanup()
+				print("[Stats] 🧹 Cleaned up old Hotbar scope before creating new one")
+			end
+			table.remove(activeScopes, i)
+		end
+	end
 
 	-- print("[Stats] Loading Hotbar component...")
 	local Fusion = require(Replicated.Modules.Fusion)

@@ -119,5 +119,91 @@ ServerBvel.ParryKnockback = function(Character, direction, horizontalPower)
     end)
 end
 
+-- Upward Knockback (for Axe Kick and similar moves)
+ServerBvel.UpwardKnockback = function(Character, upwardPower)
+    local rootPart = Character.PrimaryPart
+    if not rootPart then
+        warn("[ServerBvel] No PrimaryPart found for UpwardKnockback")
+        return
+    end
+
+    -- Clean up ALL existing BodyMovers and LinearVelocities that might interfere with knockback
+    for _, child in ipairs(rootPart:GetChildren()) do
+        if child:IsA("BodyPosition") or child:IsA("BodyGyro") or child:IsA("BodyVelocity") or child:IsA("LinearVelocity") then
+            child:Destroy()
+        end
+    end
+
+    -- Create attachment
+    local attachment = rootPart:FindFirstChild("UpwardKnockbackAttachment")
+    if not attachment then
+        attachment = Instance.new("Attachment")
+        attachment.Name = "UpwardKnockbackAttachment"
+        attachment.Parent = rootPart
+    end
+
+    -- Create upward velocity
+    local velocity = Vector3.new(0, upwardPower, 0)
+
+    -- Create LinearVelocity
+    local lv = Instance.new("LinearVelocity")
+    lv.Name = "UpwardKnockbackVelocity"
+    lv.MaxForce = 200000
+    lv.VectorVelocity = velocity
+    lv.Attachment0 = attachment
+    lv.RelativeTo = Enum.ActuatorRelativeTo.World
+    lv.Parent = rootPart
+
+    -- Clean up after duration
+    task.delay(0.5, function()
+        if lv and lv.Parent then
+            lv:Destroy()
+        end
+    end)
+end
+
+-- Pull Velocity (for Charged Thrust and similar grab moves)
+ServerBvel.PullVelocity = function(Character, direction, pullPower, duration)
+    local rootPart = Character.PrimaryPart
+    if not rootPart then
+        warn("[ServerBvel] No PrimaryPart found for PullVelocity")
+        return
+    end
+
+    -- Clean up ALL existing BodyMovers and LinearVelocities that might interfere
+    for _, child in ipairs(rootPart:GetChildren()) do
+        if child:IsA("BodyPosition") or child:IsA("BodyGyro") or child:IsA("BodyVelocity") or child:IsA("LinearVelocity") then
+            child:Destroy()
+        end
+    end
+
+    -- Create attachment
+    local attachment = rootPart:FindFirstChild("PullVelocityAttachment")
+    if not attachment then
+        attachment = Instance.new("Attachment")
+        attachment.Name = "PullVelocityAttachment"
+        attachment.Parent = rootPart
+    end
+
+    -- Calculate velocity vector (pull towards attacker)
+    local velocity = direction * pullPower
+
+    -- Create LinearVelocity
+    local lv = Instance.new("LinearVelocity")
+    lv.Name = "PullVelocity"
+    lv.MaxForce = 200000
+    lv.VectorVelocity = velocity
+    lv.Attachment0 = attachment
+    lv.RelativeTo = Enum.ActuatorRelativeTo.World
+    lv.Parent = rootPart
+
+    -- Clean up after duration
+    task.delay(duration or 0.3, function()
+        if lv and lv.Parent then
+            lv:Destroy()
+        end
+    end)
+end
+
 return ServerBvel
 

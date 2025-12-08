@@ -519,7 +519,7 @@ CombatProperties["Branch"] = {
     },
     DashProperty = nil,
     SkillPriority = 12, -- High priority - converging rock paths
-    IsGuardBreak = false,
+    IsGuardBreak = true, -- FIXED: Branch should break blocks
     IsComboExtender = false,
     HasHyperArmor = false,
 }
@@ -539,7 +539,7 @@ CombatProperties["Ground Decay"] = {
     },
     DashProperty = nil,
     SkillPriority = 11, -- High priority - AOE expanding craters
-    IsGuardBreak = false,
+    IsGuardBreak = true, -- FIXED: Ground Decay should break blocks
     IsComboExtender = false,
     HasHyperArmor = false,
 }

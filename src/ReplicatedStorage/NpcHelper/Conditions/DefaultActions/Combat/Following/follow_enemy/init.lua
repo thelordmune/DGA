@@ -7,6 +7,9 @@ local raycastParams: RaycastParams do
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 end
 
+-- ECS Bridge for combat NPCs
+local ECSBridge = require(game.ReplicatedStorage.NpcHelper.ECSBridge)
+
 local function updateMovementPattern(mainConfig)
 	---- print(mainConfig.Setting.CanStrafe)
 	if not mainConfig.Setting.CanStrafe then
@@ -159,6 +162,13 @@ return function(actor: Actor, mainConfig: table )
 		or not humanoid
 	then
 		return false
+	end
+
+	-- Skip if this is a combat NPC (ECS AI handles movement)
+	-- Behavior tree should only handle combat actions, not movement
+	-- Return true so the behavior tree continues to attack conditions
+	if ECSBridge.isCombatNPC(npc) then
+		return true
 	end
 
 	-- Check if NPC is dashing - if so, don't override the dash movement

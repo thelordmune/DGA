@@ -23,9 +23,16 @@ local Server = require(ServerScriptService.ServerConfig.Server)
 local Library = Server.Library
 local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 local PlayerStateDetector = require(ReplicatedStorage.Modules.ECS.PlayerStateDetector_ECS)
+local Jecs = require(ReplicatedStorage.Modules.Imports.jecs)
 
--- Cache queries
-local guardQuery = world:query(comps.Character, comps.CombatNPC, comps.NPCTarget, comps.NPCCombatState, comps.NPCGuardPattern, comps.Hitbox, comps.Combat)
+-- NETWORK OPTIMIZATION: Throttle to 15 Hz instead of 60 Hz
+-- Guard patterns don't need frame-perfect precision
+local PATTERN_HZ = 15
+local PATTERN_TICK = 1 / PATTERN_HZ
+local patternAcc = 0
+
+-- Cache queries (OPTIMIZED: added :cached())
+local guardQuery = world:query(comps.Character, comps.CombatNPC, comps.NPCTarget, comps.NPCCombatState, comps.NPCGuardPattern, comps.Hitbox, comps.Combat):cached()
 
 -- Guard pattern states
 local GuardPatterns = {
@@ -46,7 +53,8 @@ local function getNextPatternState(pattern: any, target: Model, distance: number
 		if targetAttacking and distance < 12 then
 			return GuardPatterns.COUNTER
 		end
-		if timeInState > 1.0 and distance < 10 then
+		-- IMPROVED: Faster transition to counter (was 1.0s, now 0.5s)
+		if timeInState > 0.5 and distance < 10 then
 			return GuardPatterns.COUNTER
 		end
 		
@@ -91,11 +99,9 @@ local function executePatternAction(
 	local skillToUse = nil
 	
 	if currentState == GuardPatterns.DEFENSIVE then
-		if PlayerStateDetector.IsAttacking(target) and distance < 12 then
-			skillToUse = "Block"
-		else
-			return false
-		end
+		-- REMOVED: Guards no longer block in defensive state - they stay aggressive
+		-- Just wait in defensive stance without blocking
+		return false
 		
 	elseif currentState == GuardPatterns.COUNTER then
 		local now = os.clock()
@@ -194,7 +200,7 @@ local function executePatternAction(
 end
 
 -- Main system function
-return function(dt: number)
+local function updateGuardPattern()
 	for entity, character, _, target, combatState, pattern, hitbox, combat in guardQuery do
 		-- Skip if not enabled
 		if not pattern.enabled then continue end
@@ -240,4 +246,22 @@ return function(dt: number)
 		end
 	end
 end
+
+return {
+	run = function(_world: Jecs.World, dt: number)
+		-- NETWORK OPTIMIZATION: Throttle to 15 Hz
+		patternAcc += dt
+		if patternAcc >= PATTERN_TICK then
+			patternAcc = 0
+			updateGuardPattern()
+		end
+	end,
+
+	settings = {
+		phase = "Heartbeat",
+		depends_on = {},
+		server_only = true
+	}
+}
+
 

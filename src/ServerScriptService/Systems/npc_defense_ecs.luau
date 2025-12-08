@@ -19,12 +19,19 @@ local Server = require(ServerScriptService.ServerConfig.Server)
 local Library = Server.Library
 local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 local PlayerStateDetector = require(ReplicatedStorage.Modules.ECS.PlayerStateDetector_ECS)
+local Jecs = require(ReplicatedStorage.Modules.Imports.jecs)
 
--- Cache queries
-local combatNPCQuery = world:query(comps.Character, comps.CombatNPC, comps.NPCTarget, comps.NPCCombatState, comps.Hitbox, comps.Combat)
+-- NETWORK OPTIMIZATION: Throttle to 20 Hz instead of 60 Hz
+-- Defense reactions don't need frame-perfect precision
+local DEFENSE_HZ = 20
+local DEFENSE_TICK = 1 / DEFENSE_HZ
+local defenseAcc = 0
 
--- Defense cooldown
-local DEFENSE_COOLDOWN = 0.5
+-- Cache queries (OPTIMIZED: added :cached())
+local combatNPCQuery = world:query(comps.Character, comps.CombatNPC, comps.NPCTarget, comps.NPCCombatState, comps.Hitbox, comps.Combat):cached()
+
+-- Defense cooldown (INCREASED from 0.5 to 1.0 to reduce defensive spam)
+local DEFENSE_COOLDOWN = 1.0
 
 -- Dodge skills (AOE attacks)
 local DODGE_SKILLS = {
@@ -135,16 +142,16 @@ local function executeBlock(character: Model, combat: any): boolean
 	-- Get Actor and MainConfig
 	local actor = character:FindFirstAncestorOfClass("Actor")
 	if not actor then return false end
-	
+
 	local mainConfig = require(actor:FindFirstChild("MainConfig"))
 	if not mainConfig or not mainConfig.InitiateBlock then
 		return false
 	end
-	
+
 	mainConfig.InitiateBlock(true)
-	
-	-- Release block after 0.5s
-	task.delay(0.5, function()
+
+	-- Release block after 0.2s (REDUCED from 0.5s for more aggressive play)
+	task.delay(0.2, function()
 		if character and character.Parent and mainConfig.InitiateBlock then
 			-- Don't release if guard broken or stunned
 			if not StateManager.StateCheck(character, "Stuns", "BlockBreakStun")
@@ -153,12 +160,19 @@ local function executeBlock(character: Model, combat: any): boolean
 			end
 		end
 	end)
-	
+
+	-- FIXED: Failsafe - force release after 0.8s to prevent getting stuck (REDUCED from 1.5s)
+	task.delay(0.8, function()
+		if character and character.Parent and mainConfig.InitiateBlock then
+			mainConfig.InitiateBlock(false)
+		end
+	end)
+
 	return true
 end
 
--- Execute dodge (LinearVelocity)
-local function executeDodge(character: Model, hitbox: Part): boolean
+-- Execute dodge/dash (IMPROVED: Uses locomotion for proper dash mechanic)
+local function executeDodge(entity: number, character: Model, hitbox: Part, loco: any): boolean
 	-- Get random dodge direction
 	local dodgeDirections = {
 		hitbox.CFrame.RightVector,
@@ -170,33 +184,56 @@ local function executeDodge(character: Model, hitbox: Part): boolean
 
 	-- Add dodge IFrame
 	StateManager.AddState(character, "IFrames", "Dodge")
-	task.delay(0.5, function()
+	task.delay(0.4, function()
 		StateManager.RemoveState(character, "IFrames", "Dodge")
 	end)
 
-	-- Clean up existing dodge velocities
-	for _, bodyMover in hitbox:GetChildren() do
-		if bodyMover.Name == "NPCDodge" then
-			bodyMover:Destroy()
+	-- IMPROVED: Set dash component to trigger animation
+	world:set(entity, comps.Dashing, true)
+
+	-- IMPROVED: Use locomotion system for dash (brief speed boost)
+	local dashSpeed = 60 -- Fast dash speed
+	world:set(entity, comps.Locomotion, {
+		dir = dodgeVector.Unit,
+		speed = dashSpeed
+	})
+
+	-- Play dash animation using Library (same as behavior tree dash.lua)
+	local humanoid = character:FindFirstChild("Humanoid")
+	if humanoid then
+		local dashAnimations = ReplicatedStorage.Assets.Animations.Dashes
+		if dashAnimations then
+			-- Determine direction based on dodgeVector
+			local animationName = "Forward" -- Default
+			local lookVector = hitbox.CFrame.LookVector
+			local rightVector = hitbox.CFrame.RightVector
+
+			-- Check if going backward
+			if dodgeVector:Dot(lookVector) < -0.5 then
+				animationName = "Back"
+			-- Check if going left
+			elseif dodgeVector:Dot(rightVector) < -0.5 then
+				animationName = "Left"
+			-- Check if going right
+			elseif dodgeVector:Dot(rightVector) > 0.5 then
+				animationName = "Right"
+			end
+
+			local dashAnim = dashAnimations:FindFirstChild(animationName)
+			if dashAnim then
+				Library.StopMovementAnimations(character)
+				local dashTrack = Library.PlayAnimation(character, dashAnim, 0.05)
+				if dashTrack then
+					dashTrack.Priority = Enum.AnimationPriority.Action
+				end
+			end
 		end
 	end
 
-	-- Create LinearVelocity for dodge
-	local velocity = Instance.new("LinearVelocity")
-	velocity.Name = "NPCDodge"
-	velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
-	velocity.ForceLimitsEnabled = true
-	velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-	velocity.Attachment0 = hitbox:FindFirstChild("RootAttachment")
-	velocity.RelativeTo = Enum.ActuatorRelativeTo.World
-	velocity.VectorVelocity = dodgeVector * 135 -- Match player dodge speed
-	velocity.Parent = hitbox
-
-	-- Destroy after 0.5s
-	task.delay(0.5, function()
-		if velocity and velocity.Parent then
-			velocity:Destroy()
+	-- Reset dash after 0.4s
+	task.delay(0.4, function()
+		if character and character.Parent then
+			world:set(entity, comps.Dashing, false)
 		end
 	end)
 
@@ -224,7 +261,7 @@ local function canDefend(character: Model): boolean
 end
 
 -- Main system function
-return function(dt: number)
+local function updateDefense()
 	for entity, character, _, target, combatState, hitbox, combat in combatNPCQuery do
 		-- Skip if no target
 		if not target or not target:IsDescendantOf(workspace) then
@@ -255,6 +292,9 @@ return function(dt: number)
 		local defenseType = getBestDefense(playerAction, distance)
 		if not defenseType then continue end
 
+		-- Get locomotion component for dash
+		local loco = world:get(entity, comps.Locomotion)
+
 		-- Execute defense
 		local success = false
 		if defenseType == "Parry" then
@@ -262,7 +302,7 @@ return function(dt: number)
 		elseif defenseType == "Block" then
 			success = executeBlock(character, combat)
 		elseif defenseType == "Dodge" then
-			success = executeDodge(character, hitbox)
+			success = executeDodge(entity, character, hitbox, loco)
 		end
 
 		-- Update combat state if successful
@@ -273,4 +313,22 @@ return function(dt: number)
 		end
 	end
 end
+
+return {
+	run = function(_world: Jecs.World, dt: number)
+		-- NETWORK OPTIMIZATION: Throttle to 20 Hz
+		defenseAcc += dt
+		if defenseAcc >= DEFENSE_TICK then
+			defenseAcc = 0
+			updateDefense()
+		end
+	end,
+
+	settings = {
+		phase = "Heartbeat",
+		depends_on = {},
+		server_only = true
+	}
+}
+
 

@@ -1,17 +1,5 @@
 --!strict
---[[
-    NPC Targeting System (ECS)
-    
-    Handles:
-    - Enemy detection (CaptureDistance)
-    - Target acquisition
-    - Target loss (LetGoDistance)
-    - Aggressive mode (when attacked)
-    - Passive mode
-    - Has been attacked tracking
-    
-    Runs at ~15 Hz
-]]
+
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -21,28 +9,89 @@ local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local RefManager = require(ReplicatedStorage.Modules.ECS.jecs_ref_manager)
 local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
+local Jecs = require(ReplicatedStorage.Modules.Imports.jecs)
 
--- Cache queries
-local combatNPCQuery = world:query(comps.Character, comps.CombatNPC, comps.NPCCombatState, comps.NPCConfig, comps.Hitbox)
+local GRID_SIZE = 50 -- 50 stud voxels
+local playerGrid = {} -- [Vector3] = {Model}
 
--- Throttle to ~15 Hz
+local combatNPCQuery = world:query(
+	comps.Character,
+	comps.CombatNPC,
+	comps.NPCCombatState,
+	comps.NPCConfig,
+	comps.Hitbox
+):cached()
+
 local lastUpdate = 0
-local UPDATE_INTERVAL = 0.067
+local UPDATE_INTERVAL = 0.05
 
--- Get all players in workspace
-local function getAllPlayers(): {Model}
-	local players = {}
-	for _, player in Players:GetPlayers() do
-		if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
-			table.insert(players, player.Character)
-		end
-	end
-	return players
+local cachedPlayers: {Model} = {}
+local lastPlayerCacheTime = 0
+local PLAYER_CACHE_INTERVAL = 0.5
+
+local function getVoxelKey(position: Vector3): Vector3
+	return Vector3.new(
+		math.floor(position.X / GRID_SIZE) * GRID_SIZE,
+		0,
+		math.floor(position.Z / GRID_SIZE) * GRID_SIZE
+	)
 end
 
--- Check if NPC has been attacked
+local function updatePlayerGrid()
+	playerGrid = {}
+
+	for _, player in cachedPlayers do
+		local hrp = player:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			local key = getVoxelKey(hrp.Position)
+			if not playerGrid[key] then
+				playerGrid[key] = {}
+			end
+			table.insert(playerGrid[key], player)
+		end
+	end
+end
+
+local function getNearbyPlayers(position: Vector3, radius: number): {Model}
+	local nearby = {}
+	local centerKey = getVoxelKey(position)
+
+	for x = -1, 1 do
+		for z = -1, 1 do
+			local offset = Vector3.new(x * GRID_SIZE, 0, z * GRID_SIZE)
+			local checkKey = centerKey + offset
+
+			if playerGrid[checkKey] then
+				for _, player in playerGrid[checkKey] do
+					table.insert(nearby, player)
+				end
+			end
+		end
+	end
+
+	return nearby
+end
+
+local function getAllPlayers(): {Model}
+	local now = os.clock()
+	if now - lastPlayerCacheTime < PLAYER_CACHE_INTERVAL then
+		return cachedPlayers
+	end
+
+	cachedPlayers = {}
+	for _, player in Players:GetPlayers() do
+		if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+			table.insert(cachedPlayers, player.Character)
+		end
+	end
+
+	updatePlayerGrid()
+
+	lastPlayerCacheTime = now
+	return cachedPlayers
+end
+
 local function hasBeenAttacked(character: Model): (boolean, Model?)
-	-- Check Damage_Log
 	local damageLog = character:FindFirstChild("Damage_Log")
 	if damageLog and #damageLog:GetChildren() > 0 then
 		local recentAttack = damageLog:GetChildren()[#damageLog:GetChildren()]
@@ -52,7 +101,6 @@ local function hasBeenAttacked(character: Model): (boolean, Model?)
 		return true, nil
 	end
 	
-	-- Check IFrames for attack states
 	if StateManager.StateCheck(character, "IFrames", "RecentlyAttacked") or
 	   StateManager.StateCheck(character, "IFrames", "Damaged") then
 		return true, nil
@@ -61,13 +109,12 @@ local function hasBeenAttacked(character: Model): (boolean, Model?)
 	return false, nil
 end
 
--- Find closest valid target
 local function findClosestTarget(npcPos: Vector3, captureDistance: number, currentTarget: Model?): Model?
-	local players = getAllPlayers()
+	local nearbyPlayers = getNearbyPlayers(npcPos, captureDistance)
 	local closestPlayer = nil
 	local closestDistance = captureDistance
-	
-	for _, player in players do
+
+	for _, player in nearbyPlayers do
 		local playerRoot = player:FindFirstChild("HumanoidRootPart")
 		if playerRoot then
 			local distance = (playerRoot.Position - npcPos).Magnitude
@@ -77,54 +124,107 @@ local function findClosestTarget(npcPos: Vector3, captureDistance: number, curre
 			end
 		end
 	end
-	
+
 	return closestPlayer
 end
 
--- Main system function
-return function(dt: number)
+local hasLoggedTargeting = false
+local frameCount = 0
+
+local function updateTargeting(dt: number)
 	local now = os.clock()
 	if now - lastUpdate < UPDATE_INTERVAL then
 		return
 	end
 	lastUpdate = now
-	
+	frameCount += 1
+
+	local guardCount = 0
+	local guardsInQuery = 0
+	for entity, character in world:query(comps.Character, comps.CombatNPC) do
+		if character.Name:match("Guard") then
+			guardCount += 1
+		end
+	end
+
 	for entity, character, _, combatState, config, hitbox in combatNPCQuery do
-		-- Check if has been attacked
+		if character.Name:match("Guard") then
+			guardsInQuery += 1
+		end
+	end
+
+	if not hasLoggedTargeting or frameCount % 60 == 0 then
+
+		if guardCount > 0 and guardsInQuery == 0 then
+
+			for entity, character in world:query(comps.Character, comps.CombatNPC) do
+				if character.Name:match("Guard") then
+
+				end
+			end
+		end
+
+		if not hasLoggedTargeting then
+			hasLoggedTargeting = true
+		end
+	end
+
+	getAllPlayers()
+
+	for entity, character, _, combatState, config, hitbox in combatNPCQuery do
+		if character.Name:match("Guard") then
+		end
+
 		local attacked, attacker = hasBeenAttacked(character)
-		
+
+		if character.Name:match("Guard") then
+			local damageLog = character:FindFirstChild("Damage_Log")
+			if damageLog then
+			end
+		end
+
 		if attacked then
-			-- Enter aggressive mode
-			if not combatState.isAggressive then
+			-- Wanderers should never become aggressive - they only run away
+			local isWanderer = character.Name:match("Wanderer")
+
+			if not isWanderer and not combatState.isAggressive then
 				combatState.isAggressive = true
 				combatState.isPassive = false
 				combatState.hasBeenAttacked = true
-				
-				-- Increase detection ranges
+
 				config.captureDistance = math.max(config.captureDistance, 120)
 				config.letGoDistance = math.max(config.letGoDistance, 150)
-				
+
 				world:set(entity, comps.NPCCombatState, combatState)
 				world:set(entity, comps.NPCConfig, config)
+
 			end
-			
-			-- Set attacker as target if found
-			if attacker and attacker:IsA("Model") and attacker:FindFirstChild("Humanoid") then
+
+			-- Wanderers don't target attackers - they just run away (handled by behavior tree)
+			if not isWanderer and attacker and attacker:IsA("Model") and attacker:FindFirstChild("Humanoid") then
+
 				world:set(entity, comps.NPCTarget, attacker)
+
+
+				if world:has(entity, comps.NPCTarget) then
+					local target = world:get(entity, comps.NPCTarget)
+
+				else
+
+				end
 				continue
+			else
+
 			end
 		end
 		
-		-- Get current target
 		local currentTarget = nil
 		if world:has(entity, comps.NPCTarget) then
 			currentTarget = world:get(entity, comps.NPCTarget)
 		end
 		
-		-- Validate current target
 		if currentTarget then
 			if not currentTarget.Parent or not currentTarget:FindFirstChild("Humanoid") then
-				-- Target invalid
 				world:remove(entity, comps.NPCTarget)
 				currentTarget = nil
 			else
@@ -134,7 +234,6 @@ return function(dt: number)
 				if targetRoot and targetHum then
 					local distance = (targetRoot.Position - hitbox.Position).Magnitude
 					
-					-- Check if target died or too far
 					if targetHum.Health <= 0 then
 						world:remove(entity, comps.NPPCTarget)
 						currentTarget = nil
@@ -149,9 +248,7 @@ return function(dt: number)
 			end
 		end
 		
-		-- Find new target if none
 		if not currentTarget then
-			-- Skip if passive and not attacked
 			if combatState.isPassive and not combatState.hasBeenAttacked then
 				continue
 			end
@@ -164,3 +261,15 @@ return function(dt: number)
 	end
 end
 
+
+return {
+	run = function(world: Jecs.World, dt: number)
+		updateTargeting(dt)
+	end,
+
+	settings = {
+		phase = "Heartbeat",
+		depends_on = {},
+		server_only = true
+	}
+}

@@ -27,6 +27,12 @@ NetworkModule.EndPoint = function(Player, Data)
         return
     end
 
+    -- Prevent dashing while guardbroken
+    if Character:FindFirstChild("Stuns") and Library.StateCheck(Character.Stuns, "GuardbreakStun") then
+        print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while guardbroken`)
+        return
+    end
+
     -- Prevent dashing during any stun
     if Character:FindFirstChild("Stuns") and Library.StateCount(Character.Stuns) then
         print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while stunned`)
@@ -60,18 +66,21 @@ NetworkModule.EndPoint = function(Player, Data)
         Library.SetCooldown(Character, "Dodge", 2)
     end
 
-    -- Set Dashing component to true
+    -- Set Dashing component to true AND add Dashing state to Stuns to prevent all actions
     local playerEntity = ref.get("player", Player)
     if playerEntity then
         world:set(playerEntity, comps.Dashing, true)
 
-        -- Clear dashing state after dash duration (0.5s)
+        -- Clear dashing state after dash duration (0.35s)
         task.delay(0.35, function()
             if playerEntity and world:contains(playerEntity) then
                 world:set(playerEntity, comps.Dashing, false)
             end
         end)
     end
+
+    -- Add Dashing state to Stuns to prevent all actions during dash
+    Library.TimedState(Character.Stuns, "Dashing", 0.35)
 
     -- Always process VFX if we got here
     local Entity = Server.Modules["Entities"].Get(Character);

@@ -46,8 +46,89 @@ local Table = {
 			},
 			["HitTimes"] = {25/120, 29/120, 38/120, 51/120, 52/120, 54/120, 79/120, 83/120, 89/120}
 			-- startslash, startdrag1, enddrag1, startdrag2, startslash and swingwooo, enddrag2, startslash, startdrag3, enddrag3
+		},
+		["WhirlWind"] = {
+			["Slash1"] = {
+				BlockBreak = true, -- Changed to true for guardbreak
+				Damage = 3.5,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.4,
+			},
+			["Slash2"] = {
+				BlockBreak = true,
+				Damage = 4,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.4,
+			},
+			["Hittimes"] = {13/110, 16/110, 24/110, 25/110, 39/110, 56/110, 59/110}
+    	},
+		["Rapid Thrust"] = {
+			["Slash1"] = {
+				BlockBreak = true, -- Changed to true for guardbreak
+				Damage = 3.5,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.4,
+			},
+			["Slash2"] = {
+				BlockBreak = true,
+				Damage = 4,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.4,
+			},
+			["Repeat"] = {
+				BlockBreak = false,
+				Damage = 1.5,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.5,
+			},
+			["Slam"] = {
+				BlockBreak = true,
+				Damage = 10,
+				PostureDamage = 15,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.3,
+			},
+			["Hittimes"] = {27/285, 77/285, 100/285, 115/285, 130/285, 145/285, 160/285, 175/285, 190/285, 205/285, 219/285, 223/285, 230/285, 238/285}
+		},
+		["Charged Thrust"] = {
+			["Init"] = {
+				BlockBreak = true, -- Changed to true for guardbreak
+				Damage = 3.5,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 1,
+			},
+			["Pull"] = {
+				BlockBreak = true,
+				Damage = 4,
+				PostureDamage = 5,
+				LightKnockback = false,
+				M2 = false,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 1,
+			},
+			["Hittimes"] = {18/90, 30/90}
 		}
-    },
+		},
     ["Guns"] = {
         ["Shell Piercer"] = {
             ["DamageTable"] = {

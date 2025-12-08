@@ -14,7 +14,7 @@ EventModule.EndPoint = function(Player, Data)
 	if Client["RunAtkDelay"] then
 		task.cancel(Client["RunAtkDelay"])
 		Client["RunAtkDelay"] = nil
-		print("[CancelSprint] ⏹️ Cancelled running attack timer - actions don't count toward running attack")
+		--print("[CancelSprint] ⏹️ Cancelled running attack timer - actions don't count toward running attack")
 	end
 
 	-- Disable running attack immediately
@@ -23,7 +23,7 @@ EventModule.EndPoint = function(Player, Data)
 	-- Set sprint lock flag to prevent sprint from restarting until shift is released and pressed again
 	-- This prevents holding shift during an action from auto-restarting sprint when action ends
 	Client.SprintLocked = true
-	print("[CancelSprint] 🔒 Sprint locked - must release and re-press shift to sprint again")
+	--print("[CancelSprint] 🔒 Sprint locked - must release and re-press shift to sprint again")
 end
 
 return EventModule

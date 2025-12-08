@@ -57,8 +57,7 @@ return function(Player, Data, Server)
 		-- Remove any existing body movers FIRST and wait for it to complete
 		---- print(`[Needle Thrust Server] Sending RemoveBvel to {Player.Name}`)
 		Server.Packets.Bvel.sendTo({Character = Character, Name = "RemoveBvel"},Player)
-		---- print(`[Needle Thrust Server] Waiting 0.1s for cleanup and animation stop...`)
-		task.wait(0.1) -- Increased delay to ensure animations stop and RemoveBvel completes
+		---- print(`[Needle Thrust Server] Waiting 0.1s for cleanup and animation stop...`) -- Increased delay to ensure animations stop and RemoveBvel completes
 		---- print(`[Needle Thrust Server] Cleanup wait complete, continuing...`)
 
 		Server.Library.SetCooldown(Character, script.Name, 5) -- Increased from 2.5 to 5 seconds

@@ -349,7 +349,7 @@ return function(Target, props)
 	end
 
 	-- Rotation update loop
-	RunService.RenderStepped:Connect(function(dt)
+	local rotationConnection = RunService.RenderStepped:Connect(function(dt)
 		if not peek(started) then return end
 		rotation:set((peek(rotation) + (dt * math.random(20,60))) % 360)
 		otherrotation:set((peek(otherrotation) - (dt * math.random(20,60))) % 360)
@@ -934,16 +934,33 @@ return function(Target, props)
 		end)
 	end)
 
-	-- Cleanup function for fade connection
-	local cleanupFade = function()
+	-- Cleanup function for all connections
+	local cleanupConnections = function()
+		-- Disconnect fade connection
 		if fadeConnection then
 			fadeConnection:Disconnect()
 			fadeConnection = nil
 		end
+
+		-- Disconnect rotation connection
+		if rotationConnection then
+			rotationConnection:Disconnect()
+			rotationConnection = nil
+			print("[Casting] 🧹 Disconnected rotation connection")
+		end
+
+		-- Disconnect all flash connections
+		for name, connection in pairs(flashConnections) do
+			if connection then
+				connection:Disconnect()
+			end
+		end
+		table.clear(flashConnections)
+		print("[Casting] 🧹 Cleaned up all flash connections")
 	end
 
 	-- Add cleanup to scope
-	table.insert(scope, cleanupFade)
+	table.insert(scope, cleanupConnections)
 
 	-- Return the API for external control (including scope for cleanup)
 	api.scope = scope

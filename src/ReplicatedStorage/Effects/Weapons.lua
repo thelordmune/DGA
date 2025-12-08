@@ -9,6 +9,7 @@ local Misc = require(script.Parent.Misc)
 local Library = require(Replicated.Modules.Library)
 local Utilities = require(Replicated.Modules.Utilities)
 local Debris = Utilities.Debris
+local EmitModule = require(game.ReplicatedStorage.Modules.Utils.EmitModule)
 
 -- Variables
 local Player = Players.LocalPlayer
@@ -28,73 +29,84 @@ local TInfo = TweenInfo.new(0.35, Enum.EasingStyle.Circular, Enum.EasingDirectio
 
 local Weapons = {}
 
+function Weapons.SpecialShake(magnitude: number, frequency: number?, location: Vector3?)
+	-- Special camera shake for intense moments (even more impactful)
+	CamShake({
+		Magnitude = magnitude * 2, -- Double magnitude for special shakes
+		Frequency = frequency or 30, -- Even higher frequency
+		Damp = 0.004, -- Even slower dampening
+		Influence = Vector3.new(1.5, 1.5, 1), -- Maximum influence
+		Location = location or workspace.CurrentCamera.CFrame.Position,
+		Falloff = 120
+	})
+end
+
 function Weapons.GrandCleave(Character: Model, Frame: string, duration: number?)
-    if Frame == "Slash1" then
-        local eff = VFX.Cleave.slash:Clone()
-        eff.Parent = workspace.World.Visuals
-        eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2) * CFrame.Angles(0,0,math.rad(-15))
-        for _, v in eff:GetDescendants() do
-            if v:IsA("ParticleEmitter") then
-                v:Emit(v:GetAttribute("EmitCount"))
-            end
-        end
-        task.delay(3, function()
-            eff:Destroy()
-        end)
-    elseif Frame == "Drag" then
-        for _, v in Character:GetDescendants() do
-            if v:GetAttribute("Special") then
-                local h = v:GetDescendants()
-                for _, p in h do
-                    if p:IsA("ParticleEmitter") then
-                        p:Emit(p:GetAttribute("EmitCount"))
-                        p.Enabled = true
-                        task.delay(duration, function()
-                            p.Enabled = false
-                        end)
-                    end
-                end
-            end
-        end
-    elseif Frame == "Slash2" then
-        local eff = VFX.Cleave.slash:Clone()
-        eff.Parent = workspace.World.Visuals
-        eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-15))
-        for _, v in eff:GetDescendants() do
-            if v:IsA("ParticleEmitter") then
-                v:Emit(v:GetAttribute("EmitCount"))
-            end
-        end
-        local geff = VFX.Cleave.swingwooo:Clone()
-        geff.Parent = workspace.World.Visuals
-        geff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5,0)
-        for _, v in geff:GetDescendants() do
-            if v:IsA("ParticleEmitter") then
-                v:Emit(v:GetAttribute("EmitCount"))
-            end
-        end
-        task.delay(3, function()
-            eff:Destroy()
-            geff:Destroy()
-        end)
-    elseif Frame == "Slash3" then
-        local eff = VFX.Cleave.slash3:Clone()
-        eff.Parent = workspace.World.Visuals
-        eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, .3, -2) * CFrame.Angles(0,0,math.rad(15))
-        for _, v in eff:GetDescendants() do
-            if v:IsA("ParticleEmitter") then
-                v:Emit(v:GetAttribute("EmitCount"))
-            end
-        end
-        task.delay(3, function()
-            eff:Destroy()
-        end)
-    end
+	if Frame == "Slash1" then
+		local eff = VFX.Cleave.slash:Clone()
+		eff.Parent = workspace.World.Visuals
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2) * CFrame.Angles(0, 0, math.rad(-15))
+		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+		task.delay(3, function()
+			eff:Destroy()
+		end)
+	elseif Frame == "Drag" then
+		for _, v in Character:GetDescendants() do
+			if v:GetAttribute("Special") then
+				local h = v:GetDescendants()
+				for _, p in h do
+					if p:IsA("ParticleEmitter") then
+						p:Emit(p:GetAttribute("EmitCount"))
+						p.Enabled = true
+						task.delay(duration, function()
+							p.Enabled = false
+						end)
+					end
+				end
+			end
+		end
+	elseif Frame == "Slash2" then
+		local eff = VFX.Cleave.slash:Clone()
+		eff.Parent = workspace.World.Visuals
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0, 0, math.rad(-15))
+		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+		local geff = VFX.Cleave.swingwooo:Clone()
+		geff.Parent = workspace.World.Visuals
+		geff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, 0)
+		for _, v in geff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+		task.delay(3, function()
+			eff:Destroy()
+			geff:Destroy()
+		end)
+	elseif Frame == "Slash3" then
+		local eff = VFX.Cleave.slash3:Clone()
+		eff.Parent = workspace.World.Visuals
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0.3, -2) * CFrame.Angles(0, 0, math.rad(15))
+		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+		task.delay(3, function()
+			eff:Destroy()
+		end)
+	end
 end
 
 local function startdkmesh(CF: CFrame, Parent: Instance)
-  
-	-- Base Setup 
+	-- Base Setup
 
 	if CF then
 		if typeof(CF) == "Vector3" then
@@ -114,7 +126,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 		Parent = cache
 	end
 
-	local Main_CFrame = CF or CFrame.new(0,0,0)
+	local Main_CFrame = CF or CFrame.new(0, 0, 0)
 
 	-- Settings
 
@@ -126,8 +138,8 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 		["WindWave2"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.WindWave2,
 		["Mesh2"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.Mesh2,
 		["WindShockwave"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.WindShockwave,
-		["WindCoolSwirlenable"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.WindCoolSwirlenable
-	} :: {[string] : Instance}
+		["WindCoolSwirlenable"] = Replicated.Assets.VFX.DropKick.Firstmeshwoosh.WindCoolSwirlenable,
+	} :: { [string]: Instance }
 
 	local Visual_Data = {
 		[Visual_Directory["Mesh1"]] = {
@@ -137,13 +149,14 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				Transparency = 0.45,
 			},
 
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
+			Features = { -- !CheckForFeature!
+			}, -- !CheckForFeature!
 			-- !CheckForFeature!
 			BasePart = {
 				Property = {
 					Size = Vector3.new(1.2913484573364258, 0.04084079712629318, 0.6449999809265137),
-					CFrame = Main_CFrame * CFrame.new(0.68460083, -3.26126003, -0.406341553, -1, 0, 0, 0, 1, 0, 0, 0, -1),
+					CFrame = Main_CFrame
+						* CFrame.new(0.68460083, -3.26126003, -0.406341553, -1, 0, 0, 0, 1, 0, 0, 0, -1),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -184,13 +197,26 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				Transparency = 0.5,
 			},
 
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
+			Features = { -- !CheckForFeature!
+			}, -- !CheckForFeature!
 			-- !CheckForFeature!
 			BasePart = {
 				Property = {
 					Size = Vector3.new(1.2970445156097412, 0.04987366497516632, 0.6478757858276367),
-					CFrame = Main_CFrame * CFrame.new(-0.0406494141, -3.17667937, -0.517852783, -0.499959469, 0, -0.866048813, 0, 1, 0, 0.866048813, 0, -0.499959469),
+					CFrame = Main_CFrame * CFrame.new(
+						-0.0406494141,
+						-3.17667937,
+						-0.517852783,
+						-0.499959469,
+						0,
+						-0.866048813,
+						0,
+						1,
+						0,
+						0.866048813,
+						0,
+						-0.499959469
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -231,18 +257,31 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				Transparency = 0.43,
 			},
 
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
+			Features = { -- !CheckForFeature!
+			}, -- !CheckForFeature!
 			-- !CheckForFeature!
 			BasePart = {
 				Property = {
 					Size = Vector3.new(0.8497866988182068, 0.8497866988182068, 0.8497866988182068),
-					CFrame = Main_CFrame * CFrame.new(0, -3.68990231, -0.00396728516, 0.829036474, 0, 0.559194624, 0, 1, 0, -0.559194624, 0, 0.829036474),
+					CFrame = Main_CFrame * CFrame.new(
+						0,
+						-3.68990231,
+						-0.00396728516,
+						0.829036474,
+						0,
+						0.559194624,
+						0,
+						1,
+						0,
+						-0.559194624,
+						0,
+						0.829036474
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection. Out,
+					Easing_Direction = Enum.EasingDirection.Out,
 					Easing_Style = Enum.EasingStyle.Quad,
 				},
 			},
@@ -273,13 +312,26 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 
 		[Visual_Directory["WindCoolSwirlenable"]] = {
 			General = {
-				Offset = CFrame.new(0, -3.93539953, 0.118011475, -0.949317455, 1.63912773e-06, 0.314318866, 1.63912773e-06, -1, 1.02519989e-05, 0.314318866, 1.01923943e-05, 0.949317515),
+				Offset = CFrame.new(
+					0,
+					-3.93539953,
+					0.118011475,
+					-0.949317455,
+					1.63912773e-06,
+					0.314318866,
+					1.63912773e-06,
+					-1,
+					1.02519989e-05,
+					0.314318866,
+					1.01923943e-05,
+					0.949317515
+				),
 				Tween_Duration = 3,
 				Transparency = 0.9,
 			},
 
-			Features = {-- !CheckForFeature!
-			},-- !CheckForFeature!
+			Features = { -- !CheckForFeature!
+			}, -- !CheckForFeature!
 			-- !CheckForFeature!
 			BasePart = {
 				Property = {
@@ -333,7 +385,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection. Out,
+					Easing_Direction = Enum.EasingDirection.Out,
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
@@ -377,7 +429,7 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection. Out,
+					Easing_Direction = Enum.EasingDirection.Out,
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
@@ -416,12 +468,25 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(0.8497866988182068, 0.8497866988182068, 0.8497866988182068),
-					CFrame = Main_CFrame * CFrame.new(0, -3.52160978, -0.00396728516, -0.999848366, 0, 0.017436387, 0, 1, 0, -0.017436387, 0, -0.999848366),
+					CFrame = Main_CFrame * CFrame.new(
+						0,
+						-3.52160978,
+						-0.00396728516,
+						-0.999848366,
+						0,
+						0.017436387,
+						0,
+						1,
+						0,
+						-0.017436387,
+						0,
+						-0.999848366
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
 				Tween = {
-					Easing_Direction = Enum.EasingDirection. Out,
+					Easing_Direction = Enum.EasingDirection.Out,
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
@@ -493,11 +558,12 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 				},
 			},
 		},
-
 	}
 
-	for Origin : any, Data in pairs(Visual_Data) do
-		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
+	for Origin: any, Data in pairs(Visual_Data) do
+		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then
+			continue
+		end
 
 		-- Build
 
@@ -505,7 +571,10 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 			local Visual = Origin.Start:Clone()
 			Visual.Name = Origin.Name
 			Visual.Transparency = Data.General.Transparency
-			if Visual:FindFirstChildOfClass("Decal") then Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency Visual.Transparency = 1 end
+			if Visual:FindFirstChildOfClass("Decal") then
+				Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency
+				Visual.Transparency = 1
+			end
 			Visual.Anchored = true
 			Visual.CanCollide = false
 			Visual.CanQuery = false
@@ -516,23 +585,55 @@ local function startdkmesh(CF: CFrame, Parent: Instance)
 
 			-- Initialize
 
-			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
-			if Data.Decal then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("Decal"), TweenInfo.new(Data.General.Tween_Duration, Data.Decal.Tween.Easing_Style, Data.Decal.Tween.Easing_Direction), Data.Decal.Property):Play() end
-			if Data.Mesh then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("SpecialMesh"), TweenInfo.new(Data.General.Tween_Duration, Data.Mesh.Tween.Easing_Style, Data.Mesh.Tween.Easing_Direction), Data.Mesh.Property):Play() end
+			game:GetService("TweenService")
+				:Create(
+					Visual,
+					TweenInfo.new(
+						Data.General.Tween_Duration,
+						Data.BasePart.Tween.Easing_Style,
+						Data.BasePart.Tween.Easing_Direction
+					),
+					Data.BasePart.Property
+				)
+				:Play()
+			if Data.Decal then
+				game:GetService("TweenService")
+					:Create(
+						Visual:FindFirstChildOfClass("Decal"),
+						TweenInfo.new(
+							Data.General.Tween_Duration,
+							Data.Decal.Tween.Easing_Style,
+							Data.Decal.Tween.Easing_Direction
+						),
+						Data.Decal.Property
+					)
+					:Play()
+			end
+			if Data.Mesh then
+				game:GetService("TweenService")
+					:Create(
+						Visual:FindFirstChildOfClass("SpecialMesh"),
+						TweenInfo.new(
+							Data.General.Tween_Duration,
+							Data.Mesh.Tween.Easing_Style,
+							Data.Mesh.Tween.Easing_Direction
+						),
+						Data.Mesh.Property
+					)
+					:Play()
+			end
 
 			-- Clean Up
 
-			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
+			task.delay(Data.General.Tween_Duration, Visual.Destroy, Visual)
 		end
 
 		task.spawn(Emit)
 	end
-
 end
 
 local function jumpdkmesh(CF: CFrame, Parent: Instance)
- 
-	-- Base Setup 
+	-- Base Setup
 
 	if CF then
 		if typeof(CF) == "Vector3" then
@@ -552,7 +653,7 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 		Parent = cache
 	end
 
-	local Main_CFrame = CF or CFrame.new(0,0,0)
+	local Main_CFrame = CF or CFrame.new(0, 0, 0)
 
 	-- Settings
 
@@ -560,13 +661,26 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 		["dramatic"] = Replicated.Assets.VFX.DropKick.Jump.out.dramatic,
 		["Hmm3"] = Replicated.Assets.VFX.DropKick.Jump.out.Hmm3,
 		["Wind"] = Replicated.Assets.VFX.DropKick.Jump.out.Wind,
-		["ShootMesh"] = Replicated.Assets.VFX.DropKick.Jump.out.ShootMesh
-	} :: {[string] : Instance}
+		["ShootMesh"] = Replicated.Assets.VFX.DropKick.Jump.out.ShootMesh,
+	} :: { [string]: Instance }
 
 	local Visual_Data = {
 		[Visual_Directory["Hmm3"]] = {
 			General = {
-				Offset = CFrame.new(-0.151153564, -4.32416344, -1.7925415, 0, 1.33629948e-21, -1, 0, 1, -1.33629948e-21, 1, 0, 0),
+				Offset = CFrame.new(
+					-0.151153564,
+					-4.32416344,
+					-1.7925415,
+					0,
+					1.33629948e-21,
+					-1,
+					0,
+					1,
+					-1.33629948e-21,
+					1,
+					0,
+					0
+				),
 				Tween_Duration = 0.25,
 				Transparency = 0.95,
 			},
@@ -574,7 +688,20 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(12.603195190429688, 15, 12.603195190429688),
-					CFrame = Main_CFrame * CFrame.new(-0.151153564, -1.68119717, -1.79257202, 0, 1.33629948e-21, 1, 0, 1, 1.33629948e-21, -1, 0, 0),
+					CFrame = Main_CFrame * CFrame.new(
+						-0.151153564,
+						-1.68119717,
+						-1.79257202,
+						0,
+						1.33629948e-21,
+						1,
+						0,
+						1,
+						1.33629948e-21,
+						-1,
+						0,
+						0
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -583,12 +710,24 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-
 		},
 
 		[Visual_Directory["ShootMesh"]] = {
 			General = {
-				Offset = CFrame.new(-0.310913086, -0.587655067, -0.251373291, -1, 1.33629948e-21, 0, -1.33629948e-21, 1, 0, 0, 0, -1),
+				Offset = CFrame.new(
+					-0.310913086,
+					-0.587655067,
+					-0.251373291,
+					-1,
+					1.33629948e-21,
+					0,
+					-1.33629948e-21,
+					1,
+					0,
+					0,
+					0,
+					-1
+				),
 				Tween_Duration = 0.15,
 				Transparency = 0.6,
 			},
@@ -596,7 +735,20 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(1.585519790649414, 29.075138092041016, 1.493143081665039),
-					CFrame = Main_CFrame * CFrame.new(-0.310913086, 1.87844801, -0.195892334, -0.138841867, 3.29315662e-05, -0.990314484, 0.0143373907, 0.999895215, -0.00197684765, 0.990210772, -0.0144729614, -0.138827771),
+					CFrame = Main_CFrame * CFrame.new(
+						-0.310913086,
+						1.87844801,
+						-0.195892334,
+						-0.138841867,
+						3.29315662e-05,
+						-0.990314484,
+						0.0143373907,
+						0.999895215,
+						-0.00197684765,
+						0.990210772,
+						-0.0144729614,
+						-0.138827771
+					),
 					Color = Color3.new(0.972549, 0.972549, 0.972549),
 					Transparency = 1,
 				},
@@ -605,12 +757,24 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-
 		},
 
 		[Visual_Directory["Wind"]] = {
 			General = {
-				Offset = CFrame.new(-3.25473276e-21, -4.87126255, 0, 1, -2.00444926e-21, 0, 2.00444926e-21, -1, 0, 0, 0, -1),
+				Offset = CFrame.new(
+					-3.25473276e-21,
+					-4.87126255,
+					0,
+					1,
+					-2.00444926e-21,
+					0,
+					2.00444926e-21,
+					-1,
+					0,
+					0,
+					0,
+					-1
+				),
 				Tween_Duration = 1.2,
 				Transparency = 0.98,
 			},
@@ -618,7 +782,20 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(29.16249656677246, 4.267792224884033, 28.24770736694336),
-					CFrame = Main_CFrame * CFrame.new(-3.3484875e-21, -5.01158237, 0, 0, -2.00444926e-21, 1, 0, -1, 2.00444926e-21, 1, 0, 0),
+					CFrame = Main_CFrame * CFrame.new(
+						-3.3484875e-21,
+						-5.01158237,
+						0,
+						0,
+						-2.00444926e-21,
+						1,
+						0,
+						-1,
+						2.00444926e-21,
+						1,
+						0,
+						0
+					),
 					Color = Color3.new(0.972549, 0.972549, 0.972549),
 					Transparency = 1,
 				},
@@ -627,12 +804,24 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-
 		},
 
 		[Visual_Directory["dramatic"]] = {
 			General = {
-				Offset = CFrame.new(-0.151153564, -5.32312918, -1.14996338, 0, -1.33629948e-21, 1, 0, -1, 1.33629948e-21, 1, 0, 0),
+				Offset = CFrame.new(
+					-0.151153564,
+					-5.32312918,
+					-1.14996338,
+					0,
+					-1.33629948e-21,
+					1,
+					0,
+					-1,
+					1.33629948e-21,
+					1,
+					0,
+					0
+				),
 				Tween_Duration = 0.1,
 				Transparency = 0.9,
 			},
@@ -640,7 +829,20 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(2.551072120666504, 19.071107864379883, 2.551072120666504),
-					CFrame = Main_CFrame * CFrame.new(-0.151153564, -6.89178228, -1.14996338, 0, -1.33629948e-21, 1, 0, -1, 1.33629948e-21, 1, 0, 0),
+					CFrame = Main_CFrame * CFrame.new(
+						-0.151153564,
+						-6.89178228,
+						-1.14996338,
+						0,
+						-1.33629948e-21,
+						1,
+						0,
+						-1,
+						1.33629948e-21,
+						1,
+						0,
+						0
+					),
 					Color = Color3.new(1, 1, 1),
 					Transparency = 1,
 				},
@@ -649,13 +851,13 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-
 		},
-
 	}
 
-	for Origin : any, Data in pairs(Visual_Data) do
-		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
+	for Origin: any, Data in pairs(Visual_Data) do
+		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then
+			continue
+		end
 
 		-- Build
 
@@ -663,7 +865,10 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 			local Visual = Origin.Start:Clone()
 			Visual.Name = Origin.Name
 			Visual.Transparency = Data.General.Transparency
-			if Visual:FindFirstChildOfClass("Decal") then Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency Visual.Transparency = 1 end
+			if Visual:FindFirstChildOfClass("Decal") then
+				Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency
+				Visual.Transparency = 1
+			end
 			Visual.Anchored = true
 			Visual.CanCollide = false
 			Visual.CanQuery = false
@@ -674,66 +879,74 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 
 			-- Initialize
 
-			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
+			game:GetService("TweenService")
+				:Create(
+					Visual,
+					TweenInfo.new(
+						Data.General.Tween_Duration,
+						Data.BasePart.Tween.Easing_Style,
+						Data.BasePart.Tween.Easing_Direction
+					),
+					Data.BasePart.Property
+				)
+				:Play()
 
 			-- Clean Up
 
-			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
+			task.delay(Data.General.Tween_Duration, Visual.Destroy, Visual)
 		end
 
 		task.spawn(Emit)
 	end
-
 end
 function Weapons.DropKick(Character: Model, Frame: string)
-    if Frame == "StepL" then
-        local eff = VFX.DropKick.step:Clone()
-        eff.Parent = workspace.World.Visuals
-        eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 1, -2)
-        for _, v in eff:GetDescendants() do
-            if v:IsA("ParticleEmitter") then
-                v:Emit(v:GetAttribute("EmitCount"))
-            end
-        end
-        task.delay(3, function()
-            eff:Destroy()
-        end)
-    end
-    if Frame == "StepR" then
-        local eff = VFX.DropKick.step2:Clone()
-        eff.Parent = workspace.World.Visuals
-        eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -1, -2)
-        for _, v in eff:GetDescendants() do
-            if v:IsA("ParticleEmitter") then
-                v:Emit(v:GetAttribute("EmitCount"))
-            end
-        end
-        task.delay(.15, function()
-            jumpdkmesh(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
-        end)
-        task.delay(3, function()
-            eff:Destroy()
-        end)
-    end
-    if Frame == "Start" then
-        local eff = VFX.DropKick.grndemit:Clone()
-        eff.Parent = workspace.World.Visuals
-        eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
-        for _, v in eff:GetDescendants() do
-            if v:IsA("ParticleEmitter") then
-                v:Emit(v:GetAttribute("EmitCount"))
-            end
-        end
-        startdkmesh(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
-        task.delay(3, function()
-            eff:Destroy()
-        end)
-    end
+	if Frame == "StepL" then
+		local eff = VFX.DropKick.step:Clone()
+		eff.Parent = workspace.World.Visuals
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 1, -2)
+		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+		task.delay(3, function()
+			eff:Destroy()
+		end)
+	end
+	if Frame == "StepR" then
+		local eff = VFX.DropKick.step2:Clone()
+		eff.Parent = workspace.World.Visuals
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -1, -2)
+		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+		task.delay(0.15, function()
+			jumpdkmesh(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
+		end)
+		task.delay(3, function()
+			eff:Destroy()
+		end)
+	end
+	if Frame == "Start" then
+		local eff = VFX.DropKick.grndemit:Clone()
+		eff.Parent = workspace.World.Visuals
+		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+		startdkmesh(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
+		task.delay(3, function()
+			eff:Destroy()
+		end)
+	end
 end
 
 local function dkimpactmesh(CF: CFrame, Parent: Instance)
- 
-	-- Base Setup 
+	-- Base Setup
 
 	if CF then
 		if typeof(CF) == "Vector3" then
@@ -753,7 +966,7 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 		Parent = cache
 	end
 
-	local Main_CFrame = CF or CFrame.new(0,0,0)
+	local Main_CFrame = CF or CFrame.new(0, 0, 0)
 
 	-- Settings
 
@@ -762,13 +975,26 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 		["Wind2Impact"] = Replicated.Assets.VFX.DropKick.Expo.Wind2Impact,
 		["Hmm"] = Replicated.Assets.VFX.DropKick.Expo.Hmm,
 		["Wabius"] = Replicated.Assets.VFX.DropKick.Expo.Wabius,
-		["Impact"] = Replicated.Assets.VFX.DropKick.Expo.Impact
-	} :: {[string] : Instance}
+		["Impact"] = Replicated.Assets.VFX.DropKick.Expo.Impact,
+	} :: { [string]: Instance }
 
 	local Visual_Data = {
 		[Visual_Directory["Hit"]] = {
 			General = {
-				Offset = CFrame.new(2.17189991e-05, -4.03909416e-06, -8.70697021, -2.1130063e-08, -1.00000012, -2.98023224e-08, -1.3202083e-08, -2.98023224e-08, -1, 1, 2.1130063e-08, 1.3202083e-08),
+				Offset = CFrame.new(
+					2.17189991e-05,
+					-4.03909416e-06,
+					-8.70697021,
+					-2.1130063e-08,
+					-1.00000012,
+					-2.98023224e-08,
+					-1.3202083e-08,
+					-2.98023224e-08,
+					-1,
+					1,
+					2.1130063e-08,
+					1.3202083e-08
+				),
 				Tween_Duration = 0.2,
 				Transparency = 0.83,
 			},
@@ -776,7 +1002,20 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(4.946621417999268, 9.642217636108398, 9.755118370056152),
-					CFrame = Main_CFrame * CFrame.new(2.08466317e-05, -2.61158402e-06, -10.0375061, 2.50724243e-05, 0.819323659, -0.573331594, -1.30964208e-05, 0.573331594, 0.81932354, 1, -1.31081006e-05, 2.50948542e-05),
+					CFrame = Main_CFrame * CFrame.new(
+						2.08466317e-05,
+						-2.61158402e-06,
+						-10.0375061,
+						2.50724243e-05,
+						0.819323659,
+						-0.573331594,
+						-1.30964208e-05,
+						0.573331594,
+						0.81932354,
+						1,
+						-1.31081006e-05,
+						2.50948542e-05
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -812,7 +1051,20 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 
 		[Visual_Directory["Hmm"]] = {
 			General = {
-				Offset = CFrame.new(1.9835823e-05, -9.57533302e-07, -11.5791931, 1.00000012, -2.1130063e-08, 0, 2.98023224e-08, -1.32411373e-07, -1.00000024, -2.1130063e-08, 1.00000012, -1.06007263e-07),
+				Offset = CFrame.new(
+					1.9835823e-05,
+					-9.57533302e-07,
+					-11.5791931,
+					1.00000012,
+					-2.1130063e-08,
+					0,
+					2.98023224e-08,
+					-1.32411373e-07,
+					-1.00000024,
+					-2.1130063e-08,
+					1.00000012,
+					-1.06007263e-07
+				),
 				Tween_Duration = 0.3,
 				Transparency = 0.93,
 			},
@@ -820,7 +1072,20 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(14.12632942199707, 25.388097763061523, 14.642675399780273),
-					CFrame = Main_CFrame * CFrame.new(-7.87615209e-05, -8.10472375e-06, -5.84924316, -0.438457578, 6.34521029e-07, -0.898751974, -0.898752093, -1.08608572e-06, 0.438457429, -6.34521029e-07, 1, 1.08608572e-06),
+					CFrame = Main_CFrame * CFrame.new(
+						-7.87615209e-05,
+						-8.10472375e-06,
+						-5.84924316,
+						-0.438457578,
+						6.34521029e-07,
+						-0.898751974,
+						-0.898752093,
+						-1.08608572e-06,
+						0.438457429,
+						-6.34521029e-07,
+						1,
+						1.08608572e-06
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -829,12 +1094,24 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-
 		},
 
 		[Visual_Directory["Impact"]] = {
 			General = {
-				Offset = CFrame.new(0.940451801, -2.95042992e-06, -10.5965281, -0.861130595, 2.17288488e-07, -0.508384168, -0.508384228, -8.47667081e-07, 0.861130357, -2.135111e-07, 1, 7.74233797e-07),
+				Offset = CFrame.new(
+					0.940451801,
+					-2.95042992e-06,
+					-10.5965281,
+					-0.861130595,
+					2.17288488e-07,
+					-0.508384168,
+					-0.508384228,
+					-8.47667081e-07,
+					0.861130357,
+					-2.135111e-07,
+					1,
+					7.74233797e-07
+				),
 				Tween_Duration = 0.3,
 				Transparency = 0.5,
 			},
@@ -842,7 +1119,20 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(15.719278335571289, 2.602825403213501, 7.8596391677856445),
-					CFrame = Main_CFrame * CFrame.new(1.54823301e-05, -6.16447596e-06, -13.1170959, 0.929220438, -1.16738374e-05, 0.369526118, 0.369526148, 6.08431437e-05, -0.929220438, -1.16772217e-05, 1, 6.08608025e-05),
+					CFrame = Main_CFrame * CFrame.new(
+						1.54823301e-05,
+						-6.16447596e-06,
+						-13.1170959,
+						0.929220438,
+						-1.16738374e-05,
+						0.369526118,
+						0.369526148,
+						6.08431437e-05,
+						-0.929220438,
+						-1.16772217e-05,
+						1,
+						6.08608025e-05
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -878,7 +1168,20 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 
 		[Visual_Directory["Wabius"]] = {
 			General = {
-				Offset = CFrame.new(2.20491256e-05, -4.57930128e-06, -8.20346069, -2.1130063e-08, 1.00000012, 2.98023224e-08, -1.3202083e-08, 2.98023224e-08, 1, 1, -2.1130063e-08, -1.3202083e-08),
+				Offset = CFrame.new(
+					2.20491256e-05,
+					-4.57930128e-06,
+					-8.20346069,
+					-2.1130063e-08,
+					1.00000012,
+					2.98023224e-08,
+					-1.3202083e-08,
+					2.98023224e-08,
+					1,
+					1,
+					-2.1130063e-08,
+					-1.3202083e-08
+				),
 				Tween_Duration = 0.3,
 				Transparency = 0.5,
 			},
@@ -886,7 +1189,20 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(10.199556350708008, 12.77884292602539, 12.792318344116211),
-					CFrame = Main_CFrame * CFrame.new(2.20491256e-05, -4.57930128e-06, -8.20346069, -4.69895931e-05, -0.442492217, 0.896772504, 1.09391485e-05, -0.896772504, -0.442492157, 1.00000012, -1.0931165e-05, 4.68957478e-05),
+					CFrame = Main_CFrame * CFrame.new(
+						2.20491256e-05,
+						-4.57930128e-06,
+						-8.20346069,
+						-4.69895931e-05,
+						-0.442492217,
+						0.896772504,
+						1.09391485e-05,
+						-0.896772504,
+						-0.442492157,
+						1.00000012,
+						-1.0931165e-05,
+						4.68957478e-05
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -922,7 +1238,20 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 
 		[Visual_Directory["Wind2Impact"]] = {
 			General = {
-				Offset = CFrame.new(5.25439282e-06, 3.7327427e-06, 2.91195679, -2.1130063e-08, 2.98023224e-08, -1.00000012, -1.3202083e-08, 1, -2.98023224e-08, 1, -1.3202083e-08, 2.1130063e-08),
+				Offset = CFrame.new(
+					5.25439282e-06,
+					3.7327427e-06,
+					2.91195679,
+					-2.1130063e-08,
+					2.98023224e-08,
+					-1.00000012,
+					-1.3202083e-08,
+					1,
+					-2.98023224e-08,
+					1,
+					-1.3202083e-08,
+					2.1130063e-08
+				),
 				Tween_Duration = 0.3,
 				Transparency = 0.5,
 			},
@@ -930,7 +1259,20 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(14.776262283325195, 30.17328643798828, 30.17328643798828),
-					CFrame = Main_CFrame * CFrame.new(2.25563508e-05, -5.40930614e-06, -7.42984009, -2.1130063e-08, 2.98023224e-08, -1.00000012, -1.3202083e-08, 1, -2.98023224e-08, 1, -1.3202083e-08, 2.1130063e-08),
+					CFrame = Main_CFrame * CFrame.new(
+						2.25563508e-05,
+						-5.40930614e-06,
+						-7.42984009,
+						-2.1130063e-08,
+						2.98023224e-08,
+						-1.00000012,
+						-1.3202083e-08,
+						1,
+						-2.98023224e-08,
+						1,
+						-1.3202083e-08,
+						2.1130063e-08
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -963,11 +1305,12 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 				},
 			},
 		},
-
 	}
 
-	for Origin : any, Data in pairs(Visual_Data) do
-		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
+	for Origin: any, Data in pairs(Visual_Data) do
+		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then
+			continue
+		end
 
 		-- Build
 
@@ -975,7 +1318,10 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 			local Visual = Origin.Start:Clone()
 			Visual.Name = Origin.Name
 			Visual.Transparency = Data.General.Transparency
-			if Visual:FindFirstChildOfClass("Decal") then Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency Visual.Transparency = 1 end
+			if Visual:FindFirstChildOfClass("Decal") then
+				Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency
+				Visual.Transparency = 1
+			end
 			Visual.Anchored = true
 			Visual.CanCollide = false
 			Visual.CanQuery = false
@@ -986,23 +1332,55 @@ local function dkimpactmesh(CF: CFrame, Parent: Instance)
 
 			-- Initialize
 
-			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
-			if Data.Decal then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("Decal"), TweenInfo.new(Data.General.Tween_Duration, Data.Decal.Tween.Easing_Style, Data.Decal.Tween.Easing_Direction), Data.Decal.Property):Play() end
-			if Data.Mesh then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("SpecialMesh"), TweenInfo.new(Data.General.Tween_Duration, Data.Mesh.Tween.Easing_Style, Data.Mesh.Tween.Easing_Direction), Data.Mesh.Property):Play() end
+			game:GetService("TweenService")
+				:Create(
+					Visual,
+					TweenInfo.new(
+						Data.General.Tween_Duration,
+						Data.BasePart.Tween.Easing_Style,
+						Data.BasePart.Tween.Easing_Direction
+					),
+					Data.BasePart.Property
+				)
+				:Play()
+			if Data.Decal then
+				game:GetService("TweenService")
+					:Create(
+						Visual:FindFirstChildOfClass("Decal"),
+						TweenInfo.new(
+							Data.General.Tween_Duration,
+							Data.Decal.Tween.Easing_Style,
+							Data.Decal.Tween.Easing_Direction
+						),
+						Data.Decal.Property
+					)
+					:Play()
+			end
+			if Data.Mesh then
+				game:GetService("TweenService")
+					:Create(
+						Visual:FindFirstChildOfClass("SpecialMesh"),
+						TweenInfo.new(
+							Data.General.Tween_Duration,
+							Data.Mesh.Tween.Easing_Style,
+							Data.Mesh.Tween.Easing_Direction
+						),
+						Data.Mesh.Property
+					)
+					:Play()
+			end
 
 			-- Clean Up
 
-			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
+			task.delay(Data.General.Tween_Duration, Visual.Destroy, Visual)
 		end
 
 		task.spawn(Emit)
 	end
-
 end
 
 local function slamfunction(CF: Model, Parent: Instance)
-    
-	-- Base Setup 
+	-- Base Setup
 
 	if CF then
 		if typeof(CF) == "Vector3" then
@@ -1022,20 +1400,33 @@ local function slamfunction(CF: Model, Parent: Instance)
 		Parent = cache
 	end
 
-	local Main_CFrame = CF or CFrame.new(0,0,0)
+	local Main_CFrame = CF or CFrame.new(0, 0, 0)
 
 	-- Settings
 
 	local Visual_Directory = {
 		["Mesh3"] = Replicated.Assets.VFX.DropKick.Slam.Mesh3,
 		["Mesh2"] = Replicated.Assets.VFX.DropKick.Slam.Mesh2,
-		["Mesh1"] = Replicated.Assets.VFX.DropKick.Slam.Mesh1
-	} :: {[string] : Instance}
+		["Mesh1"] = Replicated.Assets.VFX.DropKick.Slam.Mesh1,
+	} :: { [string]: Instance }
 
 	local Visual_Data = {
 		[Visual_Directory["Mesh1"]] = {
 			General = {
-				Offset = CFrame.new(-0.50005126, 1.30590403, 5.06259155, -1.00000048, -1.25807901e-07, -3.57627869e-07, 3.87430191e-07, -7.61742669e-09, 0.999999821, 1.55610195e-07, 1, -5.75477976e-09),
+				Offset = CFrame.new(
+					-0.50005126,
+					1.30590403,
+					5.06259155,
+					-1.00000048,
+					-1.25807901e-07,
+					-3.57627869e-07,
+					3.87430191e-07,
+					-7.61742669e-09,
+					0.999999821,
+					1.55610195e-07,
+					1,
+					-5.75477976e-09
+				),
 				Tween_Duration = 0.2,
 				Transparency = 0.9,
 			},
@@ -1043,7 +1434,20 @@ local function slamfunction(CF: Model, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(2.576066017150879, 0.18496616184711456, 1.2872881889343262),
-					CFrame = Main_CFrame * CFrame.new(-0.223380089, 0.0401297025, 0.0192566067, -0.342042476, -1.25807901e-07, -0.939685106, -0.939683914, -7.61742669e-09, 0.342042983, 6.9798304e-08, 1, 1.47214109e-07),
+					CFrame = Main_CFrame * CFrame.new(
+						-0.223380089,
+						0.0401297025,
+						0.0192566067,
+						-0.342042476,
+						-1.25807901e-07,
+						-0.939685106,
+						-0.939683914,
+						-7.61742669e-09,
+						0.342042983,
+						6.9798304e-08,
+						1,
+						1.47214109e-07
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -1079,7 +1483,20 @@ local function slamfunction(CF: Model, Parent: Instance)
 
 		[Visual_Directory["Mesh2"]] = {
 			General = {
-				Offset = CFrame.new(0.0965180695, 0.397031188, 2.94351196, -1.00000036, -9.60055573e-08, -2.68220901e-07, 2.68220901e-07, -7.61743379e-09, 0.999999762, 9.60055573e-08, 1, -7.61743379e-09),
+				Offset = CFrame.new(
+					0.0965180695,
+					0.397031188,
+					2.94351196,
+					-1.00000036,
+					-9.60055573e-08,
+					-2.68220901e-07,
+					2.68220901e-07,
+					-7.61743379e-09,
+					0.999999762,
+					9.60055573e-08,
+					1,
+					-7.61743379e-09
+				),
 				Tween_Duration = 0.15,
 				Transparency = 0.9,
 			},
@@ -1087,7 +1504,20 @@ local function slamfunction(CF: Model, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(2.05979061126709, 0.07920259237289429, 1.0288686752319336),
-					CFrame = Main_CFrame * CFrame.new(0.11617212, 0.0453350432, -5.08432007, -0.499959409, -9.60055573e-08, -0.86604923, -0.866048455, -7.61743379e-09, 0.499959588, 5.4595958e-08, 1, 7.93370845e-08),
+					CFrame = Main_CFrame * CFrame.new(
+						0.11617212,
+						0.0453350432,
+						-5.08432007,
+						-0.499959409,
+						-9.60055573e-08,
+						-0.86604923,
+						-0.866048455,
+						-7.61743379e-09,
+						0.499959588,
+						5.4595958e-08,
+						1,
+						7.93370845e-08
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -1123,7 +1553,20 @@ local function slamfunction(CF: Model, Parent: Instance)
 
 		[Visual_Directory["Mesh3"]] = {
 			General = {
-				Offset = CFrame.new(0.477027118, 0.349785596, 0.986083984, -1.00000036, -9.60055573e-08, -2.68220901e-07, 2.68220901e-07, -7.61743379e-09, 0.999999762, 9.60055573e-08, 1, -7.61743379e-09),
+				Offset = CFrame.new(
+					0.477027118,
+					0.349785596,
+					0.986083984,
+					-1.00000036,
+					-9.60055573e-08,
+					-2.68220901e-07,
+					2.68220901e-07,
+					-7.61743379e-09,
+					0.999999762,
+					9.60055573e-08,
+					1,
+					-7.61743379e-09
+				),
 				Tween_Duration = 0.2,
 				Transparency = 0.9,
 			},
@@ -1131,7 +1574,20 @@ local function slamfunction(CF: Model, Parent: Instance)
 			BasePart = {
 				Property = {
 					Size = Vector3.new(2.7944533824920654, 0.07262186706066132, 1.3958337306976318),
-					CFrame = Main_CFrame * CFrame.new(-0.0669433251, -0.183822751, -5.25750732, -1.00000036, -9.60055573e-08, -2.68220901e-07, 2.68220901e-07, -7.61743379e-09, 0.999999762, 9.60055573e-08, 1, -7.61743379e-09),
+					CFrame = Main_CFrame * CFrame.new(
+						-0.0669433251,
+						-0.183822751,
+						-5.25750732,
+						-1.00000036,
+						-9.60055573e-08,
+						-2.68220901e-07,
+						2.68220901e-07,
+						-7.61743379e-09,
+						0.999999762,
+						9.60055573e-08,
+						1,
+						-7.61743379e-09
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -1164,11 +1620,12 @@ local function slamfunction(CF: Model, Parent: Instance)
 				},
 			},
 		},
-
 	}
 
-	for Origin : any, Data in pairs(Visual_Data) do
-		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
+	for Origin: any, Data in pairs(Visual_Data) do
+		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then
+			continue
+		end
 
 		-- Build
 
@@ -1176,7 +1633,10 @@ local function slamfunction(CF: Model, Parent: Instance)
 			local Visual = Origin.Start:Clone()
 			Visual.Name = Origin.Name
 			Visual.Transparency = Data.General.Transparency
-			if Visual:FindFirstChildOfClass("Decal") then Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency Visual.Transparency = 1 end
+			if Visual:FindFirstChildOfClass("Decal") then
+				Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency
+				Visual.Transparency = 1
+			end
 			Visual.Anchored = true
 			Visual.CanCollide = false
 			Visual.CanQuery = false
@@ -1187,18 +1647,51 @@ local function slamfunction(CF: Model, Parent: Instance)
 
 			-- Initialize
 
-			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
-			if Data.Decal then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("Decal"), TweenInfo.new(Data.General.Tween_Duration, Data.Decal.Tween.Easing_Style, Data.Decal.Tween.Easing_Direction), Data.Decal.Property):Play() end
-			if Data.Mesh then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("SpecialMesh"), TweenInfo.new(Data.General.Tween_Duration, Data.Mesh.Tween.Easing_Style, Data.Mesh.Tween.Easing_Direction), Data.Mesh.Property):Play() end
+			game:GetService("TweenService")
+				:Create(
+					Visual,
+					TweenInfo.new(
+						Data.General.Tween_Duration,
+						Data.BasePart.Tween.Easing_Style,
+						Data.BasePart.Tween.Easing_Direction
+					),
+					Data.BasePart.Property
+				)
+				:Play()
+			if Data.Decal then
+				game:GetService("TweenService")
+					:Create(
+						Visual:FindFirstChildOfClass("Decal"),
+						TweenInfo.new(
+							Data.General.Tween_Duration,
+							Data.Decal.Tween.Easing_Style,
+							Data.Decal.Tween.Easing_Direction
+						),
+						Data.Decal.Property
+					)
+					:Play()
+			end
+			if Data.Mesh then
+				game:GetService("TweenService")
+					:Create(
+						Visual:FindFirstChildOfClass("SpecialMesh"),
+						TweenInfo.new(
+							Data.General.Tween_Duration,
+							Data.Mesh.Tween.Easing_Style,
+							Data.Mesh.Tween.Easing_Direction
+						),
+						Data.Mesh.Property
+					)
+					:Play()
+			end
 
 			-- Clean Up
 
-			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
+			task.delay(Data.General.Tween_Duration, Visual.Destroy, Visual)
 		end
 
 		task.spawn(Emit)
 	end
-
 end
 
 -- Store active particle effects for freezing
@@ -1229,7 +1722,7 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 	end
 
 	dkimpactmesh(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
-    slamfunction(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
+	slamfunction(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
 
 	-- If we should freeze particles, store them and tween timescale to very slow
 	if FreezeParticles then
@@ -1237,9 +1730,10 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 
 		-- Tween all particles to slower timescale (0.3 = 30% speed) over 0.5 seconds
 		for _, particle in ipairs(particles) do
-			local tween = TweenService:Create(particle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				TimeScale = 0.3  -- Slowed down but still visible motion
-			})
+			local tween =
+				TweenService:Create(particle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					TimeScale = 0.3, -- Slowed down but still visible motion
+				})
 			tween:Play()
 		end
 
@@ -1271,28 +1765,40 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 
 			-- Fast snappy flash effect - JJK Black Flash style
 			-- Flash 1: Instant bright white flash
-			local flash1 = TweenService:Create(colorCorrection, TweenInfo.new(0.03, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Brightness = 0, -- Bright white flash
-				Saturation = -1,
-				Contrast = -30,
-				TintColor = Color3.fromRGB(255,255,255)
-			})
+			local flash1 = TweenService:Create(
+				colorCorrection,
+				TweenInfo.new(0.03, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{
+					Brightness = 0, -- Bright white flash
+					Saturation = -1,
+					Contrast = -30,
+					TintColor = Color3.fromRGB(255, 255, 255),
+				}
+			)
 
 			-- Flash 2: Quick invert with red
-			local flash2 = TweenService:Create(colorCorrection, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Brightness = -0.3, -- Inversion
-				Saturation = -1, -- High saturation
-				Contrast = -1,
-				TintColor = Color3.fromRGB(255,255,255) -- Red tint
-			})
+			local flash2 = TweenService:Create(
+				colorCorrection,
+				TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{
+					Brightness = -0.3, -- Inversion
+					Saturation = -1, -- High saturation
+					Contrast = -1,
+					TintColor = Color3.fromRGB(255, 255, 255), -- Red tint
+				}
+			)
 
 			-- Flash 3: Quick fade out
-			local flash3 = TweenService:Create(colorCorrection, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				Saturation = -1,
-				Brightness = -0.3,
-				Contrast = -2,
-				TintColor = Color3.fromRGB(255, 255, 255)
-			})
+			local flash3 = TweenService:Create(
+				colorCorrection,
+				TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{
+					Saturation = -1,
+					Brightness = -0.3,
+					Contrast = -2,
+					TintColor = Color3.fromRGB(255, 255, 255),
+				}
+			)
 
 			-- Store shake offset that will be applied in pan loop
 			local shakeOffset = CFrame.new()
@@ -1312,7 +1818,7 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 							Damp = 0.003,
 							Influence = Vector3.new(1.8, 2.2, 1.2),
 							Location = Character.HumanoidRootPart.Position,
-							Falloff = 150
+							Falloff = 150,
 						})
 
 						colorCorrection:Destroy()
@@ -1328,7 +1834,7 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 
 			-- Smoothly tween FOV out as camera pans (entire duration)
 			local startFOV = originalFOV
-			local targetFOV = originalFOV + 70  -- Increased for much more dramatic wide-angle effect
+			local targetFOV = originalFOV + 70 -- Increased for much more dramatic wide-angle effect
 			local fovStartTime = os.clock()
 
 			fovConnection = game:GetService("RunService").RenderStepped:Connect(function()
@@ -1376,7 +1882,7 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 				originalType = originalCameraType,
 				originalFOV = originalFOV,
 				originalAutoRotate = originalAutoRotate,
-				humanoid = humanoid
+				humanoid = humanoid,
 			}
 		end
 	end
@@ -1392,9 +1898,10 @@ function Weapons.DKImpactResume(Character: Model)
 	if particles then
 		for _, particle in ipairs(particles) do
 			if particle and particle.Parent then
-				local tween = TweenService:Create(particle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-					TimeScale = 1
-				})
+				local tween =
+					TweenService:Create(particle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+						TimeScale = 1,
+					})
 				tween:Play()
 			end
 		end
@@ -1421,9 +1928,10 @@ function Weapons.DKImpactResume(Character: Model)
 			end
 
 			-- Tween FOV back to original
-			local fovTween = TweenService:Create(Camera, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				FieldOfView = cameraData.originalFOV
-			})
+			local fovTween =
+				TweenService:Create(Camera, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+					FieldOfView = cameraData.originalFOV,
+				})
 			fovTween:Play()
 
 			-- Restore camera type after FOV tween completes
@@ -1463,10 +1971,9 @@ function Weapons.InputWindowHighlight(Character: Model, Action: string)
 		)
 
 		local tween = TweenService:Create(highlight, tweenInfo, {
-			FillTransparency = 0.8
+			FillTransparency = 0.8,
 		})
 		tween:Play()
-
 	elseif Action == "Stop" then
 		-- Remove highlight
 		local highlight = Character:FindFirstChild("InputWindowHighlight")
@@ -1519,4 +2026,206 @@ function Weapons.BFKnockback(Target: Model, AttackerPosition: Vector3)
 	game:GetService("Debris"):AddItem(linearVelocity, 0.8)
 end
 
+function Weapons.WhirlWind(Character: Model, Frame: string)
+	local Weapon: BasePart = Character:FindFirstChild("Handle")
+	print("fired" .. Frame)
+	if Frame == "Start" then
+		EmitModule.emit(Weapon.Blade.az)
+		EmitModule.emit(Weapon.Blade.Dustdrag)
+	end
+	if Frame == "Jump" then
+		local jump = Replicated.Assets.VFX.WhirlWind.jump:Clone()
+		jump.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2, 0)
+		jump.Parent = workspace.World.Visuals
+		EmitModule.emit(jump)
+	end
+	if Frame == "TT" then
+		local function toggleTrails(enabled)
+			for _, descendant in Weapon:GetDescendants() do
+				if descendant:IsA("Trail") then
+					descendant.Enabled = enabled
+				end
+			end
+		end
+
+		toggleTrails(true)
+
+		wait(0.112)
+
+		toggleTrails(false)
+	end
+	if Frame == "SS" then
+		local spin = Replicated.Assets.VFX.WhirlWind.spinnn:Clone()
+		local slashslam = Replicated.Assets.VFX.WhirlWind.slashslam:Clone()
+		spin:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2) * CFrame.Angles(0, 0, math.rad(90)))
+		slashslam.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(1, 0, 0) * CFrame.Angles(0,0, math.rad(90))
+		spin.Parent = workspace.World.Visuals
+		slashslam.Parent = workspace.World.Visuals
+		EmitModule.emit(spin)
+		EmitModule.emit(slashslam)
+	end
+	if Frame == "TTR" then
+		EmitModule.emit(Weapon.Blade.Move2Startup)
+
+		local function toggleTrails(enabled)
+			for _, descendant in Weapon:GetDescendants() do
+				if descendant:IsA("Trail") then
+					descendant.Enabled = enabled
+				end
+			end
+		end
+
+		toggleTrails(true)
+
+		wait(0.8)
+
+		toggleTrails(false)
+	end
+
+	if Frame == "SS2" then
+		local slashslam = Replicated.Assets.VFX.WhirlWind.slashslam:Clone()
+		slashslam.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(1, 0, 0) * CFrame.Angles(0,0,math.rad(90))
+		slashslam.Parent = workspace.World.Visuals
+		EmitModule.emit(slashslam)
+	end
+	if Frame == "End" then
+		local slammesh = Replicated.Assets.VFX.WhirlWind.slammeshh:Clone()
+		local slam = Replicated.Assets.VFX.WhirlWind.Slam:Clone()
+		slammesh:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, -2, -2))
+		slam.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2, 0)
+		slammesh.Parent = workspace.World.Visuals
+		slam.Parent = workspace.World.Visuals
+		EmitModule.emit(slammesh)
+		EmitModule.emit(slam)
+	end
+end
+
+function Weapons.RapidThrust(Character: Model, Frame: string)
+	local eff = Replicated.Assets.VFX.RT:Clone()
+	eff.Parent = workspace.World.Visuals
+	eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, -.5, -2) * CFrame.Angles(math.rad(180),0,math.rad(90)))
+	local Weapon: BasePart = Character:FindFirstChild("Handle")
+	if Frame == "1" then
+		EmitModule.emit(eff.slash, eff.firstslashdragsmoke, Weapon.Blade.az)
+	end
+	if Frame == "2" then
+		EmitModule.emit(eff.slash2, eff["2ndslashsmoke"], Weapon.Blade.az, eff.bloodhit)
+	end
+	if Frame == "3" or Frame == "4" or Frame == "5" or Frame == "6" or Frame == "7" or Frame == "8" or Frame == "9" or Frame == "10" or Frame == "11" or Frame == "12" then
+		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, -.5, -2) * CFrame.Angles(math.rad(180),0,math.rad(90)))
+		EmitModule.emit(eff.spearpoke, eff.bloodhitFASTPOKES)
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 4.5,
+			Damp = 0.00005,
+			Frequency = 20,
+			Influence = Vector3.new(.55, 1, .55),
+			Falloff = 65,
+		})
+	end
+	if Frame == "14" then
+		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, -.5, -2) * CFrame.Angles(math.rad(180),0,math.rad(90)))
+		EmitModule.emit(eff.Slam, eff.slash3, eff.slashwoww, eff.Slammeshs)
+CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 6.5,
+			Damp = 0.00005,
+			Frequency = 13,
+			Influence = Vector3.new(.35, 1, .35),
+			Falloff = 65,
+		})
+	end
+end
+local Effects = Replicated.Assets.VFX.CT
+function Weapons.ChargedThrust(Character: Model, Frame: string)
+	local Weapon: BasePart = Character:FindFirstChild("Handle")
+	
+
+	if Frame == "1" then --.3 in moon --CAST
+	for _, Beam in Weapon.Blade:GetDescendants() do
+		if Beam:IsA("Trail") then
+				Beam.Enabled = true
+				task.delay(.5, function()
+					Beam.Enabled = false
+				end)
+			end
+	end
+		local Smoke = Effects.Smoke:Clone()
+		task.delay(4, Smoke.Destroy, Smoke)
+		Smoke.CFrame = Character.PrimaryPart.CFrame
+			* CFrame.new(-0.348693848, -2.5, -0.0576248169, 0, 0, -1, 0, 1, 0, 1, 0, 0)
+		Smoke.Parent = workspace.World.Visuals
+		EmitModule.emit(Smoke)
+		EmitModule.emit(Weapon)
+
+		task.wait(0.23)
+
+		local Highlight = Effects.HighLight:Clone()
+		task.delay(1, Highlight.Destroy, Highlight)
+		Highlight.Parent = Character
+		TweenService:Create(
+			Highlight,
+			TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+			{
+				OutlineTransparency = 1,
+				FillTransparency = 1,
+				FillColor = Color3.new(0.266667, 0.266667, 0.266667),
+				OutlineColor = Color3.new(1, 1, 1),
+			}
+		):Play()
+
+		local Cast = Effects.Cast:Clone()
+		task.delay(3, Cast.Destroy, Cast)
+		Cast:PivotTo(
+			Character.PrimaryPart.CFrame * CFrame.new(-0.205993652, -2.61796093, -1.27952766, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		)
+		Cast.Parent = workspace.World.Visuals
+		EmitModule.emit(Cast)
+		
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 4.5,
+			Damp = 0.00005,
+			Frequency = 20,
+			Influence = Vector3.new(.55, 1, .55),
+			Falloff = 65,
+		})
+	end
+
+	if Frame == "2" then --.5 in moon -- FOLLOWUP IF THEY GET HIT
+		local InitialHit = Effects.InitialHit:Clone()
+		task.delay(4, InitialHit.Destroy, InitialHit)
+		InitialHit.CFrame = Character.PrimaryPart.CFrame
+			* CFrame.new(-0.615753174, -0.5, -6.82315445, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		InitialHit.Parent = workspace.World.Visuals
+		EmitModule.emit(InitialHit)
+		
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 3.5,
+			Damp = 0.00005,
+			Frequency = 25,
+			Influence = Vector3.new(.35, 1, .35),
+			Falloff = 65,
+		})
+		
+		task.wait(.4)
+
+		local FinalHit = Effects.FinalHit:Clone()
+		task.delay(4, FinalHit.Destroy, FinalHit)
+		FinalHit.CFrame = Character.PrimaryPart.CFrame
+			* CFrame.new(-0.785003662, 1.23792648, -9.0717926, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+		FinalHit.Parent = workspace.World.Visuals
+		EmitModule.emit(FinalHit)
+		
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 5.5,
+			Damp = 0.00005,
+			Frequency = 28,
+			Influence = Vector3.new(.55, 1, .55),
+			Falloff = 65,
+		})
+	end
+end
 return Weapons

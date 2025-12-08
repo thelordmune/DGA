@@ -1,27 +1,11 @@
---[[
-    ECS-Based Mob Brain System for Ironveil
-
-    This is a performant, pure ECS implementation adapted from RPGJECS.
-    It uses only ECS components to detect and control NPCs, making it much
-    more performant than the old behavior tree system.
-
-    Features:
-    - Pure ECS queries (no CollectionService tags)
-    - Weighted state machine (wander/chase/flee/circle)
-    - Detects players via ECS Player component
-    - Uses Locomotion component for movement intent
-    - Respects Ironveil's combat states (Stun, Knocked, Dead, etc.)
-    - ONLY affects combat NPCs (filters out dialogue NPCs via CombatNPC component)
-    - Allows behavior trees to override via BehaviorTreeOverride component
-]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 
--- Component shortcuts
 local Character = comps.Character
 local Mob = comps.Mob
 local Transform = comps.Transform
@@ -33,22 +17,20 @@ local Hitbox = comps.Hitbox
 local Player = comps.Player
 local CombatNPC = comps.CombatNPC
 local BehaviorTreeOverride = comps.BehaviorTreeOverride
+local NPCCombatState = comps.NPCCombatState
 
--- Ironveil-specific state components
 local Stun = comps.Stun
 local Knocked = comps.Knocked
 local Dead = comps.Dead
 local Ragdoll = comps.Ragdoll
 local CantMove = comps.CantMove
 
--- Query for COMBAT mobs with AI (filters out dialogue NPCs)
 local mobs = world
     :query(Character, Transform, Locomotion, AIState, Traits, Wander)
     :with(Mob)
-    :with(CombatNPC) -- ONLY combat NPCs
+    :with(CombatNPC)
     :cached()
 
--- Query for all players
 local players = world
     :query(Character, Transform)
     :with(Player)
@@ -60,7 +42,6 @@ local function randRange(min: number, max: number): number
     return min + (max - min) * math.random()
 end
 
--- Get closest player position using ECS queries
 local function getClosestPlayer(mobPos: Vector3, detectRange: number): (Vector3?, number)
     local closest: Vector3? = nil
     local closestDist = math.huge
@@ -82,32 +63,34 @@ local function getClosestPlayer(mobPos: Vector3, detectRange: number): (Vector3?
     return closest, closestDist
 end
 
--- Check if NPC can act (respects Ironveil's state system)
 local function canAct(entity: number): boolean
-    -- Check if dead
+    local character = world:get(entity, Character)
+    if not character then return false end
+
     local dead = world:get(entity, Dead)
     if dead then return false end
 
-    -- Check if stunned
+    -- Check ECS Stun component
     local stun = world:get(entity, Stun)
     if stun and stun.value then return false end
 
-    -- Check if knocked
+    -- Check StateStuns component (used by damage system)
+    if StateManager.StateCount(character, "Stuns") then
+        return false
+    end
+
     local knocked = world:get(entity, Knocked)
     if knocked and knocked.value then return false end
 
-    -- Check if ragdolled
     local ragdoll = world:get(entity, Ragdoll)
     if ragdoll and ragdoll.value then return false end
 
-    -- Check if can't move
     local cantMove = world:get(entity, CantMove)
     if cantMove and cantMove.value then return false end
 
     return true
 end
 
--- Wander behavior
 local function updateWanderDir(
     wander: any,
     pos: Vector3,
@@ -118,12 +101,11 @@ local function updateWanderDir(
     local now = os.clock()
 
     if now < wander.nextMove then
-        -- Keep previous direction
         local prevDir = locoPrev and locoPrev.dir or Vector3.zero
         return prevDir, speed * 0.5
     end
 
-    -- Pick new wander direction
+
     wander.nextMove = now + randRange(2, 5)
 
     local toCenter = wander.center - pos
@@ -131,10 +113,10 @@ local function updateWanderDir(
 
     local dir: Vector3
     if distFromCenter > wander.radius then
-        -- Too far from center, go back
+
         dir = toCenter.Unit
     else
-        -- Random direction
+
         local angle = math.random() * math.pi * 2
         dir = Vector3.new(math.cos(angle), 0, math.sin(angle))
     end
@@ -142,7 +124,7 @@ local function updateWanderDir(
     return dir, speed * 0.5
 end
 
--- Pick a new AI state based on context
+
 local function pickNewState(
     hasPlayer: boolean,
     dist: number,
@@ -162,14 +144,14 @@ local function pickNewState(
     local fleeWeight = traits.fleeWeight or 0.2
     local circleWeight = traits.circleWeight or 0.3
 
-    -- Close range: mostly chase or flee
+
     if dist <= (traits.preferDistance or 3) then
         if fleeWeight > chaseWeight then
             state = "flee"
         else
             state = "chase"
         end
-    -- Mid range: weighted choice
+
     elseif dist > 4 then
         local total = 1 + chaseWeight + fleeWeight + circleWeight
         local r = math.random() * total
@@ -191,7 +173,7 @@ local function pickNewState(
             end
         end
     else
-        -- Very close but not fleeing strongly
+
         if fleeWeight > 0.5 and math.random() < fleeWeight then
             state = "flee"
         else
@@ -199,7 +181,7 @@ local function pickNewState(
         end
     end
 
-    -- Set durations
+
     if state == "chase" then
         dur = randRange(0.5, 1.2)
     elseif state == "circle" then
@@ -213,23 +195,37 @@ local function pickNewState(
     return state, dur, circleSign
 end
 
--- Main brain step
+local hasLoggedBrain = false
+
+
 local function mobBrainStep(dt: number)
     for e, char, transform, loco, ai, traits, wander in mobs do
-        -- Skip if behavior tree is overriding
-        if world:has(e, BehaviorTreeOverride) then
+        if not hasLoggedBrain then
+            print(`[mob_brain_ecs] Processing {char.Name} - state: {ai.state}`)
+            hasLoggedBrain = true
+        end
+
+        if world:has(e, comps.NPCTarget) then
             continue
         end
 
-        -- Skip if NPC can't act
+        if world:has(e, comps.NPCWander) then
+            continue
+        end
+
         if not canAct(e) then
-            -- Set to idle
+
             world:set(e, Locomotion, {
                 dir = Vector3.zero,
                 speed = 0,
             })
             continue
         end
+
+        local npcState = world:get(e, NPCCombatState)
+        local isPassive = npcState and npcState.isPassive
+        local isAggressive = npcState and npcState.isAggressive
+        local hasBeenAttacked = npcState and npcState.hasBeenAttacked
 
         local pos = transform.new.Position
         ai.t += dt
@@ -245,7 +241,22 @@ local function mobBrainStep(dt: number)
             playerPos = nil
         end
 
-        -- Update hitbox attributes for debugging/other systems
+        if isPassive and not isAggressive and not hasBeenAttacked then
+
+            world:set(e, Locomotion, {
+                dir = Vector3.zero,
+                speed = 0,
+            })
+
+            local hitbox = world:get(e, Hitbox)
+            if hitbox then
+                hitbox:SetAttribute("HasTarget", false)
+                hitbox:SetAttribute("MobState", "idle_passive")
+            end
+
+            continue
+        end
+
         local hitbox = world:get(e, Hitbox)
         if hitbox then
             hitbox:SetAttribute("HasTarget", hasPlayer)
@@ -257,7 +268,6 @@ local function mobBrainStep(dt: number)
             end
         end
 
-        -- State expiry - pick new state
         if ai.t >= ai.dur then
             local state, dur, circleSign = pickNewState(hasPlayer, dist, traits)
             ai.state = state
@@ -267,10 +277,10 @@ local function mobBrainStep(dt: number)
         end
 
         local dir = Vector3.zero
-        local baseSpeed = 30 -- Default speed
+        local baseSpeed = 30
         local speed = baseSpeed * (traits.baseSpeedMul or 1)
 
-        -- Execute current state
+
         if ai.state == "chase" and playerPos then
             local toPlayer = playerPos - pos
             toPlayer = Vector3.new(toPlayer.X, 0, toPlayer.Z)
@@ -298,31 +308,25 @@ local function mobBrainStep(dt: number)
             end
 
         else
-            -- Wander as fallback
             local d, s = updateWanderDir(wander, pos, speed, dt, loco)
             dir = d
             speed = s
         end
 
-        -- Normalize direction
         if dir.Magnitude <= EPS then
             speed = 0
             dir = Vector3.zero
         end
 
-        -- Update locomotion component (movement intent)
         world:set(e, Locomotion, {
             dir = dir,
             speed = speed,
         })
-
-        -- Update AI state
         world:set(e, AIState, ai)
     end
 end
 
--- Throttle brain updates to 8 Hz for performance
-local BRAIN_HZ = 8
+local BRAIN_HZ = 4
 local BRAIN_TICK = 1 / BRAIN_HZ
 local acc = 0
 
@@ -336,8 +340,7 @@ local function brainWrapper(dt: number)
 end
 
 return {
-    run = function(world)
-        local dt = task.wait() -- Get delta time from RunService
+    run = function(world, dt)
         brainWrapper(dt)
     end,
 

@@ -51,6 +51,25 @@ local function getFloorMaterial(character)
 	return nil, nil
 end
 
+local function getMV(character)
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return nil, nil
+	end
+
+	local rayOrigin = root.Position
+	local rayDirection = Vector3.new(0, -10, 0)
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = { character }
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+	local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+	if raycastResult then
+		return raycastResult.Instance.MaterialVariant
+	end
+
+end	
+
 NetworkModule.EndPoint = function(Player, Data)
 	-- print("fired construction wall")
 	local Character = Player.Character
@@ -100,6 +119,7 @@ NetworkModule.EndPoint = function(Player, Data)
 			local floorMaterial, floorColor = getFloorMaterial(Character)
 			local wallMaterial = floorMaterial or Enum.Material.Plastic
 			local wallColor = floorColor or Color3.fromRGB(100, 150, 255)
+			local mv = getMV(Character)
 
 			-- Set character states
 			Server.Library.TimedState(Character.Actions, "Construct", Alchemy.Length)
@@ -153,13 +173,16 @@ NetworkModule.EndPoint = function(Player, Data)
 					})
 
 					-- Create wall effect
-					local part = Instance.new("Part")
+					local part = Replicated.Assets.VFX.WALL:Clone()
 					-- Use GUID for unique name to prevent conflicts when multiple players use simultaneously
 					part.Name = "AbilityWall_" .. HttpService:GenerateGUID(false)
 					part.Anchored = true
 					part.CanCollide = true
 					part.Transparency = 1 -- Start fully transparent
 					part.Material = wallMaterial -- Use floor material
+					part.MaterialVariant = mv
+					-- part.MeshContent = "rbxassetid://93620521566932"
+					-- part.MeshId = "rbxassetid://93620521566932"
 					part.Color = wallColor
 					part:SetAttribute("Id", HttpService:GenerateGUID(false))
 

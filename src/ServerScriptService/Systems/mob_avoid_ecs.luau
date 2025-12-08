@@ -1,59 +1,37 @@
 --!strict
---[[
-    Mob Avoidance System (ECS) for Ironveil
-    
-    Prevents combat NPCs from overlapping each other using separation steering.
-    Adapted from RPGJECS mob_avoid.luau
-    
-    Features:
-    - Separation steering to push NPCs apart when too close
-    - Only affects combat NPCs (filters via CombatNPC component)
-    - Runs at 10 Hz for performance
-    - Uses Size component for collision radius calculation
-    - Blends separation force with existing movement direction
-    
-    How it works:
-    1. For each moving NPC, check all nearby NPCs
-    2. If NPCs are overlapping (within combined radius), calculate push force
-    3. Blend push force into current movement direction
-    4. Update Locomotion component with new direction
-]]
+
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 
--- Component shortcuts
 local Mob = comps.Mob
 local Transform = comps.Transform
 local Locomotion = comps.Locomotion
 local Size = comps.Size
 local CombatNPC = comps.CombatNPC
 
--- Query for moving combat NPCs (need locomotion)
 local moving = world
     :query(Transform, Locomotion, Size)
     :with(Mob)
-    :with(CombatNPC) -- ONLY combat NPCs
+    :with(CombatNPC)
     :cached()
 
--- Query for all combat NPCs (neighbors pool)
+
 local neighbors = world
     :query(Transform, Size)
     :with(Mob)
-    :with(CombatNPC) -- ONLY combat NPCs
+    :with(CombatNPC)
     :cached()
 
 local EPS = 1e-4
 
--- Tunables:
--- Size is HitboxSize.Magnitude, so it's "overall scale".
--- radiusFactor converts that into a collision radius in studs.
-local RADIUS_FACTOR = 0.25  -- tweak: bigger -> they avoid from farther away
-local SEPARATION_STRENGTH = 8  -- how aggressively to push
 
-local SEP_HZ = 10
+local RADIUS_FACTOR = 0.35
+local SEPARATION_STRENGTH = 12
+
+local SEP_HZ = 9
 local SEP_TICK = 1 / SEP_HZ
 local sepAcc = 0
 
@@ -81,9 +59,8 @@ local function separationStep(dt: number)
             local targetDist = selfRadius + otherRadius
 
             if dist < targetDist and targetDist > EPS then
-                -- how deep we are inside each other's "bubble"
                 local penetration = targetDist - dist
-                local pushStrength = penetration / targetDist -- [0..1]
+                local pushStrength = penetration / targetDist
 
                 separation += offset.Unit * pushStrength
             end
@@ -92,7 +69,6 @@ local function separationStep(dt: number)
         if separation.Magnitude > EPS then
             local sepDir = separation.Unit
 
-            -- blend separation into current direction
             local combined = baseDir + sepDir * (SEPARATION_STRENGTH * dt)
             if combined.Magnitude > EPS then
                 combined = combined.Unit
@@ -114,8 +90,7 @@ local function sepWrapper(dt: number)
 end
 
 return {
-    run = function(world)
-        local dt = task.wait()
+    run = function(world, dt)
         sepWrapper(dt)
     end,
 

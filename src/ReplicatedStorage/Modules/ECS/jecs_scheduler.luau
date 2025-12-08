@@ -115,12 +115,12 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
             end
 
             local success, err = pcall(function()
-                -- print(`Loading {context} system: {module.Name}`)
+                print(`[Scheduler] Loading {context} system: {module.Name}`)
                 local systemModule = require(module)
 
                 -- Validate system structure
                 if not systemModule.run then
-                    warn(`System {module.Name} missing run function`)
+                    warn(`[Scheduler] System {module.Name} missing run function`)
                     return
                 end
 
@@ -131,11 +131,11 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
 
                     -- Skip if context doesn't match
                     if isServer and settings.client_only then
-                        -- print(`Skipping client-only system {module.Name} on server`)
+                        print(`[Scheduler] Skipping client-only system {module.Name} on server`)
                         return
                     end
                     if not isServer and settings.server_only then
-                        -- print(`Skipping server-only system {module.Name} on client`)
+                        print(`[Scheduler] Skipping server-only system {module.Name} on client`)
                         return
                     end
                 end
@@ -189,7 +189,7 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
                     context = context,
                 })
 
-                -- print(`Successfully loaded {context} system: {module.Name}`)
+                print(`[Scheduler] ✅ Successfully loaded {context} system: {module.Name}`)
             end)
 
             if not success then
@@ -198,7 +198,7 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
         end
     end
 
-    -- print(`Loaded {#schedulerSystems} systems total`)
+    print(`[Scheduler] 📦 Loaded {#schedulerSystems} systems total`)
     return schedulerSystems
 end
 
@@ -349,20 +349,21 @@ local function begin()
 		-- Create connection
 		connections[phaseEntity] = event:Connect(function(...)
 			local args = {...}
-			pcall(debug.profilebegin, phaseName)
 			for _, sysData in pairs(systems) do
 				if sysData.callback and sysData.id then
-					-- Use scheduler:run() to automatically track execution time for Jabby
-					local success, err = pcall(function()
-						activeScheduler:run(sysData.id, sysData.callback, world, table.unpack(args))
-					end)
-
-					if not success then
-						warn(`System {sysData.name} error: {err}`)
+					-- Wrap the callback in pcall, not the scheduler:run call
+					-- This ensures scheduler frame tracking completes even if system errors
+					local wrappedCallback = function(...)
+						local success, err = pcall(sysData.callback, ...)
+						if not success then
+							warn(`System {sysData.name} error: {err}`)
+						end
 					end
+
+					-- Use scheduler:run() to automatically track execution time for Jabby
+					activeScheduler:run(sysData.id, wrappedCallback, world, table.unpack(args))
 				end
 			end
-			pcall(debug.profileend)
 		end)
 	end
 

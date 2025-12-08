@@ -101,8 +101,19 @@ return function(Player, Data, Server)
 						if not isBlocking and not isParrying then
 							Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
 							-- print("Axe Kick hit:", Target.Name)
-							-- Ragdoll the target for 3 seconds
-							Ragdoller.Ragdoll(Target, 3)
+
+							-- Apply upward velocity to the target
+							local targetRoot = Target:FindFirstChild("HumanoidRootPart")
+							if targetRoot then
+								-- Apply upward knockback (reduced from 40 to 25)
+								local upwardPower = 25
+								Server.Modules.ServerBvel.UpwardKnockback(Target, upwardPower)
+							end
+
+							-- Ragdoll the target for 3 seconds (instant ragdoll)
+							task.spawn(function()
+								Ragdoller.Ragdoll(Target, 3)
+							end)
 						else
 							-- Still apply damage but without ragdoll
 							Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])

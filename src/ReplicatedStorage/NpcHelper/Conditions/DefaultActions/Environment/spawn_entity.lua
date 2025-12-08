@@ -205,9 +205,9 @@ return function(actor: Actor, mainConfig: table)
 	table.insert(
 		mainConfig.SpawnConnections,
 		npcModel.AncestryChanged:Connect(function(_, parent)
-			if parent.Name ~= "DataModels" then
-				npcModel:FindFirstChild("hi").Enabled = true
-			end
+			-- if parent.Name ~= "DataModels" then
+			-- 	npcModel:FindFirstChild("hi").Enabled = true
+			-- end
 		end)
 	)
 

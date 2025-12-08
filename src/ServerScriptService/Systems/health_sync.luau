@@ -1,12 +1,17 @@
 --!strict
 --[[
-    Health Sync System
-    
+    Health Sync System - OPTIMIZED
+
     Keeps the ECS Health component in sync with the Humanoid.Health value.
     This ensures that when damage is dealt directly to the Humanoid,
     the Health component is updated accordingly.
-    
+
     This is critical for systems like health_regen to work properly.
+
+    OPTIMIZATIONS:
+    - Throttled periodic sync to 5 Hz (was 60 Hz) - 92% reduction
+    - Event-based sync still runs immediately for responsive health changes
+    - Cached query for better performance
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,33 +28,35 @@ local DEBUG = false
 local lastDebugTime = 0
 local DEBUG_INTERVAL = 5 -- Print debug info every 5 seconds
 
-local function health_sync(_world, _dt: number)
+-- OPTIMIZATION: Throttle periodic sync to 5 Hz instead of 60 Hz
+local SYNC_HZ = 5
+local SYNC_TICK = 1 / SYNC_HZ
+local syncAcc = 0
+
+-- OPTIMIZATION: Cached query
+local healthQuery = world:query(comps.Health):with(comps.ComponentsReady):cached()
+
+-- Setup connections for new entities (runs every frame to detect new entities)
+local function setupHealthConnections()
     -- Only run on server
     if RunService:IsClient() then
         return
     end
 
-    -- Debug logging
-    if DEBUG then
-        local currentTime = os.clock()
-        if currentTime - lastDebugTime >= DEBUG_INTERVAL then
-            local syncedEntities = 0
-            for _ in pairs(healthConnections) do
-                syncedEntities = syncedEntities + 1
-            end
-            print(`[HealthSync] Active health sync connections: {syncedEntities}`)
-            lastDebugTime = currentTime
-        end
-    end
-
-    -- Query all entities with Health component that are fully initialized
-    for entity, health in world:query(comps.Health):with(comps.ComponentsReady) do
+    -- OPTIMIZATION: Use cached query
+    for entity, health in healthQuery do
         -- Get the character
         local character = world:get(entity, comps.Character)
         if not character or not character.Parent then
             -- Clean up connection if character is gone
             if healthConnections[entity] then
-                healthConnections[entity]:Disconnect()
+                local conns = healthConnections[entity]
+                if type(conns) == "table" then
+                    if conns.healthChanged then conns.healthChanged:Disconnect() end
+                    if conns.maxHealthChanged then conns.maxHealthChanged:Disconnect() end
+                else
+                    conns:Disconnect()
+                end
                 healthConnections[entity] = nil
             end
             continue
@@ -75,7 +82,7 @@ local function health_sync(_world, _dt: number)
                     world:set(entity, comps.Health, currentHealth)
 
                     if DEBUG then
-                        print(`[HealthSync] Synced entity {entity} health: {currentHealth.current}/{currentHealth.max}`)
+                        print(`[HealthSync] Event-based sync: entity {entity} health: {currentHealth.current}/{currentHealth.max}`)
                     end
                 end
             end)
@@ -99,11 +106,57 @@ local function health_sync(_world, _dt: number)
                 maxHealthChanged = maxHealthConnection
             }
         end
+    end
+end
 
-        -- Also do a periodic sync check (every frame) to catch any missed updates
+-- OPTIMIZATION: Periodic sync check (throttled to 5 Hz instead of 60 Hz)
+-- This catches any missed updates from the event-based system
+local function periodicHealthSync()
+    for entity, health in healthQuery do
+        local character = world:get(entity, comps.Character)
+        if not character or not character.Parent then
+            continue
+        end
+
+        local humanoid = character:FindFirstChild("Humanoid")
+        if not humanoid then
+            continue
+        end
+
+        -- Sync if there's a difference
         if math.abs(health.current - humanoid.Health) > 0.1 then
             health.current = math.max(0, math.min(humanoid.Health, health.max))
             world:set(entity, comps.Health, health)
+
+            if DEBUG then
+                print(`[HealthSync] Periodic sync: entity {entity} health: {health.current}/{health.max}`)
+            end
+        end
+    end
+end
+
+-- Main system function with throttling
+local function health_sync(_world, dt: number)
+    -- Always setup connections for new entities (lightweight check)
+    setupHealthConnections()
+
+    -- OPTIMIZATION: Throttle periodic sync to 5 Hz
+    syncAcc += dt
+    if syncAcc >= SYNC_TICK then
+        syncAcc = 0
+        periodicHealthSync()
+
+        -- Debug logging
+        if DEBUG then
+            local currentTime = os.clock()
+            if currentTime - lastDebugTime >= DEBUG_INTERVAL then
+                local syncedEntities = 0
+                for _ in pairs(healthConnections) do
+                    syncedEntities = syncedEntities + 1
+                end
+                print(`[HealthSync] Active health sync connections: {syncedEntities} (OPTIMIZED - 5 Hz periodic sync)`)
+                lastDebugTime = currentTime
+            end
         end
     end
 end
