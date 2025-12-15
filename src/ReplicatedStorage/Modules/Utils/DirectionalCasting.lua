@@ -9,7 +9,7 @@
 		local caster = Casting.new()
 		
 		caster.OnSequenceComplete:Connect(function(sequence, isModifier)
-			-- print("Cast:", sequence, "Modifier:", isModifier)
+			---- print("Cast:", sequence, "Modifier:", isModifier)
 		end)
 		
 		caster:StartCasting()
@@ -221,7 +221,7 @@ function DirectionalCasting:_lockCharacterRotation()
 
 			self.rotationLocked = true
 
-			-- -- print("🔒 AutoRotate DISABLED for casting (shift lock mode)")
+			-- ---- print("🔒 AutoRotate DISABLED for casting (shift lock mode)")
 		end
 	end
 end
@@ -241,7 +241,7 @@ function DirectionalCasting:_unlockCharacterRotation()
 	self.rotationLocked = false
 	self.originalAutoRotate = nil
 
-	-- -- print("🔓 AutoRotate restored")
+	-- ---- print("🔓 AutoRotate restored")
 end
 
 -- Reduce camera sensitivity during casting (for non-shift-lock mode)
@@ -255,7 +255,7 @@ function DirectionalCasting:_reduceCameraSensitivity()
 		-- Normal mode: reduce sensitivity
 		self.originalMouseSensitivity = UserInputService.MouseDeltaSensitivity
 		UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity * CONFIG.CAMERA.CASTING_SENSITIVITY
-		-- -- print("📷 Camera sensitivity reduced for casting")
+		-- ---- print("📷 Camera sensitivity reduced for casting")
 	end
 end
 
@@ -267,7 +267,7 @@ function DirectionalCasting:_restoreCameraSensitivity()
 	UserInputService.MouseDeltaSensitivity = self.originalMouseSensitivity
 	self.originalMouseSensitivity = nil
 
-	-- -- print("📷 Camera sensitivity restored")
+	-- ---- print("📷 Camera sensitivity restored")
 end
 
 -- Start casting
@@ -311,7 +311,7 @@ function DirectionalCasting:StartCasting()
 	-- Start input tracking
 	self:_startInputTracking()
 
-	-- -- print("🎯 CASTING STARTED - Move mouse to triangles")
+	-- ---- print("🎯 CASTING STARTED - Move mouse to triangles")
 end
 
 -- Enter modifier mode
@@ -335,9 +335,9 @@ function DirectionalCasting:EnterModifierMode()
 	-- Update triangle colors to red
 	self:_updateTriangleColors()
 	
-	-- -- print("🔧 MODIFIER MODE ACTIVATED - Triangles are now red")
-	-- -- print("💾 Base sequence saved: " .. self:_formatSequence(self.savedBaseSequence))
-	-- -- print("🆕 Starting fresh modifier sequence...")
+	-- ---- print("🔧 MODIFIER MODE ACTIVATED - Triangles are now red")
+	-- ---- print("💾 Base sequence saved: " .. self:_formatSequence(self.savedBaseSequence))
+	-- ---- print("🆕 Starting fresh modifier sequence...")
 end
 
 -- Stop casting and process results
@@ -542,14 +542,14 @@ function DirectionalCasting:_addDirectionToSequence(direction)
 		if #self.modifierSequence == 0 or self.modifierSequence[#self.modifierSequence] ~= direction then
 			table.insert(self.modifierSequence, direction)
 			local formatted = self:_formatSequence(self.modifierSequence)
-			-- -- print("🔧 Added modifier direction: " .. direction .. " (Sequence: " .. formatted .. ")")
+			-- ---- print("🔧 Added modifier direction: " .. direction .. " (Sequence: " .. formatted .. ")")
 		end
 	else
 		-- Add to base sequence
 		if #self.directionSequence == 0 or self.directionSequence[#self.directionSequence] ~= direction then
 			table.insert(self.directionSequence, direction)
 			local formatted = self:_formatSequence(self.directionSequence)
-			-- -- print("📍 Added direction: " .. direction .. " (Sequence: " .. formatted .. ")")
+			-- ---- print("📍 Added direction: " .. direction .. " (Sequence: " .. formatted .. ")")
 		end
 	end
 end

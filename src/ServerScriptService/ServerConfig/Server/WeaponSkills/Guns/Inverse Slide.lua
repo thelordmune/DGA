@@ -7,27 +7,19 @@ local Sfx = Replicated.Assets.SFX
 
 local Global = require(Replicated.Modules.Shared.Global)
 return function(Player, Data, Server)
-	print("[Inverse Slide] ========== SKILL CALLED ==========")
-	print("[Inverse Slide] Player:", Player.Name)
-
 	local Character = Player.Character
 
 	if not Character then
-		print("[Inverse Slide] ❌ No character found")
 		return
 	end
-	print("[Inverse Slide] ✅ Character found:", Character.Name)
 
 	-- Check if this is an NPC (no Player instance) or a real player
 	local isNPC = typeof(Player) ~= "Instance" or not Player:IsA("Player")
-	print("[Inverse Slide] Is NPC:", isNPC)
 
 	-- For players, check equipped status
 	if not isNPC and not Character:GetAttribute("Equipped") then
-		print("[Inverse Slide] ❌ Not equipped")
 		return
 	end
-	print("[Inverse Slide] ✅ Equipped check passed")
 
 	-- Get weapon - for NPCs use attribute, for players use Global.GetData
 	local Weapon
@@ -36,40 +28,27 @@ return function(Player, Data, Server)
 	else
 		Weapon = Global.GetData(Player).Weapon
 	end
-	print("[Inverse Slide] Weapon:", Weapon)
-
-	-- WEAPON CHECK: This skill requires Fist weapon
-	-- if Weapon ~= "Fist" then
-	-- 	print("[Inverse Slide] ❌ Wrong weapon - requires Fist, got:", Weapon)
-	-- 	return -- Character doesn't have the correct weapon for this skill
-	-- end
-	-- print("[Inverse Slide] ✅ Weapon check passed")
 
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
-	print("[Inverse Slide] Animation:", Animation)
 
 	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then
-		print("[Inverse Slide] ❌ Character is in action or stunned")
 		return
 	end
-	print("[Inverse Slide] ✅ State check passed")
 
 	-- For NPCs, skip the PlayerObject.Keys check
 	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
-	print("[Inverse Slide] Can use skill:", canUseSkill)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Character, script.Name) then
-		print("[Inverse Slide] ✅ Cooldown check passed - EXECUTING SKILL!")
-		Server.Library.SetCooldown(Character, script.Name, 5) -- Increased from 2.5 to 5 seconds
+		Server.Library.SetCooldown(Character, script.Name, 5)
 		Server.Library.StopAllAnims(Character)
 
 		local Move = Library.PlayAnimation(Character, Animation)
-		print("[Inverse Slide] Animation playing, length:", Move.Length)
 		local animlength = Move.Length
 
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTimes do
@@ -84,16 +63,25 @@ return function(Player, Data, Server)
 		local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
 		local Humanoid = Character:FindFirstChild("Humanoid")
 
+		-- Store sounds for cleanup on cancellation
+		local leapSound
+		local jumpSound
+
 		if HumanoidRootPart and Humanoid then
 			-- First kick - ground effect (no damage)
 			task.delay(hittimes[1], function()
+				-- CHECK IF SKILL WAS CANCELLED
+				if not Server.Library.StateCheck(Character.Actions, script.Name) then
+					return
+				end
+
 				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 					Module = "Base",
 					Function = "IS",
 					Arguments = { Character, "RightDust" },
 				})
 
-				local leapSound = Sfx.Skills.IS.Leap:Clone()
+				leapSound = Sfx.Skills.IS.Leap:Clone()
 				leapSound.Volume = 4
 				leapSound.PlaybackSpeed = 2
 				leapSound.Parent = Character.HumanoidRootPart
@@ -103,6 +91,11 @@ return function(Player, Data, Server)
 		else
 			-- Fallback if no HumanoidRootPart/Humanoid
 			task.delay(hittimes[1], function()
+				-- CHECK IF SKILL WAS CANCELLED
+				if not Server.Library.StateCheck(Character.Actions, script.Name) then
+					return
+				end
+
 				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 					Module = "Base",
 					Function = "IS",
@@ -113,13 +106,18 @@ return function(Player, Data, Server)
 
 		-- Second kick - lift effect + start velocity
         task.delay(hittimes[2], function()
+			-- CHECK IF SKILL WAS CANCELLED
+			if not Server.Library.StateCheck(Character.Actions, script.Name) then
+				return
+			end
+
             Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Base",
 				Function = "IS",
 				Arguments = { Character, "Lift" },
 			})
 
-			local jumpSound = Sfx.Skills.IS.Jump:Clone()
+			jumpSound = Sfx.Skills.IS.Jump:Clone()
 			jumpSound.Parent = Character.HumanoidRootPart
 			jumpSound.Volume = 4
 			jumpSound.PlaybackSpeed = 2
@@ -138,14 +136,29 @@ return function(Player, Data, Server)
 
 		-- Remove velocity at hittimes[4] (end of leap)
 		task.delay(hittimes[4], function()
+			-- CHECK IF SKILL WAS CANCELLED
+			if not Server.Library.StateCheck(Character.Actions, script.Name) then
+				-- Clean up velocity if cancelled
+				Server.Packets.Bvel.sendTo({
+					Character = Character,
+					Name = "RemoveISVelocity"
+				}, Player)
+				return
+			end
+
 			Server.Packets.Bvel.sendTo({
 				Character = Character,
 				Name = "RemoveISVelocity"
 			}, Player)
 		end)
 
-		-- Third kick - damage + knockback to the left
+		-- Third kick - START MULTI-HIT (no knockback yet, just damage)
         task.delay(hittimes[3], function()
+			-- CHECK IF SKILL WAS CANCELLED
+			if not Server.Library.StateCheck(Character.Actions, script.Name) then
+				return
+			end
+
             Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Base",
 				Function = "IS",
@@ -162,25 +175,81 @@ return function(Player, Data, Server)
 			local fadeInfo = TweenInfo.new(fadeOutDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 			TweenService:Create(dumpSound, fadeInfo, { Volume = 0.5 }):Play()
 			game:GetService("Debris"):AddItem(dumpSound, fadeOutDuration + 0.5)
-			-- Screenshake for third kick (left-right bouncy)
-			-- Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-			-- 	Module = "Base",
-			-- 	Function = "Shake",
-			-- 	Arguments = {
-			-- 		"Once",
-			-- 		{
-			-- 			4,  -- magnitude
-			-- 			12, -- roughness (bouncy)
-			-- 			0,  -- fadeInTime
-			-- 			0.4, -- fadeOutTime
-			-- 			Vector3.new(0.5, 0.2, 0.5), -- posInfluence (less vertical)
-			-- 			Vector3.new(0.2, 1.5, 0.2) -- rotInfluence (strong left-right rotation)
-			-- 		}
-			-- 	}
-			-- })
 
-			--Library.PlaySound(Character.HumanoidRootPart, Sfx.Skills.IS["2"], true, 0.1)
-			-- Create hitbox for third kick
+			-- Multi-hit loop from hittime 3 to hittime 4
+			local multiHitDuration = hittimes[4] - hittimes[3]
+			local hitInterval = 0.025 -- Hit every 0.1 seconds
+			local startTime = os.clock()
+			local hitConnection
+
+			hitConnection = RunService.Heartbeat:Connect(function()
+				-- CHECK IF SKILL WAS CANCELLED
+				if not Server.Library.StateCheck(Character.Actions, script.Name) then
+					if hitConnection then
+						hitConnection:Disconnect()
+					end
+					-- Stop sound if cancelled
+					if dumpSound and dumpSound.Parent then
+						dumpSound:Stop()
+						dumpSound:Destroy()
+					end
+					return
+				end
+
+				local elapsed = os.clock() - startTime
+				if elapsed >= multiHitDuration then
+					if hitConnection then
+						hitConnection:Disconnect()
+					end
+					return
+				end
+
+				-- Check if enough time has passed for next hit
+				local hitCount = math.floor(elapsed / hitInterval)
+				local lastHitTime = hitCount * hitInterval
+				local timeSinceLastHit = elapsed - lastHitTime
+
+				if timeSinceLastHit < 0.016 then -- Within one frame of hit time
+					-- Create hitbox for multi-hit (NO KNOCKBACK)
+					if Entity then
+						local HitTargets = Hitbox.SpatialQuery(
+							Character,
+							Vector3.new(6, 6, 6),
+							Entity:GetCFrame() * CFrame.new(0, 0, -3),
+							false
+						)
+
+						for _, Target in pairs(HitTargets) do
+							if Target ~= Character and Target:IsA("Model") then
+								-- Apply damage WITHOUT knockback
+								Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name].DamageTable)
+							end
+						end
+					end
+				end
+			end)
+        end)
+
+		-- Fourth kick - FINAL HIT with knockback
+        task.delay(hittimes[4], function()
+			-- CHECK IF SKILL WAS CANCELLED
+			if not Server.Library.StateCheck(Character.Actions, script.Name) then
+				return
+			end
+
+            Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+				Module = "Base",
+				Function = "IS",
+				Arguments = { Character, "End" },
+			})
+
+			local landSound = Sfx.Skills.IS.Land:Clone()
+			landSound.Parent = Character.HumanoidRootPart
+			landSound.Volume = 10
+			landSound:Play()
+			game:GetService("Debris"):AddItem(landSound, landSound.TimeLength)
+
+			-- Create hitbox for fourth kick WITH KNOCKBACK
 			if Entity then
 				local HitTargets = Hitbox.SpatialQuery(
 					Character,
@@ -291,40 +360,6 @@ return function(Player, Data, Server)
 								})
 							end)
 						end
-					end
-				end
-			end
-        end)
-
-		-- Fourth kick - damage (more impactful screenshake)
-        task.delay(hittimes[4], function()
-            Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-				Module = "Base",
-				Function = "IS",
-				Arguments = { Character, "End" },
-			})
-
-			local landSound = Sfx.Skills.IS.Land:Clone()
-			landSound.Parent = Character.HumanoidRootPart
-			landSound.Volume = 10
-			landSound:Play()
-			game:GetService("Debris"):AddItem(landSound, landSound.TimeLength)
-
-			-- Screenshake for fourth kick (MORE IMPACTFUL - stronger left-right bouncy)
-
-			--Library.PlaySound(Character.HumanoidRootPart, Sfx.Skills.IS["3"], true, 0.1)
-			-- Create hitbox for fourth kick
-			if Entity then
-				local HitTargets = Hitbox.SpatialQuery(
-					Character,
-					Vector3.new(6, 6, 6),
-					Entity:GetCFrame() * CFrame.new(0, 0, -3),
-					false
-				)
-
-				for _, Target in pairs(HitTargets) do
-					if Target ~= Character and Target:IsA("Model") then
-						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name].DamageTable)
 					end
 				end
 			end

@@ -148,10 +148,10 @@ AnimationController.PlayAnimation = function(Animation, Transition)
         self.CurrentAnimation = ""
         self.CurrentInstance = nil
 
-        -- print(Anim.Name)
+        ---- print(Anim.Name)
 
         if typeof(Anim) == "table" then
-            -- print(table.unpack(Anim))
+            ---- print(table.unpack(Anim))
         end
 
         self.CurrentTrack = Client.Humanoid:LoadAnimation(Anim)

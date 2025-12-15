@@ -240,7 +240,7 @@ local Table = {
 			PostureDamage = 50,
 			LightKnockback = true,
 			M1 = true,
-			FX = Replicated.Assets.VFX.RunningHit.Attachment,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
 			Stun = 0.7, -- Reduced from 1.2 to allow faster combat flow
 		},
 

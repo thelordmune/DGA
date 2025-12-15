@@ -78,6 +78,7 @@ NetworkModule.EndPoint = function(Player, Data)
 		Server.Library.TimedState(Character.Actions, "Firestorm", Alchemy.Length)
 		Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Alchemy.Length) -- Prevent jumping during move
 
 		local vfxtime = hittimes[1] - .35
 

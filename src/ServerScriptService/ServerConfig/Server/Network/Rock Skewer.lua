@@ -66,7 +66,7 @@ NetworkModule.EndPoint = function(Player, Data)
 		cleanUp()
 		Server.Library.SetCooldown(Character, "RockSkewer", 8) -- Increased from 3 to 8 seconds
 		Server.Library.StopAllAnims(Character)
-		-- print("doing rock skewer")
+		---- print("doing rock skewer")
 
 
 		local Alchemy = Library.PlayAnimation(Character, Animation)
@@ -76,6 +76,7 @@ NetworkModule.EndPoint = function(Player, Data)
 		Server.Library.TimedState(Character.Actions, "RockSkewer", Alchemy.Length)
 		Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Alchemy.Length) -- Prevent jumping during move
 
 		local rock = Instance.new("Part")
 		rock.Anchored = true

@@ -80,7 +80,7 @@ return function(context: Context)
 			columns({})
 			remotes.disconnect_query:fire(outgoing, current_query_id)
 			current_query_id = generate_random_query_id()
-			-- -- print("requesting new query", current_query_id)
+			-- ---- print("requesting new query", current_query_id)
 			remotes.request_query:fire(outgoing, context.id, current_query_id, context.query())
 			remotes.advance_query_page:fire(outgoing, current_query_id, context.from(), context.upto())
 			query_last_frame = 0

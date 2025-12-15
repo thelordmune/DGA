@@ -49,7 +49,7 @@ function HasCompletedQuest.Run(npcName, questName)
 	
 	-- Check if the completed quest matches
 	if completedQuest.npcName == npcName and completedQuest.questName == questName then
-		-- print("[HasCompletedQuest] Player has completed quest:", npcName, questName)
+		---- print("[HasCompletedQuest] Player has completed quest:", npcName, questName)
 		return true
 	end
 	

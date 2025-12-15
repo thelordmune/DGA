@@ -24,7 +24,7 @@ if not intermission then
 	return
 end
 
-local playButton = intermission:WaitForChild("Play", 30)
+local playButton = workspace:WaitForChild("Gem").ClickDetector
 if not playButton then
 	warn("[TeleportHandler] Play button not found")
 	return
@@ -125,7 +125,7 @@ if teleportErrorRemote then
 end
 
 -- Connect to Play button
-playButton.Activated:Connect(function()
+playButton.MouseClick:Connect(function()
 	print("[TeleportHandler] Play button clicked")
 	teleportToMainGame()
 end)

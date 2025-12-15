@@ -204,14 +204,14 @@ end
 NPCBodyTracking.Start = function()
 	if active then return end
 
-	print("[NPCHeadTracking] 🎯 Starting NPC head tracking system...")
+	--print("[NPCHeadTracking] 🎯 Starting NPC head tracking system...")
 
 	active = true
 
 	-- Connect to RenderStepped for smooth client-side updates
 	RunService.RenderStepped:Connect(updateBodyTracking)
 
-	print("[NPCHeadTracking] ✅ NPC head tracking system started!")
+	--print("[NPCHeadTracking] ✅ NPC head tracking system started!")
 end
 
 return NPCBodyTracking

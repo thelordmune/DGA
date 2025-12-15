@@ -116,11 +116,11 @@ end
 
 function serverProcess.start()
 	if hasStarted then
-		-- print("ByteNet server process already started, skipping duplicate initialization")
+		---- print("ByteNet server process already started, skipping duplicate initialization")
 		return
 	end
 	hasStarted = true
-	-- print("Starting ByteNet server process")
+	---- print("Starting ByteNet server process")
 
 	-- Check if RemoteEvents already exist to prevent duplicates
 	local reliableRemote = ReplicatedStorage:FindFirstChild("ByteNetReliable")
@@ -128,9 +128,9 @@ function serverProcess.start()
 		reliableRemote = Instance.new("RemoteEvent")
 		reliableRemote.Name = "ByteNetReliable"
 		reliableRemote.Parent = ReplicatedStorage
-		-- print("Created new ByteNetReliable RemoteEvent")
+		---- print("Created new ByteNetReliable RemoteEvent")
 	else
-		-- print("Using existing ByteNetReliable RemoteEvent")
+		---- print("Using existing ByteNetReliable RemoteEvent")
 	end
 	reliableRemote.OnServerEvent:Connect(onServerEvent)
 
@@ -139,9 +139,9 @@ function serverProcess.start()
 		unreliableRemote = Instance.new("UnreliableRemoteEvent")
 		unreliableRemote.Name = "ByteNetUnreliable"
 		unreliableRemote.Parent = ReplicatedStorage
-		-- print("Created new ByteNetUnreliable RemoteEvent")
+		---- print("Created new ByteNetUnreliable RemoteEvent")
 	else
-		-- print("Using existing ByteNetUnreliable RemoteEvent")
+		---- print("Using existing ByteNetUnreliable RemoteEvent")
 	end
 	unreliableRemote.OnServerEvent:Connect(onServerEvent)
 

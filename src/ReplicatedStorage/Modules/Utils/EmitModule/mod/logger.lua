@@ -14,7 +14,7 @@ function logger.warn(...)
 end
 
 function logger.info(...)
-  print(msg(...))
+ -- print(msg(...))
 end
 
 return logger

@@ -18,7 +18,7 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 	execute = function(self, Player, Character, holdDuration)
 		local Server = require(script.Parent.Parent.Parent)
 
-		-- print(`[Grand Cleave] Executed after {holdDuration}s hold`)
+		---- print(`[Grand Cleave] Executed after {holdDuration}s hold`)
 
 		if not Character then
 			return
@@ -62,11 +62,13 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 		Server.Library.StopAllAnims(Character)
 
 		local Move = Library.PlayAnimation(Character, Animation)
+		
 		-- Move:Play()
 		local animlength = Move.Length
 
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed4", Move.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
 
 		-- Calculate hold bonuses
 		local damageMultiplier = 1.0
@@ -75,13 +77,16 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 		if holdDuration > 0.5 then
 			damageMultiplier = 1 + (holdDuration * 0.2) -- +20% per second
 			rangeMultiplier = 1 + (holdDuration * 0.1) -- +10% per second
-			-- print(`⚡ Grand Cleave charged! Damage: {damageMultiplier}x, Range: {rangeMultiplier}x`)
+			---- print(`⚡ Grand Cleave charged! Damage: {damageMultiplier}x, Range: {rangeMultiplier}x`)
 		end
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTimes do
 			hittimes[i] = fraction * animlength
 		end
+
+		-- MULTI-HIT FIX: Track first victim for multi-hit state
+		local multiHitVictim = nil
 
         task.delay(hittimes[1], function()
             Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
@@ -113,12 +118,19 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 				local hitSomething = false
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Character and Target:IsA("Model") then
+						-- MULTI-HIT FIX: Mark first victim with MultiHitVictim state
+						if not multiHitVictim then
+							multiHitVictim = Target
+							-- Mark victim for multi-hit combo (duration = full animation length)
+							Server.Library.TimedState(Target.IFrames, "MultiHitVictim", animlength)
+						end
+
 						-- Apply damage multiplier
 						local damageTable = table.clone(Skills[Weapon][script.Name]["Slash1"])
 						damageTable.Damage = (damageTable.Damage or 0) * damageMultiplier
 
 						Server.Modules.Damage.Tag(Character, Target, damageTable)
-						-- print("Grand Cleave Slash1 hit:", Target.Name, "Damage:", damageTable.Damage)
+						---- print("Grand Cleave Slash1 hit:", Target.Name, "Damage:", damageTable.Damage)
 						hitSomething = true
 					end
 				end
@@ -178,7 +190,7 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 						damageTable.Damage = (damageTable.Damage or 0) * damageMultiplier
 
 						Server.Modules.Damage.Tag(Character, Target, damageTable)
-						-- print("Grand Cleave Slash2 hit:", Target.Name, "Damage:", damageTable.Damage)
+						---- print("Grand Cleave Slash2 hit:", Target.Name, "Damage:", damageTable.Damage)
 						hitSomething = true
 					end
 				end
@@ -224,7 +236,7 @@ local GrandCleave = SkillFactory.CreateWeaponSkill({
 						damageTable.Damage = (damageTable.Damage or 0) * damageMultiplier
 
 						Server.Modules.Damage.Tag(Character, Target, damageTable)
-						-- print("Grand Cleave Slash3 hit:", Target.Name, "Damage:", damageTable.Damage)
+						---- print("Grand Cleave Slash3 hit:", Target.Name, "Damage:", damageTable.Damage)
 						hitSomething = true
 					end
 				end

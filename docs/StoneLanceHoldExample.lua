@@ -32,7 +32,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
     cooldown = 8,
     
     execute = function(self, player, character, holdDuration)
-        -- print(`[Stone Lance] Executed after {holdDuration}s hold`)
+        ---- print(`[Stone Lance] Executed after {holdDuration}s hold`)
         
         -- Check if character is valid
         if not character or not character.Parent then
@@ -88,7 +88,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
             -- Optional: Increase range based on hold duration
             if holdDuration > 0.5 then
                 detectionRange = detectionRange + (holdDuration * 5) -- +5 studs per second
-                -- print(`⚡ Charged range: {detectionRange} studs`)
+                ---- print(`⚡ Charged range: {detectionRange} studs`)
             end
             
             local hasValidTarget = false
@@ -131,7 +131,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
                 if holdDuration > 0.5 then
                     sizeMultiplier = 1 + (holdDuration * 0.2) -- +20% per second
                     sl.Size = sl.Size * sizeMultiplier
-                    -- print(`⚡ Charged size: {sizeMultiplier}x`)
+                    ---- print(`⚡ Charged size: {sizeMultiplier}x`)
                 end
                 
                 local wedgeHeight = sl.Size.Y
@@ -176,7 +176,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
                     
                     for _, Target in pairs(HitTargets) do
                         if Target ~= character and Target:IsA("Model") and Target:FindFirstChild("Humanoid") then
-                            -- print("Stone Lance hit:", Target.Name)
+                            ---- print("Stone Lance hit:", Target.Name)
                             
                             -- Apply damage (with hold bonus)
                             if moveData and moveData.DamageTable then
@@ -187,7 +187,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
                                     local damageMultiplier = 1 + (holdDuration * 0.2) -- +20% per second
                                     damageTable = table.clone(damageTable)
                                     damageTable.Damage = (damageTable.Damage or 50) * damageMultiplier
-                                    -- print(`⚡ Charged damage: {damageTable.Damage}`)
+                                    ---- print(`⚡ Charged damage: {damageTable.Damage}`)
                                 end
                                 
                                 Server.Modules.Damage.Tag(character, Target, damageTable)
@@ -203,7 +203,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
                                 -- Optional: Increase launch power based on hold duration
                                 if holdDuration > 0.5 then
                                     upwardPower = upwardPower + (holdDuration * 10)
-                                    -- print(`⚡ Charged launch: {upwardPower} upward power`)
+                                    ---- print(`⚡ Charged launch: {upwardPower} upward power`)
                                 end
                                 
                                 local velocity = Vector3.new(

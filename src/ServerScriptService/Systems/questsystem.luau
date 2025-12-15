@@ -24,7 +24,7 @@ local function questsystem()
 					itemName = "Pocketwatch",
 					collectedTime = os.clock(),
 				})
-				-- print("[QuestSystem] Quest item collected for entity", entity, activeQuest.npcName, activeQuest.questName)
+				---- print("[QuestSystem] Quest item collected for entity", entity, activeQuest.npcName, activeQuest.questName)
 			end
 		end
 	end

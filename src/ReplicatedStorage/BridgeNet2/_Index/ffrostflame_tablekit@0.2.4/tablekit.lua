@@ -14,7 +14,7 @@ local TableKit = {}
 	
 	local CopiedDictionary = TableKit.DeepCopy(Dictionary)
 	
-	-- print(CopiedDictionary) -- prints { ["SomethingInside"] = { ["A"] = 1, ["B"] = 1 } }
+	---- print(CopiedDictionary) -- prints { ["SomethingInside"] = { ["A"] = 1, ["B"] = 1 } }
 	```
 	
 	:::caution Recursive Function
@@ -49,7 +49,7 @@ end
 		D = 4,
 	}
 	
-	-- print(TableKit.MergeDictionary(Dictionary, SecondDictionary)) -- prints { ["A"] = 1, ["B"] = 2, ["C"] = 3, ["D"] = 4 }
+	---- print(TableKit.MergeDictionary(Dictionary, SecondDictionary)) -- prints { ["A"] = 1, ["B"] = 2, ["C"] = 3, ["D"] = 4 }
 	```
 	
 	:::caution Potential overwrite
@@ -83,7 +83,7 @@ end
 		C = 3,
 	}
 	
-	-- print(TableKit.Keys(Dictionary)) -- prints {"A", "B", "C"}
+	---- print(TableKit.Keys(Dictionary)) -- prints {"A", "B", "C"}
 	```
 
 	@within TableKit
@@ -110,7 +110,7 @@ end
 		C = 3,
 	}
 	
-	-- print(TableKit.Values(Dictionary)) -- prints {1, 2, 3}
+	---- print(TableKit.Values(Dictionary)) -- prints {1, 2, 3}
 	```
 
 	@within TableKit
@@ -134,7 +134,7 @@ end
 	local FirstArray = {"A", "B", "C", "D"}
 	local SecondArray = {"E", "F", "G", "H"}
 	
-	-- print(TableKit.MergeArrays(FirstArray, SecondArray)) -- prints {"A", "B", "C", D", "E", "F", "G", "H"}
+	---- print(TableKit.MergeArrays(FirstArray, SecondArray)) -- prints {"A", "B", "C", D", "E", "F", "G", "H"}
 	```
 
 	@within TableKit
@@ -166,7 +166,7 @@ end
 		C = {},
 	}
 	
-	-- print(TableKit.Reconcile(toReconcile, template)) -- prints { A = 9, B = 8, C = { D = "" }
+	---- print(TableKit.Reconcile(toReconcile, template)) -- prints { A = 9, B = 8, C = { D = "" }
 	```
 
 	@within TableKit
@@ -203,7 +203,7 @@ end
 	local Array = {"A", "B", "C", "D"}
 	local Dictionary = { NotAnArray = true }
 	
-	-- print(TableKit.IsArray(Array), TableKit.IsArray(Dictionary)) -- prints true, false
+	---- print(TableKit.IsArray(Array), TableKit.IsArray(Dictionary)) -- prints true, false
 	```
 
 	@within TableKit
@@ -225,7 +225,7 @@ end
 	local Array = {"A", "B", "C", "D"}
 	local Dictionary = { NotAnArray = true }
 	
-	-- print(TableKit.IsDictionary(Array), TableKit.IsDictionary(Dictionary)) -- prints false, true
+	---- print(TableKit.IsDictionary(Array), TableKit.IsDictionary(Dictionary)) -- prints false, true
 	```
 
 	@within TableKit
@@ -250,7 +250,7 @@ end
 		C = "Y",
 	}
 	
-	-- print(TableKit.ToString(DictionaryA)) -- prints {
+	---- print(TableKit.ToString(DictionaryA)) -- prints {
 							--			[A]: Z
 							--			[C]: Y
 							--			[B]: X
@@ -307,7 +307,7 @@ end
 	```lua
 	local str = "Test"
 	
-	-- print(TableKit.From(str)) -- prints ("T", "e", "s", t")
+	---- print(TableKit.From(str)) -- prints ("T", "e", "s", t")
 	```
 
 	@within TableKit
@@ -341,7 +341,7 @@ end
 	```lua
 	local str = {"a", "b", "c", "d", "e", "f", "g"}
 	
-	-- print(TableKit.Filter(str, function(value)
+	---- print(TableKit.Filter(str, function(value)
 		return value > "c"
 	end))
 	-- prints {
@@ -376,7 +376,7 @@ end
 	local array = {1, 2, 3, 4, 5}
 	local even = function(value) return value % 2 == 0 end
 
-	-- print(TableKit.Some(array, even)) -- Prints true
+	---- print(TableKit.Some(array, even)) -- Prints true
 	```
 	
 	@within TableKit
@@ -400,8 +400,8 @@ end
 	local Shallow = {"a", "b"}
 	local Deep = {"a", {"b"}}
 	
-	-- print(TableKit.IsFlat(Shallow)) -- prints true
-	-- print(TableKit.IsFlat(Deep)) -- prints false
+	---- print(TableKit.IsFlat(Shallow)) -- prints true
+	---- print(TableKit.IsFlat(Deep)) -- prints false
 	```
 	
 	@within TableKit
@@ -425,8 +425,8 @@ end
 	local even = function(value) return value % 2 == 0 end
 	local odd = function(value) return value % 2 ~= 0 end
 	
-	-- print(TableKit.Every(array, even)) -- Prints false
-	-- print(TableKit.Every(array, odd)) -- Prints false
+	---- print(TableKit.Every(array, even)) -- Prints false
+	---- print(TableKit.Every(array, odd)) -- Prints false
 	```
 	
 	@within TableKit
@@ -454,7 +454,7 @@ end
 		SomeHay = "D",
 	}
 	
-	-- print(TableKit.HasKey(Dictionary, "Needle")) -- prints true
+	---- print(TableKit.HasKey(Dictionary, "Needle")) -- prints true
 	```
 	
 	@within TableKit
@@ -472,7 +472,7 @@ end
 	```lua
 	local Array = { "Has", "this", "thing" }
 	
-	-- print(TableKit.HasValue(Array, "Has")) -- prints true
+	---- print(TableKit.HasValue(Array, "Has")) -- prints true
 	```
 	
 	@within TableKit
@@ -496,7 +496,7 @@ end
 	local Empty = {}
 	local NotEmpty = { "Stuff" }
 	
-	-- print(TableKit.IsEmpty(Empty), TableKit.IsEmpty(NotEmpty)) -- prints true, false
+	---- print(TableKit.IsEmpty(Empty), TableKit.IsEmpty(NotEmpty)) -- prints true, false
 	```
 
 	@within TableKit

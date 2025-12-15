@@ -6,11 +6,11 @@ local function getWandererSpawns()
     local wanderersFolder = workspace:FindFirstChild("Wanderers")
 
     if wanderersFolder then
-        -- print("Found Wanderers folder with", #wanderersFolder:GetChildren(), "spawn points")
+        ---- --print("Found Wanderers folder with", #wanderersFolder:GetChildren(), "spawn points")
         for _, part in pairs(wanderersFolder:GetChildren()) do
             if part:IsA("BasePart") then
                 table.insert(spawns, part.Position)
-                -- -- print("Added wanderer spawn at:", part.Position)
+                -- ---- --print("Added wanderer spawn at:", part.Position)
             end
         end
     else
@@ -21,7 +21,7 @@ local function getWandererSpawns()
             Vector3.new(10, 5, 10),
             Vector3.new(-10, 5, -10)
         }
-        -- print("Using fallback spawns:", #spawns)
+        ---- --print("Using fallback spawns:", #spawns)
     end
 
     return spawns
@@ -31,11 +31,11 @@ end
 local wandererSpawns = getWandererSpawns()
 local wandererCount = math.max(1, #wandererSpawns) -- At least 1 wanderer
 
-print("[Wanderer] 🚶 Loading Wanderer configuration")
-print("[Wanderer] Spawn count:", wandererCount)
-print("[Wanderer] Spawn locations:", #wandererSpawns)
+--print("[Wanderer] 🚶 Loading Wanderer configuration")
+--print("[Wanderer] Spawn count:", wandererCount)
+--print("[Wanderer] Spawn locations:", #wandererSpawns)
 for i, spawn in ipairs(wandererSpawns) do
-	print("[Wanderer]   Spawn", i, ":", spawn)
+	--print("[Wanderer]   Spawn", i, ":", spawn)
 end
 
 local WandererData = {
@@ -45,7 +45,7 @@ local WandererData = {
 	SpawnCooldown = 1,
 
 	Type = "Active",
-	AlwaysSpawn = false, -- DISABLED - Wanderers are disabled
+	AlwaysSpawn = false, -- ENABLED - Wanderers spawn for testing regen system
 	LoadDistance = nil, -- Disabled - no proximity spawning
 
 	DataToSendOverAndUdpate = {
@@ -122,8 +122,8 @@ local WandererData = {
 	BehaviorTree = require(game.ReplicatedStorage.NpcHelper.Behaviors.Forest.Wanderer_BehaviorTree),
 }
 
--- print("[Wanderer] ✅ Wanderer configuration loaded successfully")
--- print("[Wanderer] AlwaysSpawn:", WandererData.AlwaysSpawn)
--- print("[Wanderer] LoadDistance:", WandererData.LoadDistance)
+---- --print("[Wanderer] ✅ Wanderer configuration loaded successfully")
+---- --print("[Wanderer] AlwaysSpawn:", WandererData.AlwaysSpawn)
+---- --print("[Wanderer] LoadDistance:", WandererData.LoadDistance)
 
 return WandererData

@@ -46,7 +46,7 @@ Combat.Light = function(Character: Model)
 	local Stats: {} = WeaponStats[Weapon]
 
 	if Stats["Exception"] then
-		-- print('weapon has an exception')
+		---- print('weapon has an exception')
 		Server.Modules.WeaponExceptions[Weapon](Character, Entity, Weapon, Stats)
 		return
 	end
@@ -324,7 +324,7 @@ Combat.Critical = function(Character: Model)
 					local Ragdoller = require(game.ReplicatedStorage.Modules.Utils.Ragdoll)
 					Ragdoller.Ragdoll(Target, 3)
 
-					-- print(`[Critical] Knocked back ragdolled target: {Target.Name} and extended ragdoll by 3 seconds`)
+					---- print(`[Critical] Knocked back ragdolled target: {Target.Name} and extended ragdoll by 3 seconds`)
 				end
 			end
 
@@ -406,7 +406,7 @@ Combat.Critical = function(Character: Model)
 								task.wait()
 							end
 						end)
-				-- print("sending loop to wall")
+				---- print("sending loop to wall")
 			end
 			--if not Target:GetAttribute("")
 		end
@@ -532,7 +532,7 @@ Combat.RunningAttack = function(Character)
 						if not Tagged[Target] then
 							Tagged[Target] = true;
 							Server.Modules.Damage.Tag(Character, Target, Stats["RATable"])
-							-- print("ra table")
+							---- print("ra table")
 						end
 					end
 					
@@ -674,63 +674,63 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
 end
 
 Combat.AttemptParry = function(Character: Model)
-    print(`[PARRY DEBUG] {Character.Name} attempting to parry`)
+   -- print(`[PARRY DEBUG] {Character.Name} attempting to parry`)
 
     if Server.Library.CheckCooldown(Character, "Parry") then
-        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: On cooldown`)
+       -- print(`[PARRY DEBUG] {Character.Name} - BLOCKED: On cooldown`)
         return
     end
 
     -- Prevent parrying during parry knockback
     if Server.Library.StateCheck(Character.Stuns, "ParryKnockback") then
-        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: ParryKnockback state active`)
+       -- print(`[PARRY DEBUG] {Character.Name} - BLOCKED: ParryKnockback state active`)
         return
     end
 
     if Server.Library.StateCheck(Character.Stuns, "BlockBreakStun") then
-        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: BlockBreakStun state active`)
+       -- print(`[PARRY DEBUG] {Character.Name} - BLOCKED: BlockBreakStun state active`)
         return
     end
 
     -- Prevent parrying during ragdoll
     if Character:FindFirstChild("Ragdoll") then
-        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: Ragdoll active`)
+       -- print(`[PARRY DEBUG] {Character.Name} - BLOCKED: Ragdoll active`)
         return
     end
 
     -- Prevent parrying during moves
     if Server.Library.StateCount(Character.Actions) then
         local actions = Server.Library.GetAllStatesFromCharacter(Character).Actions or {}
-        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: Actions active: {table.concat(actions, ", ")}`)
+       -- print(`[PARRY DEBUG] {Character.Name} - BLOCKED: Actions active: {table.concat(actions, ", ")}`)
         return
     end
 
     -- Prevent parrying during strategist combo
     if Server.Library.StateCheck(Character.Stuns, "StrategistComboHit") then
-        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: StrategistComboHit state active`)
+       -- print(`[PARRY DEBUG] {Character.Name} - BLOCKED: StrategistComboHit state active`)
         return
     end
 
     -- Prevent parrying during M1 stun (true stun system)
     if Server.Library.StateCheck(Character.Stuns, "M1Stun") then
-        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: M1Stun state active (true stun)`)
+       -- print(`[PARRY DEBUG] {Character.Name} - BLOCKED: M1Stun state active (true stun)`)
         return
     end
 
     local Entity = Server.Modules["Entities"].Get(Character)
     if not Entity then
-        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: No entity found`)
+       -- print(`[PARRY DEBUG] {Character.Name} - BLOCKED: No entity found`)
         return
     end
 
     local Weapon = Entity.Weapon
     local Stats = WeaponStats[Weapon]
     if not Stats then
-        print(`[PARRY DEBUG] {Character.Name} - BLOCKED: No weapon stats for {Weapon}`)
+       -- print(`[PARRY DEBUG] {Character.Name} - BLOCKED: No weapon stats for {Weapon}`)
         return
     end
 
-    print(`[PARRY DEBUG] {Character.Name} - ✅ PARRY STARTED - Weapon: {Weapon}`)
+   -- print(`[PARRY DEBUG] {Character.Name} - ✅ PARRY STARTED - Weapon: {Weapon}`)
 
     Server.Library.SetCooldown(Character, "Parry", 1.5) -- Increased from 0.5 to 1.5 for longer cooldown
     Server.Library.StopAllAnims(Character)
@@ -742,7 +742,7 @@ Combat.AttemptParry = function(Character: Model)
     -- Add parry frames - increased from 0.3s to 0.5s to make parrying easier
     Server.Library.TimedState(Character.Frames, "Parry", .5)
 
-    print(`[PARRY DEBUG] {Character.Name} - Parry frames active for 0.5s`)
+   -- print(`[PARRY DEBUG] {Character.Name} - Parry frames active for 0.5s`)
 
     -- Visual effect
     -- Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {

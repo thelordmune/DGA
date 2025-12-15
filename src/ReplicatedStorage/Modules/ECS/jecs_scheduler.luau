@@ -9,7 +9,7 @@ local function getSystemsFolders() : table
 		if serverSystems then
 			table.insert(folders, { folder = serverSystems, context = "server" })
 			addedFolders[serverSystems] = true
-			-- print("Server systems folder found:", serverSystems:GetFullName())
+			---- print("Server systems folder found:", serverSystems:GetFullName())
 		end
 	end
 
@@ -22,7 +22,7 @@ local function getSystemsFolders() : table
 			sharedSystems = Instance.new("Folder")
 			sharedSystems.Name = "Systems"
 			sharedSystems.Parent = modules
-			-- print("Created Systems folder in ReplicatedStorage.Modules")
+			---- print("Created Systems folder in ReplicatedStorage.Modules")
 		end
 
 		-- Only add if we haven't already added this folder
@@ -30,7 +30,7 @@ local function getSystemsFolders() : table
 			local context = game:GetService("RunService"):IsClient() and "client" or "shared"
 			table.insert(folders, { folder = sharedSystems, context = context })
 			addedFolders[sharedSystems] = true
-			-- print(`{context == "client" and "Client" or "Shared"} systems folder found:`, sharedSystems:GetFullName())
+			---- print(`{context == "client" and "Client" or "Shared"} systems folder found:`, sharedSystems:GetFullName())
 		end
 	end
 
@@ -72,7 +72,7 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
     if customSystemsFolder then
         if customSystemsFolder:IsA("Folder") then
             table.insert(systemsFolders, {folder = customSystemsFolder, context = "custom"})
-            -- print("Using custom systems folder:", customSystemsFolder:GetFullName())
+            ---- print("Using custom systems folder:", customSystemsFolder:GetFullName())
         else
             warn("Invalid systems folder provided, falling back to default detection")
             systemsFolders = getSystemsFolders()
@@ -107,7 +107,7 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
         local currentSystemsFolder = folderData.folder
         local context = folderData.context
 
-        -- print(`Loading {context} systems from: {currentSystemsFolder:GetFullName()}`)
+        ---- print(`Loading {context} systems from: {currentSystemsFolder:GetFullName()}`)
 
         for _, module in pairs(currentSystemsFolder:GetChildren()) do
             if not module:IsA("ModuleScript") then
@@ -115,7 +115,7 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
             end
 
             local success, err = pcall(function()
-                print(`[Scheduler] Loading {context} system: {module.Name}`)
+               -- print(`[Scheduler] Loading {context} system: {module.Name}`)
                 local systemModule = require(module)
 
                 -- Validate system structure
@@ -131,11 +131,11 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
 
                     -- Skip if context doesn't match
                     if isServer and settings.client_only then
-                        print(`[Scheduler] Skipping client-only system {module.Name} on server`)
+                       -- print(`[Scheduler] Skipping client-only system {module.Name} on server`)
                         return
                     end
                     if not isServer and settings.server_only then
-                        print(`[Scheduler] Skipping server-only system {module.Name} on client`)
+                       -- print(`[Scheduler] Skipping server-only system {module.Name} on client`)
                         return
                     end
                 end
@@ -189,7 +189,7 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
                     context = context,
                 })
 
-                print(`[Scheduler] ✅ Successfully loaded {context} system: {module.Name}`)
+               -- print(`[Scheduler] ✅ Successfully loaded {context} system: {module.Name}`)
             end)
 
             if not success then
@@ -198,7 +198,7 @@ local function FillingSchedulerWithSystems(scheduler, customSystemsFolder)
         end
     end
 
-    print(`[Scheduler] 📦 Loaded {#schedulerSystems} systems total`)
+   -- print(`[Scheduler] 📦 Loaded {#schedulerSystems} systems total`)
     return schedulerSystems
 end
 
@@ -268,10 +268,10 @@ local function SetupPhases()
 
 	-- Debug print all created phases
 	for name, entity in pairs(phases) do
-		-- print(`Created phase {name}:`)
-		-- print("- Entity ID:", entity)
-		-- print("- Event:", world:get(entity, comps.Event))
-		-- print("- Name:", world:get(entity, comps.Name))
+		---- print(`Created phase {name}:`)
+		---- print("- Entity ID:", entity)
+		---- print("- Event:", world:get(entity, comps.Event))
+		---- print("- Name:", world:get(entity, comps.Name))
 	end
 
 	return phases

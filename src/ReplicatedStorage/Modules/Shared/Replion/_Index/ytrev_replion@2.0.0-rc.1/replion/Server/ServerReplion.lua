@@ -333,7 +333,7 @@ end
 --[=[
 	```lua
 	local newCoins: number = Replion:Set('Coins', 79)
-	-- print(newCoins) --> 79
+	---- print(newCoins) --> 79
 	```
 
 	@param path Path | { [any] : any }
@@ -619,7 +619,7 @@ end
 	})
 
 	local item: string = newReplion:Remove('Items')
-	-- print(item) --> 'Bow'
+	---- print(item) --> 'Bow'
 	```
 
 	@param path Path
@@ -669,7 +669,7 @@ end
 
 	newReplion:Clear('Items')
 
-	-- print(newReplion:Get('Items')) --> {}
+	---- print(newReplion:Get('Items')) --> {}
 	```
 
 	@param path Path
@@ -712,7 +712,7 @@ end
 	})
 
 	local index: number?, item: string? = newReplion:Find('Items', 'Bow')
-	-- print(index, item) --> 1, 'Bow'
+	---- print(index, item) --> 1, 'Bow'
 	```
 
 	@param path Path

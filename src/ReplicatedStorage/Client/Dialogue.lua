@@ -24,9 +24,9 @@ local Client = require(ReplicatedStorage.Client)
 
 --   settings
 -- local  _ENABLED = false -- ENABLED FOR  GING
--- local function  -- print(message, ...)
+-- local function  ---- print(message, ...)
 -- 	if  _ENABLED then
--- 		-- print("[Dialogue]", message, ...)
+-- 		---- print("[Dialogue]", message, ...)
 -- 	end
 -- end
 
@@ -64,64 +64,67 @@ local SkipTyping = false
 local CanSkip = false
 local CurrentDialogueUI = nil
 local CurrentNode = nil -- Track the current dialogue node for AutoClose support
+local InrangeMonitorConnection = nil -- Track the inrange monitoring connection
+local HealthChangedConnection = nil -- Track health monitoring connection
+local CombatMonitorConnection = nil -- Track combat state monitoring connection
 
 function GetRootNode(Tree)
-	 -- print("Getting root node from tree: " .. tostring(Tree))
+	 ---- print("Getting root node from tree: " .. tostring(Tree))
 	for _, Node in pairs(Tree:GetChildren()) do
 		if Node:GetAttribute("Type") == "DialogueRoot" then
-			 -- print("Found root node: " .. tostring(Node))
+			 ---- print("Found root node: " .. tostring(Node))
 			return Node
 		end
 	end
-	 -- print("No root node found in tree")
+	 ---- print("No root node found in tree")
 	return nil
 end
 
 function GetNodeFromValue(Value)
-	 -- print("Getting node from value: " .. tostring(Value))
+	 ---- print("Getting node from value: " .. tostring(Value))
 	-- If Value is already a Configuration, return it directly
 	if Value:IsA("Configuration") then
-		 -- print("Found node (direct): " .. tostring(Value))
+		 ---- print("Found node (direct): " .. tostring(Value))
 		return Value
 	end
 	-- Otherwise, try to find Configuration ancestor (old system)
 	local node = Value:FindFirstAncestorWhichIsA("Configuration")
-	 -- print("Found node (ancestor): " .. tostring(node))
+	 ---- print("Found node (ancestor): " .. tostring(node))
 	return node
 end
 
 function GetOutputNodes(InputNode)
-	 -- print("Getting output nodes from: " .. tostring(InputNode))
+	 ---- print("Getting output nodes from: " .. tostring(InputNode))
 	local Nodes = {}
 
 	--  : Show what's in the node
 	local outputsFolder = InputNode:FindFirstChild("Outputs")
 	if outputsFolder then
-		 -- print("Outputs folder found, children:", #outputsFolder:GetChildren())
+		 ---- print("Outputs folder found, children:", #outputsFolder:GetChildren())
 		for _, child in ipairs(outputsFolder:GetChildren()) do
-			 -- print("  Output child:", child.Name, child.ClassName, "Value:", child:IsA("ObjectValue") and child.Value or "N/A")
+			 ---- print("  Output child:", child.Name, child.ClassName, "Value:", child:IsA("ObjectValue") and child.Value or "N/A")
 		end
 	else
-		 -- print("No Outputs folder found in node!")
+		 ---- print("No Outputs folder found in node!")
 	end
 
 	for _, Output in pairs(InputNode:GetDescendants()) do
 		if Output.Parent.Name == "Outputs" and Output.Value ~= nil then
-			 -- print("Processing output:", Output.Name, "Value type:", typeof(Output.Value))
+			 ---- print("Processing output:", Output.Name, "Value type:", typeof(Output.Value))
 			local Node = GetNodeFromValue(Output.Value)
 			if not table.find(Nodes, Node) then
 				table.insert(Nodes, Node)
-				 -- print("Added output node: " .. tostring(Node))
+				 ---- print("Added output node: " .. tostring(Node))
 			end
 		end
 	end
 
-	 -- print("Found " .. #Nodes .. " output nodes")
+	 ---- print("Found " .. #Nodes .. " output nodes")
 	return Nodes
 end
 
 function GetInputNodes(InputNode)
-	 -- print("Getting input nodes from: " .. tostring(InputNode))
+	 ---- print("Getting input nodes from: " .. tostring(InputNode))
 	local Nodes = {}
 
 	for _, Input in pairs(InputNode:GetDescendants()) do
@@ -129,82 +132,82 @@ function GetInputNodes(InputNode)
 			local Node = GetNodeFromValue(Input.Value)
 			if not table.find(Nodes, Node) then
 				table.insert(Nodes, Node)
-				 -- print("Added input node: " .. tostring(Node))
+				 ---- print("Added input node: " .. tostring(Node))
 			end
 		end
 	end
 
-	 -- print("Found " .. #Nodes .. " input nodes")
+	 ---- print("Found " .. #Nodes .. " input nodes")
 	return Nodes
 end
 
 function GetInputs(Node)
-	 -- print("Getting inputs from node: " .. tostring(Node))
+	 ---- print("Getting inputs from node: " .. tostring(Node))
 	local Inputs = {}
 
 	for _, Input in pairs(Node:GetDescendants()) do
 		if Input.Parent.Name == "Inputs" and Input.Value ~= nil then
 			table.insert(Inputs, Input)
-			 -- print("Added input: " .. tostring(Input))
+			 ---- print("Added input: " .. tostring(Input))
 		end
 	end
 
-	 -- print("Found " .. #Inputs .. " inputs")
+	 ---- print("Found " .. #Inputs .. " inputs")
 	return Inputs
 end
 
 function GetHighestPriorityNode(Nodes)
-	 -- print("Getting highest priority node from " .. #Nodes .. " nodes")
+	 ---- print("Getting highest priority node from " .. #Nodes .. " nodes")
 	local HighestPriority = 0
 	local ChosenNode = nil
 
 	for _, Node in pairs(Nodes) do
 		local priority = Node:GetAttribute("Priority") or 0
-		 -- print("Node " .. tostring(Node) .. " has priority: " .. priority)
+		 ---- print("Node " .. tostring(Node) .. " has priority: " .. priority)
 		if priority > HighestPriority then
 			HighestPriority = priority
 			ChosenNode = Node
-			 -- print("New highest priority node: " .. tostring(Node))
+			 ---- print("New highest priority node: " .. tostring(Node))
 		end
 	end
 
-	 -- print("Selected node: " .. tostring(ChosenNode))
+	 ---- print("Selected node: " .. tostring(ChosenNode))
 	return ChosenNode
 end
 
 function FindNodeWithPriority(Nodes, Priority)
-	 -- print("Finding node with priority: " .. Priority)
+	 ---- print("Finding node with priority: " .. Priority)
 	for _, Node in pairs(Nodes) do
 		if Node:GetAttribute("Priority") == Priority then
-			 -- print("Found node: " .. tostring(Node))
+			 ---- print("Found node: " .. tostring(Node))
 			return Node
 		end
 	end
-	 -- print("No node found with priority: " .. Priority)
+	 ---- print("No node found with priority: " .. Priority)
 	return nil
 end
 
 function GetLowestPriorityNode(Nodes)
-	 -- print("Getting lowest priority node from " .. #Nodes .. " nodes")
+	 ---- print("Getting lowest priority node from " .. #Nodes .. " nodes")
 	local LowestPriority = math.huge
 	local ChosenNode = nil
 
 	for _, Node in pairs(Nodes) do
 		local priority = Node:GetAttribute("Priority") or math.huge
-		 -- print("Node " .. tostring(Node) .. " has priority: " .. priority)
+		 ---- print("Node " .. tostring(Node) .. " has priority: " .. priority)
 		if priority < LowestPriority then
 			LowestPriority = priority
 			ChosenNode = Node
-			 -- print("New lowest priority node: " .. tostring(Node))
+			 ---- print("New lowest priority node: " .. tostring(Node))
 		end
 	end
 
-	 -- print("Selected node: " .. tostring(ChosenNode))
+	 ---- print("Selected node: " .. tostring(ChosenNode))
 	return ChosenNode
 end
 
 function ClearResponses()
-	 -- print("Clearing responses")
+	 ---- print("Clearing responses")
 	if CurrentDialogueUI and CurrentDialogueUI:FindFirstChild("ResponseFrame") then
 		local responseCount = 0
 		for _, Response in pairs(CurrentDialogueUI.ResponseFrame:GetChildren()) do
@@ -213,61 +216,61 @@ function ClearResponses()
 				Response:Destroy()
 			end
 		end
-		 -- print("Cleared " .. responseCount .. " responses")
+		 ---- print("Cleared " .. responseCount .. " responses")
 	else
-		 -- print("No response frame found to clear")
+		 ---- print("No response frame found to clear")
 	end
 end
 
 function FindNodeType(Nodes, Type)
-	 -- print("Finding node of type: " .. Type)
+	 ---- print("Finding node of type: " .. Type)
 	for _, Node in pairs(Nodes) do
 		if Node:GetAttribute("Type") == Type then
-			 -- print("Found node: " .. tostring(Node))
+			 ---- print("Found node: " .. tostring(Node))
 			return Node
 		end
 	end
-	 -- print("No node found of type: " .. Type)
+	 ---- print("No node found of type: " .. Type)
 	return nil
 end
 
 function FindInput(Inputs, Name)
-	 -- print("Finding input with name: " .. Name)
+	 ---- print("Finding input with name: " .. Name)
 	for _, Input in pairs(Inputs) do
 		if Input.Value and Input.Value.Name == Name then
-			 -- print("Found input: " .. tostring(Input))
+			 ---- print("Found input: " .. tostring(Input))
 			return Input.Value
 		end
 	end
-	 -- print("No input found with name: " .. Name)
+	 ---- print("No input found with name: " .. Name)
 	return nil
 end
 
 function FireEvents(Node)
-	 -- print("Firing events for node: " .. tostring(Node))
+	 ---- print("Firing events for node: " .. tostring(Node))
 	local eventCount = 0
 	for _, Event in pairs(Node:GetChildren()) do
 		if Event:IsA("RemoteEvent") then
-			 -- print("Firing remote event: " .. tostring(Event))
+			 ---- print("Firing remote event: " .. tostring(Event))
 			Event:FireServer(Node)
 			eventCount = eventCount + 1
 		elseif Event:IsA("BindableEvent") then
-			 -- print("Firing bindable event: " .. tostring(Event))
+			 ---- print("Firing bindable event: " .. tostring(Event))
 			Event:Fire(Node)
 			eventCount = eventCount + 1
 		end
 	end
-	 -- print("Fired " .. eventCount .. " events")
+	 ---- print("Fired " .. eventCount .. " events")
 end
 
 function RunCommands(Node, Params)
-	 -- print("Running commands for node: " .. tostring(Node))
+	 ---- print("Running commands for node: " .. tostring(Node))
 	local commandCount = 0
 	for _, InputNode in pairs(GetInputNodes(Node)) do
 		if InputNode:GetAttribute("Type") ~= "Condition" and InputNode:FindFirstChildWhichIsA("ModuleScript") then
 			if #GetInputs(InputNode) <= 0 then
 				local Function = require(InputNode:FindFirstChildWhichIsA("ModuleScript"))
-				 -- print("Running command: " .. tostring(InputNode:FindFirstChildWhichIsA("ModuleScript")))
+				 ---- print("Running command: " .. tostring(InputNode:FindFirstChildWhichIsA("ModuleScript")))
 				if Function.Run then
 					Close(Params)
 					Function.Run()
@@ -276,18 +279,18 @@ function RunCommands(Node, Params)
 			end
 		end
 	end
-	 -- print("Ran " .. commandCount .. " commands")
+	 ---- print("Ran " .. commandCount .. " commands")
 end
 
 function CheckForCondition(Node)
-	 -- print("Checking conditions for node: " .. Node.Name)
+	 ---- print("Checking conditions for node: " .. Node.Name)
 	local inputNodes = GetInputNodes(Node)
-	 -- print("  Found " .. #inputNodes .. " input nodes")
+	 ---- print("  Found " .. #inputNodes .. " input nodes")
 
 	local conditionCount = 0
 	for _, InputNode in pairs(inputNodes) do
 		local inputType = InputNode:GetAttribute("Type")
-		 -- print("  Input node: " .. InputNode.Name .. " (Type: " .. tostring(inputType) .. ")")
+		 ---- print("  Input node: " .. InputNode.Name .. " (Type: " .. tostring(inputType) .. ")")
 
 		if inputType == "Condition" then
 			if #GetInputs(InputNode) <= 0 then
@@ -297,17 +300,17 @@ function CheckForCondition(Node)
 				local moduleScript = InputNode:FindFirstChildWhichIsA("ModuleScript")
 				if moduleScript then
 					local Function = require(moduleScript)
-					 -- print("  Checking condition (ModuleScript): " .. tostring(moduleScript))
+					 ---- print("  Checking condition (ModuleScript): " .. tostring(moduleScript))
 					if Function.Run then
 						local result = Function.Run()
-						 -- print("  Condition result: " .. tostring(result))
+						 ---- print("  Condition result: " .. tostring(result))
 						conditionPassed = result
 					end
 				-- Check for attribute-based condition (new module system)
 				elseif InputNode:GetAttribute("ModuleName") then
 					local moduleName = InputNode:GetAttribute("ModuleName")
 					local argsString = InputNode:GetAttribute("Args") or ""
-					 -- print("  Checking condition (Attribute): " .. moduleName .. " with args: " .. argsString)
+					 ---- print("  Checking condition (Attribute): " .. moduleName .. " with args: " .. argsString)
 
 					-- Load the condition module
 					local conditionModule = ReplicatedStorage.Modules.Utils.DialogueConditions:FindFirstChild(moduleName)
@@ -325,9 +328,9 @@ function CheckForCondition(Node)
 							end
 
 							-- Call the condition with args
-							 -- print("  Calling condition with args:", table.concat(args, ", "))
+							 ---- print("  Calling condition with args:", table.concat(args, ", "))
 							local result = Function.Run(table.unpack(args))
-							 -- print("  ✅ Condition result: " .. tostring(result))
+							 ---- print("  ✅ Condition result: " .. tostring(result))
 							conditionPassed = result
 						else
 							warn("[Dialogue] Failed to load condition module:", moduleName)
@@ -336,12 +339,12 @@ function CheckForCondition(Node)
 						warn("[Dialogue] Condition module not found:", moduleName)
 					end
 				else
-					 -- print("  ⚠️ Condition node has no ModuleScript or ModuleName attribute")
+					 ---- print("  ⚠️ Condition node has no ModuleScript or ModuleName attribute")
 				end
 
 				-- If condition failed, skip this node
 				if not conditionPassed then
-					 -- print("  ❌ Condition failed for node: " .. Node.Name)
+					 ---- print("  ❌ Condition failed for node: " .. Node.Name)
 					return true
 				end
 
@@ -349,25 +352,25 @@ function CheckForCondition(Node)
 			end
 		end
 	end
-	 -- print("  ✅ Checked " .. conditionCount .. " conditions, all passed for node: " .. Node.Name)
+	 ---- print("  ✅ Checked " .. conditionCount .. " conditions, all passed for node: " .. Node.Name)
 	return false
 end
 
 function ToggleLock(Node)
-	 -- print("Toggling lock for node: " .. tostring(Node))
+	 ---- print("Toggling lock for node: " .. tostring(Node))
 	local toggleCount = 0
 	for _, Input in pairs(GetInputs(Node)) do
 		if Input.Value and Input.Value.Name == "Toggle" then
-			 -- print("Toggling input: " .. tostring(Input.Value))
+			 ---- print("Toggling input: " .. tostring(Input.Value))
 			Input.Value.Value = not Input.Value.Value
 			toggleCount = toggleCount + 1
 		end
 	end
-	 -- print("Toggled " .. toggleCount .. " locks")
+	 ---- print("Toggled " .. toggleCount .. " locks")
 end
 
 function IsLocked(Node)
-	 -- print("Checking if node is locked: " .. tostring(Node))
+	 ---- print("Checking if node is locked: " .. tostring(Node))
 	local LockNode = FindNodeType(GetInputNodes(Node), "Lock")
 
 	if LockNode and LockNode.Toggle and LockNode.Toggle.Value == true then
@@ -376,38 +379,38 @@ function IsLocked(Node)
 		for _, Input in pairs(GetInputs(Node)) do
 			if Input.Value and Input.Value.Name == "MainPathway" and Input.Value.Parent == LockNode then
 				LockFound = true
-				 -- print("Node is locked")
+				 ---- print("Node is locked")
 				break
 			end
 		end
 
 		return LockFound
 	else
-		 -- print("Node is not locked")
+		 ---- print("Node is not locked")
 		return false
 	end
 end
 
 function RunInternalCommands(Node)
-	 -- print("Running internal commands for node: " .. tostring(Node))
+	 ---- print("Running internal commands for node: " .. tostring(Node))
 	if Node:FindFirstChildWhichIsA("ModuleScript") then
 		local moduleScript = Node:FindFirstChildWhichIsA("ModuleScript")
-		 -- print("Found module script: " .. tostring(moduleScript))
+		 ---- print("Found module script: " .. tostring(moduleScript))
 		local Function = require(moduleScript)
 		if Function.Run then
-			 -- print("Running internal command")
+			 ---- print("Running internal command")
 			Function.Run()
 		else
-			 -- print("ERROR: Module found inside a node does not have a .Run function!")
+			 ---- print("ERROR: Module found inside a node does not have a .Run function!")
 			error("Module found inside a node does not have a .Run function!")
 		end
 	else
-		 -- print("No internal commands found")
+		 ---- print("No internal commands found")
 	end
 end
 
 function CommonNodeFunctions(Node, Params)
-	 -- print("Running common functions for node: " .. tostring(Node))
+	 ---- print("Running common functions for node: " .. tostring(Node))
 	RunCommands(Node, Params)
 	ToggleLock(Node)
 	FireEvents(Node)
@@ -417,7 +420,7 @@ end
 -- Response buttons are now created by DialogueComp using Fusion
 -- This function is no longer needed but kept for reference
 function CreateResponseButton(Node, Params)
-	 -- print("CreateResponseButton called (deprecated - using DialogueComp instead)")
+	 ---- print("CreateResponseButton called (deprecated - using DialogueComp instead)")
 	-- Responses are now handled by the DialogueComp component via the resp Fusion Value
 	-- The actual button creation and click handling happens in DialogueComp.lua
 	return nil
@@ -425,23 +428,23 @@ end
 
 function LoadNode(Node, Params)
 	local Type = Node:GetAttribute("Type") or "Unknown"
-	 -- print("Loading node: " .. tostring(Node) .. " of type: " .. Type)
+	 ---- print("Loading node: " .. tostring(Node) .. " of type: " .. Type)
 
 	-- Track current node for AutoClose support
 	CurrentNode = Node
 
 	if IsLocked(Node) then
-		 -- print("Node is locked, skipping")
+		 ---- print("Node is locked, skipping")
 		return
 	end
 
 	if not CurrentDialogueUI then
-		 -- print("ERROR: No dialogue UI found")
+		 ---- print("ERROR: No dialogue UI found")
 		return
 	end
 
 	if CheckForCondition(Node) then
-		 -- print("Condition check failed, skipping node")
+		 ---- print("Condition check failed, skipping node")
 		return
 	end
 
@@ -451,7 +454,7 @@ function LoadNode(Node, Params)
 		local questAction = questFolder:GetAttribute("Action")
 		local questName = questFolder:GetAttribute("QuestName")
 
-		 -- print("Quest action found:", questAction, questName)
+		 ---- print("Quest action found:", questAction, questName)
 
 		if questAction == "Accept" and Params then
 			QuestManager.acceptQuest(Player, Params.name, questName)
@@ -461,10 +464,10 @@ function LoadNode(Node, Params)
 			}
 		elseif questAction == "CompleteGood" or questAction == "CompleteEvil" then
 			-- Send quest completion to server with alignment choice
-			 -- print("🎯 Sending quest completion to server:")
-			 -- print("  NPC:", Params.name)
-			 -- print("  Quest Name:", questName)
-			 -- print("  Choice:", questAction)
+			 ---- print("🎯 Sending quest completion to server:")
+			 ---- print("  NPC:", Params.name)
+			 ---- print("  Quest Name:", questName)
+			 ---- print("  Choice:", questAction)
 
 			-- Arguments must be an array for ByteNet
 			Client.Packets.Quests.send({
@@ -485,11 +488,11 @@ function LoadNode(Node, Params)
 	end
 
 	if Type == "Response" then
-		 -- print("Loading response node (handled by DialogueComp)")
+		 ---- print("Loading response node (handled by DialogueComp)")
 		-- Response buttons are now created by DialogueComp via the resp Fusion Value
 		-- No need to create buttons here anymore
 	elseif Type == "Prompt" then
-		 -- print("Loading prompt node")
+		 ---- print("Loading prompt node")
 		CommonNodeFunctions(Node, Params)
 
 		-- Update the dialogue UI with the new text
@@ -500,56 +503,76 @@ function LoadNode(Node, Params)
 			local textContainer = CurrentDialogueUI:FindFirstChild("TextPlusContainer", true)
 			local npcNameLabel = CurrentDialogueUI:FindFirstChild("NPCName", true)
 
-			 -- print("CurrentDialogueUI found:", CurrentDialogueUI)
-			 -- print("TextPlusContainer found:", textContainer)
-			 -- print("Node.Text:", Node.Text)
+			 ---- print("CurrentDialogueUI found:", CurrentDialogueUI)
+			 ---- print("TextPlusContainer found:", textContainer)
+			 ---- print("Node.Text:", Node.Text)
 
 			if textContainer and Node.Text then
-				 -- print("Updating text with TextPlus: " .. Node.Text.Value)
-				 -- print("Setting dpText to empty")
+				 ---- print("Updating text with TextPlus: " .. Node.Text.Value)
+				 ---- print("Setting dpText to empty")
 				dpText:set("")
 				task.wait(0.1)
-				 -- print("Setting dpText to:", Node.Text.Value)
+				 ---- print("Setting dpText to:", Node.Text.Value)
 				dpText:set(Node.Text.Value)
 			elseif Node.Text then
 				-- Fallback: just set the text even if container not found yet
-				 -- print("TextPlusContainer not found, setting text anyway: " .. Node.Text.Value)
-				 -- print("Setting dpText to empty")
+				 ---- print("TextPlusContainer not found, setting text anyway: " .. Node.Text.Value)
+				 ---- print("Setting dpText to empty")
 				dpText:set("")
 				task.wait(0.1)
-				 -- print("Setting dpText to:", Node.Text.Value)
+				 ---- print("Setting dpText to:", Node.Text.Value)
 				dpText:set(Node.Text.Value)
 			else
-				 -- print("WARNING: Node.Text not found")
+				 ---- print("WARNING: Node.Text not found")
 			end
 
 			if npcNameLabel then
-				 -- print("Updating NPC name to: " .. (CurrentParams and CurrentParams.name or "?"))
+				 ---- print("Updating NPC name to: " .. (CurrentParams and CurrentParams.name or "?"))
 				npcNameLabel.Text = CurrentParams and CurrentParams.name or "?"
 			else
-				 -- print("WARNING: NPC name label not found")
+				 ---- print("WARNING: NPC name label not found")
 			end
 		else
-			 -- print("WARNING: CurrentDialogueUI is nil!")
+			 ---- print("WARNING: CurrentDialogueUI is nil!")
 		end
 
-		 -- print("Waiting " .. PromptWaitTime .. " seconds before loading next nodes")
+		 ---- print("Waiting " .. PromptWaitTime .. " seconds before loading next nodes")
 		task.wait(PromptWaitTime)
 		LoadNodes(GetOutputNodes(Node), Params)
 	elseif Node:FindFirstChildWhichIsA("ModuleScript") then
-		 -- print("Loading module node")
+		 ---- print("Loading module node")
 		CommonNodeFunctions(Node, Params)
 		FireEvents(Node)
 		LoadNodes(GetOutputNodes(Node), Params)
 	else
-		 -- print("WARNING: Unknown node type: " .. Type)
+		 ---- print("WARNING: Unknown node type: " .. Type)
 	end
 end
 
 function Close(Params)
-	 -- print("Closing dialogue")
+	 ---- print("Closing dialogue")
+
+	-- Disconnect monitoring connections
+	if InrangeMonitorConnection then
+		InrangeMonitorConnection:Disconnect()
+		InrangeMonitorConnection = nil
+		 ---- print("Disconnected inrange monitor")
+	end
+
+	if HealthChangedConnection then
+		HealthChangedConnection:Disconnect()
+		HealthChangedConnection = nil
+		 ---- print("Disconnected health monitor")
+	end
+
+	if CombatMonitorConnection then
+		CombatMonitorConnection:Disconnect()
+		CombatMonitorConnection = nil
+		 ---- print("Disconnected combat monitor")
+	end
+
 	if CurrentDialogueUI then
-		 -- print("Animating dialogue close")
+		 ---- print("Animating dialogue close")
 
 		-- Animate out
 		if fadein and begin then
@@ -558,11 +581,11 @@ function Close(Params)
 			task.wait(1.2) -- Wait for animation to complete
 		end
 
-		 -- print("Destroying current dialogue UI")
+		 ---- print("Destroying current dialogue UI")
 		CurrentDialogueUI:Destroy()
 		CurrentDialogueUI = nil
 	else
-		 -- print("No current dialogue UI to destroy")
+		 ---- print("No current dialogue UI to destroy")
 	end
 	if uidisable then
 		uidisable.Enabled = true
@@ -572,17 +595,17 @@ function Close(Params)
 	-- scope:doCleanup()
 
 	if pendingQuest then
-		 -- print("Showing quest popup after dialogue close")
+		 ---- print("Showing quest popup after dialogue close")
 		task.wait(0.5)
 		ShowQuestPopup(pendingQuest.npcName, pendingQuest.questName)
 		pendingQuest = nil
 	end
 
-	 -- print("Dialogue closed")
+	 ---- print("Dialogue closed")
 end
 
 function GetResponses(Nodes)
-	 -- print("Getting responses from " .. #Nodes .. " nodes")
+	 ---- print("Getting responses from " .. #Nodes .. " nodes")
 	local responseData = {}
 
 	for _, Node in (Nodes or {}) do
@@ -595,7 +618,7 @@ function GetResponses(Nodes)
 				order = priority,
 				node = Node,
 			})
-			 -- print("Added response: " .. responseText .. " (priority: " .. priority .. ")")
+			 ---- print("Added response: " .. responseText .. " (priority: " .. priority .. ")")
 		end
 	end
 
@@ -603,29 +626,29 @@ function GetResponses(Nodes)
 		return a.order < b.order
 	end)
 
-	 -- print("Found " .. #responseData .. " responses")
+	 ---- print("Found " .. #responseData .. " responses")
 	return responseData
 end
 
 function LoadNodes(Nodes, Params)
-	 -- print("Loading " .. #Nodes .. " nodes")
+	 ---- print("Loading " .. #Nodes .. " nodes")
 	if #Nodes <= 0 then
-		 -- print("No nodes to load, waiting for animation to finish then auto-closing")
+		 ---- print("No nodes to load, waiting for animation to finish then auto-closing")
 		-- Check if the current node has AutoClose attribute for faster closing
 		local autoCloseDelay = 2 -- Default: 2s animation + 3s reading = 5s total
 		if CurrentNode and CurrentNode:GetAttribute("AutoClose") then
-			autoCloseDelay = 1.5 -- Fast close: 1.5s total
-			 -- print("AutoClose enabled, using fast close delay")
+			autoCloseDelay = 5 -- Fast close: 1.5s total
+			 ---- print("AutoClose enabled, using fast close delay")
 		else
 			-- Wait for text animation to complete (estimate based on text length)
 			-- Average text is ~80 chars * 0.015s = 1.2s + 0.5s buffer = ~2s
 			task.wait(2)
 			-- Then wait additional time for player to read
-			 -- print("Animation complete, waiting 3 seconds for player to read")
-			autoCloseDelay = 3
+			 ---- print("Animation complete, waiting 3 seconds for player to read")
+			autoCloseDelay = 8
 		end
 		task.wait(autoCloseDelay)
-		 -- print("Auto-closing dialogue now")
+		 ---- print("Auto-closing dialogue now")
 		Close(Params)
 	else
 		-- Filter nodes by conditions and priority
@@ -648,9 +671,9 @@ function LoadNodes(Nodes, Params)
 					table.insert(responseNodes, Node)
 				end
 
-				 -- print("Valid node: " .. Node.Name .. " (Type: " .. nodeType .. ", Priority: " .. (Node:GetAttribute("Priority") or 0) .. ")")
+				 ---- print("Valid node: " .. Node.Name .. " (Type: " .. nodeType .. ", Priority: " .. (Node:GetAttribute("Priority") or 0) .. ")")
 			else
-				 -- print("Skipping node (failed condition or locked): " .. Node.Name)
+				 ---- print("Skipping node (failed condition or locked): " .. Node.Name)
 			end
 		end
 
@@ -658,7 +681,7 @@ function LoadNodes(Nodes, Params)
 		if #promptNodes > 0 then
 			local chosenPrompt = GetHighestPriorityNode(promptNodes)
 			if chosenPrompt then
-				 -- print("Loading highest priority prompt: " .. chosenPrompt.Name)
+				 ---- print("Loading highest priority prompt: " .. chosenPrompt.Name)
 				LoadNode(chosenPrompt, Params)
 				return
 			end
@@ -667,14 +690,14 @@ function LoadNodes(Nodes, Params)
 		-- If we have response nodes, show them all
 		if #responseNodes > 0 then
 			local responseData = GetResponses(responseNodes)
-			-- print("[Dialogue] Setting responses:", #responseData, "responses")
+			---- print("[Dialogue] Setting responses:", #responseData, "responses")
 			for i, r in ipairs(responseData) do
-				-- print("  Response", i, ":", r.text, "node:", r.node)
+				---- print("  Response", i, ":", r.text, "node:", r.node)
 			end
 			resp:set(responseData)
 
 			if not peek(respMode) then
-				-- print("[Dialogue] Setting response mode to true")
+				---- print("[Dialogue] Setting response mode to true")
 				respMode:set(true)
 			end
 
@@ -693,18 +716,18 @@ function LoadNodes(Nodes, Params)
 				LoadNode(Node, Params)
 			end
 		else
-			 -- print("No valid nodes found, closing dialogue")
+			 ---- print("No valid nodes found, closing dialogue")
 			Close(Params)
 		end
 	end
 end
 
 function ShowQuestPopup(npcName, questName)
-	 -- print("Showing quest popup for: " .. npcName .. " - " .. questName)
+	 ---- print("Showing quest popup for: " .. npcName .. " - " .. questName)
 
 	local questData = QuestData[npcName][questName]
 	if not questData then
-		 -- print("ERROR: Quest data not found for: " .. npcName .. " - " .. questName)
+		 ---- print("ERROR: Quest data not found for: " .. npcName .. " - " .. questName)
 		return
 	end
 
@@ -754,21 +777,21 @@ function ShowQuestPopup(npcName, questName)
 end
 
 function OnEvent(Params)
-	 -- print("OnEvent triggered with params: " .. tostring(Params))
+	 ---- print("OnEvent triggered with params: " .. tostring(Params))
 
 	-- Close existing dialogue first
 	if CurrentDialogueUI then
-		 -- print("Closing existing dialogue UI before opening new one")
+		 ---- print("Closing existing dialogue UI before opening new one")
 		Close(Params)
 		task.wait(0.1) -- Small delay to ensure cleanup
 	end
 
 	if not Params or not Params.name then
-		 -- print("ERROR: Invalid parameters received")
+		 ---- print("ERROR: Invalid parameters received")
 		return
 	end
 
-	 -- print("Looking for dialogue tree: " .. Params.name)
+	 ---- print("Looking for dialogue tree: " .. Params.name)
 
 	-- Check if Dialogues folder exists
 	local dialoguesFolder = ReplicatedStorage:FindFirstChild("Dialogues")
@@ -793,7 +816,7 @@ function OnEvent(Params)
 	local DialogueTree = dialoguesFolder:FindFirstChild(tostring(Params.name))
 
 	if not DialogueTree then
-		 -- print("ERROR: Dialogue tree not found: " .. Params.name)
+		 ---- print("ERROR: Dialogue tree not found: " .. Params.name)
 		warn("[Dialogue] ❌ Available dialogues:", dialoguesFolder:GetChildren())
 		return
 	end
@@ -801,7 +824,7 @@ function OnEvent(Params)
 	local RootNode = GetRootNode(DialogueTree)
 
 	if not RootNode then
-		 -- print("ERROR: Root node not found in dialogue tree")
+		 ---- print("ERROR: Root node not found in dialogue tree")
 		return
 	end
 
@@ -810,7 +833,7 @@ function OnEvent(Params)
 	end
 
 	-- Clear any existing dialogue state BEFORE creating UI
-	 -- print("Clearing previous dialogue state")
+	 ---- print("Clearing previous dialogue state")
 
 	-- Force reset all state values to ensure fresh start (fixes dialogue after death)
 	dpText:set("")
@@ -821,7 +844,7 @@ function OnEvent(Params)
 	fadein:set(false)
 
 	-- Create the new Fusion-based UI
-	 -- print("Creating Fusion dialogue UI")
+	 ---- print("Creating Fusion dialogue UI")
 
 	local Target = scope:New("ScreenGui")({
 		Name = "DialogueHolder",
@@ -832,7 +855,7 @@ function OnEvent(Params)
 	local parent = Target
 
 	-- Store the created UI
-	 -- print("Creating dialogue with dpText:", dpText, "begin:", begin, "fadein:", fadein)
+	 ---- print("Creating dialogue with dpText:", dpText, "begin:", begin, "fadein:", fadein)
 	scope:Dialogue({
 		displayText = dpText,
 		npcname = Params.name,
@@ -845,44 +868,101 @@ function OnEvent(Params)
 
 	-- Find the actual UI instance in the player's GUI
 	CurrentDialogueUI = parent:FindFirstChild("Frame") -- Adjust this based on your actual UI structure
-	 -- print("Dialogue UI created: " .. tostring(CurrentDialogueUI))
+	 ---- print("Dialogue UI created: " .. tostring(CurrentDialogueUI))
 
 	task.wait(1)
 
-	 -- print("Starting fade animation")
+	 ---- print("Starting fade animation")
 	fadein:set(true)
 	begin:set(true)
 
 	CurrentParams = Params or {}
-	 -- print("Current params set: " .. tostring(CurrentParams))
+	 ---- print("Current params set: " .. tostring(CurrentParams))
 
 	-- Clear any old manually-created buttons (from previous dialogue system)
 	ClearResponses()
 
 	for _, Condition in pairs(DialogueTree:GetChildren()) do
 		if Condition:GetAttribute("Type") == "Condition" then
-			 -- print("Resetting condition: " .. tostring(Condition))
+			 ---- print("Resetting condition: " .. tostring(Condition))
 			Condition:SetAttribute("ReturnedValue", nil)
 		end
 	end
+
+	-- Set up inrange monitoring to close dialogue if player leaves NPC range
+	 ---- print("Setting up inrange monitoring...")
+	local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+	local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+	local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+
+	local pent = ref.get("local_player")
+	if pent then
+		local lastInrangeState = true -- Dialogue just started, so we're in range
+
+		-- Monitor the Dialogue component's inrange state
+		InrangeMonitorConnection = game:GetService("RunService").Heartbeat:Connect(function()
+			local dialogueComp = world:get(pent, comps.Dialogue)
+			if dialogueComp then
+				local currentInrange = dialogueComp.inrange
+
+				-- If inrange state changed from true to false, close dialogue
+				if lastInrangeState and not currentInrange then
+					 ---- print("⚠️ Player left NPC range during dialogue, closing...")
+					Close(Params)
+				end
+
+				lastInrangeState = currentInrange
+			end
+		end)
+		 ---- print("✅ Inrange monitoring active")
+	end
+
+	-- Set up health monitoring to close dialogue if player gets hit
+	 ---- print("Setting up health monitoring...")
+	if Player.Character then
+		local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			local lastHealth = humanoid.Health
+
+			HealthChangedConnection = humanoid.HealthChanged:Connect(function(newHealth)
+				-- If health decreased (player got hit), close dialogue
+				if newHealth < lastHealth then
+					 ---- print("⚠️ Player took damage during dialogue, closing...")
+					Close(Params)
+				end
+				lastHealth = newHealth
+			end)
+			 ---- print("✅ Health monitoring active")
+		end
+	end
+
+	-- Set up combat state monitoring to close dialogue if player enters combat
+	 ---- print("Setting up combat state monitoring...")
+	CombatMonitorConnection = game:GetService("RunService").Heartbeat:Connect(function()
+		if _G.PlayerInCombat then
+			 ---- print("⚠️ Player entered combat during dialogue, closing...")
+			Close(Params)
+		end
+	end)
+	 ---- print("✅ Combat state monitoring active")
 
 	LoadNodes(GetOutputNodes(RootNode), Params)
 end
 
 function Controller:Start(data)
-	 -- print("Controller Start called with data: " .. tostring(data))
+	 ---- print("Controller Start called with data: " .. tostring(data))
 	OnEvent(data)
 end
 
 -- Add a function to toggle  ging
 -- function Controller:Set ging(enabled)
 -- 	 _ENABLED = enabled
--- 	 -- print(" ging " .. (enabled and "enabled" or "disabled"))
+-- 	 ---- print(" ging " .. (enabled and "enabled" or "disabled"))
 -- end
 
 -- Handle response button clicks from DialogueComp
 function Controller.HandleResponseClick(node)
-	 -- print("HandleResponseClick called for node:", node)
+	 ---- print("HandleResponseClick called for node:", node)
 
 	if not node then
 		warn("[Dialogue] HandleResponseClick: No node provided")
@@ -893,7 +973,7 @@ function Controller.HandleResponseClick(node)
 	local params = CurrentParams
 
 	-- Clear responses immediately when clicked
-	-- print("[Dialogue] Clearing responses after button click")
+	---- print("[Dialogue] Clearing responses after button click")
 	resp:set({})
 	respMode:set(false)
 
@@ -905,5 +985,5 @@ function Controller.HandleResponseClick(node)
 	LoadNodes(outputNodes, params)
 end
 
- -- print("Dialogue controller initialized")
+ ---- print("Dialogue controller initialized")
 return Controller

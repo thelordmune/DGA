@@ -13,10 +13,10 @@ local MAIN_GAME_PLACE_ID = 138824307106116 -- 138824307106116
 -- Check if we're in Studio
 local isStudio = RunService:IsStudio()
 
-print("[AccessControl] Initialized")
-print("[AccessControl] Studio mode:", isStudio)
-print("[AccessControl] Main Menu Place ID:", MAIN_MENU_PLACE_ID)
-print("[AccessControl] Main Game Place ID:", MAIN_GAME_PLACE_ID)
+--print("[AccessControl] Initialized")
+--print("[AccessControl] Studio mode:", isStudio)
+--print("[AccessControl] Main Menu Place ID:", MAIN_MENU_PLACE_ID)
+--print("[AccessControl] Main Game Place ID:", MAIN_GAME_PLACE_ID)
 
 -- Track players who are being teleported (to avoid double-teleport)
 local teleportingPlayers = {}
@@ -86,7 +86,7 @@ end
 local function checkPlayerAccess(player: Player)
 	-- Always allow in Studio
 	if isStudio then
-		print(`[AccessControl] {player.Name} allowed (Studio mode)`)
+		--print(`[AccessControl] {player.Name} allowed (Studio mode)`)
 		return true
 	end
 	
@@ -96,17 +96,17 @@ local function checkPlayerAccess(player: Player)
 	
 	-- Check if player was teleported
 	if joinData.SourcePlaceId then
-		print(`[AccessControl] {player.Name} joined from place:`, joinData.SourcePlaceId)
+		--print(`[AccessControl] {player.Name} joined from place:`, joinData.SourcePlaceId)
 		
 		-- Allow if they came from the main menu
 		if joinData.SourcePlaceId == MAIN_MENU_PLACE_ID then
-			print(`[AccessControl] {player.Name} allowed (came from main menu)`)
+			--print(`[AccessControl] {player.Name} allowed (came from main menu)`)
 			return true
 		end
 		
 		-- Allow if they came from the same game (server hop, etc.)
 		if joinData.SourcePlaceId == MAIN_GAME_PLACE_ID then
-			print(`[AccessControl] {player.Name} allowed (came from same place)`)
+			--print(`[AccessControl] {player.Name} allowed (came from same place)`)
 			return true
 		end
 	end
@@ -114,13 +114,13 @@ local function checkPlayerAccess(player: Player)
 	-- If we get here, they either:
 	-- 1. Joined directly (no SourcePlaceId)
 	-- 2. Came from a different place
-	print(`[AccessControl] {player.Name} denied (direct join or invalid source)`)
+	--print(`[AccessControl] {player.Name} denied (direct join or invalid source)`)
 	return false
 end
 
 -- Check each player as they join
 Players.PlayerAdded:Connect(function(player)
-	print(`[AccessControl] Player joining: {player.Name}`)
+	--print(`[AccessControl] Player joining: {player.Name}`)
 	
 	-- Small delay to ensure join data is available
 	task.wait(0.1)
@@ -142,5 +142,5 @@ for _, player in Players:GetPlayers() do
 	end)
 end
 
-print("[AccessControl] Ready")
+--print("[AccessControl] Ready")
 

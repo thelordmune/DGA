@@ -7,6 +7,13 @@ local tweenService = game:GetService("TweenService")
 
 local player = players.LocalPlayer
 
+-- ============================================
+-- MUSIC CONTROL TOGGLE
+-- Set this to true to disable all music in the game
+-- ============================================
+local MUSIC_DISABLED = true
+-- ============================================
+
 local playing = false
 local Debris = game:GetService("Debris")
 
@@ -44,6 +51,12 @@ local function stopCurrentSound()
 end
 
 local function sound()
+    -- If music is disabled, stop any playing music and return
+    if MUSIC_DISABLED then
+        stopCurrentSound()
+        return
+    end
+
     -- Determine what theme should be playing based on combat state and time
     local desiredThemeType
     if _G.PlayerInCombat then

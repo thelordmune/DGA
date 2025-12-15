@@ -17,25 +17,25 @@ NetworkModule.EndPoint = function(Player, Data)
 
     -- PREVENT OVERLAPPING ACTIONS: Cannot dash while performing any action
     if Character:FindFirstChild("Actions") and Library.StateCount(Character.Actions) then
-        print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while performing action`)
+       -- print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while performing action`)
         return
     end
 
     -- Prevent dashing during M1 stun (true stun system)
     if Character:FindFirstChild("Stuns") and Library.StateCheck(Character.Stuns, "M1Stun") then
-        print(`[DODGE BLOCKED] {Character.Name} - Cannot dash during M1Stun`)
+       -- print(`[DODGE BLOCKED] {Character.Name} - Cannot dash during M1Stun`)
         return
     end
 
     -- Prevent dashing while guardbroken
     if Character:FindFirstChild("Stuns") and Library.StateCheck(Character.Stuns, "GuardbreakStun") then
-        print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while guardbroken`)
+       -- print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while guardbroken`)
         return
     end
 
     -- Prevent dashing during any stun
     if Character:FindFirstChild("Stuns") and Library.StateCount(Character.Stuns) then
-        print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while stunned`)
+       -- print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while stunned`)
         return
     end
 

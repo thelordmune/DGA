@@ -10,6 +10,8 @@ local Library = require(Replicated.Modules.Library)
 local Utilities = require(Replicated.Modules.Utilities)
 local Debris = Utilities.Debris
 local EmitModule = require(game.ReplicatedStorage.Modules.Utils.EmitModule)
+local VFXCleanup = require(Replicated.Modules.Utils.VFXCleanup)
+local RunService = game:GetService("RunService")
 
 -- Variables
 local Player = Players.LocalPlayer
@@ -1724,6 +1726,9 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 	dkimpactmesh(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
 	slamfunction(Character.HumanoidRootPart.CFrame, workspace.World.Visuals)
 
+	-- Register VFX with cleanup system
+	VFXCleanup.RegisterVFX(Character, eff)
+
 	-- If we should freeze particles, store them and tween timescale to very slow
 	if FreezeParticles then
 		ActiveDKImpactParticles[Character] = particles
@@ -2225,6 +2230,106 @@ function Weapons.ChargedThrust(Character: Model, Frame: string)
 			Frequency = 28,
 			Influence = Vector3.new(.55, 1, .55),
 			Falloff = 65,
+		})
+	end
+end
+
+function Weapons.Tapdance(Character: Model, Frame: string)
+	local eff = Replicated.Assets.VFX.Tapdance:Clone()
+	eff.Parent = workspace.World.Visuals
+	eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0,-3.5))
+	local conn
+	conn = RunService.Heartbeat:Connect(function()
+		if not eff or not eff.Parent or not Character or not Character.Parent then
+			conn:Disconnect()
+			return
+		end
+		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0,-3.5))
+	end)
+
+	-- Register VFX with cleanup system (will be cleaned up on death/cancellation)
+	VFXCleanup.RegisterVFX(Character, eff, conn)
+
+	local Weapon = Character:FindFirstChild("RightGun")
+	if Frame == "1" then
+		EmitModule.emit(eff.Start, eff.dashmesh)
+	end
+	if Frame == "2" then
+		EmitModule.emit(eff.Start)
+		-- for _, v in Weapon:GetDescendants() do if v:IsA("ParticleEmitter") then v:Emit(v:GetAttribute("EmitCount")) end end
+		-- -- Make shootmesh transparent
+		-- if eff.shootmesh then
+		-- 	eff.shootmesh.Transparency = 1
+		-- end
+		EmitModule.emit(eff.Combined)
+	end
+	if Frame == "3" then
+
+		-- for _, v in Weapon:GetDescendants() do if v:IsA("ParticleEmitter") then v:Emit(v:GetAttribute("EmitCount")) end end
+		-- -- Make shootmesh transparent
+		-- if eff.shootmesh then
+		-- 	eff.shootmesh.Transparency = 1
+		-- end
+		EmitModule.emit(eff.Combined)
+	end
+	if Frame == "4" then
+		-- for _, v in Weapon:GetDescendants() do if v:IsA("ParticleEmitter") then v:Emit(v:GetAttribute("EmitCount")) end end
+		-- -- Make shootmesh transparent
+		-- if eff.shootmesh then
+		-- 	eff.shootmesh.Transparency = 1
+		-- end
+		EmitModule.emit(eff.Combined)
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 4.5,
+			Damp = 0.00005,
+			Frequency = 20,
+			Influence = Vector3.new(.55, 1, .55),
+			Falloff = 89,
+		})
+	end
+	task.delay(4, function()
+			conn:Disconnect()
+			eff:Destroy()
+		end)
+end
+
+function Weapons.Hellraiser(Character: Model, Frame: string)
+	local eff = Replicated.Assets.VFX.Hellraiser:Clone()
+	eff.Parent = workspace.World.Visuals
+	eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0,-3.5))
+
+	-- Register VFX with cleanup system (will be cleaned up on death/cancellation)
+	VFXCleanup.RegisterVFX(Character, eff)
+
+	local Weapon = Character:FindFirstChild("LeftGun")
+	if Frame  == "1" then
+		if Weapon then
+			for _, v in Weapon:GetDescendants() do
+				if v:IsA("ParticleEmitter") then
+					v.Enabled = true
+				end
+			end
+		end
+	end
+	if Frame  == "2" then
+		if Weapon then
+			for _, v in Weapon:GetDescendants() do
+				if v:IsA("ParticleEmitter") then
+					v.Enabled = false
+				end
+			end
+		end
+	end
+	if Frame  == "3" then
+		EmitModule.emit(eff.PullSmoke, eff.gunskill2)
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 6.5,
+			Damp = 0.00005,
+			Frequency = 35,
+			Influence = Vector3.new(.55, .15, .55),
+			Falloff = 89,
 		})
 	end
 end

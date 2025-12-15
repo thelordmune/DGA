@@ -11,10 +11,10 @@ local EquipModule = require(game:GetService("ServerScriptService").ServerConfig.
 -- local AnimateScript = game.ReplicatedStorage.NpcHelper.Animations:Clone()
 
 return function(actor: Actor, mainConfig: table)
-	-- -- print("=== SPAWN_ENTITY CALLED ===")
-	-- -- print("Actor:", actor.Name)
-	-- -- print("NPC Name:", mainConfig.Name or "Unknown")
-	-- -- print("Spawn Locations:", mainConfig.Spawning and #mainConfig.Spawning.Locations or "No locations")
+	-- ---- print("=== SPAWN_ENTITY CALLED ===")
+	-- ---- print("Actor:", actor.Name)
+	-- ---- print("NPC Name:", mainConfig.Name or "Unknown")
+	-- ---- print("Spawn Locations:", mainConfig.Spawning and #mainConfig.Spawning.Locations or "No locations")
 
 	-- More thorough check for existing NPC
 	if actor:FindFirstChildWhichIsA("Model") then
@@ -30,17 +30,17 @@ return function(actor: Actor, mainConfig: table)
 	local npcName = actor.Parent.Name
 	local regionName = actor.Parent.Parent.Parent.Name
 
-	---- print(npcName,regionName)
+	------ print(npcName,regionName)
 	-- Use the shared Bandit DataModel for all NPCs
 	local dataModel = game.ReplicatedStorage.Assets.NPC.Bandit
 	if not dataModel then
-		warn(`Failed to find Bandit data model in ReplicatedStorage.Assets.NPC.Bandit`)
+		--warn(`Failed to find Bandit data model in ReplicatedStorage.Assets.NPC.Bandit`)
 		return false
 	end
 
-	-- -- print("Using shared Bandit DataModel for", npcName)
+	-- ---- print("Using shared Bandit DataModel for", npcName)
 
-	-- -- print(math.random(1, 2))
+	-- ---- print(math.random(1, 2))
 
 	mainConfig.cleanup()
 
@@ -49,29 +49,29 @@ return function(actor: Actor, mainConfig: table)
 		table.insert(spawnLocations, location)
 	end
 
-	-- -- print("Spawn locations for", npcName .. ":", #spawnLocations, "locations")
+	-- ---- print("Spawn locations for", npcName .. ":", #spawnLocations, "locations")
 	-- for i, loc in pairs(spawnLocations) do
-	-- 	-- -- print("- Spawn", i .. ":", loc)
+	-- 	-- ---- print("- Spawn", i .. ":", loc)
 	-- end
 
 	-- DEBUG: Check DataModel BEFORE cloning
-	warn(`[spawn_entity] 🔍 BEFORE CLONE - DataModel children:`)
+	--warn(`[spawn_entity] 🔍 BEFORE CLONE - DataModel children:`)
 	for i, child in dataModel:GetChildren() do
-		warn(`[spawn_entity]   - {child.Name} ({child.ClassName})`)
+		--warn(`[spawn_entity]   - {child.Name} ({child.ClassName})`)
 	end
 	local dataModelRoot = dataModel:FindFirstChild("HumanoidRootPart")
-	warn(`[spawn_entity] DataModel has HumanoidRootPart: {dataModelRoot ~= nil}`)
+	--warn(`[spawn_entity] DataModel has HumanoidRootPart: {dataModelRoot ~= nil}`)
 
 	local npcModel = dataModel:Clone()
 	npcModel.Name = actor.Parent:GetAttribute("SetName") .. tostring(math.random(1, 1000))
 
 	-- DEBUG: Check cloned model IMMEDIATELY after cloning
-	warn(`[spawn_entity] 🔍 AFTER CLONE - npcModel children:`)
+	--warn(`[spawn_entity] 🔍 AFTER CLONE - npcModel children:`)
 	for i, child in npcModel:GetChildren() do
-		warn(`[spawn_entity]   - {child.Name} ({child.ClassName})`)
+		--warn(`[spawn_entity]   - {child.Name} ({child.ClassName})`)
 	end
 	local clonedRoot = npcModel:FindFirstChild("HumanoidRootPart")
-	warn(`[spawn_entity] Cloned model has HumanoidRootPart: {clonedRoot ~= nil}`)
+	--warn(`[spawn_entity] Cloned model has HumanoidRootPart: {clonedRoot ~= nil}`)
 
 	-- Set weapon based on NPC configuration
 	local randomWeapon = "Fist" -- Default to Fist
@@ -82,29 +82,29 @@ return function(actor: Actor, mainConfig: table)
 		-- Pick a random weapon from the NPC's weapon list
 		randomWeapon = mainConfig.Weapons.WeaponList[math.random(1, #mainConfig.Weapons.WeaponList)]
 		shouldEquip = true
-		-- print("NPC", npcName, "assigned weapon from config:", randomWeapon)
+		---- print("NPC", npcName, "assigned weapon from config:", randomWeapon)
 	else
-		-- print("NPC", npcName, "has no weapon config, defaulting to Fist")
+		---- print("NPC", npcName, "has no weapon config, defaulting to Fist")
 	end
 
 	npcModel:SetAttribute("Weapon", randomWeapon)
 	npcModel:SetAttribute("Equipped", false) -- Always start unequipped, let EquipWeapon handle it
 	npcModel:SetAttribute("IsNPC", true) -- Mark as NPC for damage system
 
-	-- print("Spawning NPC:", npcModel.Name, "Weapon:", randomWeapon, "ShouldEquip:", shouldEquip)
+	---- print("Spawning NPC:", npcModel.Name, "Weapon:", randomWeapon, "ShouldEquip:", shouldEquip)
 
-	-- -- print("Spawning NPC:", npcModel.Name, "with IsNPC attribute:", npcModel:GetAttribute("IsNPC"))
+	-- ---- print("Spawning NPC:", npcModel.Name, "with IsNPC attribute:", npcModel:GetAttribute("IsNPC"))
 
 	-- Determine spawn location with improved distribution
 	local spawn_
 	local spawnIndex -- Declare spawnIndex in the outer scope
 	local npcTypeKey = regionName .. "_" .. npcName
 
-	-- print("=== SPAWN DISTRIBUTION DEBUG ===")
-	-- print("NPC Type Key:", npcTypeKey)
-	-- print("Available spawn locations:", #spawnLocations)
+	---- print("=== SPAWN DISTRIBUTION DEBUG ===")
+	---- print("NPC Type Key:", npcTypeKey)
+	---- print("Available spawn locations:", #spawnLocations)
 	for i, loc in pairs(spawnLocations) do
-		-- print("- Spawn", i .. ":", loc)
+		---- print("- Spawn", i .. ":", loc)
 	end
 
 	-- Special handling for wanderers - use assigned spawn from regions
@@ -114,12 +114,12 @@ return function(actor: Actor, mainConfig: table)
 		if assignedSpawnIndex and assignedSpawnIndex <= #spawnLocations then
 			spawnIndex = assignedSpawnIndex
 			spawn_ = spawnLocations[spawnIndex]
-			-- print("Wanderer", actor.Parent.Name, "using assigned spawn", spawnIndex, "at position:", spawn_)
+			---- print("Wanderer", actor.Parent.Name, "using assigned spawn", spawnIndex, "at position:", spawn_)
 		else
 			-- Fallback to first spawn if no assignment
 			spawnIndex = 1
 			spawn_ = spawnLocations[1]
-			-- print("Wanderer", actor.Parent.Name, "using fallback spawn 1 at position:", spawn_)
+			---- print("Wanderer", actor.Parent.Name, "using fallback spawn 1 at position:", spawn_)
 		end
 	else
 		-- For other NPCs, use round-robin distribution
@@ -127,7 +127,7 @@ return function(actor: Actor, mainConfig: table)
 			usedSpawns[npcTypeKey] = {
 				currentIndex = 0,
 			}
-			-- print("Initialized new spawn tracking for:", npcTypeKey)
+			---- print("Initialized new spawn tracking for:", npcTypeKey)
 		end
 
 		-- Simple round-robin distribution
@@ -137,17 +137,17 @@ return function(actor: Actor, mainConfig: table)
 			spawn_ = spawnLocations[currentSpawnIndex]
 			usedSpawns[npcTypeKey].currentIndex = currentSpawnIndex
 
-			-- -- print("Round-robin spawn:", npcName, "at spawn point", currentSpawnIndex, "of", #spawnLocations)
-			-- -- print("Spawn position:", spawn_)
-			-- -- print("Updated currentIndex to:", currentSpawnIndex)
+			-- ---- print("Round-robin spawn:", npcName, "at spawn point", currentSpawnIndex, "of", #spawnLocations)
+			-- ---- print("Spawn position:", spawn_)
+			-- ---- print("Updated currentIndex to:", currentSpawnIndex)
 		else
 			-- Only one spawn location available
 			spawn_ = spawnLocations[1]
-			-- -- print("Single spawn point for", npcName, "at:", spawn_)
+			-- ---- print("Single spawn point for", npcName, "at:", spawn_)
 		end
 	end
-	-- print("=== END SPAWN DEBUG ===")
-	-- print()
+	---- print("=== END SPAWN DEBUG ===")
+	---- print()
 
 	-- Add small random offset to prevent exact overlap
 	local offsetX = (math.random() - 0.5) * 4 -- Random offset between -2 and 2 studs
@@ -199,7 +199,7 @@ return function(actor: Actor, mainConfig: table)
 	end
 
 	npcModel.Parent = actor
-	warn(`[spawn_entity] 🔍 After parenting to actor - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
+	--warn(`[spawn_entity] 🔍 After parenting to actor - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
 
 	-- Store AncestryChanged connection to prevent memory leak
 	table.insert(
@@ -211,15 +211,15 @@ return function(actor: Actor, mainConfig: table)
 		end)
 	)
 
-	warn(`[spawn_entity] 🔍 Before LoadAppearance - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
+	--warn(`[spawn_entity] 🔍 Before LoadAppearance - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
 
 	-- Load appearance and wait for it to complete
 	local appearanceLoadedSignal = mainConfig.LoadAppearance()
 
-	warn(`[spawn_entity] 🔍 After LoadAppearance - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
+	--warn(`[spawn_entity] 🔍 After LoadAppearance - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
 
 	-- Entity creation will be handled automatically by Startup.lua when NPC is added to workspace.World.Live
-	-- -- print("Spawned NPC:", npcModel.Name, "- entity creation will be handled by monitoring system")
+	-- ---- print("Spawned NPC:", npcModel.Name, "- entity creation will be handled by monitoring system")
 
 	-- skillSystem:setUp(npcModel)
 
@@ -266,16 +266,16 @@ return function(actor: Actor, mainConfig: table)
 		local humanoid = npcModel:FindFirstChild("Humanoid")
 
 		if not root or not humanoid then
-			warn(`[spawn_entity] ❌ Cloned NPC model missing essential parts!`)
-			warn(`[spawn_entity]   - NPC Name: {npcModel.Name}`)
-			warn(`[spawn_entity]   - Region: {regionName}`)
-			warn(`[spawn_entity]   - Has HumanoidRootPart: {root ~= nil}`)
-			warn(`[spawn_entity]   - Has Humanoid: {humanoid ~= nil}`)
-			warn(`[spawn_entity]   - DataModel source: {dataModel:GetFullName()}`)
-			warn(`[spawn_entity]   - DataModel has {#dataModel:GetChildren()} children:`)
+			--warn(`[spawn_entity] ❌ Cloned NPC model missing essential parts!`)
+			--warn(`[spawn_entity]   - NPC Name: {npcModel.Name}`)
+			--warn(`[spawn_entity]   - Region: {regionName}`)
+			--warn(`[spawn_entity]   - Has HumanoidRootPart: {root ~= nil}`)
+			--warn(`[spawn_entity]   - Has Humanoid: {humanoid ~= nil}`)
+			--warn(`[spawn_entity]   - DataModel source: {dataModel:GetFullName()}`)
+			--warn(`[spawn_entity]   - DataModel has {#dataModel:GetChildren()} children:`)
 			for i, child in dataModel:GetChildren() do
 				if i <= 10 then -- Only show first 10 to avoid spam
-					warn(`[spawn_entity]     - {child.Name} ({child.ClassName})`)
+					--warn(`[spawn_entity]     - {child.Name} ({child.ClassName})`)
 				end
 			end
 			return false
@@ -289,7 +289,7 @@ return function(actor: Actor, mainConfig: table)
 					if (location - spawn_).Magnitude < 10 then -- Within 10 studs of original spawn
 						if usedSpawns[npcTypeKey].occupiedSpawns then
 							usedSpawns[npcTypeKey].occupiedSpawns[i] = nil
-							-- -- print("Freed spawn point", i, "for", npcName)
+							-- ---- print("Freed spawn point", i, "for", npcName)
 						end
 						break
 					end
@@ -302,7 +302,7 @@ return function(actor: Actor, mainConfig: table)
 				local entity = RefManager.entity.find(npcModel)
 				if entity then
 					RefManager.entity.delete(npcModel)
-					-- print(`[NPC Cleanup] Deleted ECS entity {entity} for {npcModel.Name}`)
+					---- print(`[NPC Cleanup] Deleted ECS entity {entity} for {npcModel.Name}`)
 				end
 			end
 
@@ -355,18 +355,18 @@ return function(actor: Actor, mainConfig: table)
 		)
 	end
 
-	-- print("Setting up NPC:", npcModel.Name, "Type:", npcName, "Weapon:", randomWeapon, "ShouldEquip:", shouldEquip)
+	---- print("Setting up NPC:", npcModel.Name, "Type:", npcName, "Weapon:", randomWeapon, "ShouldEquip:", shouldEquip)
 
 	-- Setup NPC based on type
 	task.delay(2, function()
 		-- Equip weapons if configured to do so
 		if shouldEquip and randomWeapon ~= "Fist" then
-			-- print("Equipping weapon for NPC:", npcModel.Name, "Weapon:", randomWeapon)
+			---- print("Equipping weapon for NPC:", npcModel.Name, "Weapon:", randomWeapon)
 			-- Skip animation for NPCs (3rd parameter = true)
 			EquipModule.EquipWeapon(npcModel, randomWeapon, true)
-			-- print("NPC weapon equipped. Equipped attribute:", npcModel:GetAttribute("Equipped"))
+			---- print("NPC weapon equipped. Equipped attribute:", npcModel:GetAttribute("Equipped"))
 		else
-			-- print("Skipping weapon equip for NPC:", npcModel.Name)
+			---- print("Skipping weapon equip for NPC:", npcModel.Name)
 		end
 
 		task.wait(1)

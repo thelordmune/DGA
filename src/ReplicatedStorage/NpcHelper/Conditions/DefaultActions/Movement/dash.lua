@@ -107,7 +107,7 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		local dashTrack = Library.PlayAnimation(npc, dashAnim, 0.05) -- Fast transition for responsive dash
 		if dashTrack then
 			dashTrack.Priority = Enum.AnimationPriority.Action
-			-- print("[NPC Dash] Playing dash animation:", animationName, "for", npc.Name)
+			---- print("[NPC Dash] Playing dash animation:", animationName, "for", npc.Name)
 		else
 			warn("[NPC Dash] Failed to load animation track for:", animationName)
 		end

@@ -9,7 +9,7 @@ return function(actor: Actor, mainConfig: table)
 
 	-- Only stop sprint if we're currently running
 	if mainConfig.Run.IsRunning then
-		-- print(`[NPC Sprint] {npc.Name} stopping sprint`)
+		---- print(`[NPC Sprint] {npc.Name} stopping sprint`)
 		mainConfig.InitiateRun(false)
 	end
 

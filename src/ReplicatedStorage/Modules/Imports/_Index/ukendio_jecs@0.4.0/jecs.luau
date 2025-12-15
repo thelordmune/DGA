@@ -1583,7 +1583,7 @@ if _G.__JECS_DEBUG then
 		if warn then
 			error(msg, s)
 		else
-			-- print(`[jecs] error: {msg}\n`)
+			---- print(`[jecs] error: {msg}\n`)
 		end
 	end
 

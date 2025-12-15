@@ -64,7 +64,7 @@ After attacking, check console for:
 -- Run in F9 Developer Console:
 local guard = workspace.NPCs:FindFirstChild("LeftGuard")
 if guard then
-    print("Damage_Log:", guard:FindFirstChild("Damage_Log"))
+   -- print("Damage_Log:", guard:FindFirstChild("Damage_Log"))
 end
 ```
 
@@ -75,7 +75,7 @@ end
 ```lua
 local guard = workspace.NPCs:FindFirstChild("LeftGuard")
 if guard then
-    print("IsNPC:", guard:GetAttribute("IsNPC"))
+   -- print("IsNPC:", guard:GetAttribute("IsNPC"))
 end
 ```
 
@@ -111,17 +111,17 @@ local guard = workspace.NPCs:FindFirstChild("LeftGuard")
 if guard then
     local entity = RefManager.entity.find(guard)
     if entity then
-        print("Has NPCTarget:", world:has(entity, comps.NPCTarget))
-        print("Has NPCMovementPattern:", world:has(entity, comps.NPCMovementPattern))
-        print("Has Locomotion:", world:has(entity, comps.Locomotion))
-        print("Has Transform:", world:has(entity, comps.Transform))
+       -- print("Has NPCTarget:", world:has(entity, comps.NPCTarget))
+       -- print("Has NPCMovementPattern:", world:has(entity, comps.NPCMovementPattern))
+       -- print("Has Locomotion:", world:has(entity, comps.Locomotion))
+       -- print("Has Transform:", world:has(entity, comps.Transform))
 
         if world:has(entity, comps.NPCTarget) then
             local target = world:get(entity, comps.NPCTarget)
-            print("Target:", target and target.Name or "nil")
+           -- print("Target:", target and target.Name or "nil")
         end
     else
-        print("ERROR: No entity found for guard!")
+       -- print("ERROR: No entity found for guard!")
     end
 end
 ```
@@ -169,8 +169,8 @@ if guard then
     if entity then
         local loco = world:get(entity, comps.Locomotion)
         if loco then
-            print("Locomotion dir:", loco.dir)
-            print("Locomotion speed:", loco.speed)
+           -- print("Locomotion dir:", loco.dir)
+           -- print("Locomotion speed:", loco.speed)
         end
     end
 end
@@ -206,7 +206,7 @@ local guard = workspace.NPCs:FindFirstChild("LeftGuard")
 if guard then
     local humanoid = guard:FindFirstChild("Humanoid")
     if humanoid then
-        print("WalkSpeed:", humanoid.WalkSpeed)
+       -- print("WalkSpeed:", humanoid.WalkSpeed)
     end
 end
 ```
@@ -242,17 +242,17 @@ if live then
 end
 
 if not guard then
-    print("ERROR: Guard not found in workspace.Live.Mobs")
-    print("Searching entire workspace...")
+   -- print("ERROR: Guard not found in workspace.Live.Mobs")
+   -- print("Searching entire workspace...")
     for _, desc in workspace:GetDescendants() do
         if desc:IsA("Model") and (desc.Name:match("LeftGuard") or desc.Name:match("RightGuard")) then
-            print("Found guard at:", desc:GetFullName())
+           -- print("Found guard at:", desc:GetFullName())
             guard = desc
             break
         end
     end
     if not guard then
-        print("ERROR: No guard found anywhere in workspace")
+       -- print("ERROR: No guard found anywhere in workspace")
         return
     end
 end
@@ -270,9 +270,9 @@ print("\n2. Damage Log:")
 local damageLog = guard:FindFirstChild("Damage_Log")
 print("   - Has Damage_Log:", damageLog ~= nil)
 if damageLog then
-    print("   - Attack count:", #damageLog:GetChildren())
+   -- print("   - Attack count:", #damageLog:GetChildren())
     for _, record in damageLog:GetChildren() do
-        print("   - Attack:", record.Name, record.Value and record.Value.Name or "nil")
+       -- print("   - Attack:", record.Name, record.Value and record.Value.Name or "nil")
     end
 end
 
@@ -281,32 +281,32 @@ local entity = RefManager.entity.find(guard)
 print("   - Entity exists:", entity ~= nil)
 
 if entity then
-    print("\n4. ECS Components:")
-    print("   - CombatNPC:", world:has(entity, comps.CombatNPC))
-    print("   - NPCTarget:", world:has(entity, comps.NPCTarget))
-    print("   - NPCMovementPattern:", world:has(entity, comps.NPCMovementPattern))
-    print("   - NPCCombatState:", world:has(entity, comps.NPCCombatState))
-    print("   - Locomotion:", world:has(entity, comps.Locomotion))
-    print("   - Transform:", world:has(entity, comps.Transform))
+   -- print("\n4. ECS Components:")
+   -- print("   - CombatNPC:", world:has(entity, comps.CombatNPC))
+   -- print("   - NPCTarget:", world:has(entity, comps.NPCTarget))
+   -- print("   - NPCMovementPattern:", world:has(entity, comps.NPCMovementPattern))
+   -- print("   - NPCCombatState:", world:has(entity, comps.NPCCombatState))
+   -- print("   - Locomotion:", world:has(entity, comps.Locomotion))
+   -- print("   - Transform:", world:has(entity, comps.Transform))
 
-    print("\n5. Component Values:")
+   -- print("\n5. Component Values:")
 
     if world:has(entity, comps.NPCTarget) then
         local target = world:get(entity, comps.NPCTarget)
-        print("   - NPCTarget:", target and target.Name or "nil")
+       -- print("   - NPCTarget:", target and target.Name or "nil")
     end
 
     if world:has(entity, comps.NPCCombatState) then
         local state = world:get(entity, comps.NPCCombatState)
-        print("   - isPassive:", state.isPassive)
-        print("   - isAggressive:", state.isAggressive)
-        print("   - hasBeenAttacked:", state.hasBeenAttacked)
+       -- print("   - isPassive:", state.isPassive)
+       -- print("   - isAggressive:", state.isAggressive)
+       -- print("   - hasBeenAttacked:", state.hasBeenAttacked)
     end
 
     if world:has(entity, comps.Locomotion) then
         local loco = world:get(entity, comps.Locomotion)
-        print("   - Locomotion dir:", loco.dir)
-        print("   - Locomotion speed:", loco.speed)
+       -- print("   - Locomotion dir:", loco.dir)
+       -- print("   - Locomotion speed:", loco.speed)
     end
 end
 

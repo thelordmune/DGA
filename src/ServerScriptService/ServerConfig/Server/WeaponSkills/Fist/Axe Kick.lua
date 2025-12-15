@@ -53,16 +53,27 @@ return function(Player, Data, Server)
 
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed4", Move.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
 			hittimes[i] = fraction * animlength
 		end
 
-		-- print(tostring(hittimes[1]))
-			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.AxeKick.Swing, true)
-		task.delay(hittimes[1], function()
+		-- Store sounds for cleanup
+		local swingSound = Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.AxeKick.Swing, true)
+		local rocksSound
+		local impactSound
 
+		task.delay(hittimes[1], function()
+			-- CHECK IF SKILL WAS CANCELLED
+			if not Server.Library.StateCheck(Character.Actions, script.Name) then
+				if swingSound and swingSound.Parent then
+					swingSound:Stop()
+					swingSound:Destroy()
+				end
+				return
+			end
 
 			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Base",
@@ -72,10 +83,28 @@ return function(Player, Data, Server)
 		end)
 
 		task.delay(hittimes[2], function()
+			-- CHECK IF SKILL WAS CANCELLED
+			if not Server.Library.StateCheck(Character.Actions, script.Name) then
+				if swingSound and swingSound.Parent then
+					swingSound:Stop()
+					swingSound:Destroy()
+				end
+				return
+			end
+
 			-- Play impact sounds FIRST (outside hitbox check so they always play)
-			Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.AxeKick.Rocks, true)
+			rocksSound = Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.AxeKick.Rocks, true)
 			task.delay(.1, function()
-				Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.AxeKick.Impact, true)
+				-- CHECK IF SKILL WAS CANCELLED
+				if not Server.Library.StateCheck(Character.Actions, script.Name) then
+					if rocksSound and rocksSound.Parent then
+						rocksSound:Stop()
+						rocksSound:Destroy()
+					end
+					return
+				end
+
+				impactSound = Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.AxeKick.Impact, true)
 			end)
 
 			-- Add short hitbox for Axe Kick
@@ -100,7 +129,7 @@ return function(Player, Data, Server)
 						-- Only ragdoll on direct hits, not when blocked or parried
 						if not isBlocking and not isParrying then
 							Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
-							-- print("Axe Kick hit:", Target.Name)
+							---- print("Axe Kick hit:", Target.Name)
 
 							-- Apply upward velocity to the target
 							local targetRoot = Target:FindFirstChild("HumanoidRootPart")
@@ -112,7 +141,7 @@ return function(Player, Data, Server)
 
 							-- Ragdoll the target for 3 seconds (instant ragdoll)
 							task.spawn(function()
-								Ragdoller.Ragdoll(Target, 3)
+								Ragdoller.Ragdoll(Target, 1.5)
 							end)
 						else
 							-- Still apply damage but without ragdoll

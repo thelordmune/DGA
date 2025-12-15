@@ -85,25 +85,25 @@ function WeaponSkillHold:OnInputBegan(player, character)
 	end
 
 	if inputDebounce[userId][self.skillName] and tick() < inputDebounce[userId][self.skillName] then
-		-- print(`[WeaponSkillHold] {self.skillName} input is debounced, ignoring input`)
+		---- print(`[WeaponSkillHold] {self.skillName} input is debounced, ignoring input`)
 		return
 	end
 
 	-- Check if player is already holding a skill (prevent spam)
 	if heldSkills[player] then
-		-- print(`[WeaponSkillHold] {player.Name} is already holding a skill, ignoring input`)
+		---- print(`[WeaponSkillHold] {player.Name} is already holding a skill, ignoring input`)
 		return
 	end
 
 	-- Check cooldown
 	if self:IsOnCooldown(player) then
-		-- print(`[WeaponSkillHold] {self.skillName} is on cooldown`)
+		---- print(`[WeaponSkillHold] {self.skillName} is on cooldown`)
 		return
 	end
 
 	-- Check if character is in the middle of executing this skill (Actions state)
 	if character:FindFirstChild("Actions") and character.Actions:FindFirstChild(self.skillName) then
-		-- print(`[WeaponSkillHold] {self.skillName} is already executing, ignoring input`)
+		---- print(`[WeaponSkillHold] {self.skillName} is already executing, ignoring input`)
 		return
 	end
 
@@ -111,7 +111,7 @@ function WeaponSkillHold:OnInputBegan(player, character)
 	-- This prevents any input for this skill until it's completely done
 	local debounceTime = self.cooldown + 5 -- Cooldown + extra buffer
 	inputDebounce[userId][self.skillName] = tick() + debounceTime
-	-- print(`[WeaponSkillHold] Set input debounce for {self.skillName} for {debounceTime}s`)
+	---- print(`[WeaponSkillHold] Set input debounce for {self.skillName} for {debounceTime}s`)
 
 	-- Validate character
 	if not character or not character.Parent then
@@ -166,17 +166,17 @@ function WeaponSkillHold:OnInputBegan(player, character)
 			local ghostClone = self:CreateGhostClone(character, animTrack)
 			if ghostClone then
 				heldData.ghostClone = ghostClone
-				-- print(`[WeaponSkillHold] Ghost clone created`)
+				---- print(`[WeaponSkillHold] Ghost clone created`)
 			else
 				warn(`[WeaponSkillHold] Failed to create ghost clone`)
 			end
 
 			heldData.effectsApplied = true
-			-- print(`[WeaponSkillHold] {player.Name} is holding {self.skillName} - effects applied`)
+			---- print(`[WeaponSkillHold] {player.Name} is holding {self.skillName} - effects applied`)
 		end
 	end)
 
-	-- print(`[WeaponSkillHold] {player.Name} started holding {self.skillName}`)
+	---- print(`[WeaponSkillHold] {player.Name} started holding {self.skillName}`)
 end
 
 function WeaponSkillHold:OnInputEnded(player)
@@ -192,7 +192,7 @@ function WeaponSkillHold:OnInputEnded(player)
 	-- Minimum hold time to activate hold system (0.3 seconds)
 	-- If released too quickly, just execute immediately without hold effects
 	if holdDuration < 0.3 then
-		-- print(`[WeaponSkillHold] {player.Name} tapped {self.skillName} (too quick for hold)`)
+		---- print(`[WeaponSkillHold] {player.Name} tapped {self.skillName} (too quick for hold)`)
 
 		-- Mark as no longer holding (prevents effects from being applied)
 		heldData.isHolding = false
@@ -224,7 +224,7 @@ function WeaponSkillHold:OnInputEnded(player)
 		return
 	end
 
-	-- print(`[WeaponSkillHold] {player.Name} released {self.skillName} after {holdDuration}s`)
+	---- print(`[WeaponSkillHold] {player.Name} released {self.skillName} after {holdDuration}s`)
 
 	-- Only remove effects if they were applied
 	if heldData.effectsApplied then
@@ -251,7 +251,7 @@ end
 function WeaponSkillHold:Execute(player, character, holdDuration)
 	-- This should be overridden by each weapon skill
 	-- Default implementation just prints
-	-- print(`[WeaponSkillHold] Executing {self.skillName} (holdDuration: {holdDuration}s)`)
+	---- print(`[WeaponSkillHold] Executing {self.skillName} (holdDuration: {holdDuration}s)`)
 	
 	-- Start cooldown
 	self:StartCooldown(player)
@@ -259,11 +259,11 @@ end
 
 function WeaponSkillHold:ExecuteImmediately(player, character)
 	-- For alchemy skills or weapon skills with body movers
-	-- print(`[WeaponSkillHold] {self.skillName} executing immediately ({self.skillType})`)
+	---- print(`[WeaponSkillHold] {self.skillName} executing immediately ({self.skillType})`)
 	
 	-- Check cooldown
 	if self:IsOnCooldown(player) then
-		-- print(`[WeaponSkillHold] {self.skillName} is on cooldown`)
+		---- print(`[WeaponSkillHold] {self.skillName} is on cooldown`)
 		return
 	end
 	
@@ -354,13 +354,13 @@ function WeaponSkillHold:ApplyHoldEffect(character, isHolding)
 		-- Remove position lock using Library state manager
 		if character:FindFirstChild("Actions") then
 			Library.RemoveState(character.Actions, "WeaponSkillHold")
-			-- print("[WeaponSkillHold] Removed Actions state")
+			---- print("[WeaponSkillHold] Removed Actions state")
 		end
 
 		-- Remove speed lock
 		if character:FindFirstChild("Speeds") then
 			Library.RemoveState(character.Speeds, "WeaponSkillHoldSpeedSet0")
-			-- print("[WeaponSkillHold] Removed Speeds state")
+			---- print("[WeaponSkillHold] Removed Speeds state")
 		end
 
 		-- Restore player visibility (fade in over 0.2s)
@@ -395,19 +395,19 @@ function WeaponSkillHold:ApplyHoldEffect(character, isHolding)
 				transparencyStorage:Destroy()
 			end)
 
-			-- print("[WeaponSkillHold] Restoring player visibility")
+			---- print("[WeaponSkillHold] Restoring player visibility")
 		end
 
-		-- print("[WeaponSkillHold] All hold effects removed")
+		---- print("[WeaponSkillHold] All hold effects removed")
 	end
 end
 
 function WeaponSkillHold:CreateGhostClone(character, originalTrack)
 	-- Create a transparent clone of the character showing the skill preview
 
-	-- print("[WeaponSkillHold] CreateGhostClone called")
-	-- print("[WeaponSkillHold] Character:", character)
-	-- print("[WeaponSkillHold] Character.Parent:", character and character.Parent)
+	---- print("[WeaponSkillHold] CreateGhostClone called")
+	---- print("[WeaponSkillHold] Character:", character)
+	---- print("[WeaponSkillHold] Character.Parent:", character and character.Parent)
 
 	-- Validate character
 	if not character or not character.Parent then
@@ -420,7 +420,7 @@ function WeaponSkillHold:CreateGhostClone(character, originalTrack)
 	character.Archivable = true
 
 	-- Clone the character
-	-- print("[WeaponSkillHold] Attempting to clone character...")
+	---- print("[WeaponSkillHold] Attempting to clone character...")
 	local success, result = pcall(function()
 		return character:Clone()
 	end)
@@ -428,9 +428,9 @@ function WeaponSkillHold:CreateGhostClone(character, originalTrack)
 	-- Restore original Archivable setting
 	character.Archivable = originalArchivable
 
-	-- print("[WeaponSkillHold] Clone success:", success)
-	-- print("[WeaponSkillHold] Clone result:", result)
-	-- print("[WeaponSkillHold] Clone result type:", type(result))
+	---- print("[WeaponSkillHold] Clone success:", success)
+	---- print("[WeaponSkillHold] Clone result:", result)
+	---- print("[WeaponSkillHold] Clone result type:", type(result))
 
 	if not success then
 		warn("[WeaponSkillHold] Failed to clone character:", result)
@@ -443,7 +443,7 @@ function WeaponSkillHold:CreateGhostClone(character, originalTrack)
 		return nil
 	end
 
-	-- print("[WeaponSkillHold] Clone created successfully, type:", typeof(clone))
+	---- print("[WeaponSkillHold] Clone created successfully, type:", typeof(clone))
 
 	-- Store original transparencies for fade-in effect
 	local partTransparencies = {}
@@ -507,20 +507,20 @@ function WeaponSkillHold:CreateGhostClone(character, originalTrack)
 
 	-- Play the animation using the existing humanoid
 	local humanoid = clone:FindFirstChildOfClass("Humanoid")
-	-- print("[WeaponSkillHold] Ghost humanoid found:", humanoid)
+	---- print("[WeaponSkillHold] Ghost humanoid found:", humanoid)
 
 	if humanoid then
 		local animator = humanoid:FindFirstChildOfClass("Animator")
-		-- print("[WeaponSkillHold] Ghost animator found:", animator)
+		---- print("[WeaponSkillHold] Ghost animator found:", animator)
 
 		if not animator then
 			animator = Instance.new("Animator")
 			animator.Parent = humanoid
-			-- print("[WeaponSkillHold] Created new animator for ghost")
+			---- print("[WeaponSkillHold] Created new animator for ghost")
 		end
 
-		-- print("[WeaponSkillHold] Animation object:", self.animation)
-		-- print("[WeaponSkillHold] Animation type:", typeof(self.animation))
+		---- print("[WeaponSkillHold] Animation object:", self.animation)
+		---- print("[WeaponSkillHold] Animation type:", typeof(self.animation))
 
 		-- Load and play the same animation at normal speed
 		local success, ghostTrack = pcall(function()
@@ -528,10 +528,10 @@ function WeaponSkillHold:CreateGhostClone(character, originalTrack)
 		end)
 
 		if success and ghostTrack then
-			-- print("[WeaponSkillHold] Animation loaded successfully")
+			---- print("[WeaponSkillHold] Animation loaded successfully")
 			ghostTrack:Play()
 			ghostTrack.Looped = true -- Loop the preview
-			-- print("[WeaponSkillHold] Ghost clone animation playing, IsPlaying:", ghostTrack.IsPlaying)
+			---- print("[WeaponSkillHold] Ghost clone animation playing, IsPlaying:", ghostTrack.IsPlaying)
 		else
 			warn("[WeaponSkillHold] Failed to load animation:", ghostTrack)
 		end
@@ -554,7 +554,7 @@ function WeaponSkillHold:CreateGhostClone(character, originalTrack)
 		end
 	end
 
-	-- print(`[WeaponSkillHold] Created ghost clone for preview`)
+	---- print(`[WeaponSkillHold] Created ghost clone for preview`)
 
 	return clone
 end
@@ -592,7 +592,7 @@ function WeaponSkillHold:FadeOutGhostClone(clone)
 		end
 	end)
 
-	-- print("[WeaponSkillHold] Fading out ghost clone")
+	---- print("[WeaponSkillHold] Fading out ghost clone")
 end
 
 function WeaponSkillHold:MonitorForInterruptions(player, character)
@@ -606,7 +606,7 @@ function WeaponSkillHold:MonitorForInterruptions(player, character)
 	while heldData and heldData.isHolding do
 		-- Check if character still exists
 		if not character or not character.Parent then
-			-- print(`[WeaponSkillHold] Character destroyed, interrupting {self.skillName}`)
+			---- print(`[WeaponSkillHold] Character destroyed, interrupting {self.skillName}`)
 			self:CleanupHeldSkill(player)
 			return
 		end
@@ -614,7 +614,7 @@ function WeaponSkillHold:MonitorForInterruptions(player, character)
 		-- Check for stuns
 		if character:FindFirstChild("Stuns") then
 			if Library.StateCount(character.Stuns) then
-				-- print(`[WeaponSkillHold] Stunned, interrupting {self.skillName}`)
+				---- print(`[WeaponSkillHold] Stunned, interrupting {self.skillName}`)
 				self:CleanupHeldSkill(player)
 				return
 			end
@@ -622,7 +622,7 @@ function WeaponSkillHold:MonitorForInterruptions(player, character)
 
 		-- Check if player still exists
 		if not player or not player.Parent then
-			-- print(`[WeaponSkillHold] Player disconnected, interrupting {self.skillName}`)
+			---- print(`[WeaponSkillHold] Player disconnected, interrupting {self.skillName}`)
 			self:CleanupHeldSkill(player)
 			return
 		end
@@ -656,7 +656,7 @@ function WeaponSkillHold:CleanupHeldSkill(player)
 	-- Remove from tracking
 	heldSkills[player] = nil
 
-	-- print(`[WeaponSkillHold] Cleaned up held skill for {player.Name}`)
+	---- print(`[WeaponSkillHold] Cleaned up held skill for {player.Name}`)
 end
 
 -- Cooldown Management
@@ -677,7 +677,7 @@ function WeaponSkillHold:StartCooldown(player)
 	end
 	
 	cooldowns[player.UserId][self.skillName] = tick() + self.cooldown
-	-- print(`[WeaponSkillHold] {self.skillName} on cooldown for {self.cooldown}s`)
+	---- print(`[WeaponSkillHold] {self.skillName} on cooldown for {self.cooldown}s`)
 end
 
 function WeaponSkillHold:GetRemainingCooldown(player)

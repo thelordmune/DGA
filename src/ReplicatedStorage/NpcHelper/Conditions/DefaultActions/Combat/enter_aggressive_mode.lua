@@ -5,14 +5,14 @@ return function(actor: Actor, mainConfig: table)
         return false
     end
 
-    -- ---- print("enter_aggressive_mode: Checking NPC", npc.Name, "for recent attacks")
+    -- ------ print("enter_aggressive_mode: Checking NPC", npc.Name, "for recent attacks")
 
     -- Check if NPC has been recently attacked
     local damageLog = npc:FindFirstChild("Damage_Log")
     local hasBeenAttacked = false
     local attacker = nil
 
-    -- ---- print("enter_aggressive_mode: Damage log exists:", damageLog ~= nil)
+    -- ------ print("enter_aggressive_mode: Damage log exists:", damageLog ~= nil)
     
     if damageLog and #damageLog:GetChildren() > 0 then
         hasBeenAttacked = true
@@ -31,7 +31,7 @@ return function(actor: Actor, mainConfig: table)
             if Library.StateCheck(iFrames, "RecentlyAttacked") or
                Library.StateCheck(iFrames, "Damaged") then
                 hasBeenAttacked = true
-                -- ---- print("enter_aggressive_mode: Found attack state in IFrames")
+                -- ------ print("enter_aggressive_mode: Found attack state in IFrames")
             end
         end
     end
@@ -39,20 +39,20 @@ return function(actor: Actor, mainConfig: table)
     if hasBeenAttacked then
         -- Only enter aggressive mode if not already aggressive
         if not (mainConfig.States and mainConfig.States.AggressiveMode) then
-            ---- print("NPC", npc.Name, "has been attacked! Entering aggressive mode")
+            ------ print("NPC", npc.Name, "has been attacked! Entering aggressive mode")
 
             -- Set the NPC to no longer be passive
             if mainConfig.States then
                 mainConfig.States.IsPassive = false
                 mainConfig.States.AggressiveMode = true
                 mainConfig.States.AggressiveModeStartTime = os.clock()
-                ---- print("Set aggressive mode - IsPassive:", mainConfig.States.IsPassive, "AggressiveMode:", mainConfig.States.AggressiveMode)
+                ------ print("Set aggressive mode - IsPassive:", mainConfig.States.IsPassive, "AggressiveMode:", mainConfig.States.AggressiveMode)
             end
         end
 
         -- Set the attacker as the target if we found one
         if attacker and attacker:IsA("Model") and attacker:FindFirstChild("Humanoid") then
-            -- ---- print("Setting attacker", attacker.Name, "as target for aggressive NPC", npc.Name)
+            -- ------ print("Setting attacker", attacker.Name, "as target for aggressive NPC", npc.Name)
             mainConfig.EnemyDetection.Current = attacker
 
             -- Alert the NPC

@@ -1,6 +1,6 @@
--- print("Loading screen script starting...")
+---- print("Loading screen script starting...")
 repeat task.wait() until game:IsLoaded()
--- print("Game loaded, initializing loading screen...")
+---- print("Game loaded, initializing loading screen...")
 
 local player = game.Players.LocalPlayer
 local playergui = player:WaitForChild("PlayerGui")
@@ -20,7 +20,7 @@ StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, false)
 
 -- Create our own loading screen ScreenGui
--- print("Creating loading screen ScreenGui...")
+---- print("Creating loading screen ScreenGui...")
 local screengui = Instance.new("ScreenGui")
 screengui.Name = "LoadingScreen"
 screengui.ResetOnSpawn = false
@@ -40,26 +40,26 @@ viewport.Parent = screengui
 
 -- Show the loading screen and ensure it stays visible
 screengui.Enabled = true
--- print("Loading screen enabled:", screengui.Enabled)
--- print("Loading screen DisplayOrder:", screengui.DisplayOrder)
+---- print("Loading screen enabled:", screengui.Enabled)
+---- print("Loading screen DisplayOrder:", screengui.DisplayOrder)
 
 -- Monitor and prevent the ScreenGui from being disabled
 local enabledConnection
 enabledConnection = screengui:GetPropertyChangedSignal("Enabled"):Connect(function()
 	if not screengui.Enabled and loadingScreenActive then
-		-- print("Loading screen was disabled, re-enabling...")
+		---- print("Loading screen was disabled, re-enabling...")
 		screengui.Enabled = true
 	end
 end)
 
--- print("Viewport created:", viewport)
+---- print("Viewport created:", viewport)
 
 -- Load character
 local character = game:GetService("ReplicatedStorage"):FindFirstChild("Classified")
 if character then
 	character = character:Clone()
 	character.PrimaryPart = character:FindFirstChild("HumanoidRootPart")  -- Ensure this exists!
-	-- print("Character loaded:", character.Name)
+	---- print("Character loaded:", character.Name)
 else
 	warn("Classified character not found in ReplicatedStorage!")
 	-- Create a simple placeholder
@@ -86,7 +86,7 @@ end
 character.Parent = viewport:FindFirstChild("WorldModel") or viewport
 if character.PrimaryPart then
 	character.PrimaryPart.CFrame = character.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(180),0)
-	-- print("Character positioned in viewport")
+	---- print("Character positioned in viewport")
 else
 	warn("Character has no PrimaryPart!")
 end
@@ -118,7 +118,7 @@ if humanoid then
 	if success and animationTrack then
 		animationTrack:Play()
 		animationTrack.Looped = true
-		-- print("Animation loaded and playing")
+		---- print("Animation loaded and playing")
 	else
 		warn("Failed to load animation:", animationTrack)
 	end
@@ -305,5 +305,5 @@ backgroundFadeTween.Completed:Connect(function()
 		testLabel:Destroy()
 	end
 
-	-- print("Loading screen finished - HUD can now load")
+	---- print("Loading screen finished - HUD can now load")
 end)

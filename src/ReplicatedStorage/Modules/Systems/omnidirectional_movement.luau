@@ -108,7 +108,7 @@ local function PlayWalkAnimation(character, direction)
 	currentAnimationName = animationName
 
 	if DEBUG then
-		-- print(`[Movement] Playing animation: {animationName} for direction: {direction}`)
+		---- print(`[Movement] Playing animation: {animationName} for direction: {direction}`)
 	end
 end
 
@@ -118,7 +118,7 @@ local function StopWalkAnimation(character)
 		currentAnimationName = nil
 
 		if DEBUG then
-			-- print(`[Movement] Stopped walk animation`)
+			---- print(`[Movement] Stopped walk animation`)
 		end
 	end
 end

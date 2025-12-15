@@ -273,12 +273,12 @@ Check these potential issues:
 -- Run in F9 console to check if Damage_Log is created:
 local guard = workspace.NPCs:FindFirstChild("LeftGuard")
 if guard then
-    print("Damage_Log:", guard:FindFirstChild("Damage_Log"))
+   -- print("Damage_Log:", guard:FindFirstChild("Damage_Log"))
     local log = guard:FindFirstChild("Damage_Log")
     if log then
-        print("Attack records:", #log:GetChildren())
+       -- print("Attack records:", #log:GetChildren())
         for _, v in log:GetChildren() do
-            print("-", v.Name, v.Value and v.Value.Name or "nil")
+           -- print("-", v.Name, v.Value and v.Value.Name or "nil")
         end
     end
 end

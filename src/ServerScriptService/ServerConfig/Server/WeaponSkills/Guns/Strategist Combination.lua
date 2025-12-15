@@ -56,6 +56,7 @@ return function(Player, Data, Server)
 
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length + endlag)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length + endlag)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length + endlag) -- Prevent jumping during move
 		Server.Library.TimedState(Character.Stuns, "NoRotate", Move.Length + endlag)
 
 		-- Add invincibility to attacker during the entire move
@@ -94,7 +95,7 @@ return function(Player, Data, Server)
 
 						if isParrying then
 							-- Target parried the attack - cancel combo and stun attacker
-							-- print(string.format("[Strategist Combination] %s PARRIED by %s - combo cancelled!", Character.Name, Target.Name))
+							---- print(string.format("[Strategist Combination] %s PARRIED by %s - combo cancelled!", Character.Name, Target.Name))
 
 							-- Stop attacker's animation and states
 							Move:Stop(0.1) -- Immediately stop the animation
@@ -126,7 +127,7 @@ return function(Player, Data, Server)
 							return -- Cancel the combo
 						elseif isBlocking and not isBehind then
 							-- Target blocked the attack - cancel combo
-							-- print(string.format("[Strategist Combination] %s BLOCKED by %s - combo cancelled!", Character.Name, Target.Name))
+							---- print(string.format("[Strategist Combination] %s BLOCKED by %s - combo cancelled!", Character.Name, Target.Name))
 
 							-- Stop attacker's animation and states
 							Move:Stop(0.1) -- Immediately stop the animation
@@ -250,10 +251,10 @@ return function(Player, Data, Server)
 					local delayTime = hittimes[hitIndex] - hittimes[1]
 					local fireType = (hitIndex % 2 == 1) and "LFire" or "RFire"
 
-					-- print(`Scheduling fire hit {hitIndex} at delay {delayTime} with type {fireType}`)
+					---- print(`Scheduling fire hit {hitIndex} at delay {delayTime} with type {fireType}`)
 
                     task.delay(delayTime, function()
-						-- print(`Executing fire hit {hitIndex} with type {fireType}`)
+						---- print(`Executing fire hit {hitIndex} with type {fireType}`)
                         Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
                             Module = "Base",
                             Function = "SC",

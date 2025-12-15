@@ -204,7 +204,7 @@ local function executePatternAction(mainConfig, npc, target, distance, currentSt
 
     -- Execute the skill if one was chosen using the same Combat system players use
     if skillToUse then
-        -- -- -- print("Guard", npc.Name, "using pattern:", currentState, "skill:", skillToUse)
+        -- -- ---- print("Guard", npc.Name, "using pattern:", currentState, "skill:", skillToUse)
 
         -- Face the target
         local npcRoot = npc:FindFirstChild("HumanoidRootPart")
@@ -249,28 +249,28 @@ end
 
 -- Main guard attack pattern function
 return function(actor: Actor, mainConfig: table)
-    -- -- print("=== GUARD_ATTACK_PATTERN CALLED ===")
+    -- ---- print("=== GUARD_ATTACK_PATTERN CALLED ===")
 
     local npc = actor:FindFirstChildOfClass("Model")
     if not npc then
-        -- -- print("guard_attack_pattern: No NPC found")
+        -- ---- print("guard_attack_pattern: No NPC found")
         return false
     end
 
     -- Only use this for guards
     local isGuard = npc.Name:find("Guard") ~= nil
     if not isGuard then
-        -- -- print("guard_attack_pattern:", npc.Name, "is not a guard")
+        -- ---- print("guard_attack_pattern:", npc.Name, "is not a guard")
         return false
     end
 
     -- Only use pattern when aggressive
     if not (mainConfig.States and mainConfig.States.AggressiveMode) then
-        -- -- print("Guard", npc.Name, "not in aggressive mode, skipping attack pattern")
+        -- ---- print("Guard", npc.Name, "not in aggressive mode, skipping attack pattern")
         return false
     end
 
-    -- -- print("Guard", npc.Name, "executing attack pattern - AggressiveMode:", mainConfig.States.AggressiveMode)
+    -- ---- print("Guard", npc.Name, "executing attack pattern - AggressiveMode:", mainConfig.States.AggressiveMode)
 
     -- Get the guard's weapon (DO NOT reassign - weapon is set at spawn time)
     local weapon = npc:GetAttribute("Weapon") or "Fist"
@@ -284,9 +284,9 @@ return function(actor: Actor, mainConfig: table)
             return false
         end
 
-        -- -- print("Guard", npc.Name, "equipping weapon:", weapon)
+        -- ---- print("Guard", npc.Name, "equipping weapon:", weapon)
         EquipModule.EquipWeapon(npc, weapon, true) -- Skip animation
-        -- -- print("Guard", npc.Name, "equipped attribute after equip:", npc:GetAttribute("Equipped"))
+        -- ---- print("Guard", npc.Name, "equipped attribute after equip:", npc:GetAttribute("Equipped"))
     end
     
     local target = mainConfig.getTarget()
@@ -315,7 +315,7 @@ return function(actor: Actor, mainConfig: table)
     
     -- Update state if changed
     if nextState ~= mainConfig.GuardPattern.CurrentState then
-        -- -- print("Guard", npc.Name, "transitioning from", mainConfig.GuardPattern.CurrentState, "to", nextState)
+        -- ---- print("Guard", npc.Name, "transitioning from", mainConfig.GuardPattern.CurrentState, "to", nextState)
         mainConfig.GuardPattern.CurrentState = nextState
         mainConfig.GuardPattern.StateStartTime = os.clock()
     end

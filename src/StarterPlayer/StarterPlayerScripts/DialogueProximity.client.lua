@@ -193,7 +193,7 @@ local function updateProximity()
 	if nearbyNPC ~= currentNearbyNPC then
 		if nearbyNPC then
 			-- Entered range of an NPC
-			-- print("📍 Near NPC:", nearbyNPC.Name)
+			---- print("📍 Near NPC:", nearbyNPC.Name)
 			addHighlight(nearbyNPC)
 			createPromptUI(nearbyNPC)
 			showPromptUI()
@@ -203,9 +203,27 @@ local function updateProximity()
 				character:SetAttribute("Commence", true)
 				character:SetAttribute("NearbyNPC", nearbyNPC.Name)
 			end
+
+			-- Update ECS Dialogue component inrange state
+			pcall(function()
+				local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+				local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+				local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+				local pent = ref.get("local_player")
+				if pent then
+					local dialogueComp = world:get(pent, comps.Dialogue)
+					if dialogueComp then
+						dialogueComp.inrange = true
+						dialogueComp.npc = nearbyNPC
+						dialogueComp.name = nearbyNPC.Name
+						world:set(pent, comps.Dialogue, dialogueComp)
+						---- print("✅ Updated Dialogue component: inrange = true")
+					end
+				end
+			end)
 		else
 			-- Left range of NPC
-			-- print("🚶 Left NPC range")
+			---- print("🚶 Left NPC range")
 			removeHighlight()
 			hidePromptUI()
 
@@ -214,6 +232,24 @@ local function updateProximity()
 				character:SetAttribute("Commence", false)
 				character:SetAttribute("NearbyNPC", nil)
 			end
+
+			-- Update ECS Dialogue component inrange state
+			pcall(function()
+				local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+				local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+				local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+				local pent = ref.get("local_player")
+				if pent then
+					local dialogueComp = world:get(pent, comps.Dialogue)
+					if dialogueComp then
+						dialogueComp.inrange = false
+						dialogueComp.npc = nil
+						dialogueComp.name = "none"
+						world:set(pent, comps.Dialogue, dialogueComp)
+						---- print("✅ Updated Dialogue component: inrange = false")
+					end
+				end
+			end)
 		end
 
 		currentNearbyNPC = nearbyNPC
@@ -261,5 +297,5 @@ _G.DialogueProximity_Cleanup = cleanup
 task.wait(1)
 updateProximity()
 
--- print("✅ Dialogue Proximity System loaded")
+---- print("✅ Dialogue Proximity System loaded")
 

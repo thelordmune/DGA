@@ -172,7 +172,7 @@ local function updateMovementPatterns(dt: number)
     end
 
     if guardCount > 0 and not hasLoggedMovement then
-       -- print(`[npc_movement_pattern_ecs] Found {guardCount} guards with targets`)
+       ---- print(`[npc_movement_pattern_ecs] Found {guardCount} guards with targets`)
         hasLoggedMovement = true
     end
 
@@ -201,7 +201,7 @@ local function updateMovementPatterns(dt: number)
             local loco = locos[row]
         -- Debug: Always log for guards
         if char.Name:match("Guard") then
-           -- print(`[npc_movement_pattern_ecs] GUARD FOUND IN QUERY: {char.Name} targeting {target and target.Name or "nil"}`)
+           ---- print(`[npc_movement_pattern_ecs] GUARD FOUND IN QUERY: {char.Name} targeting {target and target.Name or "nil"}`)
         end
 
         -- Check if NPC is stunned - stop movement if stunned
@@ -239,7 +239,7 @@ local function updateMovementPatterns(dt: number)
 
         -- Debug: Log movement for guards
         if char.Name:match("Guard") then
-           -- print(`[npc_movement_pattern_ecs] {char.Name} chasing {target.Name} - distance: {math.floor(distance)} studs, pattern: {pattern.current}`)
+           ---- print(`[npc_movement_pattern_ecs] {char.Name} chasing {target.Name} - distance: {math.floor(distance)} studs, pattern: {pattern.current}`)
         end
 
         -- Stop if too close (within 3 studs - matches behavior tree "Still" pattern)

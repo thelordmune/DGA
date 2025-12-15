@@ -77,9 +77,9 @@ end
 	Represents a connection to a signal.
 	```lua
 	local connection = signal:Connect(function() end)
-	-- print(connection.Connected) --> true
+	---- print(connection.Connected) --> true
 	connection:Disconnect()
-	-- print(connection.Connected) --> false
+	---- print(connection.Connected) --> false
 	```
 ]=]
 
@@ -148,7 +148,7 @@ setmetatable(Connection, {
 	local signal = Signal.new()
 
 	signal:Connect(function(msg)
-		-- print("Got message:", msg)
+		---- print("Got message:", msg)
 	end)
 
 	signal:Fire("Hello world!")
@@ -179,7 +179,7 @@ end
 	For example:
 	```lua
 	local signal = Signal.Wrap(workspace.ChildAdded)
-	signal:Connect(function(part) -- print(part.Name .. " added") end)
+	signal:Connect(function(part) ---- print(part.Name .. " added") end)
 	Instance.new("Part").Parent = workspace
 	```
 ]=]
@@ -212,7 +212,7 @@ end
 	Connects a function to the signal, which will be called anytime the signal is fired.
 	```lua
 	signal:Connect(function(msg, num)
-		-- print(msg, num)
+		---- print(msg, num)
 	end)
 
 	signal:Fire("Hello", 25)
@@ -246,7 +246,7 @@ end
 	the connection is triggered, it will disconnect itself.
 	```lua
 	signal:Once(function(msg, num)
-		-- print(msg, num)
+		---- print(msg, num)
 	end)
 
 	signal:Fire("Hello", 25)
@@ -348,7 +348,7 @@ end
 	```lua
 	task.spawn(function()
 		local msg, num = signal:Wait()
-		-- print(msg, num) --> "Hello", 32
+		---- print(msg, num) --> "Hello", 32
 	end)
 	signal:Fire("Hello", 32)
 	```

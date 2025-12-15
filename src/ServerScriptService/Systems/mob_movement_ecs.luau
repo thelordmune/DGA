@@ -120,7 +120,7 @@ local function mobMoveStep(_dt: number)
         local speed = loco.speed or 0
 
         if not hasLoggedMovement then
-            -- print(`[mob_movement_ecs] System active - processing NPCs (HEAVILY OPTIMIZED FOR NETWORK)`)
+            ---- print(`[mob_movement_ecs] System active - processing NPCs (HEAVILY OPTIMIZED FOR NETWORK)`)
             hasLoggedMovement = true
         end
 

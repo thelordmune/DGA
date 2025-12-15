@@ -201,7 +201,7 @@ local hasLoggedBrain = false
 local function mobBrainStep(dt: number)
     for e, char, transform, loco, ai, traits, wander in mobs do
         if not hasLoggedBrain then
-            print(`[mob_brain_ecs] Processing {char.Name} - state: {ai.state}`)
+           -- print(`[mob_brain_ecs] Processing {char.Name} - state: {ai.state}`)
             hasLoggedBrain = true
         end
 

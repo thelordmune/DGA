@@ -304,7 +304,7 @@ function Debugger:connectPlayer(player)
 	end
 
 	if not self.enabled then
-		-- print("Matter server debugger started")
+		---- print("Matter server debugger started")
 		self:_enable()
 	end
 
@@ -323,7 +323,7 @@ function Debugger:disconnectPlayer(player)
 	if #self._eventBridge.players == 0 then
 		self:_disable()
 		self.debugSystem = nil
-		-- print("Matter server debugger stopped")
+		---- print("Matter server debugger stopped")
 	end
 end
 

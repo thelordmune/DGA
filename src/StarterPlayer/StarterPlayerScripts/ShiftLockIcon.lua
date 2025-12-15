@@ -185,7 +185,7 @@ function ShiftLockIcon.Init()
 	-- Start monitoring
 	monitorShiftLock()
 	
-	-- print("Shift Lock Icon system initialized")
+	---- print("Shift Lock Icon system initialized")
 end
 
 -- Cleanup function

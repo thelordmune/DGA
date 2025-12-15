@@ -50,7 +50,7 @@ local Runtime = require(script.Parent.Runtime)
 		})
 	})
 
-	-- print(ref.button.Text) --> hi
+	---- print(ref.button.Text) --> hi
 	```
 ]=]
 

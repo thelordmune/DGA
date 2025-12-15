@@ -77,12 +77,12 @@ local function applyRagdoll(character, duration)
 				-- Disable the motor
 				descendant.Enabled = false
 
-				-- print(`[LooseRagdoll] Created BallSocket for {descendant.Name}`)
+				---- print(`[LooseRagdoll] Created BallSocket for {descendant.Name}`)
 			end
 		end
 	end
 
-	-- print(`[LooseRagdoll] Ragdoll applied to {character.Name} for {duration} seconds`)
+	---- print(`[LooseRagdoll] Ragdoll applied to {character.Name} for {duration} seconds`)
 
 	-- Restore after duration
 	task.delay(duration, function()
@@ -117,7 +117,7 @@ local function applyRagdoll(character, duration)
 			-- Clear data
 			ragdollData[character] = nil
 
-			-- print(`[LooseRagdoll] Ragdoll removed from {character.Name}`)
+			---- print(`[LooseRagdoll] Ragdoll removed from {character.Name}`)
 		end
 	end)
 end
@@ -139,7 +139,7 @@ function LooseRagdoll.Ragdoll(character: Model, duration: number)
 		return false
 	end
 
-	-- print(`[LooseRagdoll] Applying ragdoll to {character.Name}`)
+	---- print(`[LooseRagdoll] Applying ragdoll to {character.Name}`)
 
 	-- Apply ragdoll
 	applyRagdoll(character, duration)

@@ -43,7 +43,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
     damage = 50,
     cooldown = 8,
     execute = function(self, player, character, holdDuration)
-        -- print(`Stone Lance held for {holdDuration}s`)
+        ---- print(`Stone Lance held for {holdDuration}s`)
         
         -- Your skill logic here
         local damage = self.damage
@@ -51,7 +51,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
         -- Optional: Bonus damage for holding longer
         if holdDuration > 0.5 then
             damage = damage * (1 + holdDuration * 0.2)
-            -- print(`Charged damage: {damage}`)
+            ---- print(`Charged damage: {damage}`)
         end
         
         -- Create hitbox, deal damage, etc.
@@ -66,7 +66,7 @@ local FlameBurst = SkillFactory.CreateAlchemySkill({
     cooldown = 5,
     execute = function(self, player, character, holdDuration)
         -- holdDuration will always be 0 for alchemy
-        -- print("Flame Burst executed immediately")
+        ---- print("Flame Burst executed immediately")
         
         -- Your alchemy logic here
     end
@@ -188,7 +188,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
     damage = 50,
     cooldown = 8,
     execute = function(self, player, character, holdDuration)
-        -- print(`Stone Lance executed after {holdDuration}s hold`)
+        ---- print(`Stone Lance executed after {holdDuration}s hold`)
         
         -- Your existing skill code
         local damage = self.damage
@@ -196,7 +196,7 @@ local StoneLance = SkillFactory.CreateWeaponSkill({
         -- Optional: Charge mechanic
         if holdDuration > 0.5 then
             damage = damage * (1 + holdDuration * 0.2) -- +20% per second
-            -- print(`⚡ Charged! Damage: {damage}`)
+            ---- print(`⚡ Charged! Damage: {damage}`)
         end
         
         -- Create hitbox, deal damage, etc.
@@ -226,7 +226,7 @@ execute = function(self, player, character, holdDuration)
     -- Range scales with hold time
     local range = 10 + (holdDuration * 2) -- +2 studs per second
     
-    -- print(`Damage: {damage}, Range: {range}`)
+    ---- print(`Damage: {damage}, Range: {range}`)
 end
 ```
 
@@ -238,7 +238,7 @@ execute = function(self, player, character, holdDuration)
     local isPerfectRelease = holdDuration >= 0.5 and holdDuration <= 1.0
     
     if isPerfectRelease then
-        -- print("⭐ PERFECT RELEASE!")
+        ---- print("⭐ PERFECT RELEASE!")
         -- Bonus effects
         damage = damage * 1.5
         -- Play special effect
@@ -251,7 +251,7 @@ end
 ```lua
 local remainingCooldown = skill:GetRemainingCooldown(player)
 if remainingCooldown > 0 then
-    -- print(`Skill on cooldown for {remainingCooldown}s`)
+    ---- print(`Skill on cooldown for {remainingCooldown}s`)
 end
 ```
 

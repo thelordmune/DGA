@@ -338,12 +338,12 @@ local components: {
 	}
 
     for name, component in components :: {[string]: jecs.Entity} do 
-        -- -- print("Setting component:", name, component)
+        -- ---- print("Setting component:", name, component)
         if component == nil then
             -- error("Component is nil: " .. name)
         end
         world:set(component, jecs.Name, name)
-        -- -- print("Component set successfully:", name)
+        -- ---- print("Component set successfully:", name)
     end
 
 return table.freeze(components)

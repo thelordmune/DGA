@@ -36,7 +36,7 @@ local merge = require(script.Parent.immutable).merge
 		some = "data"
 	})
 
-	-- print(getmetatable(myComponentInstance) == MyComponent) --> true
+	---- print(getmetatable(myComponentInstance) == MyComponent) --> true
 	```
 ]=]
 

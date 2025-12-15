@@ -17,7 +17,7 @@ local preloadedPants = {}
 local function preloadClothingAssets()
 	if clothingAssetsPreloaded then return end
 
-	print("[Appearance] 🔄 Starting clothing asset preload...")
+	--print("[Appearance] 🔄 Starting clothing asset preload...")
 	local totalAssets = 0
 	local successCount = 0
 	local failCount = 0
@@ -28,7 +28,7 @@ local function preloadClothingAssets()
 		if outfit.shirt then
 			totalAssets += 1
 			local shirtTemplate = outfit.shirt
-			print(`[Appearance] 📥 Preloading Outfit {outfitId} Shirt: {shirtTemplate}`)
+			--print(`[Appearance] 📥 Preloading Outfit {outfitId} Shirt: {shirtTemplate}`)
 
 			local success, result = pcall(function()
 				-- Extract asset ID from rbxassetid:// URL
@@ -41,7 +41,7 @@ local function preloadClothingAssets()
 						if shirt then
 							-- Store the preloaded shirt template
 							preloadedShirts[outfitId] = shirt.ShirtTemplate
-							print(`[Appearance] ✅ Preloaded Shirt {outfitId}: {shirt.ShirtTemplate}`)
+							--print(`[Appearance] ✅ Preloaded Shirt {outfitId}: {shirt.ShirtTemplate}`)
 							model:Destroy()
 							return true
 						end
@@ -55,7 +55,7 @@ local function preloadClothingAssets()
 				successCount += 1
 			else
 				failCount += 1
-				warn(`[Appearance] ❌ Failed to preload Outfit {outfitId} Shirt:`, result)
+				--warn(`[Appearance] ❌ Failed to preload Outfit {outfitId} Shirt:`, result)
 			end
 
 			task.wait(0.1) -- Small delay between loads
@@ -65,7 +65,7 @@ local function preloadClothingAssets()
 		if outfit.pants then
 			totalAssets += 1
 			local pantsTemplate = outfit.pants
-			print(`[Appearance] 📥 Preloading Outfit {outfitId} Pants: {pantsTemplate}`)
+			--print(`[Appearance] 📥 Preloading Outfit {outfitId} Pants: {pantsTemplate}`)
 
 			local success, result = pcall(function()
 				-- Extract asset ID from rbxassetid:// URL
@@ -78,7 +78,7 @@ local function preloadClothingAssets()
 						if pants then
 							-- Store the preloaded pants template
 							preloadedPants[outfitId] = pants.PantsTemplate
-							print(`[Appearance] ✅ Preloaded Pants {outfitId}: {pants.PantsTemplate}`)
+							--print(`[Appearance] ✅ Preloaded Pants {outfitId}: {pants.PantsTemplate}`)
 							model:Destroy()
 							return true
 						end
@@ -92,7 +92,7 @@ local function preloadClothingAssets()
 				successCount += 1
 			else
 				failCount += 1
-				warn(`[Appearance] ❌ Failed to preload Outfit {outfitId} Pants:`, result)
+				--warn(`[Appearance] ❌ Failed to preload Outfit {outfitId} Pants:`, result)
 			end
 
 			task.wait(0.1) -- Small delay between loads
@@ -100,7 +100,7 @@ local function preloadClothingAssets()
 	end
 
 	clothingAssetsPreloaded = true
-	print(`[Appearance] 🎉 Preloading complete! Success: {successCount}/{totalAssets}, Failed: {failCount}`)
+	--print(`[Appearance] 🎉 Preloading complete! Success: {successCount}/{totalAssets}, Failed: {failCount}`)
 end
 
 -- Preload assets when module loads
@@ -177,17 +177,17 @@ end
 local loadedCharacters = {}
 
 Appearance.Load = function(Player : Player)
-    print("[Appearance] 🎨 Load called for player:", Player.Name)
+   -- --print("[Appearance] 🎨 Load called for player:", Player.Name)
 
     -- Ensure clothing assets are preloaded before applying appearance
     if not clothingAssetsPreloaded then
-        print("[Appearance] ⏳ Waiting for clothing assets to preload...")
+       -- --print("[Appearance] ⏳ Waiting for clothing assets to preload...")
         preloadClothingAssets()
     end
 
     local PlayerClass = Server.Modules["Players"].Get(Player);
     if not PlayerClass or not PlayerClass.Character or not PlayerClass.Data then
-        warn("[Appearance] ⚠️ Missing PlayerClass, Character, or Data for:", Player.Name)
+        --warn("[Appearance] ⚠️ Missing PlayerClass, Character, or Data for:", Player.Name)
         return
     end
 
@@ -195,15 +195,15 @@ Appearance.Load = function(Player : Player)
 
     -- Prevent duplicate calls for the same character instance
     if loadedCharacters[character] then
-        warn("[Appearance] ⚠️ Appearance already loaded for this character, skipping duplicate call")
+        --warn("[Appearance] ⚠️ Appearance already loaded for this character, skipping duplicate call")
         return
     end
 
     local humanoid = character:WaitForChild("Humanoid")
     local playerData = PlayerClass.Data
 
-    print("[Appearance] Character found:", character.Name)
-    print("[Appearance] FirstJoin:", playerData.FirstJoin)
+   -- --print("[Appearance] Character found:", character.Name)
+   -- --print("[Appearance] FirstJoin:", playerData.FirstJoin)
 
     -- Mark this character as loaded BEFORE doing any work
     loadedCharacters[character] = true
@@ -212,14 +212,14 @@ Appearance.Load = function(Player : Player)
     character.AncestryChanged:Once(function()
         if not character.Parent then
             loadedCharacters[character] = nil
-            print("[Appearance] Character removed, cleared loaded flag for:", Player.Name)
+           -- --print("[Appearance] Character removed, cleared loaded flag for:", Player.Name)
         end
     end)
 
     -- DELETE ALL existing Shirt and Pants instances to prevent conflicts
     for _, child in character:GetChildren() do
         if child:IsA("Shirt") or child:IsA("Pants") then
-            print("[Appearance] 🗑️ Deleting existing", child.ClassName, "with template:", child:IsA("Shirt") and child.ShirtTemplate or child.PantsTemplate)
+           -- --print("[Appearance] 🗑️ Deleting existing", child.ClassName, "with template:", child:IsA("Shirt") and child.ShirtTemplate or child.PantsTemplate)
             child:Destroy()
         end
     end
@@ -236,7 +236,7 @@ Appearance.Load = function(Player : Player)
     pants.Name = "Pants"
     pants.Parent = character
 
-    print("[Appearance] ✅ Created fresh Shirt and Pants instances")
+   -- --print("[Appearance] ✅ Created fresh Shirt and Pants instances")
 
     if playerData.FirstJoin == true then
         local raceSpinner = racespin()
@@ -254,7 +254,7 @@ Appearance.Load = function(Player : Player)
             local SkinColor = RaceTable[variant]
             PlayerClass.Data.Customization.SkinColor = SkinColor
         else
-            warn("Invalid race: " .. tostring(raceSpinner))
+            --warn("Invalid race: " .. tostring(raceSpinner))
         end
         
         PlayerClass.Data.FL_Name.First = customizationData.FirstNames[math.random(1, #customizationData.FirstNames)]
@@ -265,7 +265,7 @@ Appearance.Load = function(Player : Player)
         local h, s, v
         
         if typeof(Race.Name) ~= "string" then
-            warn("Race is not a valid string. Actual value:", Race)
+            --warn("Race is not a valid string. Actual value:", Race)
             Race = "Amestrian"
         end
 
@@ -274,7 +274,7 @@ Appearance.Load = function(Player : Player)
             h, s, v = hairColor:ToHSV()
             PlayerClass.Data.Customization.HairColor = {H = h, S = s, V = v}
         else
-            warn("Invalid Race or missing hair color data for Race: " .. tostring(Race))
+            --warn("Invalid Race or missing hair color data for Race: " .. tostring(Race))
             local defaultColor = Color3.new(0, 0, 0)
             h, s, v = defaultColor:ToHSV()
             PlayerClass.Data.Customization.HairColor = {H = h, S = s, V = v}
@@ -344,11 +344,11 @@ Appearance.Load = function(Player : Player)
         local shirtTemplate = preloadedShirts[initialOutfit] or customizationData.Clothes[initialOutfit].shirt
         local pantsTemplate = preloadedPants[initialOutfit] or customizationData.Clothes[initialOutfit].pants
 
-        print("[Appearance] 🎨 Applying clothing templates:")
-        print("  Outfit ID:", initialOutfit)
-        print("  Shirt Template:", shirtTemplate)
-        print("  Pants Template:", pantsTemplate)
-        print("  Using Preloaded:", preloadedShirts[initialOutfit] ~= nil)
+       -- --print("[Appearance] 🎨 Applying clothing templates:")
+       -- --print("  Outfit ID:", initialOutfit)
+       -- --print("  Shirt Template:", shirtTemplate)
+       -- --print("  Pants Template:", pantsTemplate)
+       -- --print("  Using Preloaded:", preloadedShirts[initialOutfit] ~= nil)
 
         -- Delete and recreate to ensure fresh application
         if shirt then shirt:Destroy() end
@@ -365,9 +365,9 @@ Appearance.Load = function(Player : Player)
         pants.PantsTemplate = pantsTemplate
         pants.Parent = character
 
-        print("[Appearance] ✅ Applied clothing for first join:")
-        print("  Shirt:", shirt.ShirtTemplate)
-        print("  Pants:", pants.PantsTemplate)
+       -- --print("[Appearance] ✅ Applied clothing for first join:")
+       -- --print("  Shirt:", shirt.ShirtTemplate)
+       -- --print("  Pants:", pants.PantsTemplate)
 
         PlayerClass.Data.FirstJoin = false
         -- game.ReplicatedStorage.Status[Player.Name]:SetAttribute("Loaded", true)
@@ -426,17 +426,17 @@ Appearance.Load = function(Player : Player)
 
         -- Apply clothing (use preloaded templates if available)
         local outfit = PlayerClass.Data.Customization.Outfit
-        print("[Appearance] Applying saved outfit:", outfit)
+       -- --print("[Appearance] Applying saved outfit:", outfit)
 
         if outfit and customizationData.Clothes[outfit] then
             local shirtTemplate = preloadedShirts[outfit] or customizationData.Clothes[outfit].shirt
             local pantsTemplate = preloadedPants[outfit] or customizationData.Clothes[outfit].pants
 
-            print("[Appearance] 🎨 Applying saved clothing templates:")
-            print("  Outfit ID:", outfit)
-            print("  Shirt Template:", shirtTemplate)
-            print("  Pants Template:", pantsTemplate)
-            print("  Using Preloaded:", preloadedShirts[outfit] ~= nil)
+           -- --print("[Appearance] 🎨 Applying saved clothing templates:")
+           -- --print("  Outfit ID:", outfit)
+           -- --print("  Shirt Template:", shirtTemplate)
+           -- --print("  Pants Template:", pantsTemplate)
+           -- --print("  Using Preloaded:", preloadedShirts[outfit] ~= nil)
 
             -- Delete and recreate to ensure fresh application
             if shirt then shirt:Destroy() end
@@ -453,17 +453,17 @@ Appearance.Load = function(Player : Player)
             pants.PantsTemplate = pantsTemplate
             pants.Parent = character
 
-            print("[Appearance] ✅ Applied saved clothing:")
-            print("  Shirt:", shirt.ShirtTemplate)
-            print("  Pants:", pants.PantsTemplate)
+           -- --print("[Appearance] ✅ Applied saved clothing:")
+           -- --print("  Shirt:", shirt.ShirtTemplate)
+           -- --print("  Pants:", pants.PantsTemplate)
         else
-            warn("[Appearance] ⚠️ Invalid outfit value or missing clothes data. Outfit:", outfit)
+            --warn("[Appearance] ⚠️ Invalid outfit value or missing clothes data. Outfit:", outfit)
         end
 
         -- game.ReplicatedStorage.Status[Player.Name]:SetAttribute("Loaded", true)
     end
 
-    print("[Appearance] ✅ Appearance.Load completed for:", Player.Name)
+   -- --print("[Appearance] ✅ Appearance.Load completed for:", Player.Name)
 end
 
 return Appearance

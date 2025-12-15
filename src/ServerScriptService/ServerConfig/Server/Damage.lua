@@ -8,6 +8,7 @@ local Utilities = require(Replicated.Modules.Utilities)
 local Debris = Utilities.Debris
 local Voxbreaker = require(Replicated.Modules.Voxel)
 local RunService = game:GetService("RunService")
+local VFXCleanup = require(Replicated.Modules.Utils.VFXCleanup)
 local self = setmetatable({}, DamageService)
 local world = require(Replicated.Modules.ECS.jecs_world)
 local ref = require(Replicated.Modules.ECS.jecs_ref)
@@ -110,7 +111,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	-- if TargetPlayer and not world:get then
 	-- 	world:set
-	-- 	-- -- -- print("in combat for " .. Target.Name)
+	-- 	-- -- ---- print("in combat for " .. Target.Name)
 	-- 	Visuals.FireClient(TargetPlayer, {
 	-- 		Module = "Base",
 	-- 		Function = "InCombat",
@@ -122,18 +123,35 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		-- COMPREHENSIVE ACTION CANCELLATION SYSTEM
 		-- When hit, cancel ALL ongoing actions to prevent overlapping states
 
-		-- print(`[HIT INTERRUPT] 🛑 {Target.Name} was hit - cancelling all actions`)
+		---- print(`[HIT INTERRUPT] 🛑 {Target.Name} was hit - cancelling all actions`)
 
-		-- 1. Stop all animations immediately
+		-- 1. Stop all animations immediately (more aggressive)
 		Library.StopAllAnims(Target)
 
-		-- 2. Clear ALL action states (skills, M1s, M2s, etc.)
+		-- Also stop animations on Humanoid directly
+		local humanoid = Target:FindFirstChild("Humanoid")
+		if humanoid then
+			local animator = humanoid:FindFirstChild("Animator")
+			if animator then
+				for _, track in animator:GetPlayingAnimationTracks() do
+					track:Stop(0) -- Stop immediately with 0 fade time
+				end
+			end
+		end
+
+		-- 2. CLEANUP ALL VFX ON MOVE CANCELLATION
+		VFXCleanup.CleanupCharacter(Target)
+		VFXCleanup.DisableCharacterParticles(Target)
+		VFXCleanup.CleanupVisualsFolder(Target)
+		---- print(`[HIT INTERRUPT] - Cleaned up VFX for {Target.Name}`)
+
+		-- 3. Clear ALL action states (skills, M1s, M2s, etc.)
 		local actions = Target:FindFirstChild("Actions")
 		if actions then
 			local allStates = Library.GetAllStates(actions)
 			for _, stateName in ipairs(allStates) do
 				Library.RemoveState(actions, stateName)
-				-- print(`[HIT INTERRUPT] - Removed action state: {stateName}`)
+				---- print(`[HIT INTERRUPT] - Removed action state: {stateName}`)
 			end
 		end
 
@@ -146,7 +164,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				local isDashing = world:get(playerEntity, comps.Dashing)
 				if isDashing then
 					world:set(playerEntity, comps.Dashing, false)
-					-- print(`[HIT INTERRUPT] - Cancelled dash for {Target.Name}`)
+					---- print(`[HIT INTERRUPT] - Cancelled dash for {Target.Name}`)
 				end
 			end
 		end
@@ -158,7 +176,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or
 				   child:IsA("BodyPosition") or child:IsA("BodyGyro") then
 					child:Destroy()
-					-- print(`[HIT INTERRUPT] - Removed {child.ClassName} from {Target.Name}`)
+					---- print(`[HIT INTERRUPT] - Removed {child.ClassName} from {Target.Name}`)
 				end
 			end
 		end
@@ -172,7 +190,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				if speedName:match("M1Speed") or speedName:match("AlcSpeed") or
 				   speedName:match("RunSpeed") or speedName:match("DashSpeed") then
 					Library.RemoveState(speeds, speedName)
-					-- print(`[HIT INTERRUPT] - Removed speed state: {speedName}`)
+					---- print(`[HIT INTERRUPT] - Removed speed state: {speedName}`)
 				end
 			end
 		end
@@ -181,10 +199,10 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		local targetEntity = RefManager.entity.find(Target)
 		if targetEntity and world:has(targetEntity, comps.Grab) then
 			world:remove(targetEntity, comps.Grab)
-			-- print(`[HIT INTERRUPT] - Released grab for {Target.Name}`)
+			---- print(`[HIT INTERRUPT] - Released grab for {Target.Name}`)
 		end
 
-		-- print(`[HIT INTERRUPT] ✅ All actions cancelled for {Target.Name}`)
+		---- print(`[HIT INTERRUPT] ✅ All actions cancelled for {Target.Name}`)
 	end
 
 	local function DealStun()
@@ -195,14 +213,14 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			return
 		end
 
-		-- Check for hyperarmor moves (Pincer Impact, Needle Thrust)
+		-- Check for hyperarmor moves (Pincer Impact, Needle Thrust, Tapdance)
 		if actions then
 			local currentAction = nil
 			local allStates = Library.GetAllStates(actions)
 
 			-- Find the current action
 			for stateName, _ in pairs(allStates) do
-				if stateName == "Pincer Impact" or stateName == "Needle Thrust" then
+				if stateName == "Pincer Impact" or stateName == "Needle Thrust" or stateName == "Tapdance" then
 					currentAction = stateName
 					break
 				end
@@ -217,7 +235,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 				-- Check if damage exceeds threshold
 				local accumulatedDamage = newDamage
-				local threshold = 15 -- Damage threshold before hyperarmor breaks
+				local threshold = 50 -- Damage threshold before hyperarmor breaks
 
 				-- Update hyperarmor visual indicator (white → red based on damage)
 				local damagePercent = math.clamp(accumulatedDamage / threshold, 0, 1)
@@ -229,7 +247,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 				if accumulatedDamage >= threshold then
 					-- Break hyperarmor - cancel the move
-					-- -- -- print("Hyperarmor broken for", Target.Name, "- took", accumulatedDamage, "damage during", currentAction)
+					-- -- ---- print("Hyperarmor broken for", Target.Name, "- took", accumulatedDamage, "damage during", currentAction)
 					Library.RemoveState(actions, currentAction)
 					Library.StopAllAnims(Target)
 					Target:SetAttribute("HyperarmorDamage", nil)
@@ -260,18 +278,11 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					Library.TimedState(Target.Stuns, "DamageStun", stunDuration)
 					Library.TimedState(Target.Speeds, "DamageSpeedSet4", stunDuration)
 				else
-					-- Hyperarmor holds - don't apply stun, just play hit animation
-					-- -- -- print("Hyperarmor active for", Target.Name, "-", accumulatedDamage, "/", threshold, "damage taken during", currentAction)
-					if not Table.NoStunAnim then
-						Library.PlayAnimation(
-							Target,
-							Replicated.Assets.Animations.Hit:GetChildren()[Random.new():NextInteger(
-								1,
-								#Replicated.Assets.Animations.Hit:GetChildren()
-							)]
-						)
-					end
+					-- Hyperarmor holds - NO stun animation, NO damage stun
+					-- Hyperarmor prevents ALL interruption including visual stun animations
+					-- -- ---- print("Hyperarmor active for", Target.Name, "-", accumulatedDamage, "/", threshold, "damage taken during", currentAction)
 					-- Don't apply DamageStun - hyperarmor prevents cancellation
+					-- Don't play hit animation - hyperarmor prevents visual interruption
 				end
 				return
 			end
@@ -307,15 +318,15 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			-- Apply M1Stun state for all M1 hits except the 3rd
 			if comboCount ~= 3 then
 				Library.TimedState(Target.Stuns, "M1Stun", stunDuration)
-				-- print(`[M1 STUN] Applied M1Stun to {Target.Name} - Combo: {comboCount}, Duration: {stunDuration}s`)
+				---- print(`[M1 STUN] Applied M1Stun to {Target.Name} - Combo: {comboCount}, Duration: {stunDuration}s`)
 			else
-				-- print(`[M1 STUN] Skipped M1Stun for {Target.Name} - Combo 3 allows parrying`)
+				---- print(`[M1 STUN] Skipped M1Stun for {Target.Name} - Combo 3 allows parrying`)
 			end
 		end
 	end
 
 	local function Parried()
-		-- print(`[PARRY DEBUG] ⚔️ PARRY EXECUTED - Invoker: {Invoker.Name}, Target (Parrier): {Target.Name}`)
+		---- print(`[PARRY DEBUG] ⚔️ PARRY EXECUTED - Invoker: {Invoker.Name}, Target (Parrier): {Target.Name}`)
 
 		-- Apply stun IMMEDIATELY when parry is detected
 		Library.StopAllAnims(Invoker)
@@ -323,7 +334,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		Library.TimedState(Invoker.Speeds, "ParrySpeedSet4", 1.5)
 		Library.TimedState(Invoker.Stuns, "ParryStun", 1.5)
 
-		-- print(`[PARRY DEBUG] - Applied ParryStun to {Invoker.Name} for 1.5s`)
+		---- print(`[PARRY DEBUG] - Applied ParryStun to {Invoker.Name} for 1.5s`)
 
 		-- Add knockback state and iframes for both characters
 		local knockbackDuration = 0.4
@@ -354,7 +365,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		if not Table.NoParryAnimation then
 			for _, v in script.Parent.Callbacks.Parry:GetChildren() do
 				if v:IsA("ModuleScript") and tData and table.find(tData.Passives, v.Name) then
-					-- -- -- print("found passive for" .. v.Name)
+					-- -- ---- print("found passive for" .. v.Name)
 					local func = require(v)
 					func(world, Player, TargetPlayer, Table)
 				end
@@ -541,7 +552,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					local adrenalineBonus = (clampedAdrenaline / 100) * 0.5
 					adrenalineBonusDamage = originalBaseDamage * adrenalineBonus
 					finalDamage = finalDamage + adrenalineBonusDamage
-					-- print(`[Damage] Adrenaline buff applied: {math.floor(clampedAdrenaline)} adrenaline = +{string.format("%.1f", adrenalineBonusDamage)} damage ({string.format("%.1f", originalBaseDamage)} -> {string.format("%.1f", finalDamage)})`)
+					---- print(`[Damage] Adrenaline buff applied: {math.floor(clampedAdrenaline)} adrenaline = +{string.format("%.1f", adrenalineBonusDamage)} damage ({string.format("%.1f", originalBaseDamage)} -> {string.format("%.1f", finalDamage)})`)
 				end
 			end
 		end
@@ -582,7 +593,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					local damageReduction = originalBaseDamage * damageReductionPercent
 					local beforeResistance = finalDamage
 					finalDamage = finalDamage - damageReduction
-					-- print(`[Damage] Damage resistance applied: {math.floor(clampedAdrenaline)} adrenaline = -{string.format("%.1f", damageReduction)} damage ({string.format("%.1f", beforeResistance)} -> {string.format("%.1f", finalDamage)})`)
+					---- print(`[Damage] Damage resistance applied: {math.floor(clampedAdrenaline)} adrenaline = -{string.format("%.1f", damageReduction)} damage ({string.format("%.1f", beforeResistance)} -> {string.format("%.1f", finalDamage)})`)
 				end
 			end
 		end
@@ -605,7 +616,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			)
 		end
 
-		-- -- -- print("Damage.Tag called - Target:", Target.Name, "IsNPC:", Target:GetAttribute("IsNPC"))
+		-- -- ---- print("Damage.Tag called - Target:", Target.Name, "IsNPC:", Target:GetAttribute("IsNPC"))
 
 		if Target:GetAttribute("IsNPC") then
         -- Log the attack for NPC aggression system
@@ -635,12 +646,12 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
         -- if iFrames and iFrames:IsA("StringValue") then
         --     Library.TimedState(iFrames, "RecentlyAttacked", 2) -- Short window just for aggression trigger
         --     Library.TimedState(iFrames, "Damaged", 1) -- Very short immediate reaction
-        --     -- -- -- print("Set RecentlyAttacked and Damaged states for NPC:", Target.Name)
+        --     -- -- ---- print("Set RecentlyAttacked and Damaged states for NPC:", Target.Name)
         -- else
-        --     -- -- -- print("Warning: Could not find IFrames StringValue for NPC:", Target.Name)
+        --     -- -- ---- print("Warning: Could not find IFrames StringValue for NPC:", Target.Name)
         -- end
 
-        -- -- -- -- print("NPC", Target.Name, "was attacked by", Invoker.Name, "- logging for aggression system")
+        -- -- -- ---- print("NPC", Target.Name, "was attacked by", Invoker.Name, "- logging for aggression system")
 
         -- Note: Original NPC damage handling removed as Server.Modules.NPC doesn't exist
         -- The aggression system will handle NPC behavior through the behavior trees
@@ -649,7 +660,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		-- Apply the FINAL calculated damage (not Table.Damage which is the original base)
 		if pData then
 			Target.Humanoid.Health -= finalDamage + pData.Stats.Damage
-			--[[-- -- -- print(
+			--[[-- -- ---- print(
 				"Total damage dealt:",
 				finalDamage + pData.Stats.Damage,
 				"(Base:",
@@ -664,7 +675,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			)]]
 		else
 			Target.Humanoid.Health -= finalDamage
-			-- -- -- print("Total damage dealt:", finalDamage, "(Base:", originalBaseDamage, "+ Adrenaline:", adrenalineBonusDamage, "+ Kinetic:", bonusDamage, ")")
+			-- -- ---- print("Total damage dealt:", finalDamage, "(Base:", originalBaseDamage, "+ Adrenaline:", adrenalineBonusDamage, "+ Kinetic:", bonusDamage, ")")
 		end
 	end
 
@@ -714,14 +725,14 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	local function LightKnockback()
 		if TargetPlayer then
-			-- -- -- print("light kb")
+			-- -- ---- print("light kb")
 			Server.Packets.Bvel.sendTo({ Character = Target, Name = "BaseBvel" }, TargetPlayer)
 		else
 		end
 	end
 
 	local function handleWallbang()
-		-- -- -- print("handling wallbang")
+		-- NEW WALLBANG SYSTEM: Stick player to wall, play wallbang animation, allow wall break on next hit
 		local raycastParams = RaycastParams.new()
 		raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 		raycastParams.FilterDescendantsInstances = { Target, workspace.World.Live }
@@ -729,74 +740,230 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		local root = Invoker.HumanoidRootPart
 		local direction = (eroot.Position - root.Position).Unit
 		local connection
-		local cooldown = false
+		local wallbangTriggered = false
 		local triggerDistance = 5
 
 		connection = RunService.Heartbeat:Connect(function(dt)
 			if not Target.Parent then
-				-- -- -- print("table parent is nil")
 				connection:Disconnect()
+				return
+			end
+
+			-- Only check for wall if not already wallbanged
+			if wallbangTriggered then
 				return
 			end
 
 			local result =
 				workspace:Raycast(Target.HumanoidRootPart.Position, direction * triggerDistance, raycastParams)
 
-			if result and result.Instance and not cooldown then
+			if result and result.Instance then
 				local part = result.Instance
 				if part.Parent == workspace.Transmutables then
+					wallbangTriggered = true
+
+					-- Play wallbang sound
 					local sound = Replicated.Assets.SFX.Hits.Wallbang:Clone()
 					sound.Parent = Target.HumanoidRootPart
 					sound:Play()
 					Debris:AddItem(sound, sound.TimeLength)
-					cooldown = true
+
+					-- Increase damage
 					Table.Damage = Table.Damage * 1.2
-					local Position = result.Position
+					local wallPosition = result.Position
+
+					-- Visual effect
 					Visuals.Ranged(
 						Target.HumanoidRootPart.Position,
 						300,
-						{ Module = "Base", Function = "Wallbang", Arguments = { Position } }
+						{ Module = "Base", Function = "Wallbang", Arguments = { wallPosition } }
 					)
 
-					local parts = Voxbreaker:VoxelizePart(part, 10, 15)
-					for _, v in ipairs(parts) do
-						if v:IsA("BasePart") then
-							v.Anchored = false
-							v.CanCollide = true
+					-- STOP KNOCKBACK ANIMATION AND PLAY WALLBANG ANIMATION
+					Library.StopAllAnims(Target)
+					local WallbangAnim = Library.PlayAnimation(Target, Replicated.Assets.Animations.Misc.Wallbang)
+					WallbangAnim.Priority = Enum.AnimationPriority.Action4
 
-							local debrisDir = (v.Position - result.Position).Unit
-							local debrisVel = Instance.new("BodyVelocity")
-							debrisVel.Velocity = (
-								debrisDir
-								+ Vector3.new(
-									(math.random() - 0.5) * 0.3,
-									math.random() * 1.5,
-									(math.random() - 0.5) * 10
-								)
-							)
-								* 60
-								* 0.3
-
-							debrisVel.MaxForce = Vector3.new(math.huge, 0, math.huge)
-							debrisVel.Parent = v
-							Debris:AddItem(debrisVel, 0.5)
-							Debris:AddItem(v, 8 + math.random() * 4)
+					-- STICK PLAYER TO WALL FOR 1.5 SECONDS
+					-- Remove all existing velocities
+					for _, child in ipairs(eroot:GetChildren()) do
+						if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+							child:Destroy()
 						end
 					end
 
-					task.delay(0.2, function()
-						cooldown = false
+					-- Create BodyPosition to stick to wall
+					local attachment = eroot:FindFirstChild("WallbangAttachment")
+					if not attachment then
+						attachment = Instance.new("Attachment")
+						attachment.Name = "WallbangAttachment"
+						attachment.Parent = eroot
+					end
+
+					-- Position slightly away from wall
+					local stickPosition = wallPosition - (direction * 2)
+
+					local bodyPos = Instance.new("BodyPosition")
+					bodyPos.Name = "WallbangStick"
+					bodyPos.Position = stickPosition
+					bodyPos.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+					bodyPos.P = 10000
+					bodyPos.D = 500
+					bodyPos.Parent = eroot
+
+					-- Lock rotation and add stun states
+					Library.TimedState(Target.Stuns, "NoRotate", 1.5)
+					Library.TimedState(Target.Stuns, "WallbangStun", 1.5)
+					Library.TimedState(Target.IFrames, "WallbangIFrames", 1.5)
+
+					-- Mark that this character is wallbanged (for wall break detection)
+					Target:SetAttribute("Wallbanged", true)
+					Target:SetAttribute("WallbangWall", part:GetFullName())
+
+					-- Clean up after 1.5 seconds
+					task.delay(1.5, function()
+						if bodyPos and bodyPos.Parent then
+							bodyPos:Destroy()
+						end
+						if Target then
+							Target:SetAttribute("Wallbanged", false)
+							Target:SetAttribute("WallbangWall", nil)
+						end
 					end)
+
+					-- Disconnect the connection since wallbang is triggered
+					connection:Disconnect()
 				end
 			end
 		end)
 
-		Debris:AddItem(connection, 0.25)
+		Debris:AddItem(connection, 0.65) -- Match knockback duration
 	end
 
 	local function Knockback()
 		if Target then
-			-- print("[Knockback] Applying knockback to", Target.Name, "from", Invoker.Name)
+			-- CHECK IF TARGET IS ALREADY WALLBANGED - IF SO, BREAK THE WALL
+			if Target:GetAttribute("Wallbanged") then
+				local wallPath = Target:GetAttribute("WallbangWall")
+				if wallPath then
+					local wall = game
+					for _, name in ipairs(string.split(wallPath, ".")) do
+						wall = wall:FindFirstChild(name)
+						if not wall then break end
+					end
+
+					if wall and wall:IsA("BasePart") then
+						-- BREAK THE WALL
+						local sound = Replicated.Assets.SFX.Hits.Wallbang:Clone()
+						sound.Parent = Target.HumanoidRootPart
+						sound:Play()
+						Debris:AddItem(sound, sound.TimeLength)
+
+						-- Visual effect at wall position
+						Visuals.Ranged(
+							wall.Position,
+							300,
+							{ Module = "Base", Function = "Wallbang", Arguments = { wall.Position } }
+						)
+
+						-- Voxelize the wall (break it into pieces)
+						local Voxbreaker = require(Replicated.Modules.Voxel)
+						local parts = Voxbreaker:VoxelizePart(wall, 10, 15)
+						for _, v in ipairs(parts) do
+							if v:IsA("BasePart") then
+								v.Anchored = false
+								v.CanCollide = true
+
+								local debrisDir = (v.Position - wall.Position).Unit
+								local debrisVel = Instance.new("BodyVelocity")
+								debrisVel.Velocity = (
+									debrisDir
+									+ Vector3.new(
+										(math.random() - 0.5) * 0.3,
+										math.random() * 1.5,
+										(math.random() - 0.5) * 10
+									)
+								)
+									* 60
+									* 0.3
+
+								debrisVel.MaxForce = Vector3.new(math.huge, 0, math.huge)
+								debrisVel.Parent = v
+								Debris:AddItem(debrisVel, 0.5)
+								Debris:AddItem(v, 8 + math.random() * 4)
+							end
+						end
+					end
+				end
+
+				-- RAGDOLL THE TARGET WITH BACKWARDS AND UPWARDS VELOCITY
+				Library.StopAllAnims(Target)
+
+				-- Remove wallbang stick
+				local eroot = Target.HumanoidRootPart
+				for _, child in ipairs(eroot:GetChildren()) do
+					if child.Name == "WallbangStick" then
+						child:Destroy()
+					end
+				end
+
+				-- Clear wallbang attributes
+				Target:SetAttribute("Wallbanged", false)
+				Target:SetAttribute("WallbangWall", nil)
+
+				-- Apply ragdoll
+				local Ragdoll = require(Replicated.Modules.Utils.Ragdoll)
+				Ragdoll.Ragdoll(Target, 2)
+
+				-- Apply backwards and upwards velocity
+				local direction = (eroot.Position - Invoker.HumanoidRootPart.Position).Unit
+				local horizontalPower = 40
+				local upwardPower = 30
+
+				local velocity = Vector3.new(
+					direction.X * horizontalPower,
+					upwardPower,
+					direction.Z * horizontalPower
+				)
+
+				-- Send velocity to client
+				local TargetPlayer = game.Players:GetPlayerFromCharacter(Target)
+				if TargetPlayer then
+					Server.Packets.Bvel.sendTo({
+						Character = Target,
+						Name = "WallBreakVelocity",
+						Targ = Target,
+						Velocity = velocity
+					}, TargetPlayer)
+				else
+					-- For NPCs: Create on server
+					local attachment = eroot:FindFirstChild("WallBreakAttachment")
+					if not attachment then
+						attachment = Instance.new("Attachment")
+						attachment.Name = "WallBreakAttachment"
+						attachment.Parent = eroot
+					end
+
+					local lv = Instance.new("LinearVelocity")
+					lv.Name = "WallBreakVelocity"
+					lv.MaxForce = math.huge
+					lv.VectorVelocity = velocity
+					lv.Attachment0 = attachment
+					lv.RelativeTo = Enum.ActuatorRelativeTo.World
+					lv.Parent = eroot
+
+					task.delay(0.8, function()
+						if lv and lv.Parent then
+							lv:Destroy()
+						end
+					end)
+				end
+
+				return -- Don't do normal knockback
+			end
+
+			-- NORMAL KNOCKBACK (not wallbanged)
+			---- print("[Knockback] Applying knockback to", Target.Name, "from", Invoker.Name)
 			Library.StopAllAnims(Target)
 			local Animation = Library.PlayAnimation(Target, Replicated.Assets.Animations.Misc.KnockbackStun)
 			Animation.Priority = Enum.AnimationPriority.Action3
@@ -806,7 +973,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			Library.TimedState(Target.Stuns, "KnockbackStun", 0.65) -- Prevent all actions during knockback
 
 			Server.Packets.Bvel.sendToAll({ Character = Invoker, Name = "KnockbackBvel", Targ = Target })
-			-- print("[Knockback] Sent KnockbackBvel packet")
+			---- print("[Knockback] Sent KnockbackBvel packet")
 			handleWallbang()
 		end
 	end
@@ -876,7 +1043,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	-- Check for specific immunity states, but don't block all damage for NPCs with minor states
 	if Library.StateCheck(Target.IFrames, "Dodge") then
 		Library.RemoveState(Target.IFrames, "Dodge")
-		-- -- -- print("Dodge")
+		-- -- ---- print("Dodge")
 
 		Visuals.Ranged(
 			Target.HumanoidRootPart.Position,
@@ -890,13 +1057,16 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	local isNPC = Target:GetAttribute("IsNPC")
 	if isNPC then
 		-- For NPCs, only block damage if they have actual immunity states, not minor states like "RecentlyAttacked"
-		if Library.StateCheck(Target.IFrames, "IFrame") or Library.StateCheck(Target.IFrames, "ForceField") then
+		-- MULTI-HIT FIX: Allow damage through if victim is in a multi-hit combo
+		if Library.StateCheck(Target.IFrames, "MultiHitVictim") then
+			-- Allow damage through - victim is being hit by multi-hit combo
+		elseif Library.StateCheck(Target.IFrames, "IFrame") or Library.StateCheck(Target.IFrames, "ForceField") then
 			return
 		end
 		-- Allow damage through for states like "RecentlyAttacked", "Damaged", etc.
 	else
 		-- For players, check IFrames but allow damage through for combo victims
-		if Library.StateCheck(Target.IFrames, "StrategistComboVictim") then
+		if Library.StateCheck(Target.IFrames, "StrategistComboVictim") or Library.StateCheck(Target.IFrames, "MultiHitVictim") then
 			-- Allow damage through - victim is locked in combo and should take damage
 		elseif Library.StateCount(Target.IFrames) then
 			-- Block damage for all other IFrame states
@@ -912,16 +1082,16 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	-- Parry detection
 	local hasParryFrame = Library.StateCheck(Target.Frames, "Parry")
 	local isParryable = not Table.NoParry
-	-- print(`[PARRY DEBUG] Damage check - Target: {Target.Name}, Invoker: {Invoker.Name}`)
-	-- print(`[PARRY DEBUG] - Has Parry Frame: {hasParryFrame}, Is Parryable: {isParryable}`)
+	---- print(`[PARRY DEBUG] Damage check - Target: {Target.Name}, Invoker: {Invoker.Name}`)
+	---- print(`[PARRY DEBUG] - Has Parry Frame: {hasParryFrame}, Is Parryable: {isParryable}`)
 
 	if hasParryFrame then
 		local targetFrames = Library.GetAllStatesFromCharacter(Target).Frames or {}
-		-- print(`[PARRY DEBUG] - Target Frames: {table.concat(targetFrames, ", ")}`)
+		---- print(`[PARRY DEBUG] - Target Frames: {table.concat(targetFrames, ", ")}`)
 	end
 
 	if hasParryFrame and isParryable then
-		-- print(`[PARRY DEBUG] - ✅ PARRY DETECTED! Calling Parried()`)
+		---- print(`[PARRY DEBUG] - ✅ PARRY DETECTED! Calling Parried()`)
 		Parried()
 		return
 	end
@@ -997,23 +1167,21 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	if Table.Knockback then
-		-- print("[Damage] Table.Knockback is true, calling Knockback()")
+		---- print("[Damage] Table.Knockback is true, calling Knockback()")
 		Knockback()
 	end
 
 	if Table.LightKnockback then
-		-- print("[Damage] Table.LightKnockback is true, calling LightKnockback()")
+		---- print("[Damage] Table.LightKnockback is true, calling LightKnockback()")
 		LightKnockback()
 	end
 
 	if Table.Damage then
 		DealDamage()
 
-		-- Give NPCs brief immunity after taking damage to prevent spam
-		-- Reduced from 0.2 to 0.05 to allow faster combos with increased stun duration
-		if Target:GetAttribute("IsNPC") then
-			Library.TimedState(Target.IFrames, "IFrame", 0.05)
-		end
+		-- MULTI-HIT FIX: Removed NPC IFrame after damage to allow multi-hit combos
+		-- NPCs no longer get brief immunity after taking damage - allows rapid consecutive hits
+		-- Multi-hit moves will mark their victims with "MultiHitVictim" state instead
 	end
 
 	if Table.Status then
@@ -1021,7 +1189,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	if Table then
-		-- -- -- print(Table)
+		-- -- ---- print(Table)
 	end
 
 	-- Adrenaline System Integration
@@ -1049,7 +1217,7 @@ end
 
 -- Handle destruction of destructible objects (barrels, trees, etc.)
 DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePart, Table: {})
-	-- -- -- print("Destroying destructible object:", Target.Name)
+	-- -- ---- print("Destroying destructible object:", Target.Name)
 
 	-- Get VoxBreaker module
 	local VoxBreaker = require(Server.Service.ReplicatedStorage.Modules.Voxel)
@@ -1065,7 +1233,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 	   targetModel and targetModel:IsA("Model") and targetModel.Name:lower():find("crate") or
 	   targetModel and targetModel:IsA("Model") and targetModel.Name:lower():find("tree") then
 		shouldDestroyWholeModel = true
-		-- -- -- print("Destroying entire model:", targetModel.Name)
+		-- -- ---- print("Destroying entire model:", targetModel.Name)
 	end
 
 	-- Get all parts to destroy
@@ -1090,7 +1258,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 		table.insert(partsToDestroy, Target)
 	end
 
-	-- -- -- print("Found", #partsToDestroy, "parts to destroy")
+	-- -- ---- print("Found", #partsToDestroy, "parts to destroy")
 
 	-- Store original properties for respawning
 	local originalCFrame = mainCFrame
@@ -1123,11 +1291,11 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 
 		-- Use VoxBreaker to shatter the part into pieces
 		local shatteredParts = VoxBreaker:VoxelizePart(partClone, desiredParts, -1) -- -1 means don't auto-destroy
-		-- -- -- print("VoxelizePart returned", #shatteredParts, "parts for", part.Name)
+		-- -- ---- print("VoxelizePart returned", #shatteredParts, "parts for", part.Name)
 
 		-- If VoxelizePart didn't work, create manual debris
 		if #shatteredParts == 0 or (#shatteredParts == 1 and shatteredParts[1] == partClone) then
-			-- -- -- print("VoxelizePart failed for", part.Name, ", creating manual debris")
+			-- -- ---- print("VoxelizePart failed for", part.Name, ", creating manual debris")
 			shatteredParts = {}
 
 			-- Create manual debris pieces
@@ -1258,7 +1426,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 					targetModel:Destroy()
 				end
 
-				-- -- -- print("Respawned destructible model:", respawnedModel.Name)
+				-- -- ---- print("Respawned destructible model:", respawnedModel.Name)
 			else
 				-- Respawn single part by cloning the stored original
 				-- This preserves all properties including MeshId without permission issues
@@ -1277,7 +1445,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 					Target:Destroy()
 				end
 
-				-- -- -- print("Respawned destructible part:", respawnedPart.Name)
+				-- -- ---- print("Respawned destructible part:", respawnedPart.Name)
 			end
 		end
 	end)
@@ -1298,8 +1466,8 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 	end
 
 	local targetName = shouldDestroyWholeModel and targetModel.Name or Target.Name
-	-- -- -- print("Destructible object destroyed:", targetName, "- Created", #allShatteredParts, "total debris pieces")
-	-- -- -- print("Destroyed", #partsToDestroy, "parts from", targetName)
+	-- -- ---- print("Destructible object destroyed:", targetName, "- Created", #allShatteredParts, "total debris pieces")
+	-- -- ---- print("Destroyed", #partsToDestroy, "parts from", targetName)
 end
 
 return DamageService

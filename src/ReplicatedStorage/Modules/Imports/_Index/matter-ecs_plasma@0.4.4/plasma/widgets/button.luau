@@ -16,7 +16,7 @@
 	```lua
 	Plasma.window("Button", function()
 		if Plasma.button("button text"):clicked() then
-			-- print("clicked!")
+			---- print("clicked!")
 		end
 	end)
 	```

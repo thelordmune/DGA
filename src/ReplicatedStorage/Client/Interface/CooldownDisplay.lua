@@ -45,7 +45,7 @@ local lastUpdate = 0
 
 -- Create the UI
 local function createUI()
-	-- -- print("📦 Creating CooldownDisplay UI...")
+	-- ---- print("📦 Creating CooldownDisplay UI...")
 
 	-- Create ScreenGui
 	screenGui = Instance.new("ScreenGui")
@@ -53,7 +53,7 @@ local function createUI()
 	screenGui.ResetOnSpawn = false
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	screenGui.Parent = player:WaitForChild("PlayerGui")
-	-- -- print("  ✓ ScreenGui created and parented to PlayerGui")
+	-- ---- print("  ✓ ScreenGui created and parented to PlayerGui")
 
 	-- Create container frame
 	container = Instance.new("Frame")
@@ -63,7 +63,7 @@ local function createUI()
 	container.Size = UDim2.fromOffset(60, 500) -- Will auto-size based on content
 	container.BackgroundTransparency = 1
 	container.Parent = screenGui
-	-- -- print("  ✓ Container frame created at position:", CONFIG.POSITION)
+	-- ---- print("  ✓ Container frame created at position:", CONFIG.POSITION)
 
 	-- Create a test label to verify UI is visible
 	local testLabel = Instance.new("TextLabel")
@@ -99,15 +99,15 @@ local function createUI()
 	testButton.Parent = testLabel
 
 	testButton.MouseButton1Click:Connect(function()
-		-- -- print("🧪 TEST: Manually triggering M1 cooldown")
+		-- ---- print("🧪 TEST: Manually triggering M1 cooldown")
 		local char = player.Character
 		if char then
 			Library.SetCooldown(char, "M1", 3) -- 3 second test cooldown
-			-- -- print("🧪 TEST: M1 cooldown set for 3 seconds")
+			-- ---- print("🧪 TEST: M1 cooldown set for 3 seconds")
 		end
 	end)
 
-	-- -- print("  ✓ Test label created (click it to test cooldowns!)")
+	-- ---- print("  ✓ Test label created (click it to test cooldowns!)")
 
 	-- Add UIListLayout for automatic positioning
 	local listLayout = Instance.new("UIListLayout")
@@ -117,9 +117,9 @@ local function createUI()
 	listLayout.Padding = UDim.new(0, CONFIG.SPACING)
 	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	listLayout.Parent = container
-	-- -- print("  ✓ UIListLayout added")
+	-- ---- print("  ✓ UIListLayout added")
 
-	-- -- print("📦 UI creation complete!")
+	-- ---- print("📦 UI creation complete!")
 end
 
 -- Create a cooldown frame for a skill
@@ -222,14 +222,14 @@ local function updateCooldown(skillName: string, timeRemaining: number, totalCoo
 	if not frame then
 		frame = createCooldownFrame(skillName)
 		cooldownFrames[skillName] = frame
-		-- -- print("📦 Created cooldown frame for:", skillName)
+		-- ---- print("📦 Created cooldown frame for:", skillName)
 	end
 
 	if timeRemaining > 0 then
 		-- Show the frame if hidden
 		if not frame.Visible then
 			showCooldownFrame(frame)
-			-- -- print("👁️ Showing cooldown frame for:", skillName, "Time:", timeRemaining)
+			-- ---- print("👁️ Showing cooldown frame for:", skillName, "Time:", timeRemaining)
 		end
 
 		-- Update timer text
@@ -248,21 +248,21 @@ local function updateCooldown(skillName: string, timeRemaining: number, totalCoo
 		-- Hide the frame when cooldown is done
 		if frame.Visible then
 			hideCooldownFrame(frame)
-			-- -- print("🙈 Hiding cooldown frame for:", skillName)
+			-- ---- print("🙈 Hiding cooldown frame for:", skillName)
 		end
 	end
 end
 
 -- Get player's weapon skills from inventory/hotbar
 local function getWeaponSkills(): {string}
-	-- -- print("🔧 Getting weapon skills from hotbar...")
+	-- ---- print("🔧 Getting weapon skills from hotbar...")
 
 	local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 	local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManager)
 
 	local pent = ref.get("local_player")  -- No second parameter needed for local_player
 	if not pent then
-		-- -- print("  ⚠️ Player entity not found")
+		-- ---- print("  ⚠️ Player entity not found")
 		return {}
 	end
 
@@ -273,12 +273,12 @@ local function getWeaponSkills(): {string}
 		local item = InventoryManager.getHotbarItem(pent, slotNumber)
 		if item and item.typ == "skill" then
 			table.insert(weaponSkills, item.name)
-			-- -- print("  ✓ Found weapon skill in slot", slotNumber .. ":", item.name)
+			-- ---- print("  ✓ Found weapon skill in slot", slotNumber .. ":", item.name)
 		end
 	end
 
 	if #weaponSkills == 0 then
-		-- -- print("  ⚠️ No weapon skills found in hotbar")
+		-- ---- print("  ⚠️ No weapon skills found in hotbar")
 	end
 
 	return weaponSkills
@@ -286,7 +286,7 @@ end
 
 -- Get player's alchemy skills
 local function getAlchemySkills(): {string}
-	-- -- print("🧪 Getting alchemy skills...")
+	-- ---- print("🧪 Getting alchemy skills...")
 
 	-- Get alchemy combinations
 	local combinationsModule = ReplicatedStorage.Modules.Shared:FindFirstChild("Combinations")
@@ -299,13 +299,13 @@ local function getAlchemySkills(): {string}
 			local alchemySkills = {}
 			for skillName, _ in pairs(combinations) do
 				table.insert(alchemySkills, skillName)
-				-- -- print("  ✓ Found alchemy skill:", skillName)
+				-- ---- print("  ✓ Found alchemy skill:", skillName)
 			end
 			return alchemySkills
 		end
 	end
 
-	-- -- print("  ⚠️ No alchemy skills found")
+	-- ---- print("  ⚠️ No alchemy skills found")
 	return {}
 end
 
@@ -406,16 +406,16 @@ local function updateCooldowns()
 	-- Debug: Log first update
 	if not hasLoggedFirstUpdate then
 		hasLoggedFirstUpdate = true
-		-- -- print("🔄 First cooldown update running")
-		-- -- print("  Character:", character.Name)
-		-- -- print("  Tracked skills:", #TRACKED_SKILLS)
+		-- ---- print("🔄 First cooldown update running")
+		-- ---- print("  Character:", character.Name)
+		-- ---- print("  Tracked skills:", #TRACKED_SKILLS)
 
 		-- Check if any cooldowns are active
 		local activeCooldowns = 0
 		for skillName, _ in pairs(characterCooldowns) do
 			activeCooldowns = activeCooldowns + 1
 		end
-		-- -- print("  Active cooldowns:", activeCooldowns)
+		-- ---- print("  Active cooldowns:", activeCooldowns)
 	end
 
 	-- Update each tracked skill
@@ -428,7 +428,7 @@ local function updateCooldowns()
 
 			-- Debug: Log when a cooldown is detected
 			if timeRemaining > 0 and not cooldownFrames[skillName] or (cooldownFrames[skillName] and not cooldownFrames[skillName].Visible) then
-				-- -- print("⏱️ Cooldown detected:", skillName, "Time remaining:", timeRemaining)
+				-- ---- print("⏱️ Cooldown detected:", skillName, "Time remaining:", timeRemaining)
 			end
 
 			updateCooldown(skillName, timeRemaining, totalCooldown)
@@ -441,29 +441,29 @@ end
 
 -- Initialize the system
 function CooldownDisplay.Init()
-	-- -- print("🎯 CooldownDisplay.Init() called")
+	-- ---- print("🎯 CooldownDisplay.Init() called")
 
 	local success, err = pcall(function()
 		createUI()
-		-- -- print("✅ UI created successfully")
+		-- ---- print("✅ UI created successfully")
 
 		populateTrackedSkills()
-		-- -- print("✅ Tracked skills populated:", #TRACKED_SKILLS, "skills")
+		-- ---- print("✅ Tracked skills populated:", #TRACKED_SKILLS, "skills")
 
 		-- Update cooldowns every frame
 		RunService.Heartbeat:Connect(updateCooldowns)
-		-- -- print("✅ Update loop connected")
+		-- ---- print("✅ Update loop connected")
 
 		-- Listen for hotbar updates to refresh tracked skills
 		local Bridges = require(ReplicatedStorage.Modules.Bridges)
 		Bridges.UpdateHotbar:Connect(function()
-			-- -- print("🔄 Hotbar updated, refreshing tracked skills...")
+			-- ---- print("🔄 Hotbar updated, refreshing tracked skills...")
 			populateTrackedSkills()
 		end)
 
 		-- Also listen for weapon changes
 		player:GetAttributeChangedSignal("Weapon"):Connect(function()
-			-- -- print("🔄 Weapon changed, refreshing tracked skills...")
+			-- ---- print("🔄 Weapon changed, refreshing tracked skills...")
 			task.wait(0.5) -- Wait for hotbar to update
 			populateTrackedSkills()
 		end)
@@ -474,7 +474,7 @@ function CooldownDisplay.Init()
 			populateTrackedSkills()
 		end)
 
-		-- -- print("✅ Cooldown Display initialized successfully")
+		-- ---- print("✅ Cooldown Display initialized successfully")
 	end)
 
 	if not success then

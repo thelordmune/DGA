@@ -114,7 +114,7 @@ Called when leaving a stage. Waypoint markers are automatically cleaned up, but 
 **Example:**
 ```lua
 OnStageEnd = function(stage, questData)
-    print(`Stage {stage} completed!`)
+   -- print(`Stage {stage} completed!`)
     -- Custom cleanup here
 end
 ```
@@ -132,7 +132,7 @@ Called when the quest is completed.
 **Example:**
 ```lua
 OnQuestComplete = function(questData)
-    print("Quest completed!")
+   -- print("Quest completed!")
     -- Play celebration effects, sounds, etc.
 end
 ```
@@ -225,11 +225,11 @@ else
         end,
         
         OnStageEnd = function(stage, questData)
-            print(`Stage {stage} completed`)
+           -- print(`Stage {stage} completed`)
         end,
         
         OnQuestComplete = function(questData)
-            print("Military Exam completed!")
+           -- print("Military Exam completed!")
         end,
     }
 end

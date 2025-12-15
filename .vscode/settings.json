@@ -1,4 +1,7 @@
 {
     "stylua.targetReleaseVersion": "latest",
-    "claudeCodeChat.permissions.yoloMode": false
+    "claudeCodeChat.permissions.yoloMode": false,
+    "robloxLsp.diagnostics.disable": [
+        "unused-function"
+    ]
 }

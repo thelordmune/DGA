@@ -221,7 +221,7 @@ end
 
 -- Build dialogue for a specific NPC
 function DialogueBuilder.BuildDialogue(npcName)
-	-- print("[DialogueBuilder] Building dialogue for:", npcName)
+	---- print("[DialogueBuilder] Building dialogue for:", npcName)
 	
 	-- Load the dialogue data module
 	local dialogueDataFolder = ReplicatedStorage.Modules:FindFirstChild("DialogueData")
@@ -264,13 +264,13 @@ function DialogueBuilder.BuildDialogue(npcName)
 	-- Connect all nodes
 	connectNodes(npcDialogueFolder)
 	
-	-- print("[DialogueBuilder] ✅ Successfully built dialogue for:", npcName)
+	---- print("[DialogueBuilder] ✅ Successfully built dialogue for:", npcName)
 	return true
 end
 
 -- Build all dialogues from DialogueData folder
 function DialogueBuilder.BuildAll()
-	-- print("[DialogueBuilder] Building all dialogues...")
+	---- print("[DialogueBuilder] Building all dialogues...")
 	
 	local dialogueDataFolder = ReplicatedStorage.Modules:FindFirstChild("DialogueData")
 	if not dialogueDataFolder then
@@ -287,7 +287,7 @@ function DialogueBuilder.BuildAll()
 		end
 	end
 	
-	-- print("[DialogueBuilder] ✅ Built", builtCount, "dialogue trees")
+	---- print("[DialogueBuilder] ✅ Built", builtCount, "dialogue trees")
 end
 
 return DialogueBuilder

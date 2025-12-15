@@ -70,11 +70,15 @@ return function(Player, Data, Server)
 
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
 			hittimes[i] = fraction * animlength
 		end
+
+		-- MULTI-HIT FIX: Track first victim for multi-hit state
+		local multiHitVictim = nil
 
 		-- Get hitbox module and entity
 		local Hitbox = Server.Modules.Hitbox
@@ -218,6 +222,13 @@ return function(Player, Data, Server)
 
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Character and Target:IsA("Model") then
+						-- MULTI-HIT FIX: Mark first victim with MultiHitVictim state
+						if not multiHitVictim then
+							multiHitVictim = Target
+							-- Mark victim for multi-hit combo (duration = full animation length)
+							Server.Library.TimedState(Target.IFrames, "MultiHitVictim", animlength)
+						end
+
 						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name].DamageTable)
 					end
 				end

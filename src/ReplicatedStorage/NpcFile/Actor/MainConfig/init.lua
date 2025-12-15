@@ -244,7 +244,7 @@ do
 	local DataFetched = {}
 	Serializer.ToTable(NpcData, DataFetched)
 
-	---- -- print(DataFetched)
+	---- ---- print(DataFetched)
 
 	local Spawning = DataFetched.Spawning
 	if Spawning then
@@ -303,7 +303,7 @@ do
 		for key, value in DataFetched.States do
 			MainConfig.States[key] = value
 		end
-		-- -- print("Loaded States config for NPC - IsPassive:", MainConfig.States.IsPassive, "AggressiveMode:", MainConfig.States.AggressiveMode)
+		-- ---- print("Loaded States config for NPC - IsPassive:", MainConfig.States.IsPassive, "AggressiveMode:", MainConfig.States.AggressiveMode)
 	end
 
 	-- Load weapon configuration
@@ -323,13 +323,13 @@ do
 			Enabled = DataFetched.Weapons.Enabled,
 			WeaponList = weaponList,
 		}
-		-- -- print("Loaded weapons config for NPC:", MainConfig.Weapons.Enabled, "Weapons:", table.concat(weaponList, ", "))
+		-- ---- print("Loaded weapons config for NPC:", MainConfig.Weapons.Enabled, "Weapons:", table.concat(weaponList, ", "))
 	end
 end
 
 function MainConfig.onCooldown(actionData)
 	-- simulate npc actions here
-	---- -- print(action)
+	---- ---- print(action)
 	--return os.clock() -   -- Skill_Setup:checkCooldown(MainConfig.getNpc(), Skill_Data[action].Branch, action)
 	return os.clock() - actionData.Last_Used < actionData.Cooldown
 end
@@ -352,7 +352,7 @@ local function loadWeaponSkills()
 						for _, skillModule in weaponFolder:GetChildren() do
 							if skillModule:IsA("ModuleScript") then
 								weaponSkillHandlers[skillModule.Name] = require(skillModule)
-								-- -- print("Loaded weapon skill for NPCs:", skillModule.Name)
+								-- ---- print("Loaded weapon skill for NPCs:", skillModule.Name)
 							end
 						end
 					end
@@ -388,7 +388,7 @@ local function loadAlchemySkills()
 					local skillModule = networkPath:FindFirstChild(skillName)
 					if skillModule and skillModule:IsA("ModuleScript") then
 						alchemySkillHandlers[skillName] = require(skillModule)
-						-- -- print("Loaded alchemy skill for NPCs:", skillName)
+						-- ---- print("Loaded alchemy skill for NPCs:", skillName)
 					end
 				end
 			end
@@ -403,7 +403,7 @@ function MainConfig.performAction(action, ...)
 	-- Use the same weapon skill and alchemy system that players use
 	local character = MainConfig.getNpc()
 	if not character then
-		warn("No NPC character found for performAction")
+		--warn("No NPC character found for performAction")
 		return false
 	end
 
@@ -418,14 +418,14 @@ function MainConfig.performAction(action, ...)
 
 	-- DEBUG: Log NPC weapon and action
 	local npcWeapon = character:GetAttribute("Weapon")
-	-- -- print(string.format("[NPC %s] Attempting action: %s (Weapon: %s)", character.Name, action, npcWeapon or "NONE"))
+	-- ---- print(string.format("[NPC %s] Attempting action: %s (Weapon: %s)", character.Name, action, npcWeapon or "NONE"))
 
 	-- Check if it's a weapon skill first
 	local weaponSkillHandler = weaponSkillHandlers[action]
 	if weaponSkillHandler then
 		-- Execute the weapon skill using the same function players use
 		-- Weapon skills signature: function(Player, Data, Server)
-		-- -- print(string.format("[NPC %s] Executing weapon skill: %s", character.Name, action))
+		-- ---- print(string.format("[NPC %s] Executing weapon skill: %s", character.Name, action))
 		weaponSkillHandler(fakePlayer, {}, Server)
 		return true
 	end
@@ -438,13 +438,13 @@ function MainConfig.performAction(action, ...)
 		if alchemySkillHandler.EndPoint then
 			alchemySkillHandler.EndPoint(fakePlayer, {})
 		else
-			warn("Alchemy skill", action, "does not have EndPoint function")
+			--warn("Alchemy skill", action, "does not have EndPoint function")
 			return false
 		end
 		return true
 	end
 
-	warn("No skill handler found for:", action)
+	--warn("No skill handler found for:", action)
 	return false
 end
 
@@ -456,7 +456,7 @@ function MainConfig.hasState(player: Model | Player, state: string, value: any)
 	if value then
 		-- For specific value checks with the Library system
 		-- You'll need to implement custom logic based on your needs
-		warn("Value-based state checking requires custom implementation")
+		--warn("Value-based state checking requires custom implementation")
 		return false
 	end
 	return Library.StateCheck(stateValue, state)
@@ -472,7 +472,7 @@ function MainConfig.getState(player: Model | Player)
 	end
 
 	if not character then
-		warn("MainConfig.getState: No character found for", player.Name)
+		--warn("MainConfig.getState: No character found for", player.Name)
 		return nil
 	end
 
@@ -483,7 +483,7 @@ function MainConfig.getState(player: Model | Player)
 		return stunState
 	else
 		-- If no Stuns state exists, the character hasn't been properly initialized
-		--warn("Character", character.Name, "missing Stuns state - may need entity initialization")
+		----warn("Character", character.Name, "missing Stuns state - may need entity initialization")
 		-- Create a temporary state to prevent errors
 		local tempState = Instance.new("StringValue")
 		tempState.Name = "TempStuns"
@@ -524,12 +524,12 @@ function MainConfig.StopWalking()
 end
 
 function MainConfig.Alert(npc: Model)
-	---- -- print(";hyw")
+	---- ---- print(";hyw")
 
 	if not npc or not npc:FindFirstChild("Head") then
 		return
 	end
-	---- -- print("hyw1")
+	---- ---- print("hyw1")
 	--	bridges.Client:Fire(bridgeNet2.AllPlayers(),{
 	--		Module = "AlertEffect",
 	--Head = npc.Head,
@@ -543,14 +543,14 @@ end
 function MainConfig.SpawnEffect(position): Vector3
 	--TODO: Effect
 	Server.Visuals.Ranged(position, 300, { Module = "Base", Function = "Spawn", Arguments = { position} })
-	-- print("doing spawn effect for npcs")
-	-- print("position:", position)
+	---- print("doing spawn effect for npcs")
+	---- print("position:", position)
 end
 
 function MainConfig.DespawnEffect(position): Vector3
 	--TODO: Effect
 	local specificDespawnEffectForNpc = `{MainConfig.getNpc().Name}DespawnEffect`
-	-- -- print(specificDespawnEffectForNpc,position)
+	-- ---- print(specificDespawnEffectForNpc,position)
 end
 
 function MainConfig.LoadAppearance()
@@ -577,9 +577,9 @@ function MainConfig.LoadAppearance()
 	}
 
 	for _, appearanceEntry in appearanceData do
-		warn(`[LoadAppearance] 🔍 BEFORE {appearanceEntry.name} - HumanoidRootPart exists: {npc:FindFirstChild("HumanoidRootPart") ~= nil}`)
+		--warn(`[LoadAppearance] 🔍 BEFORE {appearanceEntry.name} - HumanoidRootPart exists: {npc:FindFirstChild("HumanoidRootPart") ~= nil}`)
 		appearanceEntry.module(npc, MainConfig)
-		warn(`[LoadAppearance] 🔍 AFTER {appearanceEntry.name} - HumanoidRootPart exists: {npc:FindFirstChild("HumanoidRootPart") ~= nil}`)
+		--warn(`[LoadAppearance] 🔍 AFTER {appearanceEntry.name} - HumanoidRootPart exists: {npc:FindFirstChild("HumanoidRootPart") ~= nil}`)
 	end
 
 	local accessories = MainConfig.Appearance.Accessories
@@ -703,7 +703,7 @@ function MainConfig.InitiateBlock(ShouldBlock: boolean)
 end
 
 function MainConfig.cleanup(boolean: boolean)
-	---- -- print(debug.info(2, "sl"))
+	---- ---- print(debug.info(2, "sl"))
 	if #MainConfig.Storage > 0 then
 		--task.synchronize()
 		for _, specificTag in MainConfig.Spawning.Tags do

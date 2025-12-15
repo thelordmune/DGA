@@ -1,7 +1,7 @@
 local CLEAR_DAMAGE_LOG_ON_MAX_HEALTH = false;
 
 return function(actor: Actor, mainConfig: table)
-	---- print("we here fsafsdf")
+	------ print("we here fsafsdf")
 
 	local npc = actor:FindFirstChildOfClass("Model")
 	if not npc then 

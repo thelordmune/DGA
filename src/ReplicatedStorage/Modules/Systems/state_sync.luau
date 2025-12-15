@@ -85,7 +85,7 @@ local function syncStateToStringValue(character: Model, stringValueName: string,
 		cache[stringValueName] = jsonStates
 
 		if DEBUG and #states > 0 then
-			-- print(`[StateSync/Client] ✅ Updated {character.Name}.{stringValueName}: {jsonStates}`)
+			---- print(`[StateSync/Client] ✅ Updated {character.Name}.{stringValueName}: {jsonStates}`)
 		end
 	end
 end
@@ -95,7 +95,7 @@ local hasLoggedQuery = false
 
 local function state_sync()
 	if firstRun then
-		-- print(`[StateSync] ✅ State sync system started on Client (OPTIMIZED)`)
+		---- print(`[StateSync] ✅ State sync system started on Client (OPTIMIZED)`)
 		firstRun = false
 	end
 
@@ -103,7 +103,7 @@ local function state_sync()
 
 	-- Log every 60 frames (1 second) to confirm system is running
 	if DEBUG and frameCount % 60 == 0 then
-		-- print(`[StateSync/Client] System is running (frame {frameCount})`)
+		---- print(`[StateSync/Client] System is running (frame {frameCount})`)
 	end
 
 	-- OPTIMIZATION: Use cached queries instead of iterating all characters
@@ -130,7 +130,7 @@ local function state_sync()
 
 	-- Log entity count once
 	if not hasLoggedQuery and entityCount > 0 then
-		-- print(`[StateSync/Client] Found {entityCount} state components across all entities`)
+		---- print(`[StateSync/Client] Found {entityCount} state components across all entities`)
 		hasLoggedQuery = true
 	end
 end

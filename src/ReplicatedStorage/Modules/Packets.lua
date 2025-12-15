@@ -70,6 +70,13 @@ return ByteNet.defineNamespace("Networking", function()
 				Air = ByteNet.bool,
 			})
 		});
+		["Stone Lance Path"] = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Held = ByteNet.bool,
+				Air = ByteNet.bool,
+			})
+		});
 		["Rock Skewer"] = ByteNet.definePacket({
 			reliabilityType = "reliable";
 			value = ByteNet.struct({
@@ -195,6 +202,13 @@ return ByteNet.defineNamespace("Networking", function()
 			reliabilityType = "reliable";
 			value = ByteNet.struct({
 				-- Empty struct for simple test command
+			})
+		});
+
+		HitboxDebug = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Enabled = ByteNet.bool;
 			})
 		});
 

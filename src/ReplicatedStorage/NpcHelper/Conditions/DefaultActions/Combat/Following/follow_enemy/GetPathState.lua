@@ -48,7 +48,7 @@ return function(npc,mainConfig): PathState
 		end
 	end
 	if Pass == 1 then
-		-- print("yo yo?")
+		---- print("yo yo?")
 		PathState = "Direct"
 	end
 
@@ -94,7 +94,7 @@ end
 
 
 --	--local hitPart = rayResult.Instance
---	------ print(`{hitPart.Name} || {hitPart.Parent.Name}`)
+--	-------- print(`{hitPart.Name} || {hitPart.Parent.Name}`)
 
 
 

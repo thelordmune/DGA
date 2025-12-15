@@ -13,8 +13,8 @@
 
 	local result = CopyDeep(array) -- { 1, 2, 3, { 4, 5 } }
 
-	-- print(result == array) -- false
-	-- print(result[4] == array[4]) -- false
+	---- print(result == array) -- false
+	---- print(result[4] == array[4]) -- false
 	```
 ]=]
 local function copyDeep<T>(array: { T }): { T }

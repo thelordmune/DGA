@@ -11,6 +11,8 @@ local Utilities = require(Replicated.Modules.Utilities)
 local Debris = Utilities.Debris
 local RockMod = require(Replicated.Modules.Utils.RockMod)
 local EmitModule = require(game.ReplicatedStorage.Modules.Utils.EmitModule)
+local VFXCleanup = require(Replicated.Modules.Utils.VFXCleanup)
+local AB = require(Replicated.Modules.Utils.AymanBolt)
 
 -- Variables
 local Player = Players.LocalPlayer
@@ -59,62 +61,60 @@ function Base.Emit(ToEmit)
 end
 
 function Base.Slashes(Character: Model, Weapon: string, Combo: number)
-if Weapon == "Fist" then
-	local eff = Replicated.Assets.VFX.M1:Clone()
-	eff.Parent = workspace.World.Visuals
-	if Combo == 1 then
-		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180),0,0))
-		EmitModule.emit(eff["1"])
-	elseif Combo == 2 then
-		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180),0,0))
-		EmitModule.emit(eff["2"])
-	elseif Combo == 3 then	
-		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180),0,0))
-		EmitModule.emit(eff["3"])
-	elseif Combo == 4 then
-		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180),0,0))
-		EmitModule.emit(eff["4"])
-		task.delay(3, function()
-			eff:Destroy()
-		end)
-	end
-else
-	local Slash: BasePart = Replicated.Assets.VFX[Weapon .. "Slashes"][Combo]:Clone()
-
-	-- Store the original orientation (angular rotation) of the slash
-	-- local originalOrientation = Slash.Orientation
-
-	-- Position the slash in front of the player and make it face the player's direction
-	local playerCFrame = Character.HumanoidRootPart.CFrame
-
-	-- if Weapon == "Fist" then
-	-- 	if Combo == 1 then
-	-- 	Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-77))
-	-- 	elseif Combo == 2 then
-	-- 		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,math.rad(-30),math.rad(-77))
-	-- 	elseif Combo == 3 then
-	-- 		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-62))
-	-- 	elseif Combo == 4 then
-	-- 		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(87))
-	-- 	end
-
-	-- end
-
-	-- Reapply the original angular orientation while preserving the player's facing direction
-	-- Slash.Orientation = originalOrientation + Vector3.new(0, playerCFrame.Rotation.Y * (180 / math.pi), 0)
-
-	Slash.Parent = workspace.World.Visuals
-
-	for _, v in Slash:GetDescendants() do
-		if v:IsA("ParticleEmitter") then
-			v:Emit(v:GetAttribute("EmitCount"))
+	if Weapon == "Fist" then
+		local eff = Replicated.Assets.VFX.M1:Clone()
+		eff.Parent = workspace.World.Visuals
+		if Combo == 1 then
+			eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180), 0, 0))
+			EmitModule.emit(eff["1"])
+		elseif Combo == 2 then
+			eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180), 0, 0))
+			EmitModule.emit(eff["2"])
+		elseif Combo == 3 then
+			eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180), 0, 0))
+			EmitModule.emit(eff["3"])
+		elseif Combo == 4 then
+			eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180), 0, 0))
+			EmitModule.emit(eff["4"])
+			task.delay(3, function()
+				eff:Destroy()
+			end)
 		end
+	else
+		local Slash: BasePart = Replicated.Assets.VFX[Weapon .. "Slashes"][Combo]:Clone()
+
+		-- Store the original orientation (angular rotation) of the slash
+		-- local originalOrientation = Slash.Orientation
+
+		-- Position the slash in front of the player and make it face the player's direction
+		local playerCFrame = Character.HumanoidRootPart.CFrame
+
+		-- if Weapon == "Fist" then
+		-- 	if Combo == 1 then
+		-- 	Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-77))
+		-- 	elseif Combo == 2 then
+		-- 		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,math.rad(-30),math.rad(-77))
+		-- 	elseif Combo == 3 then
+		-- 		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(-62))
+		-- 	elseif Combo == 4 then
+		-- 		Slash.CFrame = playerCFrame * CFrame.new(0, 0, -1) * CFrame.Angles(0,0,math.rad(87))
+		-- 	end
+
+		-- end
+
+		-- Reapply the original angular orientation while preserving the player's facing direction
+		-- Slash.Orientation = originalOrientation + Vector3.new(0, playerCFrame.Rotation.Y * (180 / math.pi), 0)
+
+		Slash.Parent = workspace.World.Visuals
+
+		for _, v in Slash:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+
+		Debris:AddItem(Slash, 3)
 	end
-
-	Debris:AddItem(Slash, 3)
-end
-
-	
 end
 
 function Base.PerfectDodge(Character: Model)
@@ -349,11 +349,14 @@ function Base.DashFX(Character: Model, Direction: string)
 						-- Scale the original NumberSequence by the value (0 to 1)
 						local keypoints = {}
 						for _, keypoint in ipairs(originalWidthScale.Keypoints) do
-							table.insert(keypoints, NumberSequenceKeypoint.new(
-								keypoint.Time,
-								keypoint.Value * value,
-								keypoint.Envelope * value
-							))
+							table.insert(
+								keypoints,
+								NumberSequenceKeypoint.new(
+									keypoint.Time,
+									keypoint.Value * value,
+									keypoint.Envelope * value
+								)
+							)
 						end
 						v.WidthScale = NumberSequence.new(keypoints)
 					else
@@ -373,13 +376,13 @@ function Base.DashFX(Character: Model, Direction: string)
 					trail = v,
 					widthValue = widthValue,
 					connection = connection,
-					originalWidthScale = originalWidthScale
+					originalWidthScale = originalWidthScale,
 				})
 			end
 		end
 
 		-- Enable particles for the duration of the dash instead of just emitting once
-		local dashDuration = 0.15  -- Match the dash duration from Movement.lua
+		local dashDuration = 0.15 -- Match the dash duration from Movement.lua
 
 		-- Enable all particle emitters
 		for _, particleEmitter in ipairs(DashVFX:GetDescendants()) do
@@ -651,7 +654,6 @@ function Base.RemoveFlashStep(Character: Model)
 	end
 end
 
-
 function Base.RollCancel(Character: Model)
 	local highlight = Instance.new("Highlight")
 
@@ -798,7 +800,7 @@ function Base.Shake(magnitude: number, frequency: number?, location: Vector3?)
 		Damp = 0.005, -- Slower dampening for longer lasting shakes
 		Influence = Vector3.new(1.2, 1.2, 0.8), -- More influence on X and Y axes
 		Location = location or workspace.CurrentCamera.CFrame.Position,
-		Falloff = 100 -- Larger falloff distance
+		Falloff = 100, -- Larger falloff distance
 	})
 end
 
@@ -810,7 +812,7 @@ function Base.SpecialShake(magnitude: number, frequency: number?, location: Vect
 		Damp = 0.004, -- Even slower dampening
 		Influence = Vector3.new(1.5, 1.5, 1), -- Maximum influence
 		Location = location or workspace.CurrentCamera.CFrame.Position,
-		Falloff = 120
+		Falloff = 120,
 	})
 end
 
@@ -1038,7 +1040,9 @@ function Base.InCombat(Plr: Player, value: boolean)
 	end
 
 	-- Create new scope for entering combat
-	if not value then return end -- Don't create scope if leaving combat
+	if not value then
+		return
+	end -- Don't create scope if leaving combat
 
 	local scope = scoped(Fusion, {})
 	local ui = Plr.PlayerGui.ScreenGui
@@ -1051,7 +1055,7 @@ function Base.InCombat(Plr: Player, value: boolean)
 	combatScopes[Plr] = {
 		scope = scope,
 		incombat = incombat,
-		started = started
+		started = started,
 	}
 
 	local observer = scope:Observer(incombat)
@@ -1085,7 +1089,7 @@ function Base.InCombat(Plr: Player, value: boolean)
 				BackgroundTransparency = 1,
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
-				Image = "rbxassetid://128748386139453",
+				Image = "rbxassetid://120479076364263",
 				Position = UDim2.fromScale(0.423, 0.526),
 				Size = UDim2.fromOffset(228, 103),
 				ImageTransparency = scope:Tween(
@@ -1131,7 +1135,7 @@ end
 
 function Base.Lightning(params: {})
 	local Lightning = require(game:GetService("ReplicatedStorage").Lightning)
-	-- print(params)
+	---- print(params)
 	local lightning = Lightning.new(table.unpack(params))
 end
 
@@ -1354,7 +1358,7 @@ local function meshfunction(CF: CFrame?, Parent: Instance?)
 end
 
 function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun: MeshPart)
-	-- -- print("Base.Shot called - Character:", Character.Name, "Combo:", Combo, "LeftGun:", LeftGun and LeftGun.Name or "nil", "RightGun:", RightGun and RightGun.Name or "nil")
+	-- ---- print("Base.Shot called - Character:", Character.Name, "Combo:", Combo, "LeftGun:", LeftGun and LeftGun.Name or "nil", "RightGun:", RightGun and RightGun.Name or "nil")
 	if Combo == 1 then
 		local eff = Replicated.Assets.VFX.Shot:Clone()
 		eff.Parent = workspace.World.Visuals
@@ -1363,15 +1367,15 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 		if LeftGun and LeftGun:FindFirstChild("EndPart") then
 			local endPart = LeftGun:FindFirstChild("EndPart")
 			effectPosition = endPart.Position
-			-- -- print("Combo 1: Using LeftGun", endPart.Name, "position")
+			-- ---- print("Combo 1: Using LeftGun", endPart.Name, "position")
 		elseif LeftGun then
 			-- Use gun position even without End part
 			effectPosition = LeftGun.Position
-			-- -- print("Combo 1: Using LeftGun base position")
+			-- ---- print("Combo 1: Using LeftGun base position")
 		else
 			-- Fallback to hand position
 			effectPosition = Character:FindFirstChild("RightHand").Position
-			-- -- print("Combo 1: Using RightHand fallback")
+			-- ---- print("Combo 1: Using RightHand fallback")
 		end
 		-- Always face forward in character's direction
 		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector)
@@ -1393,15 +1397,15 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 		if RightGun and RightGun:FindFirstChild("EndPart") then
 			local endPart = RightGun:FindFirstChild("EndPart")
 			effectPosition = endPart.Position
-			-- -- print("Combo 2: Using RightGun", endPart.Name, "position")
+			-- ---- print("Combo 2: Using RightGun", endPart.Name, "position")
 		elseif RightGun then
 			-- Use gun position even without End part
 			effectPosition = RightGun.Position
-			-- -- print("Combo 2: Using RightGun base position")
+			-- ---- print("Combo 2: Using RightGun base position")
 		else
 			-- Fallback to hand position
 			effectPosition = Character:FindFirstChild("LeftHand").Position
-			-- -- print("Combo 2: Using LeftHand fallback")
+			-- ---- print("Combo 2: Using LeftHand fallback")
 		end
 		-- Always face forward in character's direction
 		eff.CFrame = CFrame.lookAt(effectPosition, effectPosition + Character.HumanoidRootPart.CFrame.LookVector)
@@ -1420,7 +1424,7 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 		eff.Parent = workspace.World.Visuals
 		-- Position in front of character and face forward (no rotation)
 		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 1.5, -2) * CFrame.Angles(0, math.rad(180), 0)
-		-- -- print("Combo 3: Using Combined effect in front of character")
+		-- ---- print("Combo 3: Using Combined effect in front of character")
 
 		for _, v in eff:GetDescendants() do
 			if v:IsA("ParticleEmitter") then
@@ -1439,44 +1443,44 @@ end
 local activeDialogueSessions = {}
 
 function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, state: string })
-	-- print("🎭 [Effects.Base] COMMENCE FUNCTION CALLED")
-	-- print("📋 Dialogue data received:", Dialogue)
+	---- print("🎭 [Effects.Base] COMMENCE FUNCTION CALLED")
+	---- print("📋 Dialogue data received:", Dialogue)
 
 	-- Validate dialogue data
 	if not Dialogue then
-		-- print("❌ [Effects.Base] ERROR: No dialogue data provided!")
+		---- print("❌ [Effects.Base] ERROR: No dialogue data provided!")
 		return
 	end
 
 	if not Dialogue.npc then
-		-- print("❌ [Effects.Base] ERROR: No NPC model in dialogue data!")
+		---- print("❌ [Effects.Base] ERROR: No NPC model in dialogue data!")
 		return
 	end
 
 	if not Dialogue.name then
-		-- print("❌ [Effects.Base] ERROR: No NPC name in dialogue data!")
+		---- print("❌ [Effects.Base] ERROR: No NPC name in dialogue data!")
 		return
 	end
 
-	-- print("✅ [Effects.Base] Dialogue validation passed")
-	-- print("🎯 [Effects.Base] NPC:", Dialogue.name, "| In Range:", Dialogue.inrange, "| State:", Dialogue.state)
+	---- print("✅ [Effects.Base] Dialogue validation passed")
+	---- print("🎯 [Effects.Base] NPC:", Dialogue.name, "| In Range:", Dialogue.inrange, "| State:", Dialogue.state)
 
 	local npcId = Dialogue.npc:GetDebugId() -- Unique identifier for this NPC instance
 
 	if Dialogue.inrange then
 		-- Check if we already have an active session for this NPC
 		if activeDialogueSessions[npcId] then
-			-- print("⚠️ [Effects.Base] Dialogue session already active for", Dialogue.name, "- skipping")
+			---- print("⚠️ [Effects.Base] Dialogue session already active for", Dialogue.name, "- skipping")
 			return
 		end
 
-		-- print("🎯 [Effects.Base] Player is in range, creating proximity UI...")
+		---- print("🎯 [Effects.Base] Player is in range, creating proximity UI...")
 		activeDialogueSessions[npcId] = true
 
 		-- Check if highlight already exists
 		local highlight = Dialogue.npc:FindFirstChild("Highlight")
 		if not highlight then
-			-- print("✨ [Effects.Base] Creating new highlight for NPC")
+			---- print("✨ [Effects.Base] Creating new highlight for NPC")
 			highlight = Instance.new("Highlight")
 			highlight.Name = "Highlight"
 			highlight.DepthMode = Enum.HighlightDepthMode.Occluded
@@ -1487,9 +1491,9 @@ function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, s
 
 			local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 0 })
 			hTween:Play()
-			-- print("🎬 [Effects.Base] Highlight tween started")
+			---- print("🎬 [Effects.Base] Highlight tween started")
 		else
-			-- print("♻️ [Effects.Base] Highlight already exists, reusing it")
+			---- print("♻️ [Effects.Base] Highlight already exists, reusing it")
 			-- Make sure it's visible
 			if highlight.OutlineTransparency > 0.5 then
 				local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 0 })
@@ -1497,66 +1501,66 @@ function Base.Commence(Dialogue: { npc: Model, name: string, inrange: boolean, s
 			end
 		end
 
-		-- print("📦 [Effects.Base] Loading Fusion scope and Proximity component...")
+		---- print("📦 [Effects.Base] Loading Fusion scope and Proximity component...")
 		local scope = scoped(Fusion, {
 			Proximity = require(Replicated.Client.Components.Proximity),
 		})
 		local start = scope:Value(false)
-		-- print("✅ [Effects.Base] Fusion scope created successfully")
+		---- print("✅ [Effects.Base] Fusion scope created successfully")
 
 		local Target = scope:New("ScreenGui")({
 			Name = "ScreenGui",
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 			Parent = Player.PlayerGui,
 		})
-		-- print("🖥️ [Effects.Base] ScreenGui created and parented to PlayerGui")
+		---- print("🖥️ [Effects.Base] ScreenGui created and parented to PlayerGui")
 
 		local parent = Target
 
-		-- print("🔗 [Effects.Base] Creating Proximity component...")
+		---- print("🔗 [Effects.Base] Creating Proximity component...")
 		scope:Proximity({
 			begin = start,
 			par = parent,
 		})
-		-- print("✅ [Effects.Base] Proximity component created")
+		---- print("✅ [Effects.Base] Proximity component created")
 
-		-- print("⏱️ [Effects.Base] Starting proximity animation sequence...")
+		---- print("⏱️ [Effects.Base] Starting proximity animation sequence...")
 		task.wait(0.3)
-		-- print("🎬 [Effects.Base] Setting start to true")
+		---- print("🎬 [Effects.Base] Setting start to true")
 		start:set(true)
 		task.wait(2.5)
-		-- print("🎬 [Effects.Base] Setting start to false")
+		---- print("🎬 [Effects.Base] Setting start to false")
 		start:set(false)
 		task.wait(0.5)
-		-- print("🧹 [Effects.Base] Cleaning up scope")
+		---- print("🧹 [Effects.Base] Cleaning up scope")
 		scope:doCleanup()
 
 		-- Clear the active session
 		activeDialogueSessions[npcId] = nil
-		-- print("✅ [Effects.Base] Proximity effect complete")
+		---- print("✅ [Effects.Base] Proximity effect complete")
 	else
-		-- print("🚫 [Effects.Base] Player not in range, removing highlight...")
+		---- print("🚫 [Effects.Base] Player not in range, removing highlight...")
 
 		-- Clear any active session
 		activeDialogueSessions[npcId] = nil
 
 		local highlight = Dialogue.npc:FindFirstChild("Highlight")
 		if highlight then
-			-- print("✨ [Effects.Base] Found existing highlight, fading out...")
+			---- print("✨ [Effects.Base] Found existing highlight, fading out...")
 			local hTween = TweenService:Create(highlight, TInfo, { OutlineTransparency = 1 })
 			hTween:Play()
 			hTween.Completed:Connect(function()
 				if highlight and highlight.Parent then
 					highlight:Destroy()
-					-- print("🗑️ [Effects.Base] Highlight destroyed")
+					---- print("🗑️ [Effects.Base] Highlight destroyed")
 				end
 			end)
 		else
-			-- print("⚠️ [Effects.Base] No highlight found to remove")
+			---- print("⚠️ [Effects.Base] No highlight found to remove")
 		end
 	end
 
-	-- print("✅ [Effects.Base] COMMENCE FUNCTION COMPLETE")
+	---- print("✅ [Effects.Base] COMMENCE FUNCTION COMPLETE")
 end
 
 function Base.RockSkewer(Character: Model, Frame: string, Wedge: WedgePart)
@@ -1578,11 +1582,11 @@ function Base.RockSkewer(Character: Model, Frame: string, Wedge: WedgePart)
 	end
 
 	if Frame == "Launch" then
-		for _, v in Wedge:GetDescendants() do
-			if v:IsA("Beam") then
-				TweenService:Create(v, TInfo, { Width0 = 1.035, Width1 = 2.766 }):Play()
-			end
-		end
+		-- for _, v in Wedge:GetDescendants() do
+		-- 	if v:IsA("Beam") then
+		-- 		TweenService:Create(v, TInfo, { Width0 = 1.035, Width1 = 2.766 }):Play()
+		-- 	end
+		-- end
 		local vfx1 = Replicated.Assets.VFX.Stone.lightninghit:Clone()
 		local vfx2 = Replicated.Assets.VFX.Stone.rockfly:Clone()
 		vfx2.boom.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
@@ -1825,49 +1829,17 @@ function Base.Cascade(Character: Model, Frame: string)
 end
 
 function Base.NeedleThrust(Character: Model, Frame: string)
+	local eff = Replicated.Assets.VFX.NewNT:Clone()
 	if Frame == "Start" then
-		local eff = Replicated.Assets.VFX.NeedleThrust.jump:Clone()
 		eff.Parent = workspace.World.Visuals
-		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, 0) * CFrame.Angles(math.rad(-15), 0, 0)
-		for _, v in eff:GetDescendants() do
-			if v:IsA("ParticleEmitter") then
-				v:Emit(v:GetAttribute("EmitCount"))
-			end
-		end
-		task.delay(3, function()
-			eff:Destroy()
-		end)
-
-		require(Replicated.Assets.VFX.NeedleThrust.JumpModule)(
-			Character.HumanoidRootPart.CFrame * CFrame.new(0, -3, 0) * CFrame.Angles(math.rad(-15), 0, 0)
-		)
+		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, 0))
+		EmitModule.emit(eff.jump, eff.spearpushwoahhh)
 	end
 
 	if Frame == "Hit" then
-		local eff = Replicated.Assets.VFX.NeedleThrust.stabspear:Clone()
-		eff.Parent = workspace.World.Visuals
-		eff.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -4)
-		for _, v in eff:GetDescendants() do
-			if v:IsA("ParticleEmitter") then
-				v:Emit(v:GetAttribute("EmitCount"))
+		eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, -2.5, 0))
+		EmitModule.emit(eff.Pierce, eff.bloodhit)
 			end
-		end
-
-		local eff2 = Replicated.Assets.VFX.NeedleThrust.um:Clone()
-		eff2.Parent = workspace.World.Visuals
-		eff2.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 4)
-		for _, v in eff2:GetDescendants() do
-			if v:IsA("ParticleEmitter") then
-				v:Emit(v:GetAttribute("EmitCount"))
-			end
-		end
-		task.delay(3, function()
-			eff:Destroy()
-			eff2:Destroy()
-		end)
-
-		require(Replicated.Assets.VFX.NeedleThrust.StabMesh)(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -4))
-	end
 end
 
 function Base.ShellPiercer(Character: Model, Frame: string, tim: number)
@@ -1904,7 +1876,15 @@ function Base.ShellPiercer(Character: Model, Frame: string, tim: number)
 		end)
 
 		-- Impactful camera shake for ultimate move
-		Base.SpecialShake(8, 28, Character.HumanoidRootPart.Position)
+		-- Base.SpecialShake(8, 28, Character.HumanoidRootPart.Position)
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 14.5,
+			Damp = 0.00005,
+			Frequency = 45,
+			Influence = Vector3.new(0.35, 1, 0.35),
+			Falloff = 45,
+		})
 		local lighting = game:GetService("Lighting")
 
 		-- Get or create bloom and blur effects
@@ -2106,22 +2086,22 @@ function Base.AxeKick(Character: Model, Frame: string)
 							Layers = { 3, 3 },
 							ExitIterationDelay = { 0, 0 },
 							LifeCycle = {
-                Entrance = {
-                    Type = "Elevate",
-                    Speed = 0.25,
-                    Division = 3,
-                    EasingStyle = Enum.EasingStyle.Quad,
-                    EasingDirection = Enum.EasingDirection.Out,
-                },
+								Entrance = {
+									Type = "Elevate",
+									Speed = 0.25,
+									Division = 3,
+									EasingStyle = Enum.EasingStyle.Quad,
+									EasingDirection = Enum.EasingDirection.Out,
+								},
 
-                Exit = {
-                    Type = "SizeDown",
-                    Speed = 0.3,
-                    Division = 2,
-                    EasingStyle = Enum.EasingStyle.Sine,
-                    EasingDirection = Enum.EasingDirection.In,
-                },
-            }, -- Instant, no delay
+								Exit = {
+									Type = "SizeDown",
+									Speed = 0.3,
+									Division = 2,
+									EasingStyle = Enum.EasingStyle.Sine,
+									EasingDirection = Enum.EasingDirection.In,
+								},
+							}, -- Instant, no delay
 						})
 
 						if effect then
@@ -2192,7 +2172,7 @@ function Base.AxeKick(Character: Model, Frame: string)
 					local bloomTween = TweenService:Create(bloom, tweenInfo, {
 						Intensity = 30,
 						Size = 5,
-						Threshold = .5,
+						Threshold = 0.5,
 					})
 
 					bloomTween:Play()
@@ -2210,8 +2190,7 @@ function Base.AxeKick(Character: Model, Frame: string)
 end
 
 local function dsmesh(CF: CFrame, Parent: Instance)
-
-	-- Base Setup 
+	-- Base Setup
 
 	if CF then
 		if typeof(CF) == "Vector3" then
@@ -2231,7 +2210,7 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 		Parent = cache
 	end
 
-	local Main_CFrame = CF or CFrame.new(0,0,0)
+	local Main_CFrame = CF or CFrame.new(0, 0, 0)
 
 	-- Settings
 
@@ -2241,26 +2220,52 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 		["WindBig"] = Replicated.Assets.VFX.DownslamVFX.Jump.Slam.WindBig,
 		["Kick"] = Replicated.Assets.VFX.DownslamVFX.Jump.Slam.Kick,
 		["Wind1"] = Replicated.Assets.VFX.DownslamVFX.Jump.Slam.Wind1,
-		["Wind2"] = Replicated.Assets.VFX.DownslamVFX.Jump.Jump.Wind2
-	} :: {[string] : Instance}
+		["Wind2"] = Replicated.Assets.VFX.DownslamVFX.Jump.Jump.Wind2,
+	} :: { [string]: Instance }
 
 	local Visual_Data = {
 		[Visual_Directory["WindBig"]] = {
 			General = {
-				Offset = CFrame.new(0.14389044, -6.14201164, 0.147280157, -0.0871312022, 0, 0.996197224, 0, -1, 0, 0.996197283, 0, 0.0871317983),
+				Offset = CFrame.new(
+					0.14389044,
+					-6.14201164,
+					0.147280157,
+					-0.0871312022,
+					0,
+					0.996197224,
+					0,
+					-1,
+					0,
+					0.996197283,
+					0,
+					0.0871317983
+				),
 				Tween_Duration = 0.3,
 				Transparency = 0.7,
 			},
 
 			Random_Angles = {
-				X = {0, 0},
-				Y = {0, 0},
-				Z = {0, 0},
+				X = { 0, 0 },
+				Y = { 0, 0 },
+				Z = { 0, 0 },
 			},
 			BasePart = {
 				Property = {
 					Size = Vector3.new(22.354114532470703, 0.42486676573753357, 22.354108810424805),
-					CFrame = Main_CFrame * CFrame.new(0.14389044, -8.68135548, 0.147280157, -0.996199965, 0, -0.0871019065, 0, -1.00000048, 0, -0.08710289, 0, 0.996199727),
+					CFrame = Main_CFrame * CFrame.new(
+						0.14389044,
+						-8.68135548,
+						0.147280157,
+						-0.996199965,
+						0,
+						-0.0871019065,
+						0,
+						-1.00000048,
+						0,
+						-0.08710289,
+						0,
+						0.996199727
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -2303,16 +2308,29 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 
 			Features = {
 				Random_Angles = {
-					X = {0, 0},
-					Y = {-360, 360},
-					Z = {0, 0},
+					X = { 0, 0 },
+					Y = { -360, 360 },
+					Z = { 0, 0 },
 				},
 			},
 
 			BasePart = {
 				Property = {
 					Size = Vector3.new(25.763809204101562, 2.8394811153411865, 25.763809204101562),
-					CFrame = Main_CFrame * CFrame.new(-0.113482013, -7.35580206, 4.91738319e-07, -0.783837199, 0, 0.620966434, 0, 1, 0, -0.620966434, 0, -0.783837199),
+					CFrame = Main_CFrame * CFrame.new(
+						-0.113482013,
+						-7.35580206,
+						4.91738319e-07,
+						-0.783837199,
+						0,
+						0.620966434,
+						0,
+						1,
+						0,
+						-0.620966434,
+						0,
+						-0.783837199
+					),
 					Color = Color3.new(1, 1, 1),
 					Transparency = 1,
 				},
@@ -2321,25 +2339,50 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-
 		},
 
 		[Visual_Directory["Wind"]] = {
 			General = {
-				Offset = CFrame.new(0.1087787, -6.41260242, 0.0389252082, -2.38418579e-07, 0, -1.00000012, 0, 1, 0, 1.00000012, 0, -2.38418579e-07),
+				Offset = CFrame.new(
+					0.1087787,
+					-6.41260242,
+					0.0389252082,
+					-2.38418579e-07,
+					0,
+					-1.00000012,
+					0,
+					1,
+					0,
+					1.00000012,
+					0,
+					-2.38418579e-07
+				),
 				Tween_Duration = 0.5,
 				Transparency = 0.95,
 			},
 
 			Random_Angles = {
-				X = {0, 0},
-				Y = {0, 0},
-				Z = {0, 0},
+				X = { 0, 0 },
+				Y = { 0, 0 },
+				Z = { 0, 0 },
 			},
 			BasePart = {
 				Property = {
 					Size = Vector3.new(25.052053451538086, 4.060371398925781, 25.052053451538086),
-					CFrame = Main_CFrame * CFrame.new(0, -7.56635475, 0, 0.336982906, 0, 0.941510856, 0, 1, 0, -0.941510856, 0, 0.336982906),
+					CFrame = Main_CFrame * CFrame.new(
+						0,
+						-7.56635475,
+						0,
+						0.336982906,
+						0,
+						0.941510856,
+						0,
+						1,
+						0,
+						-0.941510856,
+						0,
+						0.336982906
+					),
 					Color = Color3.new(0.972549, 0.972549, 0.972549),
 					Transparency = 1,
 				},
@@ -2348,7 +2391,6 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Cubic,
 				},
 			},
-
 		},
 
 		[Visual_Directory["Kick"]] = {
@@ -2360,16 +2402,17 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 
 			Features = {
 				Random_Angles = {
-					X = {0, 0},
-					Y = {-360, 360},
-					Z = {0, 0},
+					X = { 0, 0 },
+					Y = { -360, 360 },
+					Z = { 0, 0 },
 				},
 			},
 
 			BasePart = {
 				Property = {
 					Size = Vector3.new(0.4741426110267639, 5.183227062225342, 5.183227062225342),
-					CFrame = Main_CFrame * CFrame.new(-0.113484487, -7.55821896, 0.625125647, 0, 0, 1, 1, 0, 0, 0, 1, 0),
+					CFrame = Main_CFrame
+						* CFrame.new(-0.113484487, -7.55821896, 0.625125647, 0, 0, 1, 1, 0, 0, 0, 1, 0),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -2411,14 +2454,27 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 			},
 
 			Random_Angles = {
-				X = {0, 0},
-				Y = {0, 0},
-				Z = {0, 0},
+				X = { 0, 0 },
+				Y = { 0, 0 },
+				Z = { 0, 0 },
 			},
 			BasePart = {
 				Property = {
 					Size = Vector3.new(15.603704452514648, 3.2936112880706787, 15.603704452514648),
-					CFrame = Main_CFrame * CFrame.new(0.152969867, -8.23160553, 0.375163078, -0.965929806, 0, 0.258804828, 0, 1, 0, -0.258804828, 0, -0.965929806),
+					CFrame = Main_CFrame * CFrame.new(
+						0.152969867,
+						-8.23160553,
+						0.375163078,
+						-0.965929806,
+						0,
+						0.258804828,
+						0,
+						1,
+						0,
+						-0.258804828,
+						0,
+						-0.965929806
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -2460,14 +2516,27 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 			},
 
 			Random_Angles = {
-				X = {0, 0},
-				Y = {0, 0},
-				Z = {0, 0},
+				X = { 0, 0 },
+				Y = { 0, 0 },
+				Z = { 0, 0 },
 			},
 			BasePart = {
 				Property = {
 					Size = Vector3.new(18.56374740600586, 0.9379472136497498, 18.790721893310547),
-					CFrame = Main_CFrame * CFrame.new(0.750563145, -7.59732962, 0.9011935, -0.422593057, 0, -0.906319737, 0, -1, 0, -0.906319737, 0, 0.422593057),
+					CFrame = Main_CFrame * CFrame.new(
+						0.750563145,
+						-7.59732962,
+						0.9011935,
+						-0.422593057,
+						0,
+						-0.906319737,
+						0,
+						-1,
+						0,
+						-0.906319737,
+						0,
+						0.422593057
+					),
 					Color = Color3.new(0.639216, 0.635294, 0.647059),
 					Transparency = 1,
 				},
@@ -2476,13 +2545,13 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 					Easing_Style = Enum.EasingStyle.Quint,
 				},
 			},
-
 		},
-
 	}
 
-	for Origin : any, Data in pairs(Visual_Data) do
-		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then continue end
+	for Origin: any, Data in pairs(Visual_Data) do
+		if not Origin or not Origin:IsDescendantOf(game) or not Origin:FindFirstChild("Start") then
+			continue
+		end
 
 		-- Build
 
@@ -2490,7 +2559,10 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 			local Visual = Origin.Start:Clone()
 			Visual.Name = Origin.Name
 			Visual.Transparency = Data.General.Transparency
-			if Visual:FindFirstChildOfClass("Decal") then Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency Visual.Transparency = 1 end
+			if Visual:FindFirstChildOfClass("Decal") then
+				Visual:FindFirstChildOfClass("Decal").Transparency = Data.General.Transparency
+				Visual.Transparency = 1
+			end
 			Visual.Anchored = true
 			Visual.CanCollide = false
 			Visual.CanQuery = false
@@ -2502,23 +2574,60 @@ local function dsmesh(CF: CFrame, Parent: Instance)
 			-- Random Angles
 
 			if Data.Features and Data.Features.Random_Angles then
-				Data.BasePart.Property.CFrame *= CFrame.Angles(math.random(unpack(Data.Features.Random_Angles.X)), math.random(unpack(Data.Features.Random_Angles.Y)), math.random(unpack(Data.Features.Random_Angles.Z)))
+				Data.BasePart.Property.CFrame *= CFrame.Angles(
+					math.random(unpack(Data.Features.Random_Angles.X)),
+					math.random(unpack(Data.Features.Random_Angles.Y)),
+					math.random(unpack(Data.Features.Random_Angles.Z))
+				)
 			end
 
 			-- Initialize
 
-			game:GetService("TweenService"):Create(Visual, TweenInfo.new(Data.General.Tween_Duration, Data.BasePart.Tween.Easing_Style, Data.BasePart.Tween.Easing_Direction), Data.BasePart.Property):Play()
-			if Data.Decal then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("Decal"), TweenInfo.new(Data.General.Tween_Duration, Data.Decal.Tween.Easing_Style, Data.Decal.Tween.Easing_Direction), Data.Decal.Property):Play() end
-			if Data.Mesh then game:GetService("TweenService"):Create(Visual:FindFirstChildOfClass("SpecialMesh"), TweenInfo.new(Data.General.Tween_Duration, Data.Mesh.Tween.Easing_Style, Data.Mesh.Tween.Easing_Direction), Data.Mesh.Property):Play() end
+			game:GetService("TweenService")
+				:Create(
+					Visual,
+					TweenInfo.new(
+						Data.General.Tween_Duration,
+						Data.BasePart.Tween.Easing_Style,
+						Data.BasePart.Tween.Easing_Direction
+					),
+					Data.BasePart.Property
+				)
+				:Play()
+			if Data.Decal then
+				game:GetService("TweenService")
+					:Create(
+						Visual:FindFirstChildOfClass("Decal"),
+						TweenInfo.new(
+							Data.General.Tween_Duration,
+							Data.Decal.Tween.Easing_Style,
+							Data.Decal.Tween.Easing_Direction
+						),
+						Data.Decal.Property
+					)
+					:Play()
+			end
+			if Data.Mesh then
+				game:GetService("TweenService")
+					:Create(
+						Visual:FindFirstChildOfClass("SpecialMesh"),
+						TweenInfo.new(
+							Data.General.Tween_Duration,
+							Data.Mesh.Tween.Easing_Style,
+							Data.Mesh.Tween.Easing_Direction
+						),
+						Data.Mesh.Property
+					)
+					:Play()
+			end
 
 			-- Clean Up
 
-			task.delay(Data.General.Tween_Duration,Visual.Destroy,Visual)
+			task.delay(Data.General.Tween_Duration, Visual.Destroy, Visual)
 		end
 
 		task.spawn(Emit)
 	end
-
 end
 
 function Base.Downslam(Character: Model, Frame: string)
@@ -2565,29 +2674,29 @@ function Base.Downslam(Character: Model, Frame: string)
 				Layers = { 3, 4 },
 				ExitIterationDelay = { 0, 0 },
 				LifeCycle = {
-                Entrance = {
-                    Type = "Elevate",
-                    Speed = 0.25,
-                    Division = 3,
-                    EasingStyle = Enum.EasingStyle.Quad,
-                    EasingDirection = Enum.EasingDirection.Out,
-                },
+					Entrance = {
+						Type = "Elevate",
+						Speed = 0.25,
+						Division = 3,
+						EasingStyle = Enum.EasingStyle.Quad,
+						EasingDirection = Enum.EasingDirection.Out,
+					},
 
-                Exit = {
-                    Type = "SizeDown",
-                    Speed = 0.3,
-                    Division = 2,
-                    EasingStyle = Enum.EasingStyle.Sine,
-                    EasingDirection = Enum.EasingDirection.In,
-                },
-            }, -- Instant, no delay
+					Exit = {
+						Type = "SizeDown",
+						Speed = 0.3,
+						Division = 2,
+						EasingStyle = Enum.EasingStyle.Sine,
+						EasingDirection = Enum.EasingDirection.In,
+					},
+				}, -- Instant, no delay
 			})
 
 			if effect then
 				effect:Debris("Normal", {
 					Size = { 0.75, 2.5 },
 					UpForce = { 0.6, 1.0 },
-					RotationalForce = {20, 40},
+					RotationalForce = { 20, 40 },
 					Spread = { 10, 10 },
 					PartCount = 12,
 					Radius = 10,
@@ -2618,7 +2727,10 @@ function Base.Downslam(Character: Model, Frame: string)
 	end
 end
 
-function Base.TransmutationCircle(Character: Model, Destination: CFrame?)
+function Base.TransmutationCircle(Character: Model, Destination: CFrame?, CleanupDelay: number?)
+	-- CleanupDelay: Optional parameter to specify when to start fading out (default 3 seconds)
+	local cleanupDelay = CleanupDelay or 3
+
 	local eff = Replicated.Assets.VFX.TransmutationCircle:Clone()
 	eff.CFrame = Destination * CFrame.new(0, -1.5, 0) or Character.HumanoidRootPart.CFrame * CFrame.new(0, -1.5, 0)
 	eff.Parent = workspace.World.Visuals
@@ -2635,20 +2747,29 @@ function Base.TransmutationCircle(Character: Model, Destination: CFrame?)
 	end)
 
 	local fadeInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	task.delay(3, function()
-		TweenService:Create(eff.Decal, fadeInfo, { Transparency = 1 }):Play()
+
+	-- Start fade out at specified delay
+	task.delay(cleanupDelay, function()
+		if eff and eff.Parent and eff:FindFirstChild("Decal") then
+			TweenService:Create(eff.Decal, fadeInfo, { Transparency = 1 }):Play()
+		end
 	end)
 
-	task.delay(5, function()
-		eff:Destroy()
-		emits:Destroy()
+	-- Destroy after fade completes (cleanup delay + fade duration)
+	task.delay(cleanupDelay + 1.5, function()
+		if eff and eff.Parent then
+			eff:Destroy()
+		end
+		if emits and emits.Parent then
+			emits:Destroy()
+		end
 	end)
 end
 
 function Base.Spawn(Position: Vector3)
 	local eff = Replicated.Assets.VFX.SpawnEff:Clone()
 	eff.Position = Position
-	-- print("Spawning effect at:", tostring(eff.CFrame))
+	---- print("Spawning effect at:", tostring(eff.CFrame))
 	eff.Parent = workspace.World.Visuals
 	for _, v in eff:GetDescendants() do
 		if v:IsA("ParticleEmitter") then
@@ -2698,7 +2819,9 @@ function Base.TripleKick(Character: Model, Frame: string)
 		end)
 	elseif Frame == "Hit" then
 		local rightLeg = Character:FindFirstChild("Right Leg")
-		if not rightLeg then return end
+		if not rightLeg then
+			return
+		end
 
 		local eff = Replicated.Assets.VFX.TripleKick.Shoot:Clone()
 		eff.CanCollide = false
@@ -2787,11 +2910,17 @@ function Base.IS(Character: Model, Frame: string)
 
 		-- Create a connection to update the effect's position every frame
 		local connection = RunService.Heartbeat:Connect(function()
-			if Character and Character.Parent and Character:FindFirstChild("HumanoidRootPart") and eff and eff.Parent then
+			if
+				Character
+				and Character.Parent
+				and Character:FindFirstChild("HumanoidRootPart")
+				and eff
+				and eff.Parent
+			then
 				-- Update all parts that should follow
 				for part, offset in followParts do
 					if part and part.Parent then
-						part.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0,-5,0)
+						part.CFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, -5, 0)
 					end
 				end
 			else
@@ -2804,9 +2933,18 @@ function Base.IS(Character: Model, Frame: string)
 		end)
 		activeISConnections[Character] = connection
 
+		-- Register VFX with cleanup system
+		VFXCleanup.RegisterVFX(Character, eff, connection)
+
 		local rd = eff.Model
-		for _, v in rd:GetDescendants() do if v:IsA("ParticleEmitter") then v:Emit(v:GetAttribute("EmitCount")) end end
-		task.delay(3, function() rd:Destroy() end)
+		for _, v in rd:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+		task.delay(3, function()
+			rd:Destroy()
+		end)
 	else
 		-- Subsequent frames - reuse the existing effect
 		eff = activeISEffects[Character]
@@ -2818,8 +2956,14 @@ function Base.IS(Character: Model, Frame: string)
 
 	if Frame == "Lift" then
 		local lift = eff.Lift
-		for _, v in lift:GetDescendants() do if v:IsA("ParticleEmitter") then v:Emit(v:GetAttribute("EmitCount")) end end
-		task.delay(3, function() lift:Destroy() end)
+		for _, v in lift:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount"))
+			end
+		end
+		task.delay(3, function()
+			lift:Destroy()
+		end)
 	elseif Frame == "Start" then
 		-- Enable existing particle emitters on character
 		for _, v in Character:GetDescendants() do
@@ -2854,7 +2998,10 @@ function Base.IS(Character: Model, Frame: string)
 
 		-- Apply transparency toggle and add ISBody particles to all body parts
 		for _, part in Character:GetDescendants() do
-			if (part:IsA("BasePart") or part:IsA("MeshPart")) and part ~= Character:FindFirstChild("HumanoidRootPart") then
+			if
+				(part:IsA("BasePart") or part:IsA("MeshPart"))
+				and part ~= Character:FindFirstChild("HumanoidRootPart")
+			then
 				-- Apply transparency tween
 				local itween = TweenService:Create(part, TInfo, { Transparency = 1 })
 				itween:Play()
@@ -2932,13 +3079,15 @@ end
 
 -- Bezier curve function for quadratic bezier
 local function Bezier(t, start, control, endPos)
-	return (1 - t)^2 * start + 2 * (1 - t) * t * control + t^2 * endPos
+	return (1 - t) ^ 2 * start + 2 * (1 - t) * t * control + t ^ 2 * endPos
 end
 
 -- Branch alchemy skill visual effect
 function Base.Branch(Character: Model, targetPos: Vector3, side: string, customSpawnSpeed: number?)
 	local root = Character:FindFirstChild("HumanoidRootPart")
-	if not root then return end
+	if not root then
+		return
+	end
 
 	local TweenService = game:GetService("TweenService")
 	local Debris = game:GetService("Debris")
@@ -2951,7 +3100,7 @@ function Base.Branch(Character: Model, targetPos: Vector3, side: string, customS
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	rayParams.FilterDescendantsInstances = {workspace.World.Live, workspace.World.Visuals}
+	rayParams.FilterDescendantsInstances = { workspace.World.Live, workspace.World.Visuals }
 
 	-- Try to get material from target position first (where rocks will spawn)
 	local rayResult = workspace:Raycast(targetPos + Vector3.new(0, 5, 0), Vector3.new(0, -10, 0), rayParams)
@@ -2993,8 +3142,8 @@ function Base.Branch(Character: Model, targetPos: Vector3, side: string, customS
 	-- Combine horizontal and vertical offset for extreme curve
 	local controlPos = midPoint + Vector3.new(0, 15, 0) + horizontalOffset
 
-	-- Calculate bezier points (fewer segments)
-	local numSegments = 12
+	-- Calculate bezier points (fewer segments for better spacing with meshes)
+	local numSegments = 10
 	local bezierPoints = {}
 	for i = 0, numSegments do
 		local t = i / numSegments
@@ -3006,10 +3155,10 @@ function Base.Branch(Character: Model, targetPos: Vector3, side: string, customS
 	local previousPlankPos = startPos
 	local plankCount = 0
 
-	-- Different timing for left vs right
-	local baseDelay = side == "Left" and 0 or 0.3 -- Right starts 0.3s later
-	-- Use custom spawn speed if provided, otherwise use default
-	local spawnSpeed = customSpawnSpeed or (side == "Left" and 0.05 or 0.07)
+	-- SPAWN ALL AT THE SAME TIME - no delay between left and right
+	local baseDelay = 0
+	-- Much faster spawn speed
+	local spawnSpeed = customSpawnSpeed or 0.02
 
 	-- Create connected planks along the bezier path
 	for i = 1, #bezierPoints - 1 do
@@ -3025,9 +3174,10 @@ function Base.Branch(Character: Model, targetPos: Vector3, side: string, customS
 		local t = i / #bezierPoints
 
 		-- Size progression: start as long skinny rectangles, end as bigger squares
-		local plankWidth = (1 + (t * 5)) -- 1 to 6 (thin to wide)
-		local plankHeight = (1 + (t * 5)) -- 1 to 6 (thin to wide, matching width for square)
-		local plankLength = distance -- Length is the distance between bezier points
+		-- INCREASED SIZE to ensure meshes touch each other
+		local plankWidth = (2 + (t * 6)) -- 2 to 8 (bigger to ensure overlap)
+		local plankHeight = (2 + (t * 6)) -- 2 to 8 (bigger to ensure overlap)
+		local plankLength = distance * 1.5 -- INCREASED length to ensure rocks touch
 
 		plankCount = plankCount + 1
 
@@ -3078,6 +3228,24 @@ function Base.Branch(Character: Model, targetPos: Vector3, side: string, customS
 			local finalCFrame = CFrame.lookAt(currentPoint, nextPoint)
 			plank.Position = currentPoint -- Set position explicitly to ensure center is at currentPoint
 
+			task.spawn(function()
+				for _ = 1, 3 do
+					AB.new(plank.CFrame, finalCFrame, {
+						PartCount = 10, -- self explanatory
+						CurveSize0 = 5, -- self explanatory
+						CurveSize1 = 5, -- self explanatory
+						PulseSpeed = 11, -- how fast the bolts will be
+						PulseLength = 1, -- how long each bolt is
+						FadeLength = 0.25, -- self explanatory
+						MaxRadius = math.random(10,18), -- the zone of the bolts
+						Thickness = 0.5, -- self explanatory
+						Frequency = 0.55, -- how much it will zap around the less frequency (jitter amp)
+						Color = Color3.fromRGB(46, 176, 231),
+					})
+					task.wait(0.065)
+				end
+			end)
+
 			-- Add slight random rotation
 			local randomRotation = CFrame.Angles(
 				math.rad((math.random() - 0.5) * 5),
@@ -3095,15 +3263,21 @@ function Base.Branch(Character: Model, targetPos: Vector3, side: string, customS
 			local tweenInfo = TweenInfo.new(tweenDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 			local tween = TweenService:Create(plank, tweenInfo, {
 				CFrame = finalCFrame,
-				Transparency = 0
+				Transparency = 0,
 			})
 			tween:Play()
 
 			-- Fade out highlight
-			TweenService:Create(highlight, TweenInfo.new(tweenDuration * 1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-				FillTransparency = 1,
-				OutlineTransparency = 1
-			}):Play()
+			TweenService
+				:Create(
+					highlight,
+					TweenInfo.new(tweenDuration * 1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+					{
+						FillTransparency = 1,
+						OutlineTransparency = 1,
+					}
+				)
+				:Play()
 
 			-- Emit particles once spawned
 			tween.Completed:Connect(function()
@@ -3129,35 +3303,33 @@ function Base.Branch(Character: Model, targetPos: Vector3, side: string, customS
 					crumble.MaterialVariant = groundMaterialVariant
 					crumble.Color = groundColor
 					crumble.Size = plank.Size / 3
-					crumble.CFrame = plank.CFrame * CFrame.new(
-						(math.random() - 0.5) * plank.Size.X,
-						(math.random() - 0.5) * plank.Size.Y,
-						(math.random() - 0.5) * plank.Size.Z
-					)
+					crumble.CFrame = plank.CFrame
+						* CFrame.new(
+							(math.random() - 0.5) * plank.Size.X,
+							(math.random() - 0.5) * plank.Size.Y,
+							(math.random() - 0.5) * plank.Size.Z
+						)
 					crumble.Parent = workspace.World.Visuals
 
 					-- Add velocity to crumbles
 					local velocity = Instance.new("BodyVelocity")
 					velocity.MaxForce = Vector3.new(4000, 4000, 4000)
-					velocity.Velocity = Vector3.new(
-						(math.random() - 0.5) * 10,
-						-5,
-						(math.random() - 0.5) * 10
-					)
+					velocity.Velocity = Vector3.new((math.random() - 0.5) * 10, -5, (math.random() - 0.5) * 10)
 					velocity.Parent = crumble
 
 					-- Fade out crumbles
 					TweenService:Create(crumble, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
-						Transparency = 1
+						Transparency = 1,
 					}):Play()
 
 					game:GetService("Debris"):AddItem(crumble, 0.6)
 				end
 
 				-- Fade out main plank
-				local fadeTween = TweenService:Create(plank, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
-					Transparency = 1
-				})
+				local fadeTween =
+					TweenService:Create(plank, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+						Transparency = 1,
+					})
 				fadeTween:Play()
 				game:GetService("Debris"):AddItem(plank, 0.4)
 			end)
@@ -3203,7 +3375,7 @@ Base.BranchCrater = function(targetPos)
 			effect:Debris("Normal", {
 				Size = { 0.5, 1.5 },
 				UpForce = { 0.4, 0.8 },
-				RotationalForce = {10, 25},
+				RotationalForce = { 10, 25 },
 				Spread = { 6, 6 },
 				PartCount = 8,
 				Radius = 6,
@@ -3268,7 +3440,7 @@ Base.WhirlWindCrater = function(targetPos)
 			effect:Debris("Normal", {
 				Size = { 0.4, 1.2 },
 				UpForce = { 0.3, 0.6 },
-				RotationalForce = {8, 20},
+				RotationalForce = { 8, 20 },
 				Spread = { 5, 5 },
 				PartCount = 6,
 				Radius = 5,
@@ -3298,6 +3470,71 @@ Base.WhirlWindCrater = function(targetPos)
 	end
 end
 
+-- Stone Lance Crater Effect
+Base.StoneLanceCrater = function(targetPos)
+	local craterPosition = targetPos + Vector3.new(0, 1, 0) -- Raise 1 stud above ground
+
+	local success, err = pcall(function()
+		local craterCFrame = CFrame.new(craterPosition)
+
+		local effect = RockMod.New("Crater", craterCFrame, {
+			Distance = { 5, 12 },
+			SizeMultiplier = 0.5,
+			PartCount = 10,
+			Layers = { 2, 3 },
+			ExitIterationDelay = { 0.5, 1 },
+			LifeCycle = {
+				Entrance = {
+					Type = "Elevate",
+					Speed = 0.25,
+					Division = 3,
+					EasingStyle = Enum.EasingStyle.Quad,
+					EasingDirection = Enum.EasingDirection.Out,
+				},
+				Exit = {
+					Type = "SizeDown",
+					Speed = 0.4,
+					Division = 2,
+					EasingStyle = Enum.EasingStyle.Sine,
+					EasingDirection = Enum.EasingDirection.In,
+				},
+			},
+		})
+
+		if effect then
+			effect:Debris("Normal", {
+				Size = { 0.5, 1.5 },
+				UpForce = { 0.4, 0.7 },
+				RotationalForce = { 10, 25 },
+				Spread = { 6, 6 },
+				PartCount = 8,
+				Radius = 6,
+				LifeTime = 4,
+				LifeCycle = {
+					Entrance = {
+						Type = "SizeUp",
+						Speed = 0.25,
+						Division = 3,
+						EasingStyle = Enum.EasingStyle.Quad,
+						EasingDirection = Enum.EasingDirection.Out,
+					},
+					Exit = {
+						Type = "SizeDown",
+						Speed = 0.3,
+						Division = 2,
+						EasingStyle = Enum.EasingStyle.Sine,
+						EasingDirection = Enum.EasingDirection.In,
+					},
+				},
+			})
+		end
+	end)
+
+	if not success then
+		warn("[StoneLanceCrater] Error creating crater:", err)
+	end
+end
+
 -- Ground Decay Effect (CXZ combination)
 -- Creates 3 delayed craters centered on the player
 -- First crater: big rocks, small diameter
@@ -3305,7 +3542,9 @@ end
 -- Third crater: small rocks, big diameter
 Base.GroundDecay = function(Character)
 	local root = Character:FindFirstChild("HumanoidRootPart")
-	if not root then return end
+	if not root then
+		return
+	end
 
 	local centerPos = root.Position
 
@@ -3315,7 +3554,7 @@ Base.GroundDecay = function(Character)
 
 	local rayParams = RaycastParams.new()
 	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	rayParams.FilterDescendantsInstances = {workspace.World.Live, workspace.World.Visuals}
+	rayParams.FilterDescendantsInstances = { workspace.World.Live, workspace.World.Visuals }
 
 	local rayResult = workspace:Raycast(root.Position, Vector3.new(0, -10, 0), rayParams)
 	if rayResult and rayResult.Instance then
@@ -3325,6 +3564,14 @@ Base.GroundDecay = function(Character)
 
 	-- First crater: Big rocks, small diameter
 	task.delay(0, function()
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 3.5,
+			Damp = 0.00005,
+			Frequency = 35,
+			Influence = Vector3.new(0.55, 0.15, 0.55),
+			Falloff = 89,
+		})
 		local craterCFrame = CFrame.new(centerPos + Vector3.new(0, 1, 0))
 
 		local effect = RockMod.New("Crater", craterCFrame, {
@@ -3357,7 +3604,7 @@ Base.GroundDecay = function(Character)
 			effect:Debris("Normal", {
 				Size = { 1, 2 }, -- Big debris
 				UpForce = { 0.5, 0.9 },
-				RotationalForce = {15, 30},
+				RotationalForce = { 15, 30 },
 				Spread = { 5, 5 },
 				PartCount = 6,
 				Radius = 5,
@@ -3382,11 +3629,19 @@ Base.GroundDecay = function(Character)
 		end
 
 		-- Brief bouncy stark screenshake for first crater
-		Base.Shake(6, 30, centerPos) -- Impactful shake for first crater
+		-- Base.Shake(6, 30, centerPos) -- Impactful shake for first crater
 	end)
 
 	-- Second crater: Medium rocks, medium diameter
 	task.delay(0.4, function()
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 4.5,
+			Damp = 0.00005,
+			Frequency = 35,
+			Influence = Vector3.new(0.55, 0.5, 0.55),
+			Falloff = 89,
+		})
 		local craterCFrame = CFrame.new(centerPos + Vector3.new(0, 1, 0))
 
 		local effect = RockMod.New("Crater", craterCFrame, {
@@ -3414,12 +3669,11 @@ Base.GroundDecay = function(Character)
 				},
 			},
 		})
-
 		if effect then
 			effect:Debris("Normal", {
 				Size = { 0.6, 1.2 }, -- Medium debris
 				UpForce = { 0.5, 0.9 },
-				RotationalForce = {15, 30},
+				RotationalForce = { 15, 30 },
 				Spread = { 7, 7 },
 				PartCount = 10,
 				Radius = 8,
@@ -3444,11 +3698,19 @@ Base.GroundDecay = function(Character)
 		end
 
 		-- Brief bouncy stark screenshake for second crater
-		Base.Shake(7, 32, centerPos) -- Stronger shake for second crater
+		-- Base.Shake(7, 32, centerPos) -- Stronger shake for second crater
 	end)
 
 	-- Third crater: Small rocks, big diameter
 	task.delay(0.8, function()
+		CamShake({
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 7.5,
+			Damp = 0.00005,
+			Frequency = 41,
+			Influence = Vector3.new(0.55, 1, 0.55),
+			Falloff = 89,
+		})
 		local craterCFrame = CFrame.new(centerPos + Vector3.new(0, 1, 0))
 
 		local effect = RockMod.New("Crater", craterCFrame, {
@@ -3481,7 +3743,7 @@ Base.GroundDecay = function(Character)
 			effect:Debris("Normal", {
 				Size = { 0.3, 0.8 }, -- Small debris
 				UpForce = { 0.5, 0.9 },
-				RotationalForce = {15, 30},
+				RotationalForce = { 15, 30 },
 				Spread = { 10, 10 },
 				PartCount = 14,
 				Radius = 12,
@@ -3506,8 +3768,34 @@ Base.GroundDecay = function(Character)
 		end
 
 		-- Brief bouncy stark screenshake for third crater (biggest)
-		Base.SpecialShake(9, 35, centerPos) -- Most impactful shake for biggest crater
+		-- Base.SpecialShake(9, 35, centerPos) -- Most impactful shake for biggest crater
 	end)
+end
+
+--- Stone Lance Path Camera Shake
+--- Subtle shake when each lance emerges from the ground
+Base.StoneLancePathShake = function(lancePosition)
+	CamShake({
+		Location = lancePosition,
+		Magnitude = 2.5,
+		Damp = 0.00008,
+		Frequency = 30,
+		Influence = Vector3.new(0.4, 0.1, 0.4),
+		Falloff = 65,
+	})
+end
+
+--- Stone Lance Camera Shake
+--- More pronounced shake for the single large lance
+Base.StoneLanceShake = function(lancePosition)
+	CamShake({
+		Location = lancePosition,
+		Magnitude = 4.0,
+		Damp = 0.00005,
+		Frequency = 35,
+		Influence = Vector3.new(0.5, 0.15, 0.5),
+		Falloff = 80,
+	})
 end
 
 return Base

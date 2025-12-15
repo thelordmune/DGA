@@ -15,15 +15,15 @@ local function setupDestructiblePart(part)
         part:SetAttribute("OriginalCanCollide", part.CanCollide)
         part:SetAttribute("OriginalCanQuery", part.CanQuery)
 
-        -- -- print("✓ Set up destructible part:", part.Name, "in", part.Parent and part.Parent.Name or "unknown parent")
+        -- ---- print("✓ Set up destructible part:", part.Name, "in", part.Parent and part.Parent.Name or "unknown parent")
         return true
     end
     return false
 end
 
 local function debugWorkspaceStructure()
-    -- -- print("=== WORKSPACE STRUCTURE DEBUG ===")
-    -- -- print("Workspace children:")
+    -- ---- print("=== WORKSPACE STRUCTURE DEBUG ===")
+    -- ---- print("Workspace children:")
     for _, child in pairs(workspace:GetChildren()) do
         
         if child.Name == "Map" or child.Name == "World" then

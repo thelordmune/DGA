@@ -243,11 +243,11 @@ The system includes debug print statements:
 
 ```lua
 -- Intelligent attack
--- print("NPC", npc.Name, "using intelligent attack:", bestSkill, "with score:", bestScore, "at distance:", math.floor(distance))
+---- print("NPC", npc.Name, "using intelligent attack:", bestSkill, "with score:", bestScore, "at distance:", math.floor(distance))
 
 -- Guard pattern
--- print("Guard", npc.Name, "using pattern:", currentState, "skill:", skillToUse)
--- print("Guard", npc.Name, "transitioning from", oldState, "to", newState)
+---- print("Guard", npc.Name, "using pattern:", currentState, "skill:", skillToUse)
+---- print("Guard", npc.Name, "transitioning from", oldState, "to", newState)
 ```
 
 ## Performance Considerations

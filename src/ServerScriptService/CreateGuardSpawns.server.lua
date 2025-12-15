@@ -7,7 +7,7 @@ local function createSpawnPoints()
         world = Instance.new("Folder")
         world.Name = "World"
         world.Parent = workspace
-        -- print("Created World folder")
+        ---- print("Created World folder")
     end
     
     -- Ensure Spawns folder exists
@@ -16,7 +16,7 @@ local function createSpawnPoints()
         spawns = Instance.new("Folder")
         spawns.Name = "Spawns"
         spawns.Parent = world
-        -- print("Created Spawns folder")
+        ---- print("Created Spawns folder")
     end
     
     -- Create LeftGuard spawn
@@ -31,7 +31,7 @@ local function createSpawnPoints()
         leftGuard.CanCollide = false
         leftGuard.Position = Vector3.new(-20, 5, 0)
         leftGuard.Parent = spawns
-        -- print("Created LeftGuard spawn at", leftGuard.Position)
+        ---- print("Created LeftGuard spawn at", leftGuard.Position)
     end
     
     -- Create RightGuard spawn
@@ -46,7 +46,7 @@ local function createSpawnPoints()
         rightGuard.CanCollide = false
         rightGuard.Position = Vector3.new(20, 5, 0)
         rightGuard.Parent = spawns
-        -- print("Created RightGuard spawn at", rightGuard.Position)
+        ---- print("Created RightGuard spawn at", rightGuard.Position)
     end
     
     -- Ensure Live folder exists
@@ -55,15 +55,15 @@ local function createSpawnPoints()
         live = Instance.new("Folder")
         live.Name = "Live"
         live.Parent = world
-        -- print("Created Live folder")
+        ---- print("Created Live folder")
     end
 end
 
 -- Run immediately
 createSpawnPoints()
 
--- print("=== GUARD SPAWN SETUP COMPLETE ===")
--- print("LeftGuard spawn: Red neon part at (-20, 5, 0)")
--- print("RightGuard spawn: Blue neon part at (20, 5, 0)")
--- print("Bandits should now spawn at these two locations")
--- print("=====================================")
+---- print("=== GUARD SPAWN SETUP COMPLETE ===")
+---- print("LeftGuard spawn: Red neon part at (-20, 5, 0)")
+---- print("RightGuard spawn: Blue neon part at (20, 5, 0)")
+---- print("Bandits should now spawn at these two locations")
+---- print("=====================================")

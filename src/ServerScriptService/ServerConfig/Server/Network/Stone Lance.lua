@@ -85,15 +85,16 @@ NetworkModule.EndPoint = function(Player, Data)
 
 		local Alchemy = Library.PlayAnimation(Character, Animation)
 		if not Alchemy then
-			-- print("Failed to load Stone Lance animation")
+			---- print("Failed to load Stone Lance animation")
 			return
 		end
 
 		Alchemy.Looped = false
-		-- print("Stone Lance animation loaded, Length:", Alchemy.Length)
+		---- print("Stone Lance animation loaded, Length:", Alchemy.Length)
 
 		Server.Library.TimedState(Character.Actions, script.Name, Alchemy.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Alchemy.Length) -- Prevent jumping during move
 
 		local hittimes = {}
 		local moveData = MoveStats[script.Name]
@@ -154,7 +155,7 @@ NetworkModule.EndPoint = function(Player, Data)
 			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Base",
 				Function = "TransmutationCircle",
-				Arguments = { Character, CFrame.new(spawnPos) * CFrame.new(0, -2, 0)},
+				Arguments = { Character, CFrame.new(spawnPos) * CFrame.new(0, -2, 0), 2 }, -- Cleanup at 2s (lance destroyed at 2.5s)
 			})
 
 			task.delay(0.3, function()
@@ -165,25 +166,122 @@ NetworkModule.EndPoint = function(Player, Data)
 
 				local wedgeHeight = sl.Size.Y
 				local startPos = CFrame.new(spawnPos) * CFrame.new(0, -wedgeHeight - 2, 0)
-				local endPos = CFrame.new(spawnPos) * CFrame.new(0, 4, 0)
+				-- Spring bounce: overshoot the target position
+				local targetHeight = 4
+				local overshootHeight = targetHeight + 1.5 -- Bounce up extra
+				local endPos = CFrame.new(spawnPos) * CFrame.new(0, targetHeight, 0)
+				local overshootPos = CFrame.new(spawnPos) * CFrame.new(0, overshootHeight, 0)
 
 				sl.CFrame = startPos
 				sl.Anchored = true
 				sl.CanCollide = false
 				sl.Parent = workspace.World.Visuals
 
-				-- Make it come up faster (0.25 instead of 0.5)
-				local tweenInfo = TweenInfo.new(
-					0.25,
-					Enum.EasingStyle.Circular,
+				-- Create crater when lance emerges
+				local craterPosition = spawnPos + Vector3.new(0, 1, 0)
+				Server.Visuals.Ranged(spawnPos, 300, {
+					Module = "Base",
+					Function = "StoneLanceCrater",
+					Arguments = { craterPosition },
+				})
+
+				-- Spring animation: bounce up then settle
+				-- Phase 1: Rise up with overshoot (0.2s)
+				local tweenInfo1 = TweenInfo.new(
+					0.2,
+					Enum.EasingStyle.Quad,
 					Enum.EasingDirection.Out
 				)
 
-				local tween = TweenService:Create(sl, tweenInfo, {
+				local tween1 = TweenService:Create(sl, tweenInfo1, {
+					CFrame = overshootPos
+				})
+
+				-- Phase 2: Settle down to final position (0.15s)
+				local tweenInfo2 = TweenInfo.new(
+					0.15,
+					Enum.EasingStyle.Elastic,
+					Enum.EasingDirection.Out
+				)
+
+				local tween2 = TweenService:Create(sl, tweenInfo2, {
 					CFrame = endPos
 				})
+
+				-- Play spring animation sequence
+				local tween = tween1 -- Keep reference for activeTweens
+				table.insert(activeTweens, tween1)
+				table.insert(activeTweens, tween2)
+
+				tween1:Play()
+				tween1.Completed:Connect(function()
+					tween2:Play()
+				end)
 				table.insert(activeTweens, tween)
 				tween:Play()
+
+				-- Camera shake and recoil when lance emerges
+				Server.Visuals.Ranged(spawnPos, 300, {
+					Module = "Base",
+					Function = "StoneLanceShake",
+					Arguments = { spawnPos },
+				})
+
+				-- Apply recoil to caster (backward push)
+				task.delay(0.05, function()
+					if Character and root then
+						local recoilDirection = (root.Position - spawnPos).Unit -- Away from lance spawn
+						local recoilStrength = 5 -- More noticeable recoil for single large lance
+
+						-- Check if caster is a player or NPC
+						local casterPlayer = game.Players:GetPlayerFromCharacter(Character)
+
+						if casterPlayer then
+							-- For players: Send to their client
+							Packets.Bvel.sendTo({
+								Character = Character,
+								Name = "StoneLanceRecoil",
+								Targ = Character,
+								Velocity = Vector3.new(
+									recoilDirection.X * recoilStrength,
+									0,
+									recoilDirection.Z * recoilStrength
+								)
+							}, casterPlayer)
+						else
+							-- For NPCs: Create on server
+							local attachment = root:FindFirstChild("StoneLanceRecoilAttachment")
+							if not attachment then
+								attachment = Instance.new("Attachment")
+								attachment.Name = "StoneLanceRecoilAttachment"
+								attachment.Parent = root
+							end
+
+							local oldRecoil = root:FindFirstChild("StoneLanceRecoil")
+							if oldRecoil then
+								oldRecoil:Destroy()
+							end
+
+							local recoilVelocity = Instance.new("LinearVelocity")
+							recoilVelocity.Name = "StoneLanceRecoil"
+							recoilVelocity.MaxForce = 8000
+							recoilVelocity.VectorVelocity = Vector3.new(
+								recoilDirection.X * recoilStrength,
+								0,
+								recoilDirection.Z * recoilStrength
+							)
+							recoilVelocity.Attachment0 = attachment
+							recoilVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+							recoilVelocity.Parent = root
+
+							task.delay(0.2, function()
+								if recoilVelocity and recoilVelocity.Parent then
+									recoilVelocity:Destroy()
+								end
+							end)
+						end
+					end
+				end)
 
 				task.delay(0.1, function()
 					local vfx = Replicated.Assets.VFX.WallVFX:Clone()
@@ -218,7 +316,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
 					for _, Target in pairs(HitTargets) do
 						if Target ~= Character and Target:IsA("Model") and Target:FindFirstChild("Humanoid") then
-							-- print("Stone Lance hit:", Target.Name)
+							---- print("Stone Lance hit:", Target.Name)
 
 							if moveData and moveData.DamageTable then
 								Server.Modules.Damage.Tag(Character, Target, moveData.DamageTable)
@@ -301,65 +399,96 @@ NetworkModule.EndPoint = function(Player, Data)
 					end
 				end)
 
+				-- Shake then shatter after 2.5 seconds
 				task.delay(2.5, function()
 					if sl and sl.Parent then
 						local wedgeSize = sl.Size
 						local wedgeColor = sl.Color
 						local wedgeMaterial = sl.Material
 						local wedgeCFrame = sl.CFrame
+						local originalCFrame = sl.CFrame
 
-						local numShards = math.random(12, 18)
+						-- Shake effect before breaking (0.3 seconds of shaking)
+						local shakeIntensity = 0.3
+						local shakeDuration = 0.3
+						local shakeStartTime = tick()
 
-						for _ = 1, numShards do
-							local shard = Instance.new("WedgePart")
-							shard.Size = Vector3.new(
-								math.random(wedgeSize.X * 0.1, wedgeSize.X * 0.3),
-								math.random(wedgeSize.Y * 0.2, wedgeSize.Y * 0.5),
-								math.random(wedgeSize.Z * 0.1, wedgeSize.Z * 0.3)
+						local shakeConnection
+						shakeConnection = game:GetService("RunService").Heartbeat:Connect(function()
+							if not sl or not sl.Parent then
+								shakeConnection:Disconnect()
+								return
+							end
+
+							local elapsed = tick() - shakeStartTime
+							if elapsed >= shakeDuration then
+								shakeConnection:Disconnect()
+								sl.CFrame = originalCFrame -- Reset to original position
+
+								-- Break apart after shake
+								local numShards = math.random(12, 18)
+
+								for _ = 1, numShards do
+									local shard = Instance.new("WedgePart")
+									shard.Size = Vector3.new(
+										math.random(wedgeSize.X * 0.1, wedgeSize.X * 0.3),
+										math.random(wedgeSize.Y * 0.2, wedgeSize.Y * 0.5),
+										math.random(wedgeSize.Z * 0.1, wedgeSize.Z * 0.3)
+									)
+									shard.Color = wedgeColor
+									shard.Material = wedgeMaterial
+									shard.Anchored = false
+									shard.CanCollide = true
+
+									local randomOffset = Vector3.new(
+										(math.random() - 0.5) * wedgeSize.X * 0.8,
+										(math.random() - 0.5) * wedgeSize.Y * 0.5,
+										(math.random() - 0.5) * wedgeSize.Z * 0.8
+									)
+
+									shard.CFrame = wedgeCFrame * CFrame.new(randomOffset) * CFrame.Angles(
+										math.rad(math.random(0, 360)),
+										math.rad(math.random(0, 360)),
+										math.rad(math.random(0, 360))
+									)
+
+									shard.Parent = workspace.World.Visuals
+
+									local randomDir = Vector3.new(
+										(math.random() - 0.5) * 2,
+										math.random() * 0.8 + 0.2,
+										(math.random() - 0.5) * 2
+									).Unit
+
+									local velocityVector = randomDir * math.random(12, 20)
+
+									shard.AssemblyLinearVelocity = velocityVector
+
+									local velocity = Instance.new("BodyVelocity")
+									velocity.Velocity = velocityVector
+									velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+									velocity.Parent = shard
+
+									local fadeInfo = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+									local fadeTween = TweenService:Create(shard, fadeInfo, {Transparency = 1})
+									fadeTween:Play()
+
+									Debris:AddItem(velocity, 0.4)
+									Debris:AddItem(shard, 2.5)
+								end
+
+								sl:Destroy()
+								return
+							end
+
+							-- Apply random shake offset
+							local shakeOffset = Vector3.new(
+								(math.random() - 0.5) * shakeIntensity,
+								(math.random() - 0.5) * shakeIntensity,
+								(math.random() - 0.5) * shakeIntensity
 							)
-							shard.Color = wedgeColor
-							shard.Material = wedgeMaterial
-							shard.Anchored = false
-							shard.CanCollide = true
-
-							local randomOffset = Vector3.new(
-								(math.random() - 0.5) * wedgeSize.X * 0.8,
-								(math.random() - 0.5) * wedgeSize.Y * 0.5,
-								(math.random() - 0.5) * wedgeSize.Z * 0.8
-							)
-
-							shard.CFrame = wedgeCFrame * CFrame.new(randomOffset) * CFrame.Angles(
-								math.rad(math.random(0, 360)),
-								math.rad(math.random(0, 360)),
-								math.rad(math.random(0, 360))
-							)
-
-							shard.Parent = workspace.World.Visuals
-
-							local randomDir = Vector3.new(
-								(math.random() - 0.5) * 2,
-								math.random() * 0.8 + 0.2,
-								(math.random() - 0.5) * 2
-							).Unit
-
-							local velocityVector = randomDir * math.random(12, 20)
-
-							shard.AssemblyLinearVelocity = velocityVector
-
-							local velocity = Instance.new("BodyVelocity")
-							velocity.Velocity = velocityVector
-							velocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-							velocity.Parent = shard
-
-							local fadeInfo = TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-							local fadeTween = TweenService:Create(shard, fadeInfo, {Transparency = 1})
-							fadeTween:Play()
-
-							Debris:AddItem(velocity, 0.4)
-							Debris:AddItem(shard, 2.5)
-						end
-
-						sl:Destroy()
+							sl.CFrame = originalCFrame * CFrame.new(shakeOffset)
+						end)
 					end
 				end)
 			end)

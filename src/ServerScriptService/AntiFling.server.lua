@@ -142,5 +142,5 @@ Players.PlayerRemoving:Connect(onPlayerRemoving)
 -- Monitor NPCs
 monitorNPCs()
 
--- print("[Anti-Fling] Server-side anti-fling system initialized")
+---- print("[Anti-Fling] Server-side anti-fling system initialized")
 

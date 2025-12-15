@@ -16,7 +16,7 @@ local function i_hook_onto(key: string, hooks: {(...any) -> ()})
 		return method(...)
 	end
 
-	-- -- print(debug.info(world[key], "s"))
+	-- ---- print(debug.info(world[key], "s"))
 	world.__index[key] = run_hook
 
 	local function unhook()

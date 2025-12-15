@@ -65,7 +65,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Character, "Cinder") then
 		Server.Packets.Bvel.sendTo({Character = Character, Name = "RemoveBvel"},Player)
-		-- print("removing bvel bro bro")
+		---- print("removing bvel bro bro")
 		cleanUp()
 		Server.Library.SetCooldown(Character, "Cinder", 8) -- Increased from 3 to 8 seconds
 		Server.Library.StopAllAnims(Character)
@@ -77,6 +77,7 @@ NetworkModule.EndPoint = function(Player, Data)
 		Server.Library.TimedState(Character.Actions, "Cinder", Alchemy.Length)
 		Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Alchemy.Length) -- Prevent jumping during move
 
 		-- Fix VFX positioning - get fresh position to avoid dash desync
 		local currentPosition = Character.HumanoidRootPart.Position
@@ -133,7 +134,7 @@ NetworkModule.EndPoint = function(Player, Data)
 							})
 
 							-- Debug print for consistent DPS tracking
-							-- print("Cinder consistent hit:", Target.Name, "damage: 1.5, interval:", hitInterval)
+							---- print("Cinder consistent hit:", Target.Name, "damage: 1.5, interval:", hitInterval)
 						end
 					end
 

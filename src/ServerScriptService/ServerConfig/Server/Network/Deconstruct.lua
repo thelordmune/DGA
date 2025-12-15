@@ -66,8 +66,9 @@ NetworkModule.EndPoint = function(Player, Data)
 		return
 	end
 
-	-- For NPCs, skip the PlayerObject.Keys check and Data.Air check
-	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys and not Data.Air)
+	-- For NPCs, skip the PlayerObject.Keys check
+	-- REMOVED Data.Air check - alchemy moves should work in air
+	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Character, "Deconstruct") then
 		cleanUp()
@@ -81,6 +82,7 @@ NetworkModule.EndPoint = function(Player, Data)
 		Server.Library.TimedState(Character.Actions, "Deconstruct", Alchemy.Length)
 		Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Alchemy.Length) -- Prevent jumping during move
 
 		local soundeffects = {}
 		local kfConn
@@ -89,6 +91,11 @@ NetworkModule.EndPoint = function(Player, Data)
 				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 					Module = "Base",
 					Function = "Deconstruct",
+					Arguments = { Character },
+				})
+				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+					Module = "Misc",
+					Function = "DeconBolt",
 					Arguments = { Character },
 				})
 				local startup = SFX.FMAB.Deconstruct:Clone()

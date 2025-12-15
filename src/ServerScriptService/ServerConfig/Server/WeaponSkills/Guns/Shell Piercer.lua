@@ -4,6 +4,7 @@ local Library = require(Replicated.Modules.Library)
 local Skills = require(ServerStorage.Stats._Skills)
 local VoxBreaker = require(Replicated.Modules.Voxel)
 local Debris = game:GetService("Debris")
+local RunService = game:GetService("RunService")
 
 local Global = require(Replicated.Modules.Shared.Global)
 return function(Player, Data, Server)
@@ -55,13 +56,14 @@ return function(Player, Data, Server)
 
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed6", Move.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
 			hittimes[i] = fraction * animlength
 		end
 
-		-- print(tostring(hittimes[1]))
+		---- print(tostring(hittimes[1]))
 
 		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 			Module = "Base",
@@ -69,7 +71,7 @@ return function(Player, Data, Server)
 			Arguments = { Character, "Start", hittimes[1] },
 		})
 
-		-- print("Sending shake to client for player:", Player.Name)
+		---- print("Sending shake to client for player:", Player.Name)
 
 
 		task.delay(hittimes[1], function()
@@ -79,7 +81,7 @@ return function(Player, Data, Server)
 				Arguments = { Character, "Hit" },
 			})
 
-			-- Regular hitbox for enemies
+			-- Regular hitbox for enemies AND walls
 			local Hitbox = Server.Modules.Hitbox
 			local Entity = Server.Modules["Entities"].Get(Character)
 
@@ -90,168 +92,141 @@ return function(Player, Data, Server)
 				false -- Don't visualize
 			)
 
-			-- Damage enemies
+			-- Track targets to prevent duplicate hits
+			local targets = {}
+			local soundeffects = {}
+			local root = Character.HumanoidRootPart
+
+			-- Damage enemies and destroy Construct walls
 			for _, Target in pairs(HitTargets) do
-				if Target ~= Character and Target:IsA("Model") then
+				-- Hit enemies
+				if Target ~= Character and Target:IsA("Model") and not table.find(targets, Target) then
+					table.insert(targets, Target)
 					Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
-					-- print("Shell Piercer hit enemy:", Target.Name)
 				end
-			end
 
-			-- Create hitbox for wall detection and destruction
-			local hitboxSize = Vector3.new(4, 5, 14) -- Wide and deep hitbox for shell piercing
-			local hitboxCFrame = Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -10) -- In front of player
+				-- Destroy Construct walls (same as Deconstruct)
+				if Target:GetAttribute("Id") then
+					if not soundeffects[Target] then
+						soundeffects[Target] = {
+							wallhit = Replicated.Assets.SFX.Hits.RAHit:Clone(),
+						}
+						soundeffects[Target].wallhit.Parent = root
+						soundeffects[Target].wallhit.Volume = 1
+						soundeffects[Target].wallhit.TimePosition = 0.35
+						soundeffects[Target].wallhit:Play()
+						Debris:AddItem(soundeffects[Target].wallhit, soundeffects[Target].wallhit.TimeLength)
+					end
 
-			-- Create overlap params to detect walls (parts with Destroyable attribute)
-			-- VoxBreaker only works on parts that already have Destroyable=true attribute
-			local overlapParams = OverlapParams.new()
-			overlapParams.FilterType = Enum.RaycastFilterType.Include
+					Server.Visuals.FireClient(Player, {
+						Module = "Base",
+						Function = "Shake",
+						Arguments = {
+							"Once",
+							{ 6, 11, 0, 0.7, Vector3.new(1.1, 2, 1.1), Vector3.new(0.34, 0.25, 0.34) },
+						},
+					})
 
-			-- Only include workspace.Transmutables - this ensures we ONLY hit transmutable walls
-			-- and never hit characters, accessories, or any other objects
-			local filterList = {}
-			if workspace:FindFirstChild("Transmutables") then
-				table.insert(filterList, workspace.Transmutables)
-			end
+					-- Voxelize the wall permanently (negative time = no reset)
+					local parts = VoxBreaker:VoxelizePart(Target, 20, -1)
+					local playerForward = root.CFrame.LookVector
+					playerForward = Vector3.new(playerForward.X, playerForward.Y, playerForward.Z).Unit
 
-			overlapParams.FilterDescendantsInstances = filterList
+					-- Fling the destroyed parts forward
+					for _, v in pairs(parts) do
+						if v:IsA("BasePart") then
+							-- Add trail to the debris part
+							local attachment0 = Instance.new("Attachment")
+							attachment0.Name = "TrailAttachment0"
+							attachment0.Position = Vector3.new(0, v.Size.Y/2, 0)
+							attachment0.Parent = v
 
-			-- Use VoxBreaker to create hitbox and destroy walls
-			-- NOTE: This only works on parts that have Destroyable=true attribute already set
-			local destroyedParts = VoxBreaker:CreateHitbox(
-				hitboxSize,
-				hitboxCFrame,
-				Enum.PartType.Block,
-				3, -- Minimum voxel size
-				15, -- Time to reset (15 seconds)
-				overlapParams
-			)
+							local attachment1 = Instance.new("Attachment")
+							attachment1.Name = "TrailAttachment1"
+							attachment1.Position = Vector3.new(0, -v.Size.Y/2, 0)
+							attachment1.Parent = v
 
-			-- Fling the destroyed parts forward
-			if #destroyedParts > 0 then
-				local forwardDirection = Character.HumanoidRootPart.CFrame.LookVector
-				local RunService = game:GetService("RunService")
+							local trail = Instance.new("Trail")
+							trail.Attachment0 = attachment0
+							trail.Attachment1 = attachment1
 
-				for _, part in pairs(destroyedParts) do
-					if part:IsA("BasePart") then
-						-- Make part moveable
-						part.Anchored = false
-						part.CanCollide = true
+							-- White trail color
+							trail.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
+							trail.Transparency = NumberSequence.new({
+								NumberSequenceKeypoint.new(0, 0.4),
+								NumberSequenceKeypoint.new(0.7, 0.7),
+								NumberSequenceKeypoint.new(1, 1)
+							})
+							trail.Lifetime = 0.8
+							trail.MinLength = 0
 
-						-- Add trail to the part
-						local attachment0 = Instance.new("Attachment")
-						attachment0.Name = "TrailAttachment0"
-						attachment0.Position = Vector3.new(0, part.Size.Y/2, 0)
-						attachment0.Parent = part
+							-- Much smaller trail
+							trail.WidthScale = NumberSequence.new({
+								NumberSequenceKeypoint.new(0, 0.2),
+								NumberSequenceKeypoint.new(0.5, 0.1),
+								NumberSequenceKeypoint.new(1, 0.05)
+							})
 
-						local attachment1 = Instance.new("Attachment")
-						attachment1.Name = "TrailAttachment1"
-						attachment1.Position = Vector3.new(0, -part.Size.Y/2, 0)
-						attachment1.Parent = part
+							trail.FaceCamera = true
+							trail.LightEmission = 0.2
+							trail.LightInfluence = 0.8
+							trail.Parent = v
 
-						local trail = Instance.new("Trail")
-						trail.Attachment0 = attachment0
-						trail.Attachment1 = attachment1
+							-- Create a connection to update the hitbox as the part moves
+							local hitConnection
+							hitConnection = RunService.PostSimulation:Connect(function()
+								local TargetsFound = Hitbox.SpatialQuery(
+									Character,
+									v.Size,
+									v.CFrame,
+									false
+								)
 
-						-- White trail color
-						trail.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
-						trail.Transparency = NumberSequence.new({
-							NumberSequenceKeypoint.new(0, 0.4),   -- More transparent at start
-							NumberSequenceKeypoint.new(0.7, 0.7), -- Fade more
-							NumberSequenceKeypoint.new(1, 1)      -- Fully transparent at end
-						})
-						trail.Lifetime = 1.5  -- Shorter trail duration
-						trail.MinLength = 0   -- Show trail even for small movements
-
-						-- Smaller, more subtle trail
-						trail.WidthScale = NumberSequence.new({
-							NumberSequenceKeypoint.new(0, 0.6),   -- Smaller at start
-							NumberSequenceKeypoint.new(0.5, 0.4), -- Narrower in middle
-							NumberSequenceKeypoint.new(1, 0.1)    -- Thin taper at end
-						})
-
-						trail.FaceCamera = true
-						trail.LightEmission = 0.2  -- Slight glow for white trail
-						trail.LightInfluence = 0.8 -- Less affected by lighting
-						trail.Parent = part
-
-						-- Create velocity to fling parts forward
-						local bodyVelocity = Instance.new("BodyVelocity")
-						bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
-
-						-- Calculate fling direction with some randomness
-						local flingDirection = forwardDirection + Vector3.new(
-							(math.random() - 0.5) * 0.5, -- Random X spread
-							math.random() * 0.3, -- Slight upward bias
-							(math.random() - 0.5) * 0.3  -- Random Z spread
-						)
-
-						local flingSpeed = 50 + math.random() * 30 -- 50-80 speed
-						bodyVelocity.Velocity = flingDirection.Unit * flingSpeed
-						bodyVelocity.Parent = part
-
-						-- Remove velocity after a short time
-						Debris:AddItem(bodyVelocity, 0.8)
-
-						-- Add some rotation for realism
-						local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
-						bodyAngularVelocity.MaxTorque = Vector3.new(4000, 4000, 4000)
-						bodyAngularVelocity.AngularVelocity = Vector3.new(
-							(math.random() - 0.5) * 20,
-							(math.random() - 0.5) * 20,
-							(math.random() - 0.5) * 20
-						)
-						bodyAngularVelocity.Parent = part
-						Debris:AddItem(bodyAngularVelocity, 0.8)
-
-						-- Add hitbox to the flying part
-						local hitTargets = {} -- Track what we've already hit
-						local hitConnection
-						hitConnection = RunService.Heartbeat:Connect(function()
-							if not part or not part.Parent then
-								hitConnection:Disconnect()
-								return
-							end
-
-							-- Check for nearby characters
-							local partsInRadius = workspace:GetPartBoundsInRadius(part.Position, part.Size.Magnitude)
-
-							for _, hitPart in pairs(partsInRadius) do
-								local hitCharacter = hitPart.Parent
-								if hitCharacter and hitCharacter:IsA("Model") and hitCharacter:FindFirstChild("Humanoid") then
-									-- Don't hit the caster or already-hit targets
-									if hitCharacter ~= Character and not hitTargets[hitCharacter] then
-										hitTargets[hitCharacter] = true
-
-										-- Apply damage
-										local damageTable = {
-											Damage = 5, -- Reduced damage for debris
+								for _, target in TargetsFound do
+									if target ~= Character and not table.find(targets, target) and target:IsA("Model") then
+										table.insert(targets, target)
+										Server.Modules.Damage.Tag(Character, target, {
+											Damage = 5,
 											PostureDamage = 8,
 											Stun = 0.3,
 											LightKnockback = true,
 											M2 = false,
 											FX = Replicated.Assets.VFX.Blood.Attachment,
-										}
-
-										Server.Modules.Damage.Tag(Character, hitCharacter, damageTable)
-										-- print("Shell Piercer debris hit:", hitCharacter.Name)
+										})
 									end
 								end
-							end
-						end)
+							end)
 
-						-- Clean up hitbox connection after 2 seconds
-						task.delay(2, function()
-							if hitConnection then
+							v.CollisionGroup = "Rock"
+							v.Anchored = false
+							v.CanCollide = true
+
+							local direction = (v.Position - root.Position).Unit
+							local randomSpread = Vector3.new(
+								(math.random() - 0.5) * 0.5,
+								math.random() * 0.5,
+								(math.random() - 0.5) * 0.5
+							)
+
+							local combinedDirection = (playerForward + randomSpread).Unit
+							local velocityVector = combinedDirection * 120
+
+							v.AssemblyLinearVelocity = velocityVector
+
+							local debrisVelocity = Instance.new("BodyVelocity")
+							debrisVelocity.Velocity = velocityVector
+							debrisVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+							debrisVelocity.Parent = v
+
+							v.Destroying:Connect(function()
 								hitConnection:Disconnect()
-							end
-						end)
+							end)
 
-						-- -- print("Shell Piercer: Flung wall part with velocity:", bodyVelocity.Velocity)
+							Debris:AddItem(debrisVelocity, 0.5)
+							Debris:AddItem(v, 8 + math.random() * 4)
+						end
 					end
 				end
-
-				-- -- print("Shell Piercer: Destroyed", #destroyedParts, "wall parts")
 			end
 		end)
 	end

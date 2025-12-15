@@ -25,7 +25,8 @@ local function deserializeInventory(inventoryData)
             description = item.description,
             icon = item.icon,
             stackable = item.stackable,
-            slot = slot
+            slot = slot,
+            rarity = item.rarity or "common" -- Preserve rarity
         }
     end
 
@@ -38,15 +39,6 @@ local isFirstSync = true
 
 -- Handle inventory updates from server
 Bridges.Inventory:Connect(function(syncData)
-    -- print("[InventoryHandler] Client: Received inventory update from server")
-    -- print("[InventoryHandler] Client: SyncData:", syncData)
-
-    -- Debug: Check what items we received (items come as array)
-    local receivedCount = #syncData.inventory.items
-    for i, item in ipairs(syncData.inventory.items) do
-        -- print("[InventoryHandler] Client: Received array[" .. i .. "] slot", item.slot, ":", item.name, "(type:", item.typ .. ")")
-    end
-    -- print("[InventoryHandler] Client: Total items received:", receivedCount)
 
     -- Wait a bit to ensure ECS is fully initialized
     local maxAttempts = 10
@@ -56,7 +48,7 @@ Bridges.Inventory:Connect(function(syncData)
     while attempt < maxAttempts do
         pent = ref.get("local_player")  -- No second parameter needed for local_player
         if pent then
-            -- print("[InventoryHandler] Client: Local player entity found:", pent, "(attempt", attempt + 1, ")")
+            ---- print("[InventoryHandler] Client: Local player entity found:", pent, "(attempt", attempt + 1, ")")
             break
         end
         attempt = attempt + 1
@@ -70,7 +62,7 @@ Bridges.Inventory:Connect(function(syncData)
         return
     end
 
-    -- print("[InventoryHandler] Client: Local player entity confirmed:", pent)
+    ---- print("[InventoryHandler] Client: Local player entity confirmed:", pent)
 
     -- Detect new items by comparing with previous inventory
     local newItems = {}
@@ -85,7 +77,7 @@ Bridges.Inventory:Connect(function(syncData)
             -- Check if this is a new item or increased quantity
             if not previousItem then
                 -- Brand new item in this slot
-                -- print("[InventoryHandler] New item in slot", slot, ":", item.name)
+                ---- print("[InventoryHandler] New item in slot", slot, ":", item.name)
                 table.insert(newItems, {
                     name = item.name,
                     typ = item.typ,
@@ -93,7 +85,7 @@ Bridges.Inventory:Connect(function(syncData)
                 })
             elseif previousItem.name ~= item.name then
                 -- Different item in same slot (item replaced)
-                -- print("[InventoryHandler] Item replaced in slot", slot, ":", previousItem.name, "->", item.name)
+                ---- print("[InventoryHandler] Item replaced in slot", slot, ":", previousItem.name, "->", item.name)
                 table.insert(newItems, {
                     name = item.name,
                     typ = item.typ,
@@ -101,7 +93,7 @@ Bridges.Inventory:Connect(function(syncData)
                 })
             elseif previousItem.name == item.name and item.quantity > previousItem.quantity then
                 -- Same item, increased quantity
-                -- print("[InventoryHandler] Item quantity increased in slot", slot, ":", item.name, previousItem.quantity, "->", item.quantity)
+                ---- print("[InventoryHandler] Item quantity increased in slot", slot, ":", item.name, previousItem.quantity, "->", item.quantity)
                 table.insert(newItems, {
                     name = item.name,
                     typ = item.typ,
@@ -110,23 +102,21 @@ Bridges.Inventory:Connect(function(syncData)
             end
         end
     else
-        -- print("[InventoryHandler] First sync - skipping notifications for initial inventory")
+        ---- print("[InventoryHandler] First sync - skipping notifications for initial inventory")
         isFirstSync = false
     end
 
     -- Update inventory component
     local inventory = deserializeInventory(syncData.inventory)
     world:set(pent, comps.Inventory, inventory)
-    -- print("[InventoryHandler] Client: Set Inventory component")
 
     -- Update hotbar component
     world:set(pent, comps.Hotbar, syncData.hotbar)
-    -- print("[InventoryHandler] Client: Set Hotbar component")
 
     -- Show notifications for new items
-    -- print("[InventoryHandler] Total new items to notify:", #newItems)
+    ---- print("[InventoryHandler] Total new items to notify:", #newItems)
     for _, item in ipairs(newItems) do
-        -- print("[InventoryHandler] Showing notification for:", item.name, "Type:", item.typ)
+        ---- print("[InventoryHandler] Showing notification for:", item.name, "Type:", item.typ)
 
         if item.typ == "skill" then
             NotificationManager.ShowSkill(item.name)
@@ -152,15 +142,15 @@ Bridges.Inventory:Connect(function(syncData)
         itemCount = itemCount + 1
     end
 
-    -- print("[InventoryHandler] Client: Updated inventory with", itemCount, "items")
-    -- print("[InventoryHandler] Client: Inventory items:")
+    ---- print("[InventoryHandler] Client: Updated inventory with", itemCount, "items")
+    ---- print("[InventoryHandler] Client: Inventory items:")
     for slot, item in pairs(syncData.inventory.items) do
-        -- print("  Slot", slot, ":", item.name, "(type:", item.typ, ")")
+        ---- print("  Slot", slot, ":", item.name, "(type:", item.typ, ")")
     end
 
-    -- print("[InventoryHandler] Client: Updated hotbar slots:")
+    ---- print("[InventoryHandler] Client: Updated hotbar slots:")
     for slot, invSlot in pairs(syncData.hotbar.slots) do
-        -- print("  Hotbar", slot, "-> Inventory slot", invSlot)
+        ---- print("  Hotbar", slot, "-> Inventory slot", invSlot)
     end
 
     -- Update UI with retry logic (UI might not be loaded yet)
@@ -180,9 +170,9 @@ Bridges.Inventory:Connect(function(syncData)
 
                     -- Check if LoadWeaponSkills function exists
                     if Stats.LoadWeaponSkills and typeof(Stats.LoadWeaponSkills) == "function" then
-                        -- print("[InventoryHandler] Client: Updating hotbar UI (attempt", uiAttempt + 1, ")")
+                        ---- print("[InventoryHandler] Client: Updating hotbar UI (attempt", uiAttempt + 1, ")")
                         Stats.LoadWeaponSkills()
-                        -- print("[InventoryHandler] Client: ✅ Successfully updated hotbar UI")
+                        ---- print("[InventoryHandler] Client: ✅ Successfully updated hotbar UI")
                         return -- Success!
                     end
                 end

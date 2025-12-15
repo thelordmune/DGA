@@ -79,7 +79,7 @@ function DataHandler:LoadData(Player: Player)
 
             Player:SetAttribute("DataLoaded", true);
             if Server.Service.RunService:IsStudio() then
-                -- print(Profile);
+                ---- print(Profile);
             end
 
             return Profile;

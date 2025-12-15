@@ -39,7 +39,7 @@ return function(actor: Actor, mainConfig: table)
         return false
     end
     
-    -- print("NPC", npc.Name, "performing continuous attack on", target.Name, "at range", math.floor(distance))
+    ---- print("NPC", npc.Name, "performing continuous attack on", target.Name, "at range", math.floor(distance))
     
     -- Update last attack time
     mainConfig.States.LastContinuousAttack = os.clock()
@@ -55,12 +55,12 @@ return function(actor: Actor, mainConfig: table)
     -- Ensure NPC has an entity in the system
     local Entity = Server.Modules.Entities.Get(npc)
     if not Entity then
-        -- print("Warning: NPC", npc.Name, "does not have an entity - creating one")
+        ---- print("Warning: NPC", npc.Name, "does not have an entity - creating one")
         -- Try to create entity for NPC
         Server.Modules.Entities.Init(npc)
         Entity = Server.Modules.Entities.Get(npc)
         if not Entity then
-            -- print("Error: Could not create entity for NPC", npc.Name)
+            ---- print("Error: Could not create entity for NPC", npc.Name)
             return false
         end
     end
@@ -73,9 +73,9 @@ return function(actor: Actor, mainConfig: table)
     end
 
     -- Use Combat.Light just like players do
-    -- print("NPC", npc.Name, "calling Combat.Light with entity:", Entity and "found" or "not found")
+    ---- print("NPC", npc.Name, "calling Combat.Light with entity:", Entity and "found" or "not found")
     Server.Modules.Combat.Light(npc)
-    -- print("NPC", npc.Name, "Combat.Light call completed")
+    ---- print("NPC", npc.Name, "Combat.Light call completed")
 
     return true
 end

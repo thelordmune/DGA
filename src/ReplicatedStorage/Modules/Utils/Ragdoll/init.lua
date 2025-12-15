@@ -54,7 +54,7 @@ function Ragdoller.Ragdoll(character: Model, duration: number)
 		-- Extend if the new duration would last longer
 		if newEndTime > ragdollEndTimes[character] then
 			ragdollEndTimes[character] = newEndTime
-			-- print(`[Ragdoll] Extended ragdoll for {character.Name} by {duration} seconds (new end: {newEndTime})`)
+			---- print(`[Ragdoll] Extended ragdoll for {character.Name} by {duration} seconds (new end: {newEndTime})`)
 		end
 	else
 		-- First time ragdolling this character

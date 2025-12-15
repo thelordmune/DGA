@@ -13,10 +13,10 @@ NetworkModule.EndPoint = function(Player, Data)
 		PlayerObject.Keys["Attack"] = Data.Held
 
 		if Data.Held then
-			-- print("holding")
+			---- print("holding")
 			Server.Modules.Combat["HandleBlockInput"](Character,true)
 		else
-			-- print("let go")
+			---- print("let go")
 			Server.Modules.Combat["HandleBlockInput"](Character,false)
 		end
 	end

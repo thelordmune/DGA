@@ -13,36 +13,36 @@ return function(scope, props: {
 	local parent = props.Parent
 	local entity = props.entity
 
-	-- -- print("[Hotbar] ===== HOTBAR COMPONENT STARTING =====")
-	-- -- print(`[Hotbar] Character: {character}`)
-	-- -- print(`[Hotbar] Parent: {parent}`)
-	-- -- print(`[Hotbar] Parent type: {typeof(parent)}`)
-	-- -- print(`[Hotbar] Entity: {entity}`)
+	-- ---- print("[Hotbar] ===== HOTBAR COMPONENT STARTING =====")
+	-- ---- print(`[Hotbar] Character: {character}`)
+	-- ---- print(`[Hotbar] Parent: {parent}`)
+	-- ---- print(`[Hotbar] Parent type: {typeof(parent)}`)
+	-- ---- print(`[Hotbar] Entity: {entity}`)
 
 	-- Reactive values for hotbar items
 	local hotbarItems = scope:Value({})
 
 	-- Update hotbar items when inventory changes
 	local function updateHotbarDisplay()
-		-- -- print("[Hotbar] updateHotbarDisplay called")
+		-- ---- print("[Hotbar] updateHotbarDisplay called")
 		if not entity then
-			-- -- print("[Hotbar] No entity, skipping update")
+			-- ---- print("[Hotbar] No entity, skipping update")
 			return
 		end
 
 		local items = {}
 		for slot = 1, 7 do
 			local item = InventoryManager.getHotbarItem(entity, slot)
-			-- -- -- print(`[Hotbar] Slot {slot}: {item}`)
+			-- -- ---- print(`[Hotbar] Slot {slot}: {item}`)
 			if item then
-				-- -- -- print(`[Hotbar]   - Item name: {item.name}`)
-				-- -- -- print(`[Hotbar]   - Item icon: {item.icon}`)
+				-- -- ---- print(`[Hotbar]   - Item name: {item.name}`)
+				-- -- ---- print(`[Hotbar]   - Item icon: {item.icon}`)
 			end
 			items[slot] = item
 		end
 
 		hotbarItems:set(items)
-		-- -- print("[Hotbar] Hotbar items updated")
+		-- ---- print("[Hotbar] Hotbar items updated")
 	end
 
 	-- Initial update
@@ -53,13 +53,13 @@ return function(scope, props: {
 		updateHotbarDisplay()
 	end)
 
-	-- -- print("[Hotbar] Using existing parent frame as hotbar container...")
-	-- -- print(`[Hotbar] Parent: {parent}`)
+	-- ---- print("[Hotbar] Using existing parent frame as hotbar container...")
+	-- ---- print(`[Hotbar] Parent: {parent}`)
 
 	-- Ensure UIListLayout exists in the parent
 	local uiListLayout = parent:FindFirstChild("UIListLayout")
 	if not uiListLayout then
-		-- -- print("[Hotbar] Creating UIListLayout in parent...")
+		-- ---- print("[Hotbar] Creating UIListLayout in parent...")
 		uiListLayout = scope:New "UIListLayout" {
 			Name = "UIListLayout",
 			Parent = parent,
@@ -70,13 +70,13 @@ return function(scope, props: {
 			VerticalAlignment = Enum.VerticalAlignment.Center,
 		}
 	else
-		-- -- print("[Hotbar] UIListLayout already exists in parent")
+		-- ---- print("[Hotbar] UIListLayout already exists in parent")
 	end
 
 	-- Create hotbar buttons with staggered animation
-	-- -- print("[Hotbar] Creating 7 hotbar buttons...")
+	-- ---- print("[Hotbar] Creating 7 hotbar buttons...")
 	for slot = 1, 7 do
-		-- -- print(`[Hotbar] Creating button for slot {slot}`)
+		-- ---- print(`[Hotbar] Creating button for slot {slot}`)
 		local button = HotbarButton(scope, {
 			slotNumber = slot,
 			itemName = scope:Computed(function(use)
@@ -93,11 +93,11 @@ return function(scope, props: {
 			Parent = parent,
 		})
 
-		-- -- print(`[Hotbar] Button created for slot {slot}: {button}`)
+		-- ---- print(`[Hotbar] Button created for slot {slot}: {button}`)
 
 		-- Add loading animation (one by one)
 		task.delay(0.05 * (slot - 1), function()
-			-- -- print(`[Hotbar] Animating button {slot}`)
+			-- ---- print(`[Hotbar] Animating button {slot}`)
 			if button then
 				-- Set initial state (transparent and offset)
 				button.BackgroundTransparency = 1
@@ -116,7 +116,7 @@ return function(scope, props: {
 					{BackgroundTransparency = 1}
 				):Play()
 			else
-				-- -- print(`[Hotbar] ⚠️ Button {slot} is nil!`)
+				-- ---- print(`[Hotbar] ⚠️ Button {slot} is nil!`)
 			end
 		end)
 	end
@@ -130,7 +130,7 @@ return function(scope, props: {
 		end
 	end)
 
-	-- -- print("[Hotbar] ===== HOTBAR COMPONENT COMPLETE =====")
+	-- ---- print("[Hotbar] ===== HOTBAR COMPONENT COMPLETE =====")
 	return parent
 end
 

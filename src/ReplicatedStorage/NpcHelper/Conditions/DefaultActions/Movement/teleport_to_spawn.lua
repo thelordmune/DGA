@@ -20,7 +20,7 @@ return function(actor: Actor, mainConfig: table)
 	--task.synchronize()
 	--TODO: if obstacles are in the way , switch method to pathfind
 
-	-- print("herdfas")
+	---- print("herdfas")
 	mainConfig.TeleportSpawn(rootPart.Position)
 	npc:MoveTo(mainConfig.Spawning.SpawnedAt)
 

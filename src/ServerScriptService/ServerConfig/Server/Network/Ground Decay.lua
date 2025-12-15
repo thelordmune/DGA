@@ -55,6 +55,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
 		Server.Library.TimedState(Character.Actions, script.Name, Alchemy.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Alchemy.Length) -- Prevent jumping during move
 		Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
 
 		local root = Character:FindFirstChild("HumanoidRootPart")

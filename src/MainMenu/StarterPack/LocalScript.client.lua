@@ -52,15 +52,19 @@ local function getMouseDelta()
 	return normalizedX, normalizedY
 end
 
+local cursorFolder = Instance.new("Folder")
+cursorFolder.Name = "CursorFolder"
+cursorFolder.Parent = workspace
+
 local cursorPart = Instance.new("Part")
 cursorPart.Name = "CursorFollower"
-cursorPart.Size = Vector3.new(0.5, 0.5, 0.5)
+cursorPart.Size = Vector3.new(.1,.1,.1)
 cursorPart.Transparency = 1
 cursorPart.Anchored = true
 cursorPart.CanCollide = false
 cursorPart.CastShadow = false
 cursorPart.CanQuery = false
-cursorPart.Parent = workspace
+cursorPart.Parent = camera
 
 local cursorLight = Instance.new("PointLight")
 cursorLight.Color = Color3.fromRGB(255, 255, 255)
@@ -160,13 +164,13 @@ conn = RunService.RenderStepped:Connect(function(deltaTime)
 
 end)
 
-local play = intermission:WaitForChild("Play", 600)
-play.Activated:Connect(function()
+-- Stone click now acts as play button AND shows dialogue
+stone.ClickDetector.MouseClick:Connect(function()
+	-- Fade in the intermission frame
 	TweenService:Create(intermission.Frame, tinfo1, {Transparency = 0}):Play()
 	TweenService:Create(intermission.Frame.ImageLabel, tinfo1, {Transparency = 0, ImageTransparency = 0}):Play()
-end)
 
-stone.ClickDetector.MouseClick:Connect(function()
+	-- Show the dialogue
 	dialogue:set("<color=#a30000><italic><bold>The echoes of the dead transmit through the stone. A sharp tingle engulfs your body<pause=.3>...</> or maybe its just the wind, <pause=.3><shake>who knows?</></></></></>")
 	script.chime:Play()
 	clicked:set(true)
@@ -186,4 +190,3 @@ hf.ClickDetector.MouseClick:Connect(function()
 	task.wait(5)
 	clicked:set(false)
 end)
-

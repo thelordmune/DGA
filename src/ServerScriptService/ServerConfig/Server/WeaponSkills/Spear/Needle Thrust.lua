@@ -46,19 +46,19 @@ return function(Player, Data, Server)
 		-- Track starting position
 		local startPos = Character.HumanoidRootPart.Position
 		local startVel = Character.HumanoidRootPart.AssemblyLinearVelocity
-		---- print(`[Needle Thrust Server] ========== MOVE START ==========`)
-		---- print(`[Needle Thrust Server] Starting Position: {startPos}`)
-		---- print(`[Needle Thrust Server] Starting Velocity: {startVel}`)
+		------ print(`[Needle Thrust Server] ========== MOVE START ==========`)
+		------ print(`[Needle Thrust Server] Starting Position: {startPos}`)
+		------ print(`[Needle Thrust Server] Starting Velocity: {startVel}`)
 
 		-- Stop ALL animations first (including dash) to prevent animation root motion from interfering
-		---- print(`[Needle Thrust Server] Stopping all animations for {Player.Name}`)
+		------ print(`[Needle Thrust Server] Stopping all animations for {Player.Name}`)
 		Server.Library.StopAllAnims(Character)
 
 		-- Remove any existing body movers FIRST and wait for it to complete
-		---- print(`[Needle Thrust Server] Sending RemoveBvel to {Player.Name}`)
+		------ print(`[Needle Thrust Server] Sending RemoveBvel to {Player.Name}`)
 		Server.Packets.Bvel.sendTo({Character = Character, Name = "RemoveBvel"},Player)
-		---- print(`[Needle Thrust Server] Waiting 0.1s for cleanup and animation stop...`) -- Increased delay to ensure animations stop and RemoveBvel completes
-		---- print(`[Needle Thrust Server] Cleanup wait complete, continuing...`)
+		------ print(`[Needle Thrust Server] Waiting 0.1s for cleanup and animation stop...`) -- Increased delay to ensure animations stop and RemoveBvel completes
+		------ print(`[Needle Thrust Server] Cleanup wait complete, continuing...`)
 
 		Server.Library.SetCooldown(Character, script.Name, 5) -- Increased from 2.5 to 5 seconds
 
@@ -68,6 +68,7 @@ return function(Player, Data, Server)
 
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
 
 		-- Initialize hyperarmor tracking for this move
 		Character:SetAttribute("HyperarmorDamage", 0)
@@ -80,8 +81,8 @@ return function(Player, Data, Server)
 			Arguments = { Character }
 		})
 
-		-- Clean up hyperarmor data and visual when move ends
-		task.delay(Move.Length, function()
+		-- Cleanup function for when skill ends or is cancelled
+		local function cleanup()
 			if Character and Character.Parent then
 				Character:SetAttribute("HyperarmorDamage", nil)
 				Character:SetAttribute("HyperarmorMove", nil)
@@ -97,20 +98,23 @@ return function(Player, Data, Server)
 				local endPos = Character.HumanoidRootPart.Position
 				local endVel = Character.HumanoidRootPart.AssemblyLinearVelocity
 				local distance = (endPos - startPos).Magnitude
-				---- print(`[Needle Thrust Server] ========== MOVE END ==========`)
-				---- print(`[Needle Thrust Server] Ending Position: {endPos}`)
-				---- print(`[Needle Thrust Server] Ending Velocity: {endVel}`)
-				---- print(`[Needle Thrust Server] Total Distance Traveled: {distance} studs`)
-				---- print(`[Needle Thrust Server] ====================================`)
+				------ print(`[Needle Thrust Server] ========== MOVE END ==========`)
+				------ print(`[Needle Thrust Server] Ending Position: {endPos}`)
+				------ print(`[Needle Thrust Server] Ending Velocity: {endVel}`)
+				------ print(`[Needle Thrust Server] Total Distance Traveled: {distance} studs`)
+				------ print(`[Needle Thrust Server] ====================================`)
 			end
-		end)
+		end
+
+		-- Call cleanup when move ends
+		task.delay(Move.Length, cleanup)
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
 			hittimes[i] = fraction * animlength
 		end
 
-        ---- print(tostring(hittimes[1]))
+        ------ print(tostring(hittimes[1]))
 
         Server.Modules.Combat.Trail(Character, true)
 
@@ -127,6 +131,12 @@ return function(Player, Data, Server)
 					})
 
         task.delay(hittimes[1], function()
+			-- CHECK IF SKILL WAS CANCELLED
+			if not Server.Library.StateCheck(Character.Actions, script.Name) then
+				cleanup()
+				return
+			end
+
              Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 						Module = "Base",
 						Function = "NeedleThrust",
@@ -154,7 +164,7 @@ return function(Player, Data, Server)
                         for _, Target in pairs(HitTargets) do
                             if Target ~= Character and Target:IsA("Model") then
                                 Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name]["DamageTable"])
-                                ---- print("Needle Thrust hit:", Target.Name)
+                                ------ print("Needle Thrust hit:", Target.Name)
                                 hitSomething = true
                             end
                         end
@@ -166,5 +176,5 @@ return function(Player, Data, Server)
                     end
         end)
 	end
-	-- ---- print("activating skill; " .. script.Name)
+	-- ------ print("activating skill; " .. script.Name)
 end

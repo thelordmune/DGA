@@ -53,6 +53,7 @@ return function(scope: any, props: {})
 		BackgroundTransparency = 1,
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
+		TextTransparency = 1,
 		FontFace = Font.new(
 			"rbxasset://fonts/families/Nunito.json",
 			Enum.FontWeight.Bold,

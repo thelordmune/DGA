@@ -65,12 +65,12 @@ Controller.Check = function()
             -- CLEANUP OLD HEALTH COMPONENT FIRST to prevent memory leak
             if healthComponentData and healthComponentData.scope then
                 healthComponentData.scope:doCleanup()
-                print("[Stats] 🧹 Cleaned up old Health component before creating new one")
+               -- print("[Stats] 🧹 Cleaned up old Health component before creating new one")
             end
 
             healthComponentData = HealthComponent(statsFrame)
             Controller.healthComponentData = healthComponentData -- Update the exposed reference
-            print("[Stats] ✅ New Health component initialized")
+           -- print("[Stats] ✅ New Health component initialized")
         end
     end
 end
@@ -88,7 +88,7 @@ Controller.Health = function(Value, MaxValue)
     if healthComponentData and healthComponentData.healthValue then
         local healthPercent = math.clamp((Value / MaxValue) * 100, 0, 100)
         healthComponentData.healthValue:set(healthPercent)
-        print(`[Stats] Health updated: {healthPercent}%`)
+       -- print(`[Stats] Health updated: {healthPercent}%`)
     else
         warn("[Stats] Health component not initialized yet")
     end
@@ -118,7 +118,7 @@ Controller.LoadAlchemyMoves = function()
     Controller.UpdateHotbarSlot(9, "Modifier (X)")  -- X key enters modifier mode
     Controller.UpdateHotbarSlot(10, alchemyInfo.Type .. " Alchemy") -- Show alchemy type
 
-    -- -- print("📋 Loaded", alchemyInfo.Type, "alchemy - Use Z to cast, X for modifiers")
+    -- ---- print("📋 Loaded", alchemyInfo.Type, "alchemy - Use Z to cast, X for modifiers")
 end
 
 Controller.LoadWeaponSkills = function()
@@ -170,7 +170,7 @@ Controller.LoadWeaponSkills = function()
         return
     end
 
-    -- print("[LoadWeaponSkills] Loading weapon skills for player entity:", pent)
+    ---- print("[LoadWeaponSkills] Loading weapon skills for player entity:", pent)
 
     -- Check if player has Hotbar and Inventory components
     -- Throw errors instead of returning so retry logic knows it failed
@@ -185,26 +185,26 @@ Controller.LoadWeaponSkills = function()
     local hotbar = world:get(pent, comps.Hotbar)
     local inventory = world:get(pent, comps.Inventory)
 
-    -- print("[LoadWeaponSkills] 📋 Hotbar slots:", hotbar.slots)
-    -- print("[LoadWeaponSkills] 📦 Inventory items count:", inventory.items and #inventory.items or 0)
+    ---- print("[LoadWeaponSkills] 📋 Hotbar slots:", hotbar.slots)
+    ---- print("[LoadWeaponSkills] 📦 Inventory items count:", inventory.items and #inventory.items or 0)
 
     -- Get weapon skills from hotbar slots 1-7
     local skillsLoaded = 0
     for slotNumber = 1, 7 do
         local success3, item = pcall(InventoryManager.getHotbarItem, pent, slotNumber)
         if success3 and item then
-            -- print("[LoadWeaponSkills] Slot", slotNumber, "- Item:", item.name, "Type:", item.typ)
+            ---- print("[LoadWeaponSkills] Slot", slotNumber, "- Item:", item.name, "Type:", item.typ)
             if item.typ == "skill" then
                 Controller.UpdateHotbarSlot(slotNumber, item.name)
                 skillsLoaded = skillsLoaded + 1
             end
         else
-            -- print("[LoadWeaponSkills] Slot", slotNumber, "- Empty or error:", success3 and "empty" or item)
+            ---- print("[LoadWeaponSkills] Slot", slotNumber, "- Empty or error:", success3 and "empty" or item)
             Controller.UpdateHotbarSlot(slotNumber, "") -- Clear slot if no skill
         end
     end
 
-    -- print("[LoadWeaponSkills] ✅ Loaded", skillsLoaded, "weapon skills")
+    ---- print("[LoadWeaponSkills] ✅ Loaded", skillsLoaded, "weapon skills")
 end
 
 Controller.UpdateHotbarSlot = function(slotNumber, itemName)
@@ -225,28 +225,28 @@ Controller.UpdateHotbarSlot = function(slotNumber, itemName)
 end
 
 Controller.InitializeHotbar = function(character, entity)
-	-- print("[Stats] ===== INITIALIZING HOTBAR =====")
-	-- print(`[Stats] Character: {character}`)
-	-- print(`[Stats] Entity: {entity}`)
-	-- print(`[Stats] UI: {UI}`)
+	---- print("[Stats] ===== INITIALIZING HOTBAR =====")
+	---- print(`[Stats] Character: {character}`)
+	---- print(`[Stats] Entity: {entity}`)
+	---- print(`[Stats] UI: {UI}`)
 
 	if not UI then
-		-- print("[Stats] ❌ UI not found, skipping hotbar initialization")
+		---- print("[Stats] ❌ UI not found, skipping hotbar initialization")
 		return
 	end
 
-	-- print(`[Stats] UI type: {typeof(UI)}`)
-	-- print(`[Stats] UI name: {UI.Name}`)
-	-- print(`[Stats] UI children: {#UI:GetChildren()}`)
+	---- print(`[Stats] UI type: {typeof(UI)}`)
+	---- print(`[Stats] UI name: {UI.Name}`)
+	---- print(`[Stats] UI children: {#UI:GetChildren()}`)
 
 	-- Find existing Hotbar frame
 	local hotbarFrame = UI:FindFirstChild("Hotbar")
 	if not hotbarFrame then
-		-- print("[Stats] ❌ Hotbar frame not found in UI!")
+		---- print("[Stats] ❌ Hotbar frame not found in UI!")
 		return
 	end
 
-	-- print(`[Stats] ✅ Found existing Hotbar frame: {hotbarFrame}`)
+	---- print(`[Stats] ✅ Found existing Hotbar frame: {hotbarFrame}`)
 
 	-- CLEANUP OLD HOTBAR SCOPE FIRST to prevent memory leak
 	for i = #activeScopes, 1, -1 do
@@ -259,12 +259,12 @@ Controller.InitializeHotbar = function(character, entity)
 		end
 	end
 
-	-- print("[Stats] Loading Hotbar component...")
+	---- print("[Stats] Loading Hotbar component...")
 	local Fusion = require(Replicated.Modules.Fusion)
 	local Hotbar = require(Replicated.Client.Components.Hotbar)
-	-- print("[Stats] Hotbar component loaded, creating scope...")
+	---- print("[Stats] Hotbar component loaded, creating scope...")
 	local scope = Fusion.scoped(Fusion, {})
-	-- print(`[Stats] Scope created: {scope}`)
+	---- print(`[Stats] Scope created: {scope}`)
 
 	-- Track this scope for cleanup
 	table.insert(activeScopes, {
@@ -273,21 +273,21 @@ Controller.InitializeHotbar = function(character, entity)
 	})
 
 	-- Create the hotbar component
-	-- print("[Stats] Calling Hotbar function...")
+	---- print("[Stats] Calling Hotbar function...")
 	Hotbar(scope, {
 		character = character,
 		entity = entity,
 		Parent = hotbarFrame,
 	})
 
-	-- print("[Stats] ✅ Hotbar initialized with Fusion component")
-	-- print("[Stats] ===== HOTBAR INITIALIZATION COMPLETE =====")
+	---- print("[Stats] ✅ Hotbar initialized with Fusion component")
+	---- print("[Stats] ===== HOTBAR INITIALIZATION COMPLETE =====")
 end
 
 Controller.Hotbar = function(Order: string)
     -- Old hotbar initialization - now handled by Fusion Hotbar component
     -- This function is kept for backwards compatibility but does nothing
-    -- print("[Stats] Hotbar function called with Order:", Order, "- using new Fusion hotbar system")
+    ---- print("[Stats] Hotbar function called with Order:", Order, "- using new Fusion hotbar system")
 end
 
 Controller.Party = function()
@@ -363,7 +363,7 @@ local Children, scoped, peek, out, OnEvent, Value, Tween =
 					},
 				},
 				[OnEvent "Activated"] = function(_,numclicks)
-					-- print("activated party button")
+					---- print("activated party button")
 					scope:Party{
 						squadselected = squ,
 						tempselected = temper,

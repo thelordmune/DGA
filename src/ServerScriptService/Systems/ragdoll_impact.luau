@@ -50,18 +50,18 @@ local allCharactersQuery = world:query(comps.Character):cached()
 
 
 
--- -- print("[RagdollImpact] ✅ Server system loaded - will replicate effects to clients")
+-- ---- print("[RagdollImpact] ✅ Server system loaded - will replicate effects to clients")
 
 -- Helper function to send impact event to all clients and deal damage
 local function createImpact(character, impactPosition, impactVelocity)
     -- Check minimum velocity
     local velocityMagnitude = math.abs(impactVelocity.Y)
     if velocityMagnitude < MIN_IMPACT_VELOCITY then
-        -- -- print(`[RagdollImpact] ⚠️ Impact velocity too low: {velocityMagnitude} < {MIN_IMPACT_VELOCITY}`)
+        -- ---- print(`[RagdollImpact] ⚠️ Impact velocity too low: {velocityMagnitude} < {MIN_IMPACT_VELOCITY}`)
         return
     end
 
-    -- -- print(`[RagdollImpact] 🎯 Sending impact event for {character.Name} at {impactPosition} with velocity {velocityMagnitude} studs/s`)
+    -- ---- print(`[RagdollImpact] 🎯 Sending impact event for {character.Name} at {impactPosition} with velocity {velocityMagnitude} studs/s`)
 
     -- Raycast down to find the ground with extended range
     local rayOrigin = impactPosition + Vector3.new(0, 10, 0) -- Start higher
@@ -73,7 +73,7 @@ local function createImpact(character, impactPosition, impactVelocity)
         return
     end
 
-    -- -- print(`[RagdollImpact] ✅ Ground found: {raycastResult.Instance:GetFullName()} at {raycastResult.Position}`)
+    -- ---- print(`[RagdollImpact] ✅ Ground found: {raycastResult.Instance:GetFullName()} at {raycastResult.Position}`)
 
     -- Send impact event to all clients for smooth replication
     -- Use BridgeNet2.AllPlayers() to send to all connected players
@@ -85,7 +85,7 @@ local function createImpact(character, impactPosition, impactVelocity)
         CharacterName = character.Name
     })
 
-    -- -- print(`[RagdollImpact] 📡 Impact event sent to all clients`)
+    -- ---- print(`[RagdollImpact] 📡 Impact event sent to all clients`)
 
     -- Deal damage based on impact velocity
     local humanoid = character:FindFirstChildOfClass("Humanoid")
@@ -96,7 +96,7 @@ local function createImpact(character, impactPosition, impactVelocity)
 
         -- Apply damage
         humanoid:TakeDamage(damage)
-        -- -- print(`[RagdollImpact] 💥 Dealt {damage} impact damage to {character.Name} (velocity: {math.floor(velocityMagnitude)} studs/s)`)
+        -- ---- print(`[RagdollImpact] 💥 Dealt {damage} impact damage to {character.Name} (velocity: {math.floor(velocityMagnitude)} studs/s)`)
     end
 end
 
@@ -142,11 +142,11 @@ local function detectRagdolls()
                     wasInAir = false,
                     lastVelocity = Vector3.zero,
                 })
-                -- print(`[RagdollImpact] 🎯 Started tracking ragdolled entity: {character.Name} (Reason: {ragdollReason})`)
+                ---- print(`[RagdollImpact] 🎯 Started tracking ragdolled entity: {character.Name} (Reason: {ragdollReason})`)
             end
         else
             if world:has(entity, comps.RagdollImpact) then
-                -- print(`[RagdollImpact] 🔄 {character.Name} is no longer ragdolled, clearing tracking`)
+                ---- print(`[RagdollImpact] 🔄 {character.Name} is no longer ragdolled, clearing tracking`)
                 world:remove(entity, comps.RagdollImpact)
             end
         end
@@ -177,7 +177,7 @@ local function checkImpacts()
             if velocityMagnitude >= DASH_EFFECT_VELOCITY then
                 if not impactData.hasDashEffect then
                     -- Enable dash effect
-                    -- print(`[RagdollImpact] ✨ Enabling dash effect for {character.Name} (velocity: {math.floor(velocityMagnitude)} studs/s)`)
+                    ---- print(`[RagdollImpact] ✨ Enabling dash effect for {character.Name} (velocity: {math.floor(velocityMagnitude)} studs/s)`)
                     Visuals.Ranged(rootPart.Position, 300, {
                         Module = "Base",
                         Function = "DashFX",
@@ -189,7 +189,7 @@ local function checkImpacts()
             else
                 if impactData.hasDashEffect then
                     -- Disable dash effect
-                    -- print(`[RagdollImpact] 🔚 Disabling dash effect for {character.Name}`)
+                    ---- print(`[RagdollImpact] 🔚 Disabling dash effect for {character.Name}`)
                     Visuals.Ranged(rootPart.Position, 300, {
                         Module = "Base",
                         Function = "EndDashFX",
@@ -206,7 +206,7 @@ local function checkImpacts()
             if isFalling then
                 -- Character is falling
                 if not impactData.wasInAir then
-                    -- print(`[RagdollImpact] 🪂 {character.Name} is falling (velocity: {math.floor(currentVelocity.Y)})`)
+                    ---- print(`[RagdollImpact] 🪂 {character.Name} is falling (velocity: {math.floor(currentVelocity.Y)})`)
                 end
                 impactData.wasInAir = true
                 impactData.lastVelocity = currentVelocity
@@ -227,8 +227,8 @@ local function checkImpacts()
                         -- Check cooldown
                         if impactTime - impactData.lastImpactTime >= IMPACT_COOLDOWN then
                             -- Character is about to hit the ground!
-                            -- print(`[RagdollImpact] 💥 {character.Name} hitting ground! Velocity: {math.floor(math.abs(currentVelocity.Y))} studs/s, Distance: {math.floor(distanceToGround)} studs`)
-                            -- print(`[RagdollImpact] 📍 Ground: {raycastResult.Instance:GetFullName()}`)
+                            ---- print(`[RagdollImpact] 💥 {character.Name} hitting ground! Velocity: {math.floor(math.abs(currentVelocity.Y))} studs/s, Distance: {math.floor(distanceToGround)} studs`)
+                            ---- print(`[RagdollImpact] 📍 Ground: {raycastResult.Instance:GetFullName()}`)
 
                             -- Send impact event to clients immediately using the GROUND position, not character position
                             createImpact(character, raycastResult.Position, currentVelocity)
@@ -258,7 +258,7 @@ return {
     run = function(_world, dt)
         -- print debug message once
         if not debugPrinted then
-            -- print("[RagdollImpact] ✅ System is running on server - replicating to clients (HEAVILY OPTIMIZED - 15 Hz impacts, 5 Hz detection)")
+            ---- print("[RagdollImpact] ✅ System is running on server - replicating to clients (HEAVILY OPTIMIZED - 15 Hz impacts, 5 Hz detection)")
             debugPrinted = true
         end
 
@@ -270,7 +270,7 @@ return {
             for _ in ragdollQuery do
                 entityCount = entityCount + 1
             end
-            -- print(`[RagdollImpact] 📊 Monitoring {entityCount} ragdolled entities`)
+            ---- print(`[RagdollImpact] 📊 Monitoring {entityCount} ragdolled entities`)
         end
 
         -- OPTIMIZATION: Throttle ragdoll detection to 5 Hz

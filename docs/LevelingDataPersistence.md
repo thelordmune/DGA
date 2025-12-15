@@ -117,7 +117,7 @@ local LevelingManager = require(ReplicatedStorage.Modules.Utils.LevelingManager)
 local success, levelsGained = LevelingManager.addExperience(playerEntity, 500)
 
 if success and levelsGained > 0 then
-    -- print("Player leveled up!", levelsGained, "times")
+    ---- print("Player leveled up!", levelsGained, "times")
 end
 ```
 

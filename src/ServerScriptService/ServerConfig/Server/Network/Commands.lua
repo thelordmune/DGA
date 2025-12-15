@@ -32,16 +32,16 @@ end
 
 -- Set weapon command
 NetworkModule.SetWeapon = function(player, weaponName)
-    -- print("SetWeapon called for player:", player.Name, "weapon:", weaponName)
+    ---- print("SetWeapon called for player:", player.Name, "weapon:", weaponName)
     
     if not player or not player.Character then
-        -- print("Player or character not found")
+        ---- print("Player or character not found")
         return false, "Player or character not found"
     end
     
     -- Validate weapon name
     local validWeapon = tableContains(VALID_WEAPONS, weaponName)
-    -- print("Valid weapon check:", validWeapon)
+    ---- print("Valid weapon check:", validWeapon)
     if not validWeapon then
         return false, "Invalid weapon. Valid weapons: " .. table.concat(VALID_WEAPONS, ", ")
     end
@@ -49,16 +49,16 @@ NetworkModule.SetWeapon = function(player, weaponName)
     -- Get current player data using Global
     local currentData = Global.GetData(player)
     if not currentData then
-        -- print("Could not get player data")
+        ---- print("Could not get player data")
         return false, "Player data not found"
     end
     
-    -- print("Current weapon:", currentData.Weapon, "New weapon:", validWeapon)
+    ---- print("Current weapon:", currentData.Weapon, "New weapon:", validWeapon)
     
     -- Unequip current weapon if equipped
     local character = player.Character
     if character:GetAttribute("Equipped") then
-        -- print("Unequipping current weapon before changing to:", validWeapon)
+        ---- print("Unequipping current weapon before changing to:", validWeapon)
         Server.Modules.Network.Equip.UnequipWeapon(character, nil, true) -- Skip animation
     end
     
@@ -106,22 +106,22 @@ NetworkModule.SetWeapon = function(player, weaponName)
     -- Update client UI
     updateClientUI(player, "weapon")
     
-    -- print("Weapon successfully set to:", validWeapon)
+    ---- print("Weapon successfully set to:", validWeapon)
     return true, "Weapon set to: " .. validWeapon
 end
 
 -- Set alchemy command
 NetworkModule.SetAlchemy = function(player, alchemyName)
-    -- print("SetAlchemy called for player:", player.Name, "alchemy:", alchemyName)
+    ---- print("SetAlchemy called for player:", player.Name, "alchemy:", alchemyName)
     
     if not player or not player.Character then
-        -- print("Player or character not found")
+        ---- print("Player or character not found")
         return false, "Player or character not found"
     end
     
     -- Validate alchemy name
     local validAlchemy = tableContains(VALID_ALCHEMY, alchemyName)
-    -- print("Valid alchemy check:", validAlchemy)
+    ---- print("Valid alchemy check:", validAlchemy)
     if not validAlchemy then
         return false, "Invalid alchemy. Valid alchemy types: " .. table.concat(VALID_ALCHEMY, ", ")
     end
@@ -129,11 +129,11 @@ NetworkModule.SetAlchemy = function(player, alchemyName)
     -- Get current player data using Global
     local currentData = Global.GetData(player)
     if not currentData then
-        -- print("Could not get player data")
+        ---- print("Could not get player data")
         return false, "Player data not found"
     end
     
-    -- print("Current alchemy:", currentData.Alchemy, "New alchemy:", validAlchemy)
+    ---- print("Current alchemy:", currentData.Alchemy, "New alchemy:", validAlchemy)
     
     -- Update player data using Global.SetData
     Global.SetData(player, function(data)
@@ -147,13 +147,13 @@ NetworkModule.SetAlchemy = function(player, alchemyName)
     -- Update client UI
     updateClientUI(player, "alchemy")
     
-    -- print("Alchemy successfully set to:", validAlchemy)
+    ---- print("Alchemy successfully set to:", validAlchemy)
     return true, "Alchemy set to: " .. validAlchemy
 end
 
 -- Chat command handler
 NetworkModule.HandleChatCommand = function(player, message)
-    -- print("HandleChatCommand called with:", message)
+    ---- print("HandleChatCommand called with:", message)
     
     -- Check for set commands (without /e prefix)
     local parts = {}
@@ -161,7 +161,7 @@ NetworkModule.HandleChatCommand = function(player, message)
         table.insert(parts, part)
     end
     
-    -- print("Command parts:", table.concat(parts, ", "))
+    ---- print("Command parts:", table.concat(parts, ", "))
     
     if #parts < 3 then
         return false, "Usage: set Weapon <weaponname> or set Alchemy <alchemyname>"
@@ -175,13 +175,13 @@ NetworkModule.HandleChatCommand = function(player, message)
     local setType = string.lower(parts[2])
     local setValue = parts[3]
     
-    -- print("Set type:", setType, "Set value:", setValue)
+    ---- print("Set type:", setType, "Set value:", setValue)
     
     if setType == "weapon" then
-        -- print("Calling SetWeapon with:", setValue)
+        ---- print("Calling SetWeapon with:", setValue)
         return NetworkModule.SetWeapon(player, setValue)
     elseif setType == "alchemy" then
-        -- print("Calling SetAlchemy with:", setValue)
+        ---- print("Calling SetAlchemy with:", setValue)
         return NetworkModule.SetAlchemy(player, setValue)
     else
         return false, "Invalid set type. Use 'Weapon' or 'Alchemy'"

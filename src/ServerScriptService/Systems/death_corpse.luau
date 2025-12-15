@@ -12,6 +12,7 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Ragdoll = require(ReplicatedStorage.Modules.Utils.Ragdoll)
+local VFXCleanup = require(ReplicatedStorage.Modules.Utils.VFXCleanup)
 
 local CORPSE_LIFETIME = 50 -- Seconds before corpse despawns
 
@@ -118,7 +119,7 @@ local function createCorpse(character: Model, deathPosition: Vector3)
     -- Destroy corpse after full lifetime
     Debris:AddItem(corpse, CORPSE_LIFETIME)
 
-    print(`[DeathCorpse] Created corpse for {character.Name} at {deathPosition}`)
+   -- print(`[DeathCorpse] Created corpse for {character.Name} at {deathPosition}`)
 end
 
 local function setupDeathHandler(character: Model)
@@ -147,11 +148,16 @@ local function setupDeathHandler(character: Model)
     end)
 
     deathConnections[character] = humanoid.Died:Connect(function()
-        print(`[DeathCorpse] {character.Name} died, creating corpse...`)
+       -- print(`[DeathCorpse] {character.Name} died, creating corpse...`)
 
         -- Get death position
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         local deathPosition = rootPart and rootPart.Position or Vector3.zero
+
+        -- CLEANUP ALL VFX ON DEATH
+        VFXCleanup.CleanupCharacter(character)
+        VFXCleanup.DisableCharacterParticles(character)
+       -- print(`[DeathCorpse] Cleaned up VFX for {character.Name}`)
 
         -- Ensure ragdoll is enabled (in case HealthChanged didn't fire)
         if not character:FindFirstChild("Ragdoll") then
@@ -188,7 +194,7 @@ local function init()
     for _, character in CollectionService:GetTagged("Humanoids") do
         if character:IsDescendantOf(workspace.World.Live) and not character:GetAttribute("NotActualRig") then
             setupDeathHandler(character)
-            print(`[DeathCorpse] Set up death handler for {character.Name}`)
+           -- print(`[DeathCorpse] Set up death handler for {character.Name}`)
         end
     end
 
@@ -196,11 +202,11 @@ local function init()
     CollectionService:GetInstanceAddedSignal("Humanoids"):Connect(function(character)
         if character:IsDescendantOf(workspace.World.Live) and not character:GetAttribute("NotActualRig") then
             setupDeathHandler(character)
-            print(`[DeathCorpse] Set up death handler for {character.Name}`)
+           -- print(`[DeathCorpse] Set up death handler for {character.Name}`)
         end
     end)
 
-    print("[DeathCorpse] ✅ Death corpse system initialized")
+   -- print("[DeathCorpse] ✅ Death corpse system initialized")
 end
 
 -- ECS system format

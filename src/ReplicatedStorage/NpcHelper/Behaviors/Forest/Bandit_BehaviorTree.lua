@@ -11,7 +11,7 @@ return function(TREE)
 		return function(actor, mainConfig)
 			local result = Conditions[conditionName](actor, mainConfig, table.unpack(extraArguments))
 
-			---- print("Condition:", conditionName, "Result:", result)
+			------ print("Condition:", conditionName, "Result:", result)
 
 			return result
 		end

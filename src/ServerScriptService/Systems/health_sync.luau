@@ -82,7 +82,7 @@ local function setupHealthConnections()
                     world:set(entity, comps.Health, currentHealth)
 
                     if DEBUG then
-                        print(`[HealthSync] Event-based sync: entity {entity} health: {currentHealth.current}/{currentHealth.max}`)
+                       -- print(`[HealthSync] Event-based sync: entity {entity} health: {currentHealth.current}/{currentHealth.max}`)
                     end
                 end
             end)
@@ -96,7 +96,7 @@ local function setupHealthConnections()
                 world:set(entity, comps.Health, currentHealth)
 
                 if DEBUG then
-                    print(`[HealthSync] Synced entity {entity} max health: {currentHealth.max}`)
+                   -- print(`[HealthSync] Synced entity {entity} max health: {currentHealth.max}`)
                 end
             end)
 
@@ -129,7 +129,7 @@ local function periodicHealthSync()
             world:set(entity, comps.Health, health)
 
             if DEBUG then
-                print(`[HealthSync] Periodic sync: entity {entity} health: {health.current}/{health.max}`)
+               -- print(`[HealthSync] Periodic sync: entity {entity} health: {health.current}/{health.max}`)
             end
         end
     end
@@ -154,7 +154,7 @@ local function health_sync(_world, dt: number)
                 for _ in pairs(healthConnections) do
                     syncedEntities = syncedEntities + 1
                 end
-                print(`[HealthSync] Active health sync connections: {syncedEntities} (OPTIMIZED - 5 Hz periodic sync)`)
+               -- print(`[HealthSync] Active health sync connections: {syncedEntities} (OPTIMIZED - 5 Hz periodic sync)`)
                 lastDebugTime = currentTime
             end
         end

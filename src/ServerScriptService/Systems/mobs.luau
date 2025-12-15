@@ -18,7 +18,7 @@ local function isCombatNPC(npcModel: Model): boolean
 	local ancestor = npcModel
 	while ancestor do
 		if ancestor.Name == "Dialogue" and ancestor.Parent and ancestor.Parent.Name == "World" then
-			-- print(`[Mobs] {npcModel.Name} is in World.Dialogue - DIALOGUE NPC`)
+			---- print(`[Mobs] {npcModel.Name} is in World.Dialogue - DIALOGUE NPC`)
 			return false -- Dialogue NPC
 		end
 		ancestor = ancestor.Parent
@@ -27,7 +27,7 @@ local function isCombatNPC(npcModel: Model): boolean
 	-- Check if NPC name contains "Dummy" or "Training" - these are NOT combat NPCs
 	local npcName = npcModel.Name:lower()
 	if npcName:find("dummy") or npcName:find("training") then
-		-- print(`[Mobs] {npcModel.Name} is a training dummy - DIALOGUE NPC`)
+		---- print(`[Mobs] {npcModel.Name} is a training dummy - DIALOGUE NPC`)
 		return false
 	end
 
@@ -35,13 +35,13 @@ local function isCombatNPC(npcModel: Model): boolean
 	-- If Actor doesn't exist yet, the NPC will be reinitialized when it's fully loaded
 	local actor = npcModel.Parent
 	if not actor or not actor:IsA("Actor") then
-		-- print(`[Mobs] {npcModel.Name} - No Actor parent found, assuming DIALOGUE NPC (safer default)`)
+		---- print(`[Mobs] {npcModel.Name} - No Actor parent found, assuming DIALOGUE NPC (safer default)`)
 		return false -- Default to dialogue NPC if no Actor (safer for dummies/static NPCs)
 	end
 
 	local dataFolder = actor:FindFirstChild("Data")
 	if not dataFolder then
-		-- print(`[Mobs] {npcModel.Name} - No Data folder found, assuming DIALOGUE NPC (safer default)`)
+		---- print(`[Mobs] {npcModel.Name} - No Data folder found, assuming DIALOGUE NPC (safer default)`)
 		return false -- Default to dialogue NPC if no Data folder
 	end
 
@@ -50,7 +50,7 @@ local function isCombatNPC(npcModel: Model): boolean
 	if combatFolder then
 		local lightValue = combatFolder:FindFirstChild("Light")
 		if lightValue then
-			-- print(`[Mobs] {npcModel.Name} - Combat.Light = {lightValue.Value}`)
+			---- print(`[Mobs] {npcModel.Name} - Combat.Light = {lightValue.Value}`)
 			if lightValue.Value == true then
 				return true
 			end
@@ -62,7 +62,7 @@ local function isCombatNPC(npcModel: Model): boolean
 	if weaponsFolder then
 		local enabledValue = weaponsFolder:FindFirstChild("Enabled")
 		if enabledValue then
-			-- print(`[Mobs] {npcModel.Name} - Weapons.Enabled = {enabledValue.Value}`)
+			---- print(`[Mobs] {npcModel.Name} - Weapons.Enabled = {enabledValue.Value}`)
 			if enabledValue.Value == true then
 				return true
 			end
@@ -74,14 +74,14 @@ local function isCombatNPC(npcModel: Model): boolean
 	if enemyDetectionFolder then
 		local captureDistValue = enemyDetectionFolder:FindFirstChild("CaptureDistance")
 		if captureDistValue then
-			-- print(`[Mobs] {npcModel.Name} - EnemyDetection.CaptureDistance = {captureDistValue.Value}`)
+			---- print(`[Mobs] {npcModel.Name} - EnemyDetection.CaptureDistance = {captureDistValue.Value}`)
 			if captureDistValue.Value > 0 then
 				return true
 			end
 		end
 	end
 
-	-- print(`[Mobs] {npcModel.Name} - No combat indicators found, defaulting to DIALOGUE NPC`)
+	---- print(`[Mobs] {npcModel.Name} - No combat indicators found, defaulting to DIALOGUE NPC`)
 	return false
 end
 
@@ -98,8 +98,22 @@ local function initializeNPCEntity(npcModel: Model): number
 		if isCombat then
 			world:set(e, comps.CombatNPC, true)
 		end
-		world:set(e, comps.Health, {current = 175, max = 175, tick = 0.5, tickspeed = 0.1})
+
+		-- Check if this is a Wanderer - spawn with 1 HP for testing regen system
+		local isWanderer = npcModel.Name:find("Wanderer") ~= nil
+		local initialHealth = isWanderer and 1 or 175
+		local maxHealth = isWanderer and 50 or 175 -- Wanderers have max 50 HP
+		world:set(e, comps.Health, {current = initialHealth, max = maxHealth, tick = 0.5, tickspeed = 0.1})
+
+		-- Sync Humanoid health with ECS Health component
+		local humanoid = npcModel:FindFirstChild("Humanoid")
+		if humanoid then
+			humanoid.MaxHealth = maxHealth
+			humanoid.Health = initialHealth
+		end
+
 		world:set(e, comps.Energy, {current = 100, tick = 0.5, tickspeed = 0.1})
+		world:set(e, comps.InCombat, {value = false}) -- Required for health regen system
 		world:set(e, comps.Combat, { weapon = "Fist", equipped = true, animation = "Fist" })
 		world:set(e, comps.Attacking, {duration = 0, value = false})
 		world:set(e, comps.Stun, {duration = 0, value = false})
@@ -377,17 +391,20 @@ local function initializeNPCEntity(npcModel: Model): number
 
 			-- Debug logging for initialization
 		local combatState = world:get(e, comps.NPCCombatState)
-		-- print("[Mobs] ⚔️ Initialized COMBAT NPC:", npcModel.Name, "Entity:", e, "with ECS AI")
-		-- print(`[Mobs]    - isPassive: {combatState.isPassive}, canWander: {canWander}`)
-		-- print(`[Mobs]    - Components: NPCCombatState, NPCMovementPattern, NPCConfig, Transform, Locomotion`)
+		---- print("[Mobs] ⚔️ Initialized COMBAT NPC:", npcModel.Name, "Entity:", e, "with ECS AI")
+		---- print(`[Mobs]    - isPassive: {combatState.isPassive}, canWander: {canWander}`)
+		---- print(`[Mobs]    - Components: NPCCombatState, NPCMovementPattern, NPCConfig, Transform, Locomotion`)
 		if canWander then
-			-- print(`[Mobs]    - Added NPCWander (radius: {maxWanderDistance or 30})`)
+			---- print(`[Mobs]    - Added NPCWander (radius: {maxWanderDistance or 30})`)
 		else
-			-- print(`[Mobs]    - NPCWander NOT added (guard mode)`)
+			---- print(`[Mobs]    - NPCWander NOT added (guard mode)`)
 		end
 		else
-			-- print("[Mobs] 💬 Initialized DIALOGUE NPC:", npcModel.Name, "Entity:", e, "(no ECS AI)")
+			---- print("[Mobs] 💬 Initialized DIALOGUE NPC:", npcModel.Name, "Entity:", e, "(no ECS AI)")
 		end
+
+		-- Mark components as ready for systems like health_regen
+		world:set(e, comps.ComponentsReady, true)
 	end)
 
 	return entity

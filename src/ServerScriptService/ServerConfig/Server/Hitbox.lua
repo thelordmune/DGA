@@ -18,7 +18,7 @@ function CheckValidTarget(TargetPart, Entity)
 
 			-- Check for alchemy walls (parts with the special attribute)
 		elseif TargetPart.Name:find("AbilityWall_") and TargetPart:GetAttribute("Id") then
-			-- print("youre attempting to attack a wall")
+			---- print("youre attempting to attack a wall")
 			Valid = true
 
 			-- Check for destructible objects (barrels, trees, etc.)
@@ -30,7 +30,7 @@ function CheckValidTarget(TargetPart, Entity)
 			local isInTransmutables = workspace:FindFirstChild("Transmutables") and TargetPart:IsDescendantOf(workspace.Transmutables)
 
 			if isInMap or isInTransmutables then
-				-- print("youre attempting to attack a destructible object:", TargetPart.Name)
+				---- print("youre attempting to attack a destructible object:", TargetPart.Name)
 				Valid = true
 			else
 				-- Part has Destroyable attribute but is not in Map/Transmutables (probably a character accessory)
@@ -59,6 +59,17 @@ end
 Hitbox.SpatialQuery = function(Entity: Model, BoxSize: Vector3, BoxCFrame: CFrame, Visualize: boolean?)
 	local PotentialTargets = {}
 
+	-- Check if player has hitbox debug enabled (F2 toggle)
+	local Players = game:GetService("Players")
+	local Player = Players:GetPlayerFromCharacter(Entity)
+	local shouldVisualize = Visualize
+
+	if Player and not shouldVisualize then
+		-- Check if this player has debug mode enabled
+		local HitboxDebugModule = require(script.Parent.Network.HitboxDebug)
+		shouldVisualize = HitboxDebugModule.IsEnabled(Player)
+	end
+
 	-- First check for entities (characters/NPCs)
 	local EntityParams = OverlapParams.new()
 	EntityParams.FilterDescendantsInstances = { workspace.World.Live }
@@ -85,7 +96,7 @@ Hitbox.SpatialQuery = function(Entity: Model, BoxSize: Vector3, BoxCFrame: CFram
 	end
 
 	-- Create a visualizer part
-	if Visualize then
+	if shouldVisualize then
 		local VisualizerPart = Instance.new("Part")
 		VisualizerPart.Anchored = true
 		VisualizerPart.CanCollide = false

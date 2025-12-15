@@ -60,11 +60,13 @@ return function(Player, Data, Server)
 		-- Play animation to get the track and length
 		local Move = Library.PlayAnimation(Character, Animation)
 		local animlength = Move.Length
+		Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.ChargedThrust, true, 0.1)
 
 		-- Add action-blocking states immediately after playing animation
 		Server.Library.TimedState(Character.Stuns, "ChargedThrustActive", animlength) -- Prevent all actions (set FIRST)
 		Server.Library.TimedState(Character.Actions, script.Name, animlength)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", animlength)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", animlength) -- Prevent jumping during move
 
 		-- Calculate hittimes from fractions
 		local hittimes = {}
@@ -183,18 +185,7 @@ return function(Player, Data, Server)
 							Server.Library.TimedState(Target.Stuns, "NoRotate", grabDuration)
 
 							-- Apply velocity towards attacker (pull effect)
-							local targetRoot = Target:FindFirstChild("HumanoidRootPart")
-							local attackerRoot = Character:FindFirstChild("HumanoidRootPart")
-							if targetRoot and attackerRoot then
-								-- Calculate direction from target to attacker
-								local pullDirection = (attackerRoot.Position - targetRoot.Position).Unit
-								local pullPower = 50 -- Increased pull strength
-
-								-- Apply pull velocity using ServerBvel
-								task.spawn(function()
-									Server.Modules.ServerBvel.PullVelocity(Target, pullDirection, pullPower, grabDuration)
-								end)
-							end
+							
 
 							-- Apply grab using ECS system
 							local grabberEntity = RefManager.entity.find(Character)
@@ -233,6 +224,24 @@ return function(Player, Data, Server)
 						task.spawn(function()
 							Ragdoll.Ragdoll(grabbedTarget, 2)
 						end)
+
+						local grabDuration = hittimes[2] - hittimes[1]
+
+						local targetRoot = grabbedTarget:FindFirstChild("HumanoidRootPart")
+							local attackerRoot = Character:FindFirstChild("HumanoidRootPart")
+							task.delay(.5, function()
+								if targetRoot and attackerRoot then
+								-- Calculate direction from target to attacker
+								local pullDirection = (attackerRoot.Position - targetRoot.Position).Unit
+								local pullPower = 25 -- Increased pull strength
+
+								-- Apply pull velocity using ServerBvel
+								task.spawn(function()
+									Server.Modules.ServerBvel.PullVelocity(grabbedTarget, pullDirection, pullPower, grabDuration)
+								end)
+							end
+						end)
+							
 
 						-- Release grab immediately after frame 2
 						local grabberEntity = RefManager.entity.find(Character)

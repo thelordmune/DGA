@@ -15,7 +15,7 @@
             cooldown = 8,
             execute = function(self, player, character, holdDuration)
                 -- Your skill logic here
-                -- print(`Stone Lance held for {holdDuration}s`)
+                ---- print(`Stone Lance held for {holdDuration}s`)
             end
         })
         
@@ -27,7 +27,7 @@
             cooldown = 5,
             execute = function(self, player, character, holdDuration)
                 -- Your alchemy logic here
-                -- print("Flame Burst executed")
+                ---- print("Flame Burst executed")
             end
         })
 ]]

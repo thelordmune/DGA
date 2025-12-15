@@ -140,7 +140,7 @@ end
 --[=[
 	```lua
 	replion:OnChange('Coins', function(newValue: any, oldValue: any)
-		-- print(newValue, oldValue)
+		---- print(newValue, oldValue)
 	end)
 	```
 
@@ -163,7 +163,7 @@ end
 
 	```lua
 	replion:OnDescendantChange('Areas', function(path: { string }, newValue: any, oldValue: any)
-		-- print(path, newValue, oldValue) --> {'Areas', 'Ice'}, true, false
+		---- print(path, newValue, oldValue) --> {'Areas', 'Ice'}, true, false
 	end)
 	```
 

@@ -10,7 +10,6 @@ local Children, scoped, peek, out, ForValues = Fusion.Children, Fusion.scoped, F
 local TInfo = TweenInfo.new(0.7, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0)
 local TInfo2 = TweenInfo.new(1.1, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0)
 
-
 local function getCharacters(textFrame)
 	local characters = {}
 	for _, character in TextPlus.GetCharacters(textFrame) do
@@ -31,17 +30,23 @@ local function fadeDivergeAnimation(textFrame, delayPerChar)
 	delayPerChar = delayPerChar or 0.015
 
 	local characters = getCharacters(textFrame)
-	if #characters == 0 then return end
+	if #characters == 0 then
+		return
+	end
 
 	local totalChars = #characters
 	local centerIndex = totalChars / 2
 
 	for i, character in characters do
-		if not character.Parent then break end
+		if not character.Parent then
+			break
+		end
 
 		local isImageLabel = character:IsA("ImageLabel")
 		local isTextLabel = character:IsA("TextLabel")
-		if not isImageLabel and not isTextLabel then continue end
+		if not isImageLabel and not isTextLabel then
+			continue
+		end
 
 		local originalPos = character.Position
 		local distanceFromCenter = i - centerIndex
@@ -49,7 +54,7 @@ local function fadeDivergeAnimation(textFrame, delayPerChar)
 		local xOffset = distanceFromCenter * (divergeAmount / totalChars) * 2
 
 		-- Alternate between top and bottom: odd indices from top, even from bottom
-		local verticalOffset = (i % 2 == 1) and math.random(1,5) or math.random(8,15)
+		local verticalOffset = (i % 2 == 1) and math.random(1, 5) or math.random(8, 15)
 		local yOffset = verticalOffset
 
 		if isImageLabel then
@@ -72,14 +77,20 @@ local function slideUpAnimation(textFrame, delayPerChar)
 	delayPerChar = delayPerChar or 0.02
 
 	local characters = getCharacters(textFrame)
-	if #characters == 0 then return end
+	if #characters == 0 then
+		return
+	end
 
 	for i, character in characters do
-		if not character.Parent then break end
+		if not character.Parent then
+			break
+		end
 
 		local isImageLabel = character:IsA("ImageLabel")
 		local isTextLabel = character:IsA("TextLabel")
-		if not isImageLabel and not isTextLabel then continue end
+		if not isImageLabel and not isTextLabel then
+			continue
+		end
 
 		local originalPos = character.Position
 
@@ -103,14 +114,20 @@ local function popInAnimation(textFrame, delayPerChar)
 	delayPerChar = delayPerChar or 0.02
 
 	local characters = getCharacters(textFrame)
-	if #characters == 0 then return end
+	if #characters == 0 then
+		return
+	end
 
 	for i, character in characters do
-		if not character.Parent then break end
+		if not character.Parent then
+			break
+		end
 
 		local isImageLabel = character:IsA("ImageLabel")
 		local isTextLabel = character:IsA("TextLabel")
-		if not isImageLabel and not isTextLabel then continue end
+		if not isImageLabel and not isTextLabel then
+			continue
+		end
 
 		if isImageLabel then
 			character.ImageTransparency = 1
@@ -121,7 +138,10 @@ local function popInAnimation(textFrame, delayPerChar)
 
 		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 		local props = {
-			Size = UDim2.fromOffset(character:GetAttribute("OriginalWidth") or 10, character:GetAttribute("OriginalHeight") or 18)
+			Size = UDim2.fromOffset(
+				character:GetAttribute("OriginalWidth") or 10,
+				character:GetAttribute("OriginalHeight") or 18
+			),
 		}
 		props[isImageLabel and "ImageTransparency" or "TextTransparency"] = 0
 
@@ -134,14 +154,20 @@ local function popFadeAnimation(textFrame, delayPerChar)
 	delayPerChar = delayPerChar or 0.02
 
 	local characters = getCharacters(textFrame)
-	if #characters == 0 then return end
+	if #characters == 0 then
+		return
+	end
 
 	for i, character in characters do
-		if not character.Parent then break end
+		if not character.Parent then
+			break
+		end
 
 		local isImageLabel = character:IsA("ImageLabel")
 		local isTextLabel = character:IsA("TextLabel")
-		if not isImageLabel and not isTextLabel then continue end
+		if not isImageLabel and not isTextLabel then
+			continue
+		end
 
 		-- Store original size
 		local originalSize = character.Size
@@ -152,15 +178,12 @@ local function popFadeAnimation(textFrame, delayPerChar)
 		else
 			character.TextTransparency = 1
 		end
-		character.Size = UDim2.fromOffset(
-			originalSize.X.Offset * 0.5,
-			originalSize.Y.Offset * 0.5
-		)
+		character.Size = UDim2.fromOffset(originalSize.X.Offset * 0.5, originalSize.Y.Offset * 0.5)
 
 		-- Pop up to 120% size then settle to 100% with fade in
 		local tweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 		local props = {
-			Size = originalSize
+			Size = originalSize,
 		}
 		props[isImageLabel and "ImageTransparency" or "TextTransparency"] = 0
 
@@ -173,18 +196,24 @@ local function disperseAnimation(textFrame, delayPerChar)
 	delayPerChar = delayPerChar or 0.008
 
 	local characters = getCharacters(textFrame)
-	if #characters == 0 then return end
+	if #characters == 0 then
+		return
+	end
 
 	local totalChars = #characters
 	local centerIndex = totalChars / 2
 
 	for i = #characters, 1, -1 do
 		local character = characters[i]
-		if not character.Parent then break end
+		if not character.Parent then
+			break
+		end
 
 		local isImageLabel = character:IsA("ImageLabel")
 		local isTextLabel = character:IsA("TextLabel")
-		if not isImageLabel and not isTextLabel then continue end
+		if not isImageLabel and not isTextLabel then
+			continue
+		end
 
 		local originalPos = character.Position
 
@@ -195,7 +224,7 @@ local function disperseAnimation(textFrame, delayPerChar)
 
 		local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.In)
 		local props = {
-			Position = originalPos + UDim2.fromOffset(xOffset, yOffset)
+			Position = originalPos + UDim2.fromOffset(xOffset, yOffset),
 		}
 		props[isImageLabel and "ImageTransparency" or "TextTransparency"] = 1
 
@@ -240,7 +269,7 @@ return function(scope, props: {})
 			task.spawn(function()
 				task.wait(0.5) -- Wait for any ongoing animation
 				if peek(responseMode) then -- Double-check it's still in response mode
-					-- print("[DialogueComp] Response mode activated, showing responses")
+					---- print("[DialogueComp] Response mode activated, showing responses")
 					showResponses:set(true)
 				end
 			end)
@@ -351,22 +380,16 @@ return function(scope, props: {})
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
-				Image = "rbxassetid://85774200010476",
+				Image = "rbxassetid://130296210772827",
 				ImageTransparency = scope:Tween(
 					scope:Computed(function(use)
-						return if use(framein) then 0.2 else 1
+						return if use(framein) then 0.05 else 1
 					end),
 					TInfo
 				),
 				BackgroundTransparency = 1,
 				SelectionOrder = -3,
 				Size = UDim2.fromOffset(453, 236),
-
-				[Children] = {
-					scope:New("UICorner")({
-						Name = "UICorner",
-					}),
-				},
 			}),
 
 			scope:New("UICorner")({
@@ -389,70 +412,6 @@ return function(scope, props: {})
 			-- 	SelectionOrder = -3,
 			-- 	Size = UDim2.fromOffset(453, 236),
 			-- }),
-
-			scope:New("ImageLabel")({
-				Name = "Corners",
-				BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-				BackgroundTransparency = 1,
-				BorderColor3 = Color3.fromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				Image = "rbxassetid://137499405297167",
-				ImageColor3 = Color3.fromRGB(129, 152, 255),
-				ImageTransparency = scope:Tween(
-					scope:Computed(function(use)
-						return if use(framein) then 0 else 1
-					end),
-					TInfo
-				),
-				ScaleType = Enum.ScaleType.Slice,
-				SelectionOrder = -3,
-				Size = UDim2.fromOffset(453, 236),
-				SliceCenter = Rect.new(20, 20, 50, 50),
-				SliceScale = 1,
-				ZIndex = 2,
-
-			}),
-
-			scope:New("ViewportFrame")({
-				Name = "Model",
-				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-				BackgroundTransparency = scope:Tween(
-					scope:Computed(function(use)
-						return if use(framein) then 0.8 else 1
-					end),
-					TInfo
-				),
-				ImageTransparency = scope:Tween(
-					scope:Computed(function(use)
-						return if use(framein) then 0 else 1
-					end),
-					TInfo
-				),
-				BorderColor3 = Color3.fromRGB(255, 255, 255),
-				BorderSizePixel = 0,
-				Position = UDim2.fromScale(0.056, 0.102),
-				Size = UDim2.fromOffset(65, 68),
-
-				[Children] = {
-					scope:New("ImageLabel")({
-						Name = "ImageLabel",
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						Image = "rbxassetid://80175650219598",
-						ImageTransparency = scope:Tween(
-							scope:Computed(function(use)
-								return if use(framein) then 0 else 1
-							end),
-							TInfo
-						),
-						ScaleType = Enum.ScaleType.Slice,
-						Size = UDim2.fromOffset(65, 68),
-						SliceCenter = Rect.new(10, 17, 561, 274),
-					}),
-				},
-			}),
 
 			scope:New("ImageLabel")({
 				Name = "Seperation",
@@ -479,8 +438,8 @@ return function(scope, props: {})
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
 				FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
-				Position = UDim2.fromScale(0.056, 0.39),
-				Size = UDim2.fromOffset(65, 23),
+				Position = UDim2.fromScale(0.376, 0.025),
+				Size = UDim2.fromOffset(107, 18),
 				Text = npcname or "NPC",
 				TextTransparency = scope:Tween(
 					scope:Computed(function(use)
@@ -492,63 +451,6 @@ return function(scope, props: {})
 				TextSize = 12,
 				TextScaled = false,
 				TextStrokeColor3 = Color3.fromRGB(255, 255, 255),
-
-				[Children] = {
-					scope:New("ImageLabel")({
-						Name = "ImageLabel",
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						Image = "rbxassetid://89598685430053",
-						ImageTransparency = scope:Tween(
-							scope:Computed(function(use)
-								return if use(framein) then 0 else 1
-							end),
-							TInfo
-						),
-						ScaleType = Enum.ScaleType.Slice,
-						Size = UDim2.fromOffset(65, 23),
-						SliceCenter = Rect.new(9, 9, 21, 21),
-					}),
-
-					-- scope:New("ImageLabel")({
-					-- 	Name = "Border",
-					-- 	BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-					-- 	BackgroundTransparency = 1,
-					-- 	BorderColor3 = Color3.fromRGB(0, 0, 0),
-					-- 	BorderSizePixel = 0,
-					-- 	Image = "rbxassetid://121279258155271",
-					-- 	ImageTransparency = scope:Tween(
-					-- 		scope:Computed(function(use)
-					-- 			return if use(framein) then 0 else 1
-					-- 		end),
-					-- 		TInfo
-					-- 	),
-					-- 	SelectionOrder = -3,
-					-- 	Size = UDim2.fromOffset(65, 23),
-					-- }),
-				},
-			}),
-
-			scope:New("ImageLabel")({
-				Name = "Border",
-				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-				BackgroundTransparency = 1,
-				BorderColor3 = Color3.fromRGB(0, 0, 0),
-				BorderSizePixel = 0,
-				Image = "rbxassetid://121635285699370",
-				ImageTransparency = scope:Tween(
-					scope:Computed(function(use)
-						return if use(framein) then 0 else 1
-					end),
-					TInfo
-				),
-				Position = UDim2.fromScale(0.231, 0.102),
-				SelectionOrder = -3,
-				Size = UDim2.fromOffset(320, 129),
-				ScaleType = Enum.ScaleType.Slice,
-				SliceCenter = Rect.new(13, 13, 37, 33),
 			}),
 
 			scope:New("ImageLabel")({
@@ -564,9 +466,9 @@ return function(scope, props: {})
 					end),
 					TInfo
 				),
-				Position = UDim2.fromScale(0.231, 0.102),
+				Position = UDim2.fromScale(0.065, 0.13),
 				ScaleType = Enum.ScaleType.Slice,
-				Size = UDim2.fromOffset(320, 129),
+				Size = UDim2.fromOffset(400, 129),
 				SliceCenter = Rect.new(10, 17, 561, 274),
 
 				[Children] = {
@@ -591,10 +493,10 @@ return function(scope, props: {})
 					local showRespValue = use(showResponses)
 					local responsesValue = use(responses)
 
-					-- print("[DialogueComp] ResponseFrame visibility check:")
-					-- print("  responseMode:", respModeValue)
-					-- print("  showResponses:", showRespValue)
-					-- print("  responses count:", responsesValue and #responsesValue or 0)
+					---- print("[DialogueComp] ResponseFrame visibility check:")
+					---- print("  responseMode:", respModeValue)
+					---- print("  showResponses:", showRespValue)
+					---- print("  responses count:", responsesValue and #responsesValue or 0)
 
 					return respModeValue and showRespValue
 				end),
@@ -613,7 +515,7 @@ return function(scope, props: {})
 						-- Get the index from the response order
 						local safeIndex = response.order or 1
 
-						-- print("[DialogueComp] Creating response button:", safeIndex, response.text)
+						---- print("[DialogueComp] Creating response button:", safeIndex, response.text)
 
 						-- Use Computed to dynamically calculate size based on actual response count
 						local buttonSize = innerScope:Computed(function(use)
@@ -628,7 +530,7 @@ return function(scope, props: {})
 								end
 							end
 
-							-- print("[DialogueComp] Total response count:", responseCount)
+							---- print("[DialogueComp] Total response count:", responseCount)
 
 							-- Each button gets equal share of width
 							-- UIListLayout handles padding automatically, so we just divide by count
@@ -637,8 +539,11 @@ return function(scope, props: {})
 						end)
 
 						-- Animation state for this button
-						local buttonScale = innerScope:Value(0)
+						local buttonPosition = innerScope:Value(UDim2.fromScale(0, 0))
 						local buttonTransparency = innerScope:Value(1)
+
+						-- Randomize slide direction for this button (left or right)
+						local slideDirection = math.random(0, 1) == 0 and -1 or 1 -- -1 for left, 1 for right
 
 						-- Animate button in when it becomes visible
 						innerScope:Computed(function(use)
@@ -646,30 +551,29 @@ return function(scope, props: {})
 							if shouldShow then
 								task.spawn(function()
 									-- Stagger animation based on button index
-									task.wait((safeIndex - 1) * 0.1)
+									task.wait((safeIndex - 1) * 0.08)
 
-									-- Spring animation for scale (bouncy effect)
-									local targetScale = 1
-									local currentScale = peek(buttonScale)
-									local steps = 15
+									-- Slide in from left or right with smooth easing
+									local startOffset = slideDirection * 100 -- Start 100 pixels off to the side
+									local steps = 20
 									for i = 1, steps do
 										local t = i / steps
-										local eased = 1 - math.pow(1 - t, 3) -- Cubic ease out
-										local overshoot = math.sin(t * math.pi) * 0.1 -- Small bounce
-										buttonScale:set(currentScale + (targetScale - currentScale) * eased + overshoot)
-										task.wait(0.02)
-									end
-									buttonScale:set(1)
+										-- Smooth cubic ease out
+										local eased = 1 - math.pow(1 - t, 3)
+										local currentOffset = startOffset * (1 - eased)
+										buttonPosition:set(UDim2.fromOffset(currentOffset, 0))
 
-									-- Fade in transparency
-									for i = 1, 10 do
-										buttonTransparency:set(1 - (i / 10))
+										-- Fade in transparency simultaneously
+										buttonTransparency:set(1 - eased)
 										task.wait(0.02)
 									end
+									buttonPosition:set(UDim2.fromScale(0, 0))
 									buttonTransparency:set(0)
 								end)
 							else
-								buttonScale:set(0)
+								-- Reset to off-screen position
+								local startOffset = slideDirection * 100
+								buttonPosition:set(UDim2.fromOffset(startOffset, 0))
 								buttonTransparency:set(1)
 							end
 						end)
@@ -687,6 +591,10 @@ return function(scope, props: {})
 							),
 							-- Size: equal width distribution (UIListLayout handles padding)
 							Size = buttonSize,
+							-- Apply position offset for slide animation
+							Position = innerScope:Computed(function(use)
+								return use(buttonPosition)
+							end),
 							Text = response.text or "",
 							TextWrapped = true, -- Allow wrapping for long text
 							TextXAlignment = Enum.TextXAlignment.Center,
@@ -700,26 +608,39 @@ return function(scope, props: {})
 							LayoutOrder = response.order or safeIndex,
 
 							[Children] = {
-								innerScope:New("UIScale")({
-									Name = "ButtonScale",
-									Scale = innerScope:Computed(function(use)
-										return use(buttonScale)
-									end),
-								}),
-
 								innerScope:New("ImageLabel")({
 									Name = "ImageLabel",
 									BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 									BackgroundTransparency = 1,
 									BorderColor3 = Color3.fromRGB(0, 0, 0),
 									BorderSizePixel = 0,
-									Image = "rbxassetid://117654171793420",
+									Image = "rbxassetid://118973584856362",
 									ImageTransparency = innerScope:Computed(function(use)
 										return use(buttonTransparency)
 									end),
 									ScaleType = Enum.ScaleType.Slice,
 									Size = UDim2.fromScale(1, 1),
-									SliceCenter = Rect.new(13, 13, 37, 33),
+									SliceCenter = Rect.new(20, 20, 200, 20),
+									SliceScale = 0.5,
+
+									[Children] = {
+										innerScope:New("TextLabel")({
+											Name = "TextLabel",
+											BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+											BackgroundTransparency = 1,
+											BorderColor3 = Color3.fromRGB(0, 0, 0),
+											BorderSizePixel = 0,
+											FontFace = Font.new(
+												"rbxasset://fonts/families/SourceSansPro.json",
+												Enum.FontWeight.Bold,
+												Enum.FontStyle.Normal
+											),
+											Size = UDim2.fromScale(1, 1),
+											Text = response.text or "",
+											TextColor3 = Color3.fromRGB(255, 255, 255),
+											TextSize = 14,
+										}),
+									},
 								}),
 
 								-- innerScope:New("ImageLabel")({
@@ -741,14 +662,18 @@ return function(scope, props: {})
 						-- Add click handler
 						task.spawn(function()
 							button.Activated:Connect(function()
-								-- print("[DialogueComp] Response button clicked:", response.text)
+								---- print("[DialogueComp] Response button clicked:", response.text)
 
-								-- Fade out all buttons before progressing
+								-- Fade out and slide out button before progressing
 								task.spawn(function()
-									-- Fade out this button and all others
+									-- Slide out in the opposite direction it came from
+									local exitOffset = -slideDirection * 100
 									for i = 1, 10 do
-										buttonTransparency:set(i / 10)
-										buttonScale:set(1 - (i / 20)) -- Shrink slightly
+										local t = i / 10
+										buttonTransparency:set(t)
+										-- Slide out smoothly
+										local currentOffset = exitOffset * t
+										buttonPosition:set(UDim2.fromOffset(currentOffset, 0))
 										task.wait(0.02)
 									end
 								end)

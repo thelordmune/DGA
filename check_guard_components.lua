@@ -15,7 +15,7 @@ for _, desc in workspace:GetDescendants() do
 end
 
 if not guard then
-    print("ERROR: No guard found")
+   -- print("ERROR: No guard found")
     return
 end
 
@@ -24,7 +24,7 @@ print("Guard:", guard.Name)
 
 local entity = RefManager.entity.find(guard)
 if not entity then
-    print("ERROR: Guard has no ECS entity!")
+   -- print("ERROR: Guard has no ECS entity!")
     return
 end
 
@@ -40,24 +40,24 @@ print("  ✓ CombatNPC:", world:has(entity, comps.CombatNPC))
 
 if world:has(entity, comps.NPCTarget) then
     local target = world:get(entity, comps.NPCTarget)
-    print("\nTarget:", target and target.Name or "nil")
+   -- print("\nTarget:", target and target.Name or "nil")
 end
 
 if world:has(entity, comps.Locomotion) then
     local loco = world:get(entity, comps.Locomotion)
-    print("\nLocomotion:")
-    print("  dir:", loco.dir)
-    print("  speed:", loco.speed)
+   -- print("\nLocomotion:")
+   -- print("  dir:", loco.dir)
+   -- print("  speed:", loco.speed)
 end
 
 if world:has(entity, comps.NPCMovementPattern) then
     local pattern = world:get(entity, comps.NPCMovementPattern)
-    print("\nNPCMovementPattern:")
-    print("  current:", pattern.current)
-    print("  lastChanged:", pattern.lastChanged)
+   -- print("\nNPCMovementPattern:")
+   -- print("  current:", pattern.current)
+   -- print("  lastChanged:", pattern.lastChanged)
 else
-    print("\n❌ MISSING NPCMovementPattern component!")
-    print("   This is why guard can't move!")
+   -- print("\n❌ MISSING NPCMovementPattern component!")
+   -- print("   This is why guard can't move!")
 end
 
 print("\n=== END CHECK ===")

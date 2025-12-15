@@ -28,7 +28,7 @@ ObserversManager.activeObservers = {}
 	NPC Observers
 ]]
 function ObserversManager.setupNPCObservers()
-	-- print("[Observers] Setting up NPC observers...")
+	---- print("[Observers] Setting up NPC observers...")
 	
 	-- Monitor NPC spawning
 	local npcSpawnMonitor = observers.monitor(
@@ -38,7 +38,7 @@ function ObserversManager.setupNPCObservers()
 	npcSpawnMonitor:added(function(entity)
 		local character = world:get(entity, comps.Character)
 		if character then
-			-- print("[Observers] NPC spawned:", character.Name, "Entity:", entity)
+			---- print("[Observers] NPC spawned:", character.Name, "Entity:", entity)
 			-- Store bidirectional reference
 			RefManager.entity.set(character, entity)
 		end
@@ -47,20 +47,20 @@ function ObserversManager.setupNPCObservers()
 	npcSpawnMonitor:removed(function(entity)
 		local character = world:get(entity, comps.Character)
 		if character then
-			-- print("[Observers] NPC despawned:", character.Name)
+			---- print("[Observers] NPC despawned:", character.Name)
 			RefManager.entity.delete(character)
 		end
 	end)
 	
 	table.insert(ObserversManager.activeObservers, npcSpawnMonitor)
-	-- print("[Observers] ✅ NPC spawn monitor active")
+	---- print("[Observers] ✅ NPC spawn monitor active")
 end
 
 --[[
 	Combat State Observers
 ]]
 function ObserversManager.setupCombatObservers()
-	-- print("[Observers] Setting up combat observers...")
+	---- print("[Observers] Setting up combat observers...")
 	
 	-- Monitor InCombat state changes
 	local combatMonitor = observers.monitor(
@@ -71,7 +71,7 @@ function ObserversManager.setupCombatObservers()
 		local inCombat = world:get(entity, comps.InCombat)
 		if inCombat and inCombat.value then
 			local character = world:get(entity, comps.Character)
-			-- print("[Observers] Entity entered combat:", character and character.Name or entity)
+			---- print("[Observers] Entity entered combat:", character and character.Name or entity)
 			
 			-- Notify client if it's a player
 			local playerEntity = world:get(entity, comps.Player)
@@ -87,7 +87,7 @@ function ObserversManager.setupCombatObservers()
 	
 	combatMonitor:removed(function(entity)
 		local character = world:get(entity, comps.Character)
-		-- print("[Observers] Entity left combat:", character and character.Name or entity)
+		---- print("[Observers] Entity left combat:", character and character.Name or entity)
 		
 		-- Notify client if it's a player
 		local playerEntity = world:get(entity, comps.Player)
@@ -111,7 +111,7 @@ function ObserversManager.setupCombatObservers()
 		local stun = world:get(entity, comps.Stun)
 		if stun and stun.value then
 			local character = world:get(entity, comps.Character)
-			-- print("[Observers] Entity stunned:", character and character.Name or entity)
+			---- print("[Observers] Entity stunned:", character and character.Name or entity)
 		end
 	end)
 	
@@ -126,27 +126,27 @@ function ObserversManager.setupCombatObservers()
 		local ragdoll = world:get(entity, comps.Ragdoll)
 		if ragdoll and ragdoll.value then
 			local character = world:get(entity, comps.Character)
-			-- print("[Observers] Entity ragdolled:", character and character.Name or entity)
+			---- print("[Observers] Entity ragdolled:", character and character.Name or entity)
 		end
 	end)
 	
 	table.insert(ObserversManager.activeObservers, ragdollMonitor)
 	
-	-- print("[Observers] ✅ Combat monitors active")
+	---- print("[Observers] ✅ Combat monitors active")
 end
 
 --[[
 	Quest Observers
 ]]
 function ObserversManager.setupQuestObservers()
-	-- print("[Observers] Setting up quest observers...")
+	---- print("[Observers] Setting up quest observers...")
 	
 	-- Monitor quest acceptance
 	local questAcceptedObserver = observers.observer(
 		world:query(comps.QuestAccepted),
 		function(entity)
 			local questAccepted = world:get(entity, comps.QuestAccepted)
-			-- print("[Observers] Quest accepted:", questAccepted.npcName, questAccepted.questName)
+			---- print("[Observers] Quest accepted:", questAccepted.npcName, questAccepted.questName)
 
 			-- Add QuestHolder component
 			if not world:has(entity, comps.QuestHolder) then
@@ -175,7 +175,7 @@ function ObserversManager.setupQuestObservers()
 			-- Remove QuestAccepted component
 			world:remove(entity, comps.QuestAccepted)
 
-			-- print("[Observers] Quest started for entity", entity)
+			---- print("[Observers] Quest started for entity", entity)
 		end
 	)
 	
@@ -186,31 +186,31 @@ function ObserversManager.setupQuestObservers()
 		world:query(comps.CompletedQuest),
 		function(entity)
 			local completedQuest = world:get(entity, comps.CompletedQuest)
-			-- print("[Observers] Quest completed:", completedQuest.npcName, completedQuest.questName)
+			---- print("[Observers] Quest completed:", completedQuest.npcName, completedQuest.questName)
 
 			-- IMMEDIATELY remove ActiveQuest and QuestAccepted to prevent re-completion
 			if world:has(entity, comps.ActiveQuest) then
 				world:remove(entity, comps.ActiveQuest)
-				-- print("[Observers] Removed ActiveQuest component")
+				---- print("[Observers] Removed ActiveQuest component")
 			end
 			if world:has(entity, comps.QuestAccepted) then
 				world:remove(entity, comps.QuestAccepted)
-				-- print("[Observers] Removed QuestAccepted component")
+				---- print("[Observers] Removed QuestAccepted component")
 			end
 			if world:has(entity, comps.QuestData) then
 				world:remove(entity, comps.QuestData)
-				-- print("[Observers] Removed QuestData component")
+				---- print("[Observers] Removed QuestData component")
 			end
 			if world:has(entity, comps.QuestItemCollected) then
 				world:remove(entity, comps.QuestItemCollected)
-				-- print("[Observers] Removed QuestItemCollected component")
+				---- print("[Observers] Removed QuestItemCollected component")
 			end
 
 			-- Schedule cleanup of CompletedQuest after 10 seconds
 			task.delay(10, function()
 				if world:contains(entity) and world:has(entity, comps.CompletedQuest) then
 					world:remove(entity, comps.CompletedQuest)
-					-- print("[Observers] Cleaned up CompletedQuest component for entity", entity)
+					---- print("[Observers] Cleaned up CompletedQuest component for entity", entity)
 				end
 			end)
 		end
@@ -218,14 +218,14 @@ function ObserversManager.setupQuestObservers()
 	
 	table.insert(ObserversManager.activeObservers, questCompletedObserver)
 	
-	-- print("[Observers] ✅ Quest observers active")
+	---- print("[Observers] ✅ Quest observers active")
 end
 
 --[[
 	Player Observers
 ]]
 function ObserversManager.setupPlayerObservers()
-	-- print("[Observers] Setting up player observers...")
+	---- print("[Observers] Setting up player observers...")
 	
 	-- Monitor player entities being created
 	local playerMonitor = observers.monitor(
@@ -235,7 +235,7 @@ function ObserversManager.setupPlayerObservers()
 	playerMonitor:added(function(entity)
 		local player = world:get(entity, comps.Player)
 		local character = world:get(entity, comps.Character)
-		-- print("[Observers] Player entity created:", player and player.Name or "Unknown", "Entity:", entity)
+		---- print("[Observers] Player entity created:", player and player.Name or "Unknown", "Entity:", entity)
 		
 		-- Store reference
 		if character then
@@ -245,12 +245,12 @@ function ObserversManager.setupPlayerObservers()
 	
 	playerMonitor:removed(function(entity)
 		local player = world:get(entity, comps.Player)
-		-- print("[Observers] Player entity removed:", player and player.Name or "Unknown")
+		---- print("[Observers] Player entity removed:", player and player.Name or "Unknown")
 	end)
 	
 	table.insert(ObserversManager.activeObservers, playerMonitor)
 	
-	-- print("[Observers] ✅ Player observers active")
+	---- print("[Observers] ✅ Player observers active")
 end
 
 --[[
@@ -258,7 +258,7 @@ end
 	Monitor ECS state components for changes
 ]]
 function ObserversManager.setupStateObservers()
-	-- print("[Observers] Setting up state observers...")
+	---- print("[Observers] Setting up state observers...")
 
 	-- Monitor Actions state changes
 	local actionsMonitor = observers.monitor(
@@ -268,7 +268,7 @@ function ObserversManager.setupStateObservers()
 	actionsMonitor:added(function(entity)
 		local character = world:get(entity, comps.Character)
 		local states = world:get(entity, comps.StateActions)
-		-- -- print(`[State Observer] Actions added to {character.Name}: {table.concat(states, ", ")}`)
+		-- ---- print(`[State Observer] Actions added to {character.Name}: {table.concat(states, ", ")}`)
 	end)
 
 	table.insert(ObserversManager.activeObservers, actionsMonitor)
@@ -281,12 +281,12 @@ function ObserversManager.setupStateObservers()
 	stunsMonitor:added(function(entity)
 		local character = world:get(entity, comps.Character)
 		local states = world:get(entity, comps.StateStuns)
-		-- -- print(`[State Observer] Stuns added to {character.Name}: {table.concat(states, ", ")}`)
+		-- ---- print(`[State Observer] Stuns added to {character.Name}: {table.concat(states, ", ")}`)
 	end)
 
 	table.insert(ObserversManager.activeObservers, stunsMonitor)
 
-	-- print("[Observers] ✅ State observers active")
+	---- print("[Observers] ✅ State observers active")
 end
 
 --[[
@@ -294,7 +294,7 @@ end
 	Monitor cooldown component for changes
 ]]
 function ObserversManager.setupCooldownObservers()
-	-- print("[Observers] Setting up cooldown observers...")
+	---- print("[Observers] Setting up cooldown observers...")
 
 	-- Monitor cooldown additions
 	local cooldownMonitor = observers.monitor(
@@ -304,12 +304,12 @@ function ObserversManager.setupCooldownObservers()
 	cooldownMonitor:added(function(entity)
 		local character = world:get(entity, comps.Character)
 		local cooldowns = world:get(entity, comps.Cooldowns)
-		-- -- print(`[Cooldown Observer] Cooldowns added to {character.Name}`)
+		-- ---- print(`[Cooldown Observer] Cooldowns added to {character.Name}`)
 	end)
 
 	table.insert(ObserversManager.activeObservers, cooldownMonitor)
 
-	-- print("[Observers] ✅ Cooldown observers active")
+	---- print("[Observers] ✅ Cooldown observers active")
 end
 
 --[[
@@ -320,7 +320,7 @@ end
 	So we track when Level/Experience components are first added to entities
 ]]
 function ObserversManager.setupLevelingObservers()
-	-- print("[Observers] Setting up leveling observers...")
+	---- print("[Observers] Setting up leveling observers...")
 
 	-- Monitor when Level component is added (player/NPC initialization)
 	local levelMonitor = observers.monitor(
@@ -330,7 +330,7 @@ function ObserversManager.setupLevelingObservers()
 	levelMonitor:added(function(entity)
 		local level = world:get(entity, comps.Level)
 		local character = world:get(entity, comps.Character)
-		-- print(`[Leveling Observer] Level component added to {character.Name}: Level {level.current}/{level.max}`)
+		---- print(`[Leveling Observer] Level component added to {character.Name}: Level {level.current}/{level.max}`)
 	end)
 
 	table.insert(ObserversManager.activeObservers, levelMonitor)
@@ -343,20 +343,24 @@ function ObserversManager.setupLevelingObservers()
 	expMonitor:added(function(entity)
 		local exp = world:get(entity, comps.Experience)
 		local character = world:get(entity, comps.Character)
-		-- print(`[Leveling Observer] Experience component added to {character.Name}: {exp.current}/{exp.required} XP`)
+		---- print(`[Leveling Observer] Experience component added to {character.Name}: {exp.current}/{exp.required} XP`)
 	end)
 
 	table.insert(ObserversManager.activeObservers, expMonitor)
 
-	-- print("[Observers] ✅ Leveling observers active (tracking component additions)")
-	-- print("[Observers] ℹ️  Level-up logic is handled directly in LevelingManager.addExperience()")
+	---- print("[Observers] ✅ Leveling observers active (tracking component additions)")
+	---- print("[Observers] ℹ️  Level-up logic is handled directly in LevelingManager.addExperience()")
+end
+
+function ObserversManager.setupDialogueObservers()
+	
 end
 
 --[[
 	Initialize all observers
 ]]
 function ObserversManager.init()
-	-- print("[Observers] 🎯 Initializing observer system...")
+	---- print("[Observers] 🎯 Initializing observer system...")
 
 	ObserversManager.setupNPCObservers()
 	ObserversManager.setupCombatObservers()
@@ -366,21 +370,21 @@ function ObserversManager.init()
 	ObserversManager.setupCooldownObservers()
 	ObserversManager.setupLevelingObservers()
 
-	-- print(`[Observers] ✅ Initialized {#ObserversManager.activeObservers} observers/monitors`)
+	---- print(`[Observers] ✅ Initialized {#ObserversManager.activeObservers} observers/monitors`)
 end
 
 --[[
 	Cleanup all observers
 ]]
 function ObserversManager.cleanup()
-	-- print("[Observers] Cleaning up all observers...")
+	---- print("[Observers] Cleaning up all observers...")
 	for _, observer in ipairs(ObserversManager.activeObservers) do
 		if observer.disconnect then
 			observer:disconnect()
 		end
 	end
 	table.clear(ObserversManager.activeObservers)
-	-- print("[Observers] ✅ All observers cleaned up")
+	---- print("[Observers] ✅ All observers cleaned up")
 end
 
 return ObserversManager

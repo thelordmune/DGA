@@ -88,6 +88,8 @@ System.Settings = {
 		Hotbar0 = Enum.KeyCode.Zero;
 
 		Leaderboard = Enum.KeyCode.Period;
+		HitboxDebug = Enum.KeyCode.F2; -- F2 key for hitbox visualization toggle
+		UIToggle = Enum.KeyCode.F1; -- F1 key to hide/show all UI
 	}
 }
 

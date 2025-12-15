@@ -21,14 +21,14 @@ return function(scope, props: {
 	local character = props.character
 	local parent = props.Parent
 
-	-- print(`[HotbarButton] Creating button for slot {slotNumber}`)
-	-- print(`[HotbarButton] Parent: {parent}`)
-	-- print(`[HotbarButton] Character: {character}`)
-	-- print(`[HotbarButton] ItemName type: {typeof(itemName)}`)
+	---- print(`[HotbarButton] Creating button for slot {slotNumber}`)
+	---- print(`[HotbarButton] Parent: {parent}`)
+	---- print(`[HotbarButton] Character: {character}`)
+	---- print(`[HotbarButton] ItemName type: {typeof(itemName)}`)
 	if typeof(itemName) == "table" and itemName.get then
-		-- print(`[HotbarButton] ItemName Computed value: {peek(itemName)}`)
+		---- print(`[HotbarButton] ItemName Computed value: {peek(itemName)}`)
 	else
-		-- print(`[HotbarButton] ItemName string value: {itemName}`)
+		---- print(`[HotbarButton] ItemName string value: {itemName}`)
 	end
 
 	-- Reactive values for cooldown
@@ -78,7 +78,7 @@ return function(scope, props: {
 		if cooldownConnection then
 			cooldownConnection:Disconnect()
 			cooldownConnection = nil
-			-- print(`[HotbarButton] 🧹 Disconnected cooldown connection for slot {slotNumber}`)
+			---- print(`[HotbarButton] 🧹 Disconnected cooldown connection for slot {slotNumber}`)
 		end
 	end)
 
@@ -96,7 +96,7 @@ return function(scope, props: {
 		elseif slotNumber == 10 then "C"
 		else tostring(slotNumber)
 
-	-- print(`[HotbarButton] Creating ImageButton for slot {slotNumber} with key label: {keyLabel}`)
+	---- print(`[HotbarButton] Creating ImageButton for slot {slotNumber} with key label: {keyLabel}`)
 
 	-- Tooltip system setup
 	local tooltipFrame = nil
@@ -114,12 +114,11 @@ return function(scope, props: {
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
-		Image = "rbxassetid://101017731890938",
-		ImageColor3 = Color3.fromRGB(137, 155, 255),
-		ScaleType = Enum.ScaleType.Slice,
+		Image = "rbxassetid://97365531047745",
+		ImageColor3 = Color3.fromRGB(255, 255, 255),
+		ScaleType = Enum.ScaleType.Crop,
 		Selectable = false,
 		Size = UDim2.fromOffset(60, 60),
-		SliceCenter = Rect.new(9, 9, 21, 21),
 		ZIndex = 100,
 		Parent = parent,
 
@@ -170,7 +169,7 @@ return function(scope, props: {
 				BorderSizePixel = 0,
 				Image = "rbxassetid://71291612556381",
 				ImageColor3 = Color3.fromRGB(168, 168, 168),
-				Position = UDim2.fromScale(0.5, 0.05),
+				Position = UDim2.fromScale(0.5, 0.9),
 				ScaleType = Enum.ScaleType.Slice,
 				Size = UDim2.fromScale(0.3, 0.3),
 				SliceCenter = Rect.new(5, 5, 19, 23),
@@ -186,6 +185,7 @@ return function(scope, props: {
 						Position = UDim2.fromScale(0.5, 0.5),
 						Size = UDim2.fromScale(0.8, 0.84),
 						ZIndex = 100,
+						Visible = false
 					},
 
 					scope:New "TextLabel" {
@@ -267,10 +267,12 @@ return function(scope, props: {
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
-				Image = "rbxassetid://85774200010476",
+				Image = "rbxassetid://97431821945241",
 				Position = UDim2.fromScale(0.1, 0.1),
 				Size = UDim2.fromScale(0.806, 0.796),
 				ZIndex = 5,
+				ScaleType = Enum.ScaleType.Crop,
+				
 
 				[Children] = {
 					scope:New "ImageLabel" {
@@ -391,7 +393,7 @@ return function(scope, props: {
 	-- 	hideTooltip()
 	-- end)
 
-	-- print(`[HotbarButton] ✅ Button created for slot {slotNumber}: {button}`)
+	---- print(`[HotbarButton] ✅ Button created for slot {slotNumber}: {button}`)
 	return button
 end
 

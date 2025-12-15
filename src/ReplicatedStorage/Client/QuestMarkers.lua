@@ -118,7 +118,7 @@ end
 
 -- Create a marker for an NPC or object
 local function createNPCMarker(target: Model | BasePart, markerType: string, questName: string?)
-	-- print(`[QuestMarkers] 🎯 createNPCMarker called for {target.Name}, type={markerType}, quest={questName or "none"}`)
+	---- --print(`[QuestMarkers] 🎯 createNPCMarker called for {target.Name}, type={markerType}, quest={questName or "none"}`)
 
 	local targetRoot: BasePart? = nil
 
@@ -133,7 +133,7 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 		return
 	end
 
-	-- print(`[QuestMarkers]   ✅ Found targetRoot: {targetRoot.Name}`)
+	---- --print(`[QuestMarkers]   ✅ Found targetRoot: {targetRoot.Name}`)
 
 	local config = MARKER_CONFIG[markerType]
 	if not config then
@@ -141,16 +141,16 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 		return
 	end
 
-	-- print(`[QuestMarkers]   ✅ Config found: type={config.type}, icon={config.icon}`)
+	---- --print(`[QuestMarkers]   ✅ Config found: type={config.type}, icon={config.icon}`)
 
 	-- Create a unique key for this marker
 	local markerKey = target.Name .. "_" .. markerType
 
-	-- print(`[QuestMarkers]   🔑 Marker key: {markerKey}`)
+	---- --print(`[QuestMarkers]   🔑 Marker key: {markerKey}`)
 
 	-- Clean up existing marker if it exists
 	if markerScopes[markerKey] then
-		-- print(`[QuestMarkers]   🗑️ Cleaning up existing marker`)
+		---- --print(`[QuestMarkers]   🗑️ Cleaning up existing marker`)
 		markerScopes[markerKey]:doCleanup()
 		markerScopes[markerKey] = nil
 	end
@@ -160,7 +160,7 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 		MarkerIcon = require(ReplicatedStorage.Client.Components.MarkerIcon),
 	})
 
-	-- print(`[QuestMarkers]   ✅ Created marker scope`)
+	---- --print(`[QuestMarkers]   ✅ Created marker scope`)
 
 	-- Create reactive values
 	local position = markerScope:Value(UDim2.fromScale(0.5, 0.5))
@@ -180,7 +180,7 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 	local playerGui = player:WaitForChild("PlayerGui")
 	screenGui.Parent = playerGui
 
-	-- print(`[QuestMarkers]   ✅ Created ScreenGui: {screenGui.Name}, Enabled={screenGui.Enabled}, Parent={screenGui.Parent.Name}`)
+	---- --print(`[QuestMarkers]   ✅ Created ScreenGui: {screenGui.Name}, Enabled={screenGui.Enabled}, Parent={screenGui.Parent.Name}`)
 
 	markerScope:MarkerIcon({
 		Type = config.type,
@@ -195,7 +195,7 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 		Parent = screenGui,
 	})
 
-	-- print(`[QuestMarkers]   ✅ Created MarkerIcon component`)
+	---- --print(`[QuestMarkers]   ✅ Created MarkerIcon component`)
 
 	-- Update marker position and visibility every frame
 	local frameCount = 0
@@ -204,7 +204,7 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 
 		-- Check if target still exists
 		if not target or not target.Parent or not targetRoot.Parent then
-			-- print(`[QuestMarkers]   ⚠️ Target {target.Name} no longer exists, cleaning up marker`)
+			---- --print(`[QuestMarkers]   ⚠️ Target {target.Name} no longer exists, cleaning up marker`)
 			markerScopes[markerKey]:doCleanup()
 			markerScopes[markerKey] = nil
 			return
@@ -226,11 +226,11 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 
 		-- Debug every 60 frames (once per second at 60fps)
 		if frameCount % 60 == 0 then
-			-- print(`[QuestMarkers]   🔄 Update: dist={math.floor(dist)}, screenPos={screenPos}, onScreen={onScreen}, visible={dist < 500}`)
+			---- --print(`[QuestMarkers]   🔄 Update: dist={math.floor(dist)}, screenPos={screenPos}, onScreen={onScreen}, visible={dist < 500}`)
 		end
 	end)
 
-	-- print(`[QuestMarkers]   ✅ Connected RenderStepped update loop`)
+	---- --print(`[QuestMarkers]   ✅ Connected RenderStepped update loop`)
 
 	-- Store cleanup function and references for enable/disable
 	table.insert(markerScope, updateConnection)
@@ -240,7 +240,7 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 
 	markerScopes[markerKey] = markerScope
 
-	-- print(`[QuestMarkers]   ✅ Marker fully created and stored with key: {markerKey}`)
+	---- --print(`[QuestMarkers]   ✅ Marker fully created and stored with key: {markerKey}`)
 end
 
 -- Remove a marker for an NPC
@@ -272,7 +272,7 @@ local function findNPCModel(npcName: string): Model?
 	if dialogueFolder then
 		local npc = dialogueFolder:FindFirstChild(npcName)
 		if npc and npc:IsA("Model") and npc:FindFirstChild("HumanoidRootPart") then
-			-- print(`[QuestMarkers] ✅ Found {npcName} in workspace.World.Dialogue`)
+			---- --print(`[QuestMarkers] ✅ Found {npcName} in workspace.World.Dialogue`)
 			return npc
 		end
 	end
@@ -294,7 +294,7 @@ local function findNPCModel(npcName: string): Model?
 						if actor then
 							local npcModel = actor:FindFirstChildOfClass("Model")
 							if npcModel and npcModel:FindFirstChild("HumanoidRootPart") then
-								-- print(`[QuestMarkers] ✅ Found {npcName} in workspace.World.Live.{region.Name}`)
+								---- --print(`[QuestMarkers] ✅ Found {npcName} in workspace.World.Live.{region.Name}`)
 								return npcModel
 							end
 						end
@@ -304,7 +304,7 @@ local function findNPCModel(npcName: string): Model?
 		end
 	end
 
-	-- print(`[QuestMarkers] ❌ Could not find NPC: {npcName}`)
+	---- --print(`[QuestMarkers] ❌ Could not find NPC: {npcName}`)
 	return nil
 end
 
@@ -312,7 +312,7 @@ end
 local function updateQuestMarkers()
 	local playerEntity = ref.get("local_player")
 	if not playerEntity then
-		-- print("[QuestMarkers] ⚠️ No player entity found")
+		---- --print("[QuestMarkers] ⚠️ No player entity found")
 		return
 	end
 
@@ -320,14 +320,14 @@ local function updateQuestMarkers()
 	local activeQuest = nil
 	if world:has(playerEntity, comps.ActiveQuest) then
 		activeQuest = world:get(playerEntity, comps.ActiveQuest)
-		-- print(`[QuestMarkers] 📋 Active quest: {activeQuest.questName} from {activeQuest.npcName}`)
+		---- --print(`[QuestMarkers] 📋 Active quest: {activeQuest.questName} from {activeQuest.npcName}`)
 	else
-		-- print("[QuestMarkers] 📋 No active quest")
+		---- --print("[QuestMarkers] 📋 No active quest")
 	end
 
 	local hasQuestItem = world:has(playerEntity, comps.QuestItemCollected)
 	if hasQuestItem then
-		-- print("[QuestMarkers] ✅ Player has quest item")
+		---- --print("[QuestMarkers] ✅ Player has quest item")
 	end
 
 	-- Get all quest NPCs from quest data
@@ -339,13 +339,13 @@ local function updateQuestMarkers()
 		questNPCCount += 1
 	end
 
-	-- print(`[QuestMarkers] 🔍 Checking {questNPCCount} quest NPCs...`)
+	---- --print(`[QuestMarkers] 🔍 Checking {questNPCCount} quest NPCs...`)
 
 	-- Track which markers should be active
 	local activeMarkers = {}
 
 	for npcName, _ in pairs(QuestData) do
-		-- print(`[QuestMarkers] Looking for NPC: {npcName}`)
+		---- --print(`[QuestMarkers] Looking for NPC: {npcName}`)
 
 		-- Find the NPC model in the world
 		local npcModel = findNPCModel(npcName)
@@ -358,19 +358,19 @@ local function updateQuestMarkers()
 				-- This NPC has the player's active quest
 				if hasQuestItem then
 					-- Player has quest item, show turn-in marker (green ?)
-					-- print(`[QuestMarkers]   🟢 Enabling turn-in marker for {npcName}`)
+					---- --print(`[QuestMarkers]   🟢 Enabling turn-in marker for {npcName}`)
 					markerType = "questActive"
 					questName = activeQuest.questName
 				else
 					-- Quest is active but not complete, don't show marker
 					-- Player needs to find the quest item first
-					-- print(`[QuestMarkers]   ⚪ Quest active but item not collected - no marker for {npcName}`)
+					---- --print(`[QuestMarkers]   ⚪ Quest active but item not collected - no marker for {npcName}`)
 					markerType = nil
 				end
 			else
 				-- NPC has a quest and player doesn't have an active quest
 				if not activeQuest then
-					-- print(`[QuestMarkers]   🟡 Enabling available quest marker for {npcName}`)
+					---- --print(`[QuestMarkers]   🟡 Enabling available quest marker for {npcName}`)
 					markerType = "questAvailable"
 					questName = "New Quest"
 				end
@@ -400,7 +400,7 @@ local function updateQuestMarkers()
 	-- Disable markers that shouldn't be active
 	for markerKey, scope in pairs(markerScopes) do
 		if not activeMarkers[markerKey] then
-			-- print(`[QuestMarkers]   💤 Disabling marker: {markerKey}`)
+			---- --print(`[QuestMarkers]   💤 Disabling marker: {markerKey}`)
 			if scope.screenGui then
 				scope.screenGui.Enabled = false
 			end
@@ -442,19 +442,19 @@ function QuestMarkers.Init()
 	-- task.wait(2)
 	-- updateQuestMarkers()
 
-	print("[QuestMarkers] ✅ Initialized (automatic NPC markers disabled)")
+	--print("[QuestMarkers] ✅ Initialized (automatic NPC markers disabled)")
 end
 
 -- Cleanup all markers (called on death)
 function QuestMarkers.Cleanup()
-	print("[QuestMarkers] 🧹 Cleaning up all markers...")
+	--print("[QuestMarkers] 🧹 Cleaning up all markers...")
 	for markerKey, scope in pairs(markerScopes) do
 		if scope and scope.doCleanup then
 			scope:doCleanup()
 		end
 	end
 	table.clear(markerScopes)
-	print("[QuestMarkers] ✅ All markers cleaned up")
+	--print("[QuestMarkers] ✅ All markers cleaned up")
 end
 
 --[[
@@ -577,7 +577,7 @@ function QuestMarkers.CreateWaypoint(part: Model | BasePart, label: string?, con
 
 	markerScopes[markerKey] = markerScope
 
-	print(`[QuestMarkers] ✅ Created waypoint marker: {markerKey}`)
+	--print(`[QuestMarkers] ✅ Created waypoint marker: {markerKey}`)
 	return markerKey
 end
 
@@ -613,7 +613,7 @@ function QuestMarkers.RemoveWaypoint(markerKey: string | Model | BasePart)
 	if markerScopes[key] then
 		markerScopes[key]:doCleanup()
 		markerScopes[key] = nil
-		print(`[QuestMarkers] 🗑️ Removed waypoint marker: {key}`)
+		--print(`[QuestMarkers] 🗑️ Removed waypoint marker: {key}`)
 	else
 		warn(`[QuestMarkers] Cannot remove waypoint: marker not found ({key})`)
 	end

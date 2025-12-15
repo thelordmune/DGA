@@ -17,7 +17,7 @@ ServerBvel.BFKnockback = function(Character, direction, horizontalPower, upwardP
     for _, child in ipairs(rootPart:GetChildren()) do
         if child:IsA("BodyPosition") or child:IsA("BodyGyro") or child:IsA("BodyVelocity") or child:IsA("LinearVelocity") then
             child:Destroy()
-            -- print(`[ServerBvel] Removed interfering {child.ClassName} from {Character.Name}`)
+            ---- print(`[ServerBvel] Removed interfering {child.ClassName} from {Character.Name}`)
         end
     end
 
@@ -46,7 +46,7 @@ ServerBvel.BFKnockback = function(Character, direction, horizontalPower, upwardP
     lv.RelativeTo = Enum.ActuatorRelativeTo.World
     lv.Parent = rootPart
 
-    -- print(`[ServerBvel] Applied BFKnockback to {Character.Name}: H={horizontalPower}, U={upwardPower}`)
+    ---- print(`[ServerBvel] Applied BFKnockback to {Character.Name}: H={horizontalPower}, U={upwardPower}`)
 
     -- Clean up after duration (only destroy LinearVelocity, not attachment)
     task.delay(0.65, function()
@@ -58,14 +58,14 @@ end
 
 -- Parry Knockback (snappier, eased knockback for parry reactions)
 ServerBvel.ParryKnockback = function(Character, direction, horizontalPower)
-    print(`[PARRY KNOCKBACK DEBUG] Called for {Character.Name} with power {horizontalPower}`)
+   -- print(`[PARRY KNOCKBACK DEBUG] Called for {Character.Name} with power {horizontalPower}`)
     local TweenService = game:GetService("TweenService")
     local rootPart = Character.PrimaryPart
     if not rootPart then
         warn("[ServerBvel] No PrimaryPart found for ParryKnockback")
         return
     end
-    print(`[PARRY KNOCKBACK DEBUG] {Character.Name} - PrimaryPart found, applying knockback`)
+   -- print(`[PARRY KNOCKBACK DEBUG] {Character.Name} - PrimaryPart found, applying knockback`)
 
     -- Clean up ALL existing BodyMovers and LinearVelocities that might interfere with knockback
     for _, child in ipairs(rootPart:GetChildren()) do

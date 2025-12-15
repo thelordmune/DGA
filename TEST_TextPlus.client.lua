@@ -14,7 +14,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- Wait a bit for game to load
 task.wait(3)
 
--- print("[TextPlus Test] Creating test UI...")
+---- print("[TextPlus Test] Creating test UI...")
 
 -- Create test UI
 local screenGui = Instance.new("ScreenGui")
@@ -34,7 +34,7 @@ textFrame.Position = UDim2.fromScale(0.05, 0.05)
 textFrame.BackgroundTransparency = 1
 textFrame.Parent = frame
 
--- print("[TextPlus Test] Rendering text...")
+---- print("[TextPlus Test] Rendering text...")
 
 -- Render text with TextPlus
 local success, err = pcall(function()
@@ -48,12 +48,12 @@ local success, err = pcall(function()
 end)
 
 if success then
-	-- print("[TextPlus Test] ✅ Text rendered successfully!")
-	-- print("[TextPlus Test] Children in textFrame:", #textFrame:GetChildren())
+	---- print("[TextPlus Test] ✅ Text rendered successfully!")
+	---- print("[TextPlus Test] Children in textFrame:", #textFrame:GetChildren())
 	
 	-- List all children
 	for i, child in textFrame:GetChildren() do
-		-- print("[TextPlus Test] Child", i, ":", child.Name, child.ClassName)
+		---- print("[TextPlus Test] Child", i, ":", child.Name, child.ClassName)
 	end
 else
 	warn("[TextPlus Test] ❌ Failed to render text:", err)
@@ -62,5 +62,5 @@ end
 -- Close after 10 seconds
 task.wait(10)
 screenGui:Destroy()
--- print("[TextPlus Test] Test complete, UI destroyed")
+---- print("[TextPlus Test] Test complete, UI destroyed")
 

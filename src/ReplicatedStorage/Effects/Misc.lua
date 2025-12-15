@@ -6,6 +6,7 @@ local Replicated = game:GetService("ReplicatedStorage")
 local Utilities = require(Replicated.Modules.Utilities)
 local Library = require(Replicated.Modules.Library)
 local Debris = Utilities.Debris
+local AB = require(Replicated.Modules.Utils.AymanBolt)
 
 -- Variables
 local Player = Players.LocalPlayer
@@ -134,7 +135,7 @@ function Misc.StartHyperarmor(Character: Model)
 	highlight.OutlineTransparency = 0
 	highlight.Parent = Character
 
-	-- print("Hyperarmor visual started for", Character.Name)
+	---- print("Hyperarmor visual started for", Character.Name)
 end
 
 function Misc.UpdateHyperarmor(Character: Model, damagePercent: number)
@@ -155,7 +156,7 @@ function Misc.UpdateHyperarmor(Character: Model, damagePercent: number)
 	-- Increase intensity as damage increases
 	highlight.FillTransparency = 0.3 - (damagePercent * 0.2) -- Gets more opaque as damage increases
 
-	-- print(string.format("Hyperarmor visual updated for %s: %.0f%% damage (Color: R%.0f G%.0f B%.0f)",
+	---- print(string.format("Hyperarmor visual updated for %s: %.0f%% damage (Color: R%.0f G%.0f B%.0f)",
 		--Character.Name, damagePercent * 100, currentColor.R * 255, currentColor.G * 255, currentColor.B * 255))
 end
 
@@ -176,7 +177,7 @@ function Misc.RemoveHyperarmor(Character: Model)
 			highlight:Destroy()
 		end)
 
-		-- print("Hyperarmor visual removed for", Character.Name)
+		---- print("Hyperarmor visual removed for", Character.Name)
 	end
 end
 
@@ -196,15 +197,36 @@ function Misc.AdrenalineFX(Character: Model)
 
 	-- Brief up-and-down screen shake for adrenaline level up
 	CamShake({
-		Magnitude = 15, -- High magnitude for adrenaline level up
-		Frequency = 28,
-		Damp = 0.006,
-		Influence = Vector3.new(0.3, 1.5, 0.3), -- Emphasize vertical movement
-		Location = Character.HumanoidRootPart.Position,
-		Falloff = 100
-	})
+			Location = Character.PrimaryPart.Position,
+			Magnitude = 5.5,
+			Damp = 0.00005,
+			Frequency = 35,
+			Influence = Vector3.new(.55, 1, .55),
+			Falloff = 89,
+		})
 
 	Debris:AddItem(ADVfx, 1)
+end
+
+function Misc.DeconBolt(Character: Model, Position: Vector3 | Vector2)
+	local hrp = Character:FindFirstChild("HumanoidRootPart")
+	task.spawn(function()
+        for _ = 1,2 do
+            AB.new(hrp.CFrame * CFrame.new(0,0,-2), hrp.CFrame * CFrame.new(0, 0, -6.5), {
+                PartCount = 10, -- self explanatory
+                CurveSize0 = 5, -- self explanatory
+                CurveSize1 = 5, -- self explanatory
+                PulseSpeed = 11, -- how fast the bolts will be 
+                PulseLength = 1, -- how long each bolt is
+                FadeLength = 0.25, -- self explanatory
+                MaxRadius = 10, -- the zone of the bolts
+                Thickness = .5, -- self explanatory
+                Frequency = 0.85, -- how much it will zap around the less frequency (jitter amp)
+                Color = Color3.fromRGB(36, 140, 185),
+            })
+            task.wait(0.065)
+        end
+    end)
 end
 
 return Misc

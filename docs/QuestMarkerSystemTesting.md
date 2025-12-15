@@ -293,9 +293,9 @@ local ref = require(game.ReplicatedStorage.Modules.ECS.jecs_ref_manager)
 local playerEntity = ref.get("local_player")
 if world:has(playerEntity, comps.ActiveQuest) then
     local quest = world:get(playerEntity, comps.ActiveQuest)
-    print("Active Quest:", quest.npcName, quest.questName)
+   -- print("Active Quest:", quest.npcName, quest.questName)
 else
-    print("No active quest")
+   -- print("No active quest")
 end
 ```
 
@@ -304,7 +304,7 @@ end
 local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 for _, gui in playerGui:GetChildren() do
     if gui.Name:match("^QuestMarker_") then
-        print("Marker:", gui.Name)
+       -- print("Marker:", gui.Name)
     end
 end
 ```

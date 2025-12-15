@@ -57,7 +57,7 @@ local function walkspeed_controller()
 	end
 
 	if not hasLoggedStartup then
-		-- -- print("[WalkspeedController] ✅ System started successfully!")
+		-- ---- print("[WalkspeedController] ✅ System started successfully!")
 		hasLoggedStartup = true
 	end
 
@@ -94,8 +94,8 @@ local function walkspeed_controller()
 
 	-- Debug: -- print raw StringValue and parsed states
 	if DEBUG and speedsStringValue.Value ~= "[]" then
-		-- print(`[WalkspeedController] Raw Speeds.Value: {speedsStringValue.Value}`)
-		-- print(`[WalkspeedController] Parsed states count: {#speedStates}`)
+		---- print(`[WalkspeedController] Raw Speeds.Value: {speedsStringValue.Value}`)
+		---- print(`[WalkspeedController] Parsed states count: {#speedStates}`)
 	end
 
 	local DeltaSpeed = 16 -- Default speed
@@ -111,7 +111,7 @@ local function walkspeed_controller()
 			local Number = ConvertToNumber(state)
 			table.insert(speedModifiers, Number)
 			if DEBUG and #speedStates > 0 then
-				-- print(`[WalkspeedController] Found speed state: {state} -> {Number}`)
+				---- print(`[WalkspeedController] Found speed state: {state} -> {Number}`)
 			end
 		end
 	end
@@ -124,7 +124,7 @@ local function walkspeed_controller()
 		if modifier <= 0 then
 			DeltaSpeed = modifier
 			if DEBUG then
-				-- print(`[WalkspeedController] Applied zero/negative modifier: {modifier}`)
+				---- print(`[WalkspeedController] Applied zero/negative modifier: {modifier}`)
 			end
 			break -- Negative/zero speeds take priority
 		else
@@ -132,7 +132,7 @@ local function walkspeed_controller()
 			-- This ensures RunSpeedSet30 always sets speed to 30
 			DeltaSpeed = modifier
 			if DEBUG and #speedStates > 0 then
-				-- print(`[WalkspeedController] Applied speed modifier: {modifier}, DeltaSpeed set to {DeltaSpeed}`)
+				---- print(`[WalkspeedController] Applied speed modifier: {modifier}, DeltaSpeed set to {DeltaSpeed}`)
 			end
 		end
 	end
@@ -147,7 +147,7 @@ local function walkspeed_controller()
 	if finalWalkSpeed ~= lastWalkSpeed then
 		lastWalkSpeed = finalWalkSpeed
 		if DEBUG then
-			-- print(`[WalkspeedController] ⚡ WalkSpeed set to {finalWalkSpeed} (states: {table.concat(speedStates, ", ")})`)
+			---- print(`[WalkspeedController] ⚡ WalkSpeed set to {finalWalkSpeed} (states: {table.concat(speedStates, ", ")})`)
 		end
 	end
 
@@ -156,7 +156,7 @@ local function walkspeed_controller()
 	if finalJumpPower ~= lastJumpPower then
 		lastJumpPower = finalJumpPower
 		if DEBUG and #speedStates > 0 then
-			-- -- print(`[WalkspeedController] JumpPower set to {finalJumpPower}`)
+			-- ---- print(`[WalkspeedController] JumpPower set to {finalJumpPower}`)
 		end
 	end
 end

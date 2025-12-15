@@ -5,7 +5,7 @@ local QuestEvents = {}
 
 QuestEvents.Connect = function()
     bridges.Quests:Connect(function(Data)
-        -- print("Quest event received:", Data.Module)
+        ---- print("Quest event received:", Data.Module)
         
         -- Quest modules are client-side representations, not the actual quest logic
         -- This should handle UI updates or client-side quest tracking

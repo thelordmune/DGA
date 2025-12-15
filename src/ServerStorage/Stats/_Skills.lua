@@ -55,7 +55,7 @@ local Table = {
 				LightKnockback = false,
 				M2 = false,
 				FX = Replicated.Assets.VFX.Blood.Attachment,
-				Stun = 0.4,
+				Stun = 0.6,
 			},
 			["Slash2"] = {
 				BlockBreak = true,
@@ -220,7 +220,58 @@ local Table = {
 			
             },
 			["HitTimes"] = {1/89, 18/89, 25/89, 50/89}
-        }
+        },
+		["Tapdance"] = {
+			["Hit"] = {
+				BlockBreak = false,
+			Damage = 1.5,
+			PostureDamage = 3,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.2,
+			},
+			["FinalHit"] = {
+				BlockBreak = false,
+			Damage = 8,
+			PostureDamage = 13,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.4,
+			},
+			["Hittimes"] = {20/100, 45/100, 58/100, 68/100}
+		},
+		["Hellraiser"] = {
+			["Hit"] = {
+				BlockBreak = false,
+			Damage = 1.5,
+			PostureDamage = 3,
+			LightKnockback = false,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.45,
+			},
+			["FinalHit"] = {
+			BlockBreak = false,
+			Damage = 8,
+			PostureDamage = 13,
+			LightKnockback = false,
+			Knockback = true,
+			M2 = false,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.6,
+			Status = {
+				ProcChance = .99,
+				ProcDmg = 2.5,
+				Tick = 0.3,
+				Duration = 4.5,
+				Name = "Flame",
+			},
+			},
+			["Hittimes"] = {32/89, 59/89, 62/89}
+
+		}
     },
     ["Fist"] = {
         ["Downslam Kick"] = {

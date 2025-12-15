@@ -243,11 +243,11 @@ else
         end,
         
         OnStageEnd = function(stage, questData)
-            print(`Stage {stage} completed`)
+           -- print(`Stage {stage} completed`)
         end,
         
         OnQuestComplete = function(questData)
-            print("Quest completed!")
+           -- print("Quest completed!")
         end,
     }
 end

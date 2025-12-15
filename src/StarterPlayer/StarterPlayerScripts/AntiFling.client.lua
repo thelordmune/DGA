@@ -74,7 +74,7 @@ local function cleanupOrphanedBodyMovers()
             local lifetime = currentTime - bodyMoverCreationTimes[descendant]
             if lifetime > MAX_BODY_MOVER_LIFETIME then
                 -- This is an orphaned body mover, remove it
-                -- print(string.format("[Anti-Fling] Removing orphaned %s (lifetime: %.2fs)", descendant.ClassName, lifetime))
+                ---- print(string.format("[Anti-Fling] Removing orphaned %s (lifetime: %.2fs)", descendant.ClassName, lifetime))
                 bodyMoverCreationTimes[descendant] = nil
                 descendant:Destroy()
                 moversRemoved = moversRemoved + 1
@@ -90,7 +90,7 @@ local function cleanupOrphanedBodyMovers()
     end
 
     if moversRemoved > 0 then
-        -- print(`[Anti-Fling] Removed {moversRemoved} orphaned body movers`)
+        ---- print(`[Anti-Fling] Removed {moversRemoved} orphaned body movers`)
     end
 end
 

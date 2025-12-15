@@ -14,7 +14,7 @@
 ```lua
 if not hasLoggedWander then
     local hasTarget = world:has(entity, comps.NPCTarget)
-    print(`[npc_wander_ecs] Processing {char.Name} - has NPCTarget: {hasTarget}`)
+   -- print(`[npc_wander_ecs] Processing {char.Name} - has NPCTarget: {hasTarget}`)
     hasLoggedWander = true
 end
 ```

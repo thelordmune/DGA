@@ -152,7 +152,7 @@ NetworkModule.EndPoint = function(Player, Data)
 
 		local Alchemy = Library.PlayAnimation(Character, Animation)
 		if not Alchemy then
-			-- print("Failed to load Sky Arc animation")
+			---- print("Failed to load Sky Arc animation")
 			return
 		end
 
@@ -162,6 +162,7 @@ NetworkModule.EndPoint = function(Player, Data)
 		Server.Library.TimedState(Character.Actions, "Sky Arc", Alchemy.Length)
 		Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Alchemy.Length) -- Prevent jumping during move
 
 		-- Track connections for cleanup
 		local connections = {}

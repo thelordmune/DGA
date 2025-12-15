@@ -9,7 +9,7 @@ TestDestructible.EndPoint = function(Player: Player, Data: {})
     local Entity = Server.Modules.Entities.Get(Character)
     if not Entity then return end
     
-    -- print("Testing destructible system for player:", Player.Name)
+    ---- print("Testing destructible system for player:", Player.Name)
     
     -- Create a test hitbox in front of the player
     local HitTargets = Server.Modules.Hitbox.SpatialQuery(
@@ -19,11 +19,11 @@ TestDestructible.EndPoint = function(Player: Player, Data: {})
         true -- Visualize the hitbox
     )
     
-    -- print("Found", #HitTargets, "targets in front of player")
+    ---- print("Found", #HitTargets, "targets in front of player")
     
     -- Test damage on all found targets
     for _, Target in pairs(HitTargets) do
-        -- print("Testing damage on target:", Target.Name, "Type:", typeof(Target))
+        ---- print("Testing damage on target:", Target.Name, "Type:", typeof(Target))
         
         -- Create a test damage table
         local testDamageTable = {
@@ -35,7 +35,7 @@ TestDestructible.EndPoint = function(Player: Player, Data: {})
         Server.Modules.Damage.Tag(Character, Target, testDamageTable)
     end
     
-    -- print("Destructible test completed for player:", Player.Name)
+    ---- print("Destructible test completed for player:", Player.Name)
 end
 
 return TestDestructible

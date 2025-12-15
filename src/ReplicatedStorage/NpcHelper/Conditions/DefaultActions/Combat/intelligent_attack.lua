@@ -74,7 +74,7 @@ local function isSkillOnCooldown(npc, skillName, mainConfig)
     -- Debug: -- print cooldown status for skills (not M1 to avoid spam)
     if onCooldown and skillName ~= "M1" and skillName ~= "M2" and skillName ~= "Critical" then
         local remainingTime = Server.Library.GetCooldownTime(npc, skillName)
-        -- -- print(string.format("[NPC %s] Skill '%s' on cooldown: %.1fs remaining", npc.Name, skillName, remainingTime))
+        -- ---- print(string.format("[NPC %s] Skill '%s' on cooldown: %.1fs remaining", npc.Name, skillName, remainingTime))
     end
 
     return onCooldown
@@ -231,21 +231,21 @@ end
 
 -- Main intelligent attack function
 return function(actor: Actor, mainConfig: table)
-    -- -- -- print("=== INTELLIGENT_ATTACK CALLED ===")
+    -- -- ---- print("=== INTELLIGENT_ATTACK CALLED ===")
 
     local npc = actor:FindFirstChildOfClass("Model")
     if not npc then
-        -- -- -- print("intelligent_attack: No NPC found")
+        -- -- ---- print("intelligent_attack: No NPC found")
         return false
     end
 
     local target = mainConfig.getTarget()
     if not target then
-        -- -- -- print("intelligent_attack:", npc.Name, "- No target found")
+        -- -- ---- print("intelligent_attack:", npc.Name, "- No target found")
         return false
     end
 
-    -- -- -- print("intelligent_attack:", npc.Name, "has target:", target.Name)
+    -- -- ---- print("intelligent_attack:", npc.Name, "has target:", target.Name)
     
     -- Check if target is valid
     local targetHumanoid = target:FindFirstChild("Humanoid")
@@ -273,7 +273,7 @@ return function(actor: Actor, mainConfig: table)
         local Combat = Server.Modules.Combat
         if not Library.CheckCooldown(npc, "Critical") then
             Combat.Critical(npc)
-            -- print("[Intelligent Attack] Counter-attacking with Critical after parry!")
+            ---- print("[Intelligent Attack] Counter-attacking with Critical after parry!")
             return true
         else
             -- Use best available skill for counter
@@ -283,7 +283,7 @@ return function(actor: Actor, mainConfig: table)
                 if bestSkill ~= "M1" and bestSkill ~= "Block" then
                     local success = mainConfig.performAction(bestSkill)
                     if success then
-                        -- print("[Intelligent Attack] Counter-attacking with", bestSkill, "after parry!")
+                        ---- print("[Intelligent Attack] Counter-attacking with", bestSkill, "after parry!")
                         return true
                     end
                 end
@@ -313,7 +313,7 @@ return function(actor: Actor, mainConfig: table)
     end
     
     -- Execute the best skill using the same Combat system players use
-    -- -- -- print("NPC", npc.Name, "using intelligent attack:", bestSkill, "with score:", bestScore, "at distance:", math.floor(distance))
+    -- -- ---- print("NPC", npc.Name, "using intelligent attack:", bestSkill, "with score:", bestScore, "at distance:", math.floor(distance))
 
     -- Face the target
     local npcRoot = npc:FindFirstChild("HumanoidRootPart")

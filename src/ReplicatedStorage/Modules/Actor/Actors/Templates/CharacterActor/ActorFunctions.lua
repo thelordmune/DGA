@@ -28,7 +28,7 @@ module.M1Check = function(MetaTable,Action,Anim,Sound,Start,AttackDelay)
 			
 			return true
 		end
-		-- print("M1")
+		---- print("M1")
 		if tick() - Start > (AttackDelay - .055) then
 			return true
 		end 
@@ -49,7 +49,7 @@ module.M2Check = function(MetaTable,Action,Anim,Sound,Start,AttackDelay,Sound2)
 
 			return true
 		end
-		-- print("M2")
+		---- print("M2")
 		if tick() - Start > (AttackDelay - .055) then
 			return true
 		end 
@@ -69,7 +69,7 @@ module.Thrust = function(MetaTable,Action,Anim,Sound,Start,AttackDelay)
 
 			return true
 		end
-		-- print("Thrust")
+		---- print("Thrust")
 		if tick() - Start > (AttackDelay) then
 			return true
 		end 
@@ -88,7 +88,7 @@ module.StunCheck = function(Type,MetaTable,Action,Anim,Sound)
 			task.desynchronize()
 		end
 		
-		-- print(MetaTable.Cancels[Type])
+		---- print(MetaTable.Cancels[Type])
 		
 		return MetaTable.Cancels[Type]
 	end)

@@ -41,7 +41,7 @@ local MyWeaponSkill = SkillFactory.CreateWeaponSkill({
     damage = 50,
     cooldown = 8,
     execute = function(self, player, character, holdDuration)
-        -- print(`Skill executed after {holdDuration}s hold`)
+        ---- print(`Skill executed after {holdDuration}s hold`)
         
         -- Your skill logic here
         local damage = self.damage
@@ -90,7 +90,7 @@ local AlchemySkill = SkillFactory.CreateAlchemySkill({
     cooldown = 5,
     execute = function(self, player, character, holdDuration)
         -- holdDuration will always be 0 for alchemy
-        -- print("Alchemy skill executed immediately")
+        ---- print("Alchemy skill executed immediately")
         
         -- Your alchemy logic here
     end
@@ -130,13 +130,13 @@ execute = function(self, player, character, holdDuration)
     -- Damage bonus: +20% per second held
     if holdDuration > 0.5 then
         damage = damage * (1 + holdDuration * 0.2)
-        -- print(`⚡ Charged damage: {damage}`)
+        ---- print(`⚡ Charged damage: {damage}`)
     end
     
     -- Range bonus: +5 studs per second held
     if holdDuration > 0.5 then
         range = range + (holdDuration * 5)
-        -- print(`⚡ Charged range: {range}`)
+        ---- print(`⚡ Charged range: {range}`)
     end
     
     -- Your skill logic with bonuses

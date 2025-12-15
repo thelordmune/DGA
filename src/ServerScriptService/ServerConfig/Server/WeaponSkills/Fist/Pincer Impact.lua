@@ -63,6 +63,7 @@ return function(Player, Data, Server)
 
 		Server.Library.TimedState(Char.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Char.Speeds, "AlcSpeed-0", Move.Length)
+		Server.Library.TimedState(Char.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
 
 		-- Initialize hyperarmor tracking for this move
 		Char:SetAttribute("HyperarmorDamage", 0)
@@ -105,8 +106,8 @@ return function(Player, Data, Server)
 			end
 		end
 
-		-- Clean up hyperarmor data, visual, and velocity when move ends
-		task.delay(Move.Length, function()
+		-- Cleanup function for when skill ends or is cancelled
+		local function cleanup()
 			if Char and Char.Parent then
 				Char:SetAttribute("HyperarmorDamage", nil)
 				Char:SetAttribute("HyperarmorMove", nil)
@@ -132,7 +133,10 @@ return function(Player, Data, Server)
 					})
 				end
 			end
-		end)
+		end
+
+		-- Call cleanup when move ends
+		task.delay(Move.Length, cleanup)
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
@@ -165,7 +169,7 @@ return function(Player, Data, Server)
             Server.Library.TimedState(Char.Speeds, "AlcSpeed-6", Move.Length - hittimes[1])
         end)
 
-        -- -- print(tostring(hittimes[3]-hittimes[2]) .. "this is the ptbvel 1 duration")
+        -- ---- print(tostring(hittimes[3]-hittimes[2]) .. "this is the ptbvel 1 duration")
 
         task.delay(hittimes[2], function()
 			-- Send to player (they have network ownership)
@@ -254,7 +258,7 @@ return function(Player, Data, Server)
 				local playerEntity = ref.find(Char)
 				if playerEntity then
 					local adrenalineData = world:get(playerEntity, comps.Adrenaline)
-					if adrenalineData and adrenalineData.value >= 67 then
+					if adrenalineData and adrenalineData.value >= 20 then
 						-- High adrenaline (67-100) required for BF variant
 						canUseBF = true
 						print(`[PINCER IMPACT] ✅ BF variant allowed - Adrenaline: {math.floor(adrenalineData.value)}%`)
@@ -271,9 +275,9 @@ return function(Player, Data, Server)
 			local variant = canUseBF and "BF" or "None"
 
 			if canUseBF then
-				-- -- print(`[PINCER IMPACT] 💥 Sending DKImpact with variant: {variant} (RED - Player hit the timing!)`)
+				-- ---- print(`[PINCER IMPACT] 💥 Sending DKImpact with variant: {variant} (RED - Player hit the timing!)`)
 			else
-				-- -- print(`[PINCER IMPACT] 💨 Sending DKImpact with variant: {variant} (BLUE - Player missed the timing)`)
+				-- ---- print(`[PINCER IMPACT] 💨 Sending DKImpact with variant: {variant} (BLUE - Player missed the timing)`)
 			end
 
 			-- Create hitbox at impact
@@ -297,7 +301,7 @@ return function(Player, Data, Server)
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Char and Target:IsA("Model") then
 						Server.Modules.Damage.Tag(Char, Target, damageTable)
-						-- -- print(`Pincer Impact hit: {Target.Name} with variant: {variant}`)
+						-- ---- print(`Pincer Impact hit: {Target.Name} with variant: {variant}`)
 						hitSomeone = true
 						table.insert(hitTargets, Target)
 
@@ -320,7 +324,7 @@ return function(Player, Data, Server)
                     Server.Library.PlaySound(Char, SFX.PI.Impact3, true)
 					Server.Library.PlaySound(Char, SFX.PI.Impact5, true)
                 end)
-					-- -- print("[PINCER IMPACT] 🎯 BF Hit detected! Starting cinematic cutscene...")
+					-- ---- print("[PINCER IMPACT] 🎯 BF Hit detected! Starting cinematic cutscene...")
 
 					-- Lock attacker's rotation and position
 					local attackerCFrame = Char.HumanoidRootPart.CFrame
@@ -429,7 +433,7 @@ return function(Player, Data, Server)
 
 						-- Check if target is still alive and valid
 						if targetHumanoid and targetRoot and targetHumanoid.Health > 0 and Target.Parent then
-							-- print(`[PINCER IMPACT BF] Applying ragdoll + knockback to {Target.Name} (Health: {targetHumanoid.Health})`)
+							---- print(`[PINCER IMPACT BF] Applying ragdoll + knockback to {Target.Name} (Health: {targetHumanoid.Health})`)
 
 							-- Apply ragdoll effect
 							local ragdollDuration = 5 -- Ragdoll lasts 2 seconds
@@ -444,12 +448,12 @@ return function(Player, Data, Server)
 							-- Players can't apply physics to other players on client due to network ownership
 							Server.Modules.ServerBvel.BFKnockback(Target, direction, horizontalPower, upwardPower)
 
-							-- print(`[PINCER IMPACT BF] ✅ Ragdoll + Knockback applied to {Target.Name}`)
+							---- print(`[PINCER IMPACT BF] ✅ Ragdoll + Knockback applied to {Target.Name}`)
 						end
 					end
 				elseif hitSomeone and not pressedM1 then
 					-- Hit with None variant - just play VFX, no cutscene
-					-- -- print("[PINCER IMPACT] 💨 None variant hit - no cutscene")
+					-- ---- print("[PINCER IMPACT] 💨 None variant hit - no cutscene")
 					Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
 						Module = "Weapons",
 						Function = "DKImpact",

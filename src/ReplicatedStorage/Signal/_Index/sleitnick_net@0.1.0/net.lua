@@ -91,7 +91,7 @@ end
 	```lua
 	-- Client
 	Net:Connect("PointsChanged", function(points)
-		-- print("Points", points)
+		---- print("Points", points)
 	end)
 
 	-- Server

@@ -58,11 +58,22 @@ return function(Player, Data, Server)
 		-- Play animation to get the track and length
 		local Move = Library.PlayAnimation(Character, Animation)
 		local animlength = Move.Length
+		Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.RapidThrust, true, 0.1)
 
 		-- Add action-blocking states immediately after playing animation
 		Server.Library.TimedState(Character.Stuns, "RapidThrustActive", animlength) -- Prevent all actions (set FIRST)
 		Server.Library.TimedState(Character.Actions, script.Name, animlength)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", animlength)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", animlength) -- Prevent jumping during move
+
+		-- Initialize hyperarmor (prevents interruption from damage)
+		Character:SetAttribute("HyperarmorDamage", 0)
+		Character:SetAttribute("HyperarmorMove", script.Name)
+		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+			Module = "Misc",
+			Function = "StartHyperarmor",
+			Arguments = { Character }
+		})
 
 		-- Calculate hittimes from fractions
 		local hittimes = {}
@@ -78,6 +89,7 @@ return function(Player, Data, Server)
 		local heartbeatConnection = nil
 		local grabbedTarget = nil -- Track if we grabbed someone on frame 3
 		local processedFrames = {} -- Track which frames we've already processed
+		local multiHitVictim = nil -- Track the first victim hit for multi-hit state
 
 		-- Map hittimes to frame numbers (assuming 60 FPS animation)
 		local frameToHittime = {}
@@ -122,6 +134,15 @@ return function(Player, Data, Server)
 				-- Remove stun state to allow other actions
 				Server.Library.RemoveState(Character.Stuns, "RapidThrustActive")
 
+				-- Clean up hyperarmor
+				Character:SetAttribute("HyperarmorDamage", nil)
+				Character:SetAttribute("HyperarmorMove", nil)
+				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+					Module = "Misc",
+					Function = "RemoveHyperarmor",
+					Arguments = { Character }
+				})
+
 				if heartbeatConnection then
 					heartbeatConnection:Disconnect()
 					heartbeatConnection = nil
@@ -143,6 +164,15 @@ return function(Player, Data, Server)
 			local elapsed = os.clock() - startTime
 			if elapsed >= animlength then
 				-- Animation complete, cleanup
+				-- Clean up hyperarmor
+				Character:SetAttribute("HyperarmorDamage", nil)
+				Character:SetAttribute("HyperarmorMove", nil)
+				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+					Module = "Misc",
+					Function = "RemoveHyperarmor",
+					Arguments = { Character }
+				})
+
 				if heartbeatConnection then
 					heartbeatConnection:Disconnect()
 					heartbeatConnection = nil
@@ -254,6 +284,13 @@ return function(Player, Data, Server)
 							local Target = HitTargets[1] -- Grab the first target hit
 							grabbedTarget = Target
 
+							-- MULTI-HIT FIX: Mark victim with MultiHitVictim state
+							if not multiHitVictim then
+								multiHitVictim = Target
+								-- Mark victim for multi-hit combo (duration = full animation length)
+								Server.Library.TimedState(Target.IFrames, "MultiHitVictim", animlength)
+							end
+
 							-- Apply damage
 							Server.Modules.Damage.Tag(Character, Target, {
 								Damage = Skills[Weapon][script.Name].Repeat.Damage,
@@ -300,6 +337,49 @@ return function(Player, Data, Server)
 							M2 = false,
 							FX = Skills[Weapon][script.Name].Repeat.FX,
 						})
+					else
+						local Hitbox = Server.Modules.Hitbox
+					local Entity = Server.Modules["Entities"].Get(Character)
+					if Entity then
+						local HitTargets = Hitbox.SpatialQuery(
+							Character,
+							Vector3.new(8, 6, 8),
+							Entity:GetCFrame() * CFrame.new(0, 0, -3),
+							false
+						)
+
+						-- If we hit someone on frame 3, grab them
+						if #HitTargets > 0 then
+							local Target = HitTargets[1] -- Grab the first target hit
+							grabbedTarget = Target
+
+							-- Apply damage
+							Server.Modules.Damage.Tag(Character, Target, {
+								Damage = Skills[Weapon][script.Name].Repeat.Damage,
+								PostureDamage = Skills[Weapon][script.Name].Repeat.PostureDamage,
+								Stun = Skills[Weapon][script.Name].Repeat.Stun,
+								BlockBreak = Skills[Weapon][script.Name].Repeat.BlockBreak,
+								M1 = false,
+								M2 = false,
+								FX = Skills[Weapon][script.Name].Repeat.FX,
+							})
+
+							-- Apply grab using ECS system
+							local grabberEntity = RefManager.entity.find(Character)
+							if grabberEntity then
+								-- Calculate remaining duration (from frame 3 to frame 13)
+								local grabDuration = hittimes[13] - hittimes[3]
+
+								world:set(grabberEntity, comps.Grab, {
+									target = Target,
+									value = true,
+									duration = grabDuration,
+									startTime = tick(),
+									distance = 3 -- Hold at 3 studs distance
+								})
+							end
+						end
+					end
 					end
 				elseif hittimeIndex == 13 then
 					Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {

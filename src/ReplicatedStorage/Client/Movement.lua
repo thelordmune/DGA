@@ -68,40 +68,40 @@ Movement.Dodge = function()
 
 	-- Check if we can dash
 	if Client.Dodging then
-		-- print("🚫 Dodge blocked: Already dodging")
+		---- print("🚫 Dodge blocked: Already dodging")
 		return
 	end
 	if Client.Library.StateCount(Client.Actions) or
 		Client.Library.StateCount(Client.Stuns) or
 		Client.Library.StateCheck(Client.Speeds, "M1Speed8") then
-		-- print("🚫 Dodge blocked: Character has active states")
+		---- print("🚫 Dodge blocked: Character has active states")
 		return
 	end
 	-- Prevent dashing during ragdoll
 	if Client.Character:FindFirstChild("Ragdoll") then
-		-- print("🚫 Dodge blocked: Character is ragdolled")
+		---- print("🚫 Dodge blocked: Character is ragdolled")
 		return
 	end
 
-	-- print(`[Dodge] Current charges: {Client.DodgeCharges}`)
+	---- print(`[Dodge] Current charges: {Client.DodgeCharges}`)
 
 	-- Check cooldown only if out of charges
 	if Client.DodgeCharges <= 0 then
 		if Client.Library.CheckCooldown(Client.Character, "Dodge") then
-			-- print("🚫 Dodge blocked: On cooldown")
+			---- print("🚫 Dodge blocked: On cooldown")
 			return
 		end
 		Client.DodgeCharges = 2  -- Reset charges
-		-- print("✅ Dodge charges reset to 2")
+		---- print("✅ Dodge charges reset to 2")
 	end
 
 	Client.DodgeCharges = Client.DodgeCharges - 1
-	-- print(`✅ Dodge charge used, remaining: {Client.DodgeCharges}`)
+	---- print(`✅ Dodge charge used, remaining: {Client.DodgeCharges}`)
 
 	-- Set cooldown when out of charges
 	if Client.DodgeCharges <= 0 then
 		Client.Library.SetCooldown(Client.Character, "Dodge", 2.5)
-		-- print("⏱️ Dodge cooldown set to 2.5 seconds")
+		---- print("⏱️ Dodge cooldown set to 2.5 seconds")
 	end
     
     Client.Library.AddState(Client.Statuses, "Dodging")
@@ -151,7 +151,7 @@ Movement.Dodge = function()
         end
     end)
 
-    -- -- -- print("Dash: Speed =", Speed, "Slowdown =", SlowdownSpeed, "Duration =", Duration, "Direction =", Direction)
+    -- -- ---- print("Dash: Speed =", Speed, "Slowdown =", SlowdownSpeed, "Duration =", Duration, "Direction =", Direction)
     
     Animation.Stopped:Once(function()
         -- Velocity cleanup is handled by the tween completion
@@ -162,7 +162,7 @@ end
 
 
 Movement.Run = function(State)
-	-- print(`[Movement.Run] Called with State: {State}`)
+	---- print(`[Movement.Run] Called with State: {State}`)
 
 	-- Basic validation checks
 	if not Client.Character then
@@ -213,8 +213,8 @@ Movement.Run = function(State)
 		return
 	end
 
-	-- print(`[Movement.Run] ✅ StringValues ready - Actions: {Client.Actions ~= nil}, Stuns: {Client.Stuns ~= nil}, Speeds: {Client.Speeds ~= nil}`)
-	-- print(`[Movement.Run] Validation passed - Actions: {Client.Library.StateCount(Client.Actions)}, Stuns: {Client.Library.StateCount(Client.Stuns)}, Running: {Client.Running}`)
+	---- print(`[Movement.Run] ✅ StringValues ready - Actions: {Client.Actions ~= nil}, Stuns: {Client.Stuns ~= nil}, Speeds: {Client.Speeds ~= nil}`)
+	---- print(`[Movement.Run] Validation passed - Actions: {Client.Library.StateCount(Client.Actions)}, Stuns: {Client.Library.StateCount(Client.Stuns)}, Running: {Client.Running}`)
 
 
 	local Weapon   = Client.Player:GetAttribute("Weapon");
@@ -268,7 +268,7 @@ Movement.Run = function(State)
 		self.Connections[#self.Connections + 1] = Client.RunAnim:GetMarkerReachedSignal("Right"):Connect(CallStepRight)
 		
 	elseif not State and Client.Running then
-		-- print("[Movement.Run] ❌ Stopping running - removing RunSpeedSet30 from Speeds")
+		---- print("[Movement.Run] ❌ Stopping running - removing RunSpeedSet30 from Speeds")
 		Client.Running = false;
 		Client.Library.RemoveState(Client.Speeds, "RunSpeedSet30")
 

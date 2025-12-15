@@ -184,7 +184,7 @@ require(game.ReplicatedStorage.TestDialogueBuilder)
 
 ### Check if dialogue exists:
 ```lua
--- print(game.ReplicatedStorage.Dialogues:FindFirstChild("Magnus"))
+---- print(game.ReplicatedStorage.Dialogues:FindFirstChild("Magnus"))
 ```
 
 ### Check player inventory (in game):
@@ -194,7 +194,7 @@ local world = require(game.ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(game.ReplicatedStorage.Modules.ECS.jecs_components)
 local pent = ref.get("local_player")
 local inv = world:get(pent, comps.Inventory)
--- print("Inventory items:", inv.items)
+---- print("Inventory items:", inv.items)
 ```
 
 ---

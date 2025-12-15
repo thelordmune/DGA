@@ -8,7 +8,7 @@ local function getLeftGuardSpawn()
 		if spawns then
 			local leftGuard = spawns:FindFirstChild("LeftGuard")
 			if leftGuard then
-				-- print("LeftGuard: Found spawn at", leftGuard.Position)
+				---- print("LeftGuard: Found spawn at", leftGuard.Position)
 				return leftGuard.Position
 			end
 		end
@@ -108,5 +108,5 @@ local LeftGuardData = {
 	BehaviorTree = require(game.ReplicatedStorage.NpcHelper.Behaviors.Forest.Guard_BehaviorTree),
 }
 
--- print("LeftGuard configuration loaded successfully")
+---- print("LeftGuard configuration loaded successfully")
 return LeftGuardData

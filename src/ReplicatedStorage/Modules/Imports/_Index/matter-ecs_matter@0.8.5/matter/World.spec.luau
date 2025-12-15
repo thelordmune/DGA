@@ -33,8 +33,8 @@ end
 
 local function assertDeepEqual(a, b)
 	if not deepEquals(a, b) then
-		-- print("EXPECTED:", b)
-		-- print("GOT:", a)
+		---- print("EXPECTED:", b)
+		---- print("GOT:", a)
 		error("Tables were not deep-equal")
 	end
 end

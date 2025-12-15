@@ -87,7 +87,7 @@ function External.logErrorNonFatal(
 	if currentProvider ~= nil then
 		currentProvider.logErrorNonFatal(errorString)
 	else
-		-- print(errorString)
+		---- print(errorString)
 	end
 end
 
@@ -102,7 +102,7 @@ function External.logWarn(
 	if currentProvider ~= nil then
 		currentProvider.logWarn(errorString)
 	else
-		-- print(errorString)
+		---- print(errorString)
 	end
 end
 

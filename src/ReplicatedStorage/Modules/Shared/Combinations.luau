@@ -13,6 +13,7 @@ return {
     -- BASIC ALCHEMY (All Types)
     ["Z"] = "Construct",              -- Z (foundation/building)
     ["ZX"] = "Stone Lance",           -- Z -> X
+    ["ZZZ"] = "Stone Lance Path",     -- Z -> Z -> Z (multiple lances in path)
     ["XZ"] = "Sky Arc",               -- X -> Z (arcing bridge)
 
     -- STONE ALCHEMY

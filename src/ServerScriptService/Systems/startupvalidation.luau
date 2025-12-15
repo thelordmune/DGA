@@ -25,10 +25,10 @@ local function startup_validator(world, deltaTime)
         phaseCount = phaseCount + 1
     end
     
-    -- print("=== ECS Startup Validation ===")
-    -- print("Systems loaded:", systemCount)
-    -- print("Phases created:", phaseCount)
-    -- print("Startup time:", math.round((os.clock() - startupTime) * 1000), "ms")
+    ---- print("=== ECS Startup Validation ===")
+    ---- print("Systems loaded:", systemCount)
+    ---- print("Phases created:", phaseCount)
+    ---- print("Startup time:", math.round((os.clock() - startupTime) * 1000), "ms")
     
     if systemCount == 0 then
         warn("WARNING: No systems loaded! ECS may not be working properly.")

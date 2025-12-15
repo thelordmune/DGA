@@ -2,12 +2,12 @@
 local wanderersFolder = workspace:FindFirstChild("Wanderers")
 
 if wanderersFolder then
-    -- print("Found existing Wanderers folder with", #wanderersFolder:GetChildren(), "spawn points")
+    ---- print("Found existing Wanderers folder with", #wanderersFolder:GetChildren(), "spawn points")
 
     -- List all existing spawn points
     for _, part in pairs(wanderersFolder:GetChildren()) do
         if part:IsA("BasePart") then
-            -- -- print("Wanderer spawn point:", part.Name, "at position", part.Position)
+            -- ---- print("Wanderer spawn point:", part.Name, "at position", part.Position)
         end
     end
 else
@@ -36,9 +36,9 @@ task.spawn(function()
                 end
             end
 
-            -- print("Wanderer Status - Spawn Points:", spawnCount, "Active Wanderers:", wandererCount)
+            ---- print("Wanderer Status - Spawn Points:", spawnCount, "Active Wanderers:", wandererCount)
         else
-            -- print("Wanderers folder not found - wanderer monitoring disabled")
+            ---- print("Wanderers folder not found - wanderer monitoring disabled")
             break -- Exit the monitoring loop if folder doesn't exist
         end
     end

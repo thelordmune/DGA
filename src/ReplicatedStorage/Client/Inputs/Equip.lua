@@ -12,13 +12,19 @@ local dialogueController = require(Replicated.Client.Dialogue)
 
 InputModule.InputBegan = function(_, Client)
 	if Client.Character:GetAttribute("Commence") == true then
-		-- print("commencing bro bro")
+		---- print("commencing bro bro")
+
+		-- Check if player is in combat
+		if _G.PlayerInCombat then
+			warn("Cannot talk to NPC while in combat!")
+			return
+		end
 
 		-- Get NPC name from character attribute (set by DialogueProximity)
 		local npcName = Client.Character:GetAttribute("NearbyNPC")
 
 		if npcName then
-			-- print("firing dialogue interaction for NPC:", npcName)
+			---- print("firing dialogue interaction for NPC:", npcName)
 
 			-- Find the NPC model in workspace
 			local dialogueFolder = workspace.World:FindFirstChild("Dialogue")

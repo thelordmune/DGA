@@ -70,7 +70,7 @@ local query = world:query(
 -- Lines 54-59: Verify filter is working
 if not hasLoggedWander then
     local hasTarget = world:has(entity, comps.NPCTarget)
-    print(`[npc_wander_ecs] Processing {char.Name} - has NPCTarget: {hasTarget}`)
+   -- print(`[npc_wander_ecs] Processing {char.Name} - has NPCTarget: {hasTarget}`)
     hasLoggedWander = true
 end
 ```
@@ -147,14 +147,14 @@ Verify `npc_targeting_ecs` is actually being loaded and executed.
 3. Use F9 Developer Console to check NPC character:
    ```lua
    -- Check if Damage_Log exists
-   print(workspace.NPCs.LeftGuard:FindFirstChild("Damage_Log"))
+  -- print(workspace.NPCs.LeftGuard:FindFirstChild("Damage_Log"))
    -- Should print: Damage_Log (Folder)
 
    -- Check attack records
    local log = workspace.NPCs.LeftGuard:FindFirstChild("Damage_Log")
    if log then
        for _, v in log:GetChildren() do
-           print(v.Name, v.Value)
+          -- print(v.Name, v.Value)
        end
    end
    ```

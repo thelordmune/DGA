@@ -2,10 +2,11 @@ local ServerStorage = game:GetService("ServerStorage")
 local Replicated = game:GetService("ReplicatedStorage")
 local Library = require(Replicated.Modules.Library)
 local Skills = require(ServerStorage.Stats._Skills)
+local Debris = game:GetService("Debris")
 
 local Global = require(Replicated.Modules.Shared.Global)
 return function(Player, Data, Server)
-    	local Character = Player.Character
+	local Character = Player.Character
 
 	if not Character then
 		return
@@ -46,19 +47,19 @@ return function(Player, Data, Server)
 		-- Track starting position
 		local startPos = Character.HumanoidRootPart.Position
 		local startVel = Character.HumanoidRootPart.AssemblyLinearVelocity
-		---- print(`[Needle Thrust Server] ========== MOVE START ==========`)
-		---- print(`[Needle Thrust Server] Starting Position: {startPos}`)
-		---- print(`[Needle Thrust Server] Starting Velocity: {startVel}`)
+		------ print(`[Needle Thrust Server] ========== MOVE START ==========`)
+		------ print(`[Needle Thrust Server] Starting Position: {startPos}`)
+		------ print(`[Needle Thrust Server] Starting Velocity: {startVel}`)
 
 		-- Stop ALL animations first (including dash) to prevent animation root motion from interfering
-		---- print(`[Needle Thrust Server] Stopping all animations for {Player.Name}`)
+		------ print(`[Needle Thrust Server] Stopping all animations for {Player.Name}`)
 		Server.Library.StopAllAnims(Character)
 
 		-- Remove any existing body movers FIRST and wait for it to complete
-		---- print(`[Needle Thrust Server] Sending RemoveBvel to {Player.Name}`)
-		Server.Packets.Bvel.sendTo({Character = Character, Name = "RemoveBvel"},Player)
-		---- print(`[Needle Thrust Server] Waiting 0.1s for cleanup and animation stop...`) -- Increased delay to ensure animations stop and RemoveBvel completes
-		---- print(`[Needle Thrust Server] Cleanup wait complete, continuing...`)
+		------ print(`[Needle Thrust Server] Sending RemoveBvel to {Player.Name}`)
+		Server.Packets.Bvel.sendTo({ Character = Character, Name = "RemoveBvel" }, Player)
+		------ print(`[Needle Thrust Server] Waiting 0.1s for cleanup and animation stop...`) -- Increased delay to ensure animations stop and RemoveBvel completes
+		------ print(`[Needle Thrust Server] Cleanup wait complete, continuing...`)
 
 		Server.Library.SetCooldown(Character, script.Name, 5) -- Increased from 2.5 to 5 seconds
 
@@ -68,39 +69,51 @@ return function(Player, Data, Server)
 
 		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
 		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
+		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
 
-        local hittimes = {}
+		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].Hittimes do
 			hittimes[i] = fraction * animlength
 		end
 
-        task.delay(hittimes[1], function()
-            Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+		-- MULTI-HIT FIX: Track first victim for multi-hit state
+		local multiHitVictim = nil
+
+		 local s = Replicated.Assets.SFX.Skills.WW:Clone()
+            s.Parent = Character.HumanoidRootPart
+            s:Play()
+            Debris:AddItem(s, s.TimeLength)
+
+		task.delay(hittimes[1], function()
+			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Weapons",
 				Function = "WhirlWind",
-				Arguments = { Character, "Start"},
+				Arguments = { Character, "Start" },
 			})
-        end)
-        task.delay(hittimes[2], function()
-            Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+		end)
+		task.delay(hittimes[2], function()
+			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Weapons",
 				Function = "WhirlWind",
-				Arguments = { Character, "Jump"},
+				Arguments = { Character, "Jump" },
 			})
-            Server.Packets.Bvel.sendTo({ Character = Character, duration = hittimes[3] - hittimes[2], Name = "NTBvel", Targ = Character }, Player)
-        end)
-        task.delay(hittimes[3], function()
-            Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+			Server.Packets.Bvel.sendTo(
+				{ Character = Character, duration = hittimes[3] - hittimes[2], Name = "NTBvel", Targ = Character },
+				Player
+			)
+		end)
+		task.delay(hittimes[3], function()
+			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Weapons",
 				Function = "WhirlWind",
-				Arguments = { Character, "TT"},
+				Arguments = { Character, "TT" },
 			})
-        end)
-        task.delay(hittimes[4], function()
-            Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+		end)
+		task.delay(hittimes[4], function()
+			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Weapons",
 				Function = "WhirlWind",
-				Arguments = { Character, "SS"},
+				Arguments = { Character, "SS" },
 			})
 
 			-- Hitbox on hittime4
@@ -115,6 +128,13 @@ return function(Player, Data, Server)
 				)
 
 				for _, Target in pairs(HitTargets) do
+					-- MULTI-HIT FIX: Mark first victim with MultiHitVictim state
+					if not multiHitVictim then
+						multiHitVictim = Target
+						-- Mark victim for multi-hit combo (duration = full animation length)
+						Server.Library.TimedState(Target.IFrames, "MultiHitVictim", animlength)
+					end
+
 					Server.Modules.Damage.Tag(Character, Target, {
 						Damage = 8,
 						PostureDamage = 12,
@@ -126,19 +146,19 @@ return function(Player, Data, Server)
 					})
 				end
 			end
-        end)
-        task.delay(hittimes[5], function()
-            Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+		end)
+		task.delay(hittimes[5], function()
+			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Weapons",
 				Function = "WhirlWind",
-				Arguments = { Character, "TTR"},
+				Arguments = { Character, "TTR" },
 			})
-        end)
-        task.delay(hittimes[6], function()
-            Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+		end)
+		task.delay(hittimes[6], function()
+			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Weapons",
 				Function = "WhirlWind",
-				Arguments = { Character, "SS2"},
+				Arguments = { Character, "SS2" },
 			})
 
 			-- Hitbox on hittime6
@@ -164,12 +184,12 @@ return function(Player, Data, Server)
 					})
 				end
 			end
-        end)
-        task.delay(hittimes[7], function()
-            Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
+		end)
+		task.delay(hittimes[7], function()
+			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
 				Module = "Weapons",
 				Function = "WhirlWind",
-				Arguments = { Character, "End"},
+				Arguments = { Character, "End" },
 			})
 
 			-- Light screenshake on hittime7
@@ -186,6 +206,6 @@ return function(Player, Data, Server)
 				Function = "WhirlWindCrater",
 				Arguments = { craterPosition },
 			})
-        end)
-    end
+		end)
+	end
 end

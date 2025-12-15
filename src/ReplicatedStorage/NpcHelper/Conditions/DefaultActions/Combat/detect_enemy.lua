@@ -3,12 +3,12 @@ local Library = Server.Library
 
 -- local   = false
 
--- local function  -- print(npcName, ...)
+-- local function  ---- print(npcName, ...)
 --     -- Only   Guards
 --     if npcName and npcName:match("Guard") then
---         ---- print("[DetectEnemy]", npcName, ...)
+--         ------ print("[DetectEnemy]", npcName, ...)
 --     elseif   then
---         -- print("[DetectEnemy]", ...)
+--         ---- print("[DetectEnemy]", ...)
 --     end
 -- end
 
@@ -23,13 +23,13 @@ return function(actor: Actor, mainConfig: table)
         return false
     end
 
-     -- print(npc.Name, "Starting enemy detection")
+     ---- print(npc.Name, "Starting enemy detection")
 
     -- Check if current target is still valid
     if mainConfig.EnemyDetection.Current and
         (not mainConfig.EnemyDetection.Current.Parent or
             not mainConfig.EnemyDetection.Current:FindFirstChild("Humanoid")) then
-         -- print("Current target is invalid, cleaning up:", mainConfig.EnemyDetection.Current and mainConfig.EnemyDetection.Current.Name or "nil")
+         ---- print("Current target is invalid, cleaning up:", mainConfig.EnemyDetection.Current and mainConfig.EnemyDetection.Current.Name or "nil")
         mainConfig.cleanup(true)
         mainConfig.EnemyDetection.Current = nil
     end
@@ -37,76 +37,76 @@ return function(actor: Actor, mainConfig: table)
     -- Check existing target
     if mainConfig.EnemyDetection.Current then
         local victim = mainConfig.EnemyDetection.Current
-         -- print("Checking existing target:", victim.Name)
+         ---- print("Checking existing target:", victim.Name)
 
         local victimStates = Library.GetAllStatesFromCharacter(victim)
-         -- print("Victim states:", victimStates)
+         ---- print("Victim states:", victimStates)
 
         local vRoot = victim:FindFirstChild("HumanoidRootPart")
         local vHum = victim:FindFirstChild("Humanoid")
 
         if vRoot and vHum then
             local distance = (vRoot.Position - root.Position).Magnitude
-             -- print("Distance to current target:", distance, "LetGoDistance:", mainConfig.EnemyDetection.LetGoDistance)
+             ---- print("Distance to current target:", distance, "LetGoDistance:", mainConfig.EnemyDetection.LetGoDistance)
 
             -- Clear target if they died (Health <= 0) or are too far away
             if vHum.Health <= 0 then
-                 -- print("Target died, clearing target:", victim.Name)
+                 ---- print("Target died, clearing target:", victim.Name)
                 mainConfig.cleanup(true)
                 mainConfig.EnemyDetection.Current = nil
             elseif distance <= mainConfig.EnemyDetection.LetGoDistance then
-                 -- print("Keeping current target:", victim.Name)
+                 ---- print("Keeping current target:", victim.Name)
                 return true
             else
-                 -- print("Target too far away, clearing target:", victim.Name)
+                 ---- print("Target too far away, clearing target:", victim.Name)
                 mainConfig.cleanup(true)
                 mainConfig.EnemyDetection.Current = nil
             end
         else
-             -- print("Lost current target (missing parts), cleaning up:", victim.Name)
+             ---- print("Lost current target (missing parts), cleaning up:", victim.Name)
             mainConfig.cleanup(true)
             mainConfig.EnemyDetection.Current = nil
         end
     end
 
-     -- print("Current target:", mainConfig.getTarget())
+     ---- print("Current target:", mainConfig.getTarget())
     if mainConfig.getTarget() == nil then
-         -- print("Searching for new targets in groups:", mainConfig.EnemyDetection.TargetGroups)
+         ---- print("Searching for new targets in groups:", mainConfig.EnemyDetection.TargetGroups)
         
         for _, groupName in mainConfig.EnemyDetection.TargetGroups do
-             -- print("Checking group:", groupName)
+             ---- print("Checking group:", groupName)
             local taggedEntities = game.CollectionService:GetTagged(groupName)
-             -- print("Found", #taggedEntities, "entities with tag:", groupName)
+             ---- print("Found", #taggedEntities, "entities with tag:", groupName)
             
             for _, victim in taggedEntities do
-                 -- print("Evaluating potential victim:", victim.Name)
+                 ---- print("Evaluating potential victim:", victim.Name)
                 
                 if victim == npc then
-                     -- print("Skipping self:", victim.Name)
+                     ---- print("Skipping self:", victim.Name)
                     continue
                 end
                 
                 if mainConfig.EnemyDetection.Current then
-                     -- print("Already have target, skipping:", victim.Name)
+                     ---- print("Already have target, skipping:", victim.Name)
                     continue
                 end
 
                 -- if not victim:IsDescendantOf(workspace.World.Live) then
-                --      -- print("Victim not in Live folder:", victim.Name)
+                --      ---- print("Victim not in Live folder:", victim.Name)
                 --     continue 
                 -- end
 
                 if root.Anchored then
-                     -- print("NPC root is anchored, skipping detection")
+                     ---- print("NPC root is anchored, skipping detection")
                     continue
                 end
 
                local victimStates = Library.GetAllStatesFromCharacter(victim)
                 if not victimStates then
-                     -- print("No victim states found for:", victim.Name)
+                     ---- print("No victim states found for:", victim.Name)
                     continue
                 end
-                 -- print("Victim states for", victim.Name, ":", victimStates)
+                 ---- print("Victim states for", victim.Name, ":", victimStates)
 
                 -- Check for protective states in all state tables
                 local hasProtectiveState = false
@@ -120,21 +120,21 @@ return function(actor: Actor, mainConfig: table)
                 end
                 
                 if hasProtectiveState then
-                     -- print("Victim has protective states:", victim.Name)
+                     ---- print("Victim has protective states:", victim.Name)
                     continue 
                 end
 
                 local vRoot = victim:WaitForChild("HumanoidRootPart")
                 local vHum = victim:WaitForChild("Humanoid")
                 
-                 -- print("Victim parts check for", victim.Name, "- Root:", vRoot and "Found" or "Missing", "Humanoid:", vHum and "Found" or "Missing", "Health:", vHum and vHum.Health or "N/A")
+                 ---- print("Victim parts check for", victim.Name, "- Root:", vRoot and "Found" or "Missing", "Humanoid:", vHum and "Found" or "Missing", "Health:", vHum and vHum.Health or "N/A")
 
                 if vRoot and vHum and vHum.Health > 0 then
                     local distance = (vRoot.Position - root.Position).Magnitude
-                     -- print("Distance to", victim.Name, ":", distance, "CaptureDistance:", mainConfig.EnemyDetection.CaptureDistance)
+                     ---- print("Distance to", victim.Name, ":", distance, "CaptureDistance:", mainConfig.EnemyDetection.CaptureDistance)
                     
                     if distance <= mainConfig.EnemyDetection.CaptureDistance then
-                         -- print("Victim in range, checking max targets")
+                         ---- print("Victim in range, checking max targets")
 
                         local maxNpcValues = victim:FindFirstChild("Max_Npc_Values") or
                             Instance.new("Folder", victim)
@@ -142,10 +142,10 @@ return function(actor: Actor, mainConfig: table)
 
                         local maxAllowed = mainConfig.EnemyDetection.MaxTargetsPerGroup[groupName] or 1
                         local currentTargeting = #maxNpcValues:GetChildren()
-                         -- print("Current targeting count:", currentTargeting, "Max allowed:", maxAllowed)
+                         ---- print("Current targeting count:", currentTargeting, "Max allowed:", maxAllowed)
                         
                         if currentTargeting < maxAllowed then
-                             -- print("ENEMY DETECTED! Setting target:", victim.Name)
+                             ---- print("ENEMY DETECTED! Setting target:", victim.Name)
                             
                             local reference = Instance.new("ObjectValue")
                             reference.Name = npc.Name
@@ -157,22 +157,22 @@ return function(actor: Actor, mainConfig: table)
                             mainConfig.Alert(npc)
                             
                             if mainConfig.States.FirstDetection == nil then
-                                 -- print("First detection for NPC:", npc.Name)
+                                 ---- print("First detection for NPC:", npc.Name)
                                 mainConfig.States.FirstDetection = true
                             end
 
                             return true
                         else
-                             -- print("Max targets reached for group:", groupName)
+                             ---- print("Max targets reached for group:", groupName)
                         end
                     end
                 else
-                     -- print("Invalid victim parts or health for:", victim.Name)
+                     ---- print("Invalid victim parts or health for:", victim.Name)
                 end
             end
         end
     end
     
-     -- print("No enemy detected for NPC:", npc.Name)
+     ---- print("No enemy detected for NPC:", npc.Name)
     return false
 end

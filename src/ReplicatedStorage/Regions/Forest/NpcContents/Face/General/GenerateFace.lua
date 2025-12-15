@@ -1,3 +1,3 @@
 return function(Npc: Model)
-	-- print(`Generating face for {Npc.Name}`)
+	---- print(`Generating face for {Npc.Name}`)
 end

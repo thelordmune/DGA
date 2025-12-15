@@ -22,7 +22,7 @@ return function(TREE)
 
         -- Debug: Add some logging
         function(actor, mainConfig)
-            -- -- print("Wanderer behavior tree running for:", actor.Name)
+            -- ---- print("Wanderer behavior tree running for:", actor.Name)
             return true
         end,
 

@@ -18,7 +18,7 @@ local function getTutorialInstructorSpawn()
 	end
 
 	-- Fallback position
-	warn("[TutorialInstructor] Spawn not found, using default position")
+	--warn("[TutorialInstructor] Spawn not found, using default position")
 	return Vector3.new(0, 5, 0)
 end
 

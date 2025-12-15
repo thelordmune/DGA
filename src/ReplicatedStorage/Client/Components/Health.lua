@@ -63,7 +63,7 @@ local function HealthBarColumn(scope, props)
 		end
 
 		-- Add wave effect across columns for smooth animation
-		local time = tick() * .2 -- Speed of wave animation
+		local time = tick() * 0.2 -- Speed of wave animation
 		local wave = math.sin(time + columnIndex * 0.1) * 0.2 -- Wave variation per column
 
 		-- Random flutter for more natural/organic look
@@ -72,12 +72,12 @@ local function HealthBarColumn(scope, props)
 		return math.clamp(baseHeight + wave + flutter, 0.1, 1)
 	end)
 
-	return scope:New "Frame" {
+	return scope:New("Frame")({
 		Name = string.format("Column%d", columnIndex),
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		BackgroundTransparency = scope:Spring(
 			scope:Computed(function(use)
-				return if use(localDisplay) then 0.45 else 1 
+				return if use(localDisplay) then 0.45 else 1
 			end),
 			30,
 			9
@@ -101,7 +101,7 @@ local function HealthBarColumn(scope, props)
 
 		[Children] = {
 			-- Red glow effect on each bar
-			scope:New "ImageLabel" {
+			scope:New("ImageLabel")({
 				Name = "GaussianBlur",
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				BackgroundTransparency = 1,
@@ -113,14 +113,14 @@ local function HealthBarColumn(scope, props)
 					scope:Computed(function(use)
 						local shouldDisplay = use(localDisplay)
 						local isVisible = use(isHealthVisible)
-						return if (shouldDisplay and isVisible) then 0 else 1
+						return if shouldDisplay and isVisible then 0 else 1
 					end),
 					30,
 					9
 				),
-			},
-		}
-	}
+			}),
+		},
+	})
 end
 
 -- CONTINUATION FROM PART 1
@@ -157,13 +157,16 @@ return function(Target)
 		-- Calculate delay: fade from right to left
 		local columnDelay = (COLUMNS - col) * 0.002
 
-		table.insert(healthColumns, HealthBarColumn(scope, {
-			columnIndex = col,
-			display = display,
-			delayTime = columnDelay,
-			health = health,
-			adrenaline = adrenaline
-		}))
+		table.insert(
+			healthColumns,
+			HealthBarColumn(scope, {
+				columnIndex = col,
+				display = display,
+				delayTime = columnDelay,
+				health = health,
+				adrenaline = adrenaline,
+			})
+		)
 	end
 
 	-- CONTINUATION FROM PART 2 - Main Holder Frame
@@ -172,7 +175,7 @@ return function(Target)
 	local keySequenceText = scope:Value("")
 	local isCasting = scope:Value(false)
 
-	local holderFrame = scope:New "Frame" {
+	local holderFrame = scope:New("Frame")({
 		Parent = Target,
 		Name = "Holder",
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -180,186 +183,254 @@ return function(Target)
 		Position = scope:Spring(
 			scope:Computed(function(use)
 				return if use(started) then UDim2.fromScale(0.5, 0) else UDim2.fromScale(0.5, 0)
-			end), 30, 9
+			end),
+			30,
+			9
 		),
 		Size = scope:Spring(
 			scope:Computed(function(use)
 				return if use(started) then UDim2.fromOffset(612, 115) else UDim2.fromOffset(0, 115)
-			end), 30, 2
+			end),
+			30,
+			2
 		),
 		ClipsDescendants = false, -- Allow casting UI to move outside bounds
 
 		[Children] = {
 			-- Corners decoration
-			scope:New "ImageLabel" {
-				Name = "Corners",
-				BackgroundTransparency = 1,
-				Image = "rbxassetid://106093959266071",
-				ImageColor3 = Color3.fromRGB(0, 0, 0),
-				ScaleType = Enum.ScaleType.Slice,
-				Size = UDim2.fromScale(1, 1),
-				SliceCenter = Rect.new(200, 300, 870, 300),
-				SliceScale = 0.5,
-			},
+			-- scope:New("ImageLabel")({
+			-- 	Name = "Corners",
+			-- 	BackgroundTransparency = 1,
+			-- 	Image = "rbxassetid://106093959266071",
+			-- 	ImageColor3 = Color3.fromRGB(0, 0, 0),
+			-- 	ScaleType = Enum.ScaleType.Slice,
+			-- 	Size = UDim2.fromScale(1, 1),
+			-- 	SliceCenter = Rect.new(200, 300, 870, 300),
+			-- 	SliceScale = 0.5,
+			-- }),
 
 			-- Rotating circle background (hidden when casting UI is shown)
-			scope:New "ImageLabel" {
+			scope:New("ImageLabel")({
 				Name = "Circle",
 				BackgroundTransparency = 1,
 				Image = "rbxassetid://102790439571584",
 				ScaleType = Enum.ScaleType.Fit,
 				Size = UDim2.fromScale(1, 1),
 				TileSize = UDim2.fromScale(0.025, 1),
-				Rotation = scope:Computed(function(use) return use(circleRotation) end),
+				Rotation = scope:Computed(function(use)
+					return use(circleRotation)
+				end),
 				Visible = scope:Computed(function(use)
 					return not use(showCastingCircle) -- Hide when casting UI is shown
 				end),
+				ZIndex = -3000,
 				[Children] = {
-					scope:New "UIGradient" {
+					scope:New("UIGradient")({
 						Rotation = 360,
 						Transparency = NumberSequence.new({
 							NumberSequenceKeypoint.new(0, 0.356),
 							NumberSequenceKeypoint.new(0.495, 0.387),
 							NumberSequenceKeypoint.new(1, 0.306),
 						}),
-					},
-				}
-			},
+					}),
+				},
+			}),
 
 			-- Health bar visualizer container
-			scope:New "Frame" {
+			scope:New("Frame")({
 				Name = "Health",
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 1,
-				Position = UDim2.fromScale(0.0769, 0.0609),
-				Size = UDim2.fromOffset(539, 55),
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				Position = UDim2.fromScale(0.0759, 0.0609),
+				Size = UDim2.fromOffset(517, 55),
 				ClipsDescendants = true,
 				[Children] = {
-					scope:New "Frame" {
+					scope:New("Frame")({
 						Name = "Main",
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 						BackgroundTransparency = 1,
-						Position = UDim2.fromScale(0.008, -0.05),
-						Size = UDim2.fromOffset(508, 51),
+						BorderColor3 = Color3.fromRGB(0, 0, 0),
+						BorderSizePixel = 0,
+						Position = UDim2.fromScale(0.00774, 0.0364),
+						Size = UDim2.fromOffset(501, 48),
 						ClipsDescendants = true,
 						[Children] = {
-							scope:New "Folder" {
+							scope:New("Folder")({
 								Name = "CenterHp",
 								[Children] = {
 									-- Layout for horizontal bar chart
-									scope:New "UIListLayout" {
+									scope:New("UIListLayout")({
 										FillDirection = Enum.FillDirection.Horizontal,
 										Padding = UDim.new(0, 1),
 										SortOrder = Enum.SortOrder.LayoutOrder,
 										VerticalAlignment = Enum.VerticalAlignment.Bottom, -- Bars grow upward
-									},
+									}),
 									-- All 84 columns inserted here
-									table.unpack(healthColumns)
-								}
-							},
-						}
-					},
-				}
-			},
-
-			-- Separator line
-			scope:New "Frame" {
-				Name = "Seperater",
-				BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-				BackgroundTransparency = scope:Spring(
-					scope:Computed(function(use) return if use(display) then 0.3 else 1 end), 30, 9
-				),
-				BorderSizePixel = 0,
-				Position = UDim2.fromScale(0.0627, 0.591),
-				Size = UDim2.fromOffset(534, 2),
-				[Children] = {
-					scope:New "UIGradient" {
-						Transparency = NumberSequence.new({
-							NumberSequenceKeypoint.new(0, 0),
-							NumberSequenceKeypoint.new(0.192, 0.894),
-							NumberSequenceKeypoint.new(0.499, 0),
-							NumberSequenceKeypoint.new(0.797, 0.875),
-							NumberSequenceKeypoint.new(1, 0),
-						}),
-					},
-				}
-			},
+									table.unpack(healthColumns),
+								},
+							}),
+						},
+					}),
+				},
+			}),
 
 			-- Adrenaline label
-			scope:New "Frame" {
+			scope:New("Frame")({
 				Name = "Adrenaline",
 				BackgroundTransparency = 1,
 				Position = scope:Spring(
 					scope:Computed(function(use)
-						return if use(display) then UDim2.fromScale(0.739, 0.696) else UDim2.fromScale(1.739, 0.696)
-					end), 30, 3
+						return if use(display) then UDim2.fromScale(0.71, 0.696) else UDim2.fromScale(1.71, 0.696)
+					end),
+					30,
+					3
 				),
 				Size = UDim2.fromOffset(100, 29),
 				[Children] = {
-					scope:New "TextLabel" {
-						Name = "TL",
+					scope:New("ImageLabel")({
+						Name = "ImageLabel",
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 						BackgroundTransparency = 1,
-						FontFace = Font.new("rbxassetid://12187607287", Enum.FontWeight.Bold, Enum.FontStyle.Normal),
-						Size = UDim2.fromScale(1, 1),
-						Text = scope:Computed(function(use)
-							local adrLvl = use(adrenaline)
-							local level = adrLvl > 66 and "High" or (adrLvl > 33 and "Medium" or "Low")
-							return "Adrenaline: " .. level
-						end),
-						TextColor3 = Color3.fromRGB(255, 255, 255),
-						TextScaled = true,
-						TextStrokeTransparency = 0,
-						TextTransparency = scope:Spring(
-							scope:Computed(function(use) return if use(display) then 0 else 1 end), 30, 9
+						BorderColor3 = Color3.fromRGB(0, 0, 0),
+						BorderSizePixel = 0,
+						Image = "rbxassetid://85574222946216",
+						Position = UDim2.fromScale(-0.19, -0.103),
+						ScaleType = Enum.ScaleType.Crop,
+						Size = UDim2.fromScale(1.3, 1.3),
+						ZIndex = -100,
+						ImageTransparency = scope:Spring(
+							scope:Computed(function(use)
+								return if use(display) then 0 else 1
+							end),
+							30,
+							9
 						),
-					},
-				}
-			},
+
+						[Children] = {
+							-- scope:New("UICorner")({
+							-- 	Name = "UICorner",
+							-- }),
+							scope:New("TextLabel")({
+								Name = "TL",
+								BackgroundTransparency = 1,
+								FontFace = Font.new(
+									"rbxassetid://12187607287",
+									Enum.FontWeight.Bold,
+									Enum.FontStyle.Normal
+								),
+								Size = UDim2.fromScale(1, 1),
+								Text = scope:Computed(function(use)
+									local adrLvl = use(adrenaline)
+									local level = adrLvl > 66 and "High" or (adrLvl > 33 and "Medium" or "Low")
+									return "Adrenaline: " .. level
+								end),
+								TextColor3 = Color3.fromRGB(255, 255, 255),
+								TextScaled = false,
+								TextStrokeTransparency = 0,
+								TextXAlignment = Enum.TextXAlignment.Left,
+								TextTransparency = scope:Spring(
+									scope:Computed(function(use)
+										return if use(display) then 0 else 1
+									end),
+									30,
+									9
+								),
+								[Children] = {
+									scope:New("UIGradient")({
+										Name = "UIGradient",
+										Color = ColorSequence.new({
+											ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+											ColorSequenceKeypoint.new(0.36, Color3.fromRGB(255, 255, 255)),
+											ColorSequenceKeypoint.new(0.521, Color3.fromRGB(143, 143, 143)),
+											ColorSequenceKeypoint.new(0.567, Color3.fromRGB(252, 252, 252)),
+											ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
+										}),
+										Rotation = 90,
+									}),
+								},
+							}),
+							scope:New("UIGradient")({
+								Name = "UIGradient",
+								Transparency = NumberSequence.new({
+									NumberSequenceKeypoint.new(0, 1),
+									NumberSequenceKeypoint.new(0.0948, 0.0188),
+									NumberSequenceKeypoint.new(1, 1),
+								}),
+							}),
+						},
+					}),
+				},
+			}),
 
 			-- Alignment meter
-			scope:New "Frame" {
+			scope:New("Frame")({
 				Name = "Alignment",
 				BackgroundTransparency = 1,
 				Position = scope:Spring(
 					scope:Computed(function(use)
 						return if use(display) then UDim2.fromScale(0.0824, 0.652) else UDim2.fromScale(0.0824, 1.652)
-					end), 17, 2
+					end),
+					17,
+					2
 				),
 				Size = UDim2.fromOffset(372, 34),
 				[Children] = {
-					scope:New "ImageLabel" {
+					scope:New("ImageLabel")({
+						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 						BackgroundTransparency = 1,
-						Image = "rbxassetid://139828588507940",
+						BorderColor3 = Color3.fromRGB(0, 0, 0),
+						BorderSizePixel = 0,
+						Image = "rbxassetid://83147682654364",
 						Position = UDim2.fromScale(0.00806, 0.147),
 						ScaleType = Enum.ScaleType.Crop,
 						Size = UDim2.fromScale(0.968, 0.676),
+						SliceCenter = Rect.new(0, 0, 695, 86),
 						ImageTransparency = scope:Spring(
-							scope:Computed(function(use) return if use(display) then 0 else 1 end), 30, 9
+							scope:Computed(function(use)
+								return if use(display) then 0 else 1
+							end),
+							30,
+							9
 						),
 						[Children] = {
-							scope:New "ImageLabel" {
+							scope:New("ImageLabel")({
+								BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 								BackgroundTransparency = 1,
-								Image = "rbxassetid://85168217168177",
-								Position = UDim2.fromScale(0.0724, 0),
-								ScaleType = Enum.ScaleType.Slice,
-								Size = UDim2.fromScale(0.862, 1),
+								BorderColor3 = Color3.fromRGB(0, 0, 0),
+								BorderSizePixel = 0,
+								Image = "rbxassetid://88633517919055",
+								Position = UDim2.fromOffset(0, -10),
+								ScaleType = Enum.ScaleType.Crop,
+								Size = UDim2.fromScale(1, 1.87),
 								SliceCenter = Rect.new(8, 8, 22, 22),
 								ImageTransparency = scope:Spring(
-									scope:Computed(function(use) return if use(display) then 0 else 1 end), 30, 9
+									scope:Computed(function(use)
+										return if use(display) then 0 else 1
+									end),
+									30,
+									9
 								),
-							},
-							scope:New "UICorner" { CornerRadius = UDim.new(0, 6) },
-							scope:New "UIGradient" { Color = ColorSequence.new(Color3.fromRGB(255, 255, 255)) },
-						}
-					},
-					scope:New "Frame" {
+							}),
+							scope:New("UICorner")({ CornerRadius = UDim.new(0, 6) }),
+							scope:New("UIGradient")({ Color = ColorSequence.new(Color3.fromRGB(255, 255, 255)) }),
+						},
+					}),
+					scope:New("Frame")({
 						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 						BorderSizePixel = 0,
 						Position = UDim2.fromScale(0.5, -0.113),
 						Size = UDim2.fromOffset(3, 40),
 						BackgroundTransparency = scope:Spring(
-							scope:Computed(function(use) return if use(display) then 0 else 1 end), 30, 9
+							scope:Computed(function(use)
+								return if use(display) then 0 else 1
+							end),
+							30,
+							9
 						),
 						[Children] = {
-							scope:New "UIGradient" {
+							scope:New("UIGradient")({
 								Color = ColorSequence.new(Color3.fromRGB(0, 0, 0)),
 								Rotation = 90,
 								Transparency = NumberSequence.new({
@@ -367,147 +438,147 @@ return function(Target)
 									NumberSequenceKeypoint.new(0.486, 0),
 									NumberSequenceKeypoint.new(1, 1),
 								}),
-							},
-						}
-					},
-				}
-			},
+							}),
+						},
+					}),
+				},
+			}),
 
 			-- CONTINUATION - Add these to the holderFrame [Children] in Part 3
 
-			-- Decorative lines folder
-			scope:New "Folder" {
-				Name = "Lines",
-				[Children] = {
-					scope:New "Frame" {
-						Name = "LB",
-						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-						BackgroundTransparency = scope:Spring(
-							scope:Computed(function(use) return if use(display) then 0.3 else 1 end), 30, 9
-						),
-						BorderSizePixel = 0,
-						Position = UDim2.fromScale(0.062, 0.61),
-						Size = UDim2.fromOffset(2, 20),
-						[Children] = {
-							scope:New "UIGradient" {
-								Rotation = 90,
-								Transparency = NumberSequence.new({
-									NumberSequenceKeypoint.new(0, 0),
-									NumberSequenceKeypoint.new(0.429, 0.556),
-									NumberSequenceKeypoint.new(1, 1),
-								}),
-							},
-						}
-					},
-					scope:New "Frame" {
-						Name = "Rb",
-						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-						BackgroundTransparency = scope:Spring(
-							scope:Computed(function(use) return if use(display) then 0.3 else 1 end), 30, 9
-						),
-						BorderSizePixel = 0,
-						Position = UDim2.fromScale(0.932, 0.42),
-						Size = UDim2.fromOffset(2, 20),
-						[Children] = {
-							scope:New "UIGradient" {
-								Rotation = 90,
-								Transparency = NumberSequence.new({
-									NumberSequenceKeypoint.new(0, 1),
-									NumberSequenceKeypoint.new(0.445, 0.731),
-									NumberSequenceKeypoint.new(1, 0),
-								}),
-							},
-						}
-					},
-					scope:New "Frame" {
-						Name = "ARB",
-						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-						BackgroundTransparency = scope:Spring(
-							scope:Computed(function(use) return if use(display) then 0.3 else 1 end), 30, 9
-						),
-						BorderSizePixel = 0,
-						Position = UDim2.fromScale(0.705, 0.61),
-						Size = UDim2.fromOffset(2, 20),
-						[Children] = {
-							scope:New "UIGradient" {
-								Rotation = 90,
-								Transparency = NumberSequence.new({
-									NumberSequenceKeypoint.new(0, 1),
-									NumberSequenceKeypoint.new(1, 0),
-								}),
-							},
-						}
-					},
-				}
-			},
+			-- -- Health border
+			-- scope:New("ImageLabel")({
+			-- 	Name = "HealthBorder",
+			-- 	BackgroundTransparency = 1,
+			-- 	Image = "rbxassetid://122523747392433",
+			-- 	Position = scope:Spring(
+			-- 		scope:Computed(function(use)
+			-- 			return if use(display) then UDim2.fromScale(0.0825, 0.05) else UDim2.fromScale(0.0825, -1.55)
+			-- 		end),
+			-- 		70,
+			-- 		9
+			-- 	),
+			-- 	ScaleType = Enum.ScaleType.Slice,
+			-- 	Size = UDim2.fromOffset(508, 51),
+			-- 	SliceCenter = Rect.new(13, 13, 37, 33),
+			-- 	SliceScale = 0.8,
+			-- 	ImageTransparency = scope:Spring(
+			-- 		scope:Computed(function(use)
+			-- 			return if use(display) then 0 else 1
+			-- 		end),
+			-- 		30,
+			-- 		9
+			-- 	),
+			-- }),
 
-			-- Health border
-			scope:New "ImageLabel" {
-				Name = "HealthBorder",
-				BackgroundTransparency = 1,
-				Image = "rbxassetid://122523747392433",
-				Position = scope:Spring(
-					scope:Computed(function(use)
-						return if use(display) then UDim2.fromScale(0.0825, 0.05) else UDim2.fromScale(0.0825, -1.55)
-					end), 70, 9
-				),
-				ScaleType = Enum.ScaleType.Slice,
-				Size = UDim2.fromOffset(508, 51),
-				SliceCenter = Rect.new(13, 13, 37, 33),
-				SliceScale = 0.8,
-				ImageTransparency = scope:Spring(
-					scope:Computed(function(use) return if use(display) then 0 else 1 end), 30, 9
-				),
-			},
-
-			-- Health overlay
-			scope:New "Frame" {
-				Name = "HealthOverlay",
-				BackgroundTransparency = 1,
-				Position = scope:Spring(
-					scope:Computed(function(use)
-						return if use(display) then UDim2.fromScale(0.0853, 0.0783) else UDim2.fromScale(0.0853, -1.0783)
-					end), 70, 9
-				),
-				Size = UDim2.fromOffset(504, 51),
-				[Children] = {
-					scope:New "ImageLabel" {
-						BackgroundTransparency = 1,
-						Image = "rbxassetid://139828588507940",
-						ImageTransparency = scope:Spring(
-							scope:Computed(function(use) return if use(display) then 0.8 else 1 end), 30, 9
-						),
-						Position = UDim2.fromScale(-0.0865, 0),
-						ScaleType = Enum.ScaleType.Crop,
-						Size = UDim2.fromScale(1.172, .895),
-					},
-				}
-			},
+			-- -- Health overlay
+			-- scope:New("Frame")({
+			-- 	Name = "HealthOverlay",
+			-- 	BackgroundTransparency = 1,
+			-- 	Position = scope:Spring(
+			-- 		scope:Computed(function(use)
+			-- 			return if use(display)
+			-- 				then UDim2.fromScale(0.0853, 0.0783)
+			-- 				else UDim2.fromScale(0.0853, -1.0783)
+			-- 		end),
+			-- 		70,
+			-- 		9
+			-- 	),
+			-- 	Size = UDim2.fromOffset(504, 51),
+			-- 	[Children] = {
+			-- 		scope:New("ImageLabel")({
+			-- 			BackgroundTransparency = 1,
+			-- 			Image = "rbxassetid://139828588507940",
+			-- 			ImageTransparency = scope:Spring(
+			-- 				scope:Computed(function(use)
+			-- 					return if use(display) then 0.8 else 1
+			-- 				end),
+			-- 				30,
+			-- 				9
+			-- 			),
+			-- 			Position = UDim2.fromScale(-0.0865, 0),
+			-- 			ScaleType = Enum.ScaleType.Crop,
+			-- 			Size = UDim2.fromScale(1.172, 0.895),
+			-- 		}),
+			-- 	},
+			-- }),
 
 			-- Background pattern
-			scope:New "ImageLabel" {
+			scope:New("ImageLabel")({
 				Name = "BG",
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 1,
-				Image = "rbxassetid://72101690551510",
-				ImageColor3 = Color3.fromRGB(0, 0, 0),
-				ImageTransparency = scope:Spring(
-					scope:Computed(function(use) return if use(display) then 0.8 else 1 end), 30, 9
-				),
-				Size = UDim2.fromScale(1, 1),
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				Image = "rbxassetid://77843373818875",
+				Position = UDim2.fromScale(0.075, 0.078),
+				ScaleType = Enum.ScaleType.Slice,
+				Size = UDim2.fromScale(0.83, 0.443),
+				SliceCenter = Rect.new(19, 19, 1004, 108),
+				SliceScale = 0.1,
 				TileSize = UDim2.fromScale(0.025, 1),
+				ZIndex = -29,
+				ImageTransparency = scope:Spring(
+					scope:Computed(function(use)
+						return if use(display) then 0.3 else 1
+					end),
+					30,
+					9
+				),
+			}),
+			scope:New("ImageLabel")({
+				Name = "Border",
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BackgroundTransparency = 1,
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				Image = "rbxassetid://77878711116522",
+				Position = UDim2.fromScale(0.0653, 0),
+				Size = UDim2.fromScale(0.847, 0.591),
+				SliceCenter = Rect.new(0, 0, 1023, 133),
+				TileSize = UDim2.fromScale(0.025, 1),
+				ImageTransparency = scope:Spring(
+					scope:Computed(function(use)
+						return if use(display) then 0.3 else 1
+					end),
+					30,
+					9
+				),
+			}),
+
+			scope:New("ImageLabel")({
+				Name = "ImageLabel",
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BackgroundTransparency = 1,
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				Image = "rbxassetid://71879249073635",
+				Size = UDim2.fromScale(1, 1),
+				ZIndex = -500000000,
+				ScaleType = Enum.ScaleType.Crop,
+				ImageTransparency = scope:Spring(
+					scope:Computed(function(use)
+						return if use(display) then 0 else 1
+					end),
+					30,
+					9
+				),
 				[Children] = {
-					scope:New "UIGradient" {
-						Rotation = 360,
+					scope:New("UIGradient")({
+						Name = "UIGradient",
+						Rotation = 78,
 						Transparency = NumberSequence.new({
-							NumberSequenceKeypoint.new(0, 0.356),
-							NumberSequenceKeypoint.new(0.495, 0.387),
-							NumberSequenceKeypoint.new(1, 0.306),
+							NumberSequenceKeypoint.new(0, 0),
+							NumberSequenceKeypoint.new(0.0312, 1),
+							NumberSequenceKeypoint.new(0.251, 0.113),
+							NumberSequenceKeypoint.new(0.544, 1),
+							NumberSequenceKeypoint.new(1, 0),
 						}),
-					},
-				}
-			},
-		}
-	}
+					}),
+				},
+			}),
+		},
+	})
 
 	-- Create the Casting component inside the holderFrame
 	local castingAPI = CastingComponent(holderFrame)
@@ -516,7 +587,7 @@ return function(Target)
 	showCastingCircle:set(true) -- Hide the health circle
 
 	-- Create key sequence display above the HUD
-	local keySequenceDisplay = scope:New "TextLabel" {
+	local keySequenceDisplay = scope:New("TextLabel")({
 		Parent = Target,
 		Name = "KeySequenceDisplay",
 		BackgroundTransparency = 1,
@@ -541,7 +612,7 @@ return function(Target)
 			1
 		),
 		ZIndex = 10,
-	}
+	})
 
 	-- Cleanup function to disconnect rotation connection and clean up casting component
 	local cleanupRotation = function()

@@ -22,7 +22,7 @@ return function(actor: Actor, mainConfig: table)
             if world:has(entity, comps.Dashing) then
                 local isDashing = world:get(entity, comps.Dashing)
                 if isDashing then
-                    -- -- print("NPC", npc.Name, "is dashing, cannot act")
+                    -- ---- print("NPC", npc.Name, "is dashing, cannot act")
                     return false
                 end
             end
@@ -34,13 +34,13 @@ return function(actor: Actor, mainConfig: table)
     local stuns = npc:FindFirstChild("Stuns")
     if stuns then
         if Library.StateCount(stuns) then
-            -- -- print("NPC", npc.Name, "is stunned, cannot act")
+            -- ---- print("NPC", npc.Name, "is stunned, cannot act")
             return false
         end
 
         -- Specifically check for parry knockback
         if Library.StateCheck(stuns, "ParryKnockback") then
-            -- -- print("NPC", npc.Name, "is in parry knockback, cannot act")
+            -- ---- print("NPC", npc.Name, "is in parry knockback, cannot act")
             return false
         end
     end
@@ -50,12 +50,12 @@ return function(actor: Actor, mainConfig: table)
     if actions then
         -- Check for states that prevent actions
         if Library.StateCheck(actions, "Attacking") then
-            -- -- print("NPC", npc.Name, "is already attacking")
+            -- ---- print("NPC", npc.Name, "is already attacking")
             return false
         end
 
         if Library.StateCheck(actions, "BlockBreak") then
-            -- -- print("NPC", npc.Name, "is block broken")
+            -- ---- print("NPC", npc.Name, "is block broken")
             return false
         end
     end

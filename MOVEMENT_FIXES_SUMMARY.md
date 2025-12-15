@@ -16,7 +16,7 @@
    local isECSControlled = ECSBridge.isCombatNPC(npcModel)
 
    if isECSControlled then
-       print(`[NpcBrain] {npcName} is combat NPC - skipping behavior tree`)
+      -- print(`[NpcBrain] {npcName} is combat NPC - skipping behavior tree`)
        return
    end
    ```
@@ -97,14 +97,14 @@
 1. **Added debug logging** ([npc_targeting_ecs.luau:95-127](src/ServerScriptService/Systems/npc_targeting_ecs.luau#L95-L127))
    ```lua
    if attacked then
-       print(`[npc_targeting_ecs] {character.Name} was attacked!`)
+      -- print(`[npc_targeting_ecs] {character.Name} was attacked!`)
 
        combatState.isAggressive = true
        combatState.isPassive = false
        combatState.hasBeenAttacked = true
 
        world:set(entity, comps.NPCTarget, attacker)
-       print(`[npc_targeting_ecs] {character.Name} now targeting {attacker.Name}`)
+      -- print(`[npc_targeting_ecs] {character.Name} now targeting {attacker.Name}`)
    end
    ```
 

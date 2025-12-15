@@ -486,7 +486,7 @@ return function(Target, props)
 		Visible = scope:Computed(function(use)
 			return use(visible)
 		end),
-        ZIndex = -1,
+        ZIndex = -1000000,
 
 		[Children] = {
 			-- Key Sequence Indicator
@@ -531,7 +531,7 @@ return function(Target, props)
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5), -- Always centered
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				ZIndex = -1,
+				ZIndex = -1000000,
 				Rotation = scope:Spring(
 					scope:Computed(function(use)
 						if use(rotatingItems[1].stopped) then
@@ -555,7 +555,7 @@ return function(Target, props)
 							ImageColor3 = Color3.fromRGB(255, 255, 255),
 							ImageTransparency = scope:Spring(transparencies[1], 20, 1),
 							Size = UDim2.fromScale(1, 1),
-							ZIndex = -1,
+							ZIndex = -1000000,
 						}
 						rotatingItems[1].gaussian = gaussian
 						return gaussian
@@ -575,7 +575,7 @@ return function(Target, props)
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5), -- Always centered
 				AnchorPoint = Vector2.new(0.5, 0.5),
-				ZIndex = -1,
+				ZIndex = -1000000,
 				Rotation = scope:Spring(
 					scope:Computed(function(use)
 						if use(rotatingItems[2].stopped) then
@@ -599,7 +599,7 @@ return function(Target, props)
 							ImageColor3 = Color3.fromRGB(255, 255, 255),
 							ImageTransparency = scope:Spring(transparencies[2], 20, 1),
 							Size = UDim2.fromScale(1, 1),
-							ZIndex = -1,
+							ZIndex = -1000000,
 						}
 						rotatingItems[2].gaussian = gaussian
 						return gaussian
@@ -619,6 +619,7 @@ return function(Target, props)
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5), -- Always centered
 				AnchorPoint = Vector2.new(0.5, 0.5),
+				ZIndex = -1000000,
 				Rotation = scope:Spring(
 					scope:Computed(function(use)
 						if use(rotatingItems[3].stopped) then
@@ -642,7 +643,7 @@ return function(Target, props)
 							ImageColor3 = Color3.fromRGB(255, 255, 255),
 							ImageTransparency = scope:Spring(transparencies[3], 20, 1),
 							Size = UDim2.fromScale(1, 1),
-							ZIndex = -1,
+							ZIndex = -1000000,
 						}
 						rotatingItems[3].gaussian = gaussian
 						return gaussian
@@ -659,7 +660,7 @@ return function(Target, props)
 				BorderSizePixel = 0,
 				Image = "rbxassetid://118819453385760",
 				ImageTransparency = scope:Spring(transparencies[4], 20, 1),
-				ZIndex = -1,
+				ZIndex = -1000000,
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5), -- Always centered
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -686,7 +687,7 @@ return function(Target, props)
 							ImageColor3 = Color3.fromRGB(255, 255, 255),
 							ImageTransparency = scope:Spring(transparencies[4], 20, 1),
 							Size = UDim2.fromScale(1, 1),
-							ZIndex = -1,
+							ZIndex = -1000000,
 						}
 						rotatingItems[4].gaussian = gaussian
 						return gaussian
@@ -703,7 +704,7 @@ return function(Target, props)
 				BorderSizePixel = 0,
 				Image = "rbxassetid://111296265599522",
 				ImageTransparency = scope:Spring(transparencies[5], 20, 1),
-				ZIndex = -1,
+				ZIndex = -1000000,
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5), -- Always centered
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -730,7 +731,7 @@ return function(Target, props)
 							ImageColor3 = Color3.fromRGB(255, 255, 255),
 							ImageTransparency = scope:Spring(transparencies[5], 20, 1),
 							Size = UDim2.fromScale(1, 1),
-							ZIndex = -1,
+							ZIndex = -1000000,
 						}
 						rotatingItems[5].gaussian = gaussian
 						return gaussian
@@ -747,7 +748,7 @@ return function(Target, props)
 				BorderSizePixel = 0,
 				Image = "rbxassetid://75745563950147",
 				ImageTransparency = scope:Spring(transparencies[6], 20, 1),
-				ZIndex = -1,
+				ZIndex = -1000000,
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5), -- Always centered
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -774,7 +775,7 @@ return function(Target, props)
 							ImageColor3 = Color3.fromRGB(255, 255, 255),
 							ImageTransparency = scope:Spring(transparencies[6], 20, 1),
 							Size = UDim2.fromScale(1, 1),
-							ZIndex = -1,
+							ZIndex = -1000000,
 						}
 						rotatingItems[6].gaussian = gaussian
 						return gaussian
@@ -791,7 +792,7 @@ return function(Target, props)
 				BorderSizePixel = 0,
 				Image = "rbxassetid://140710938151976",
 				ImageTransparency = scope:Spring(transparencies[7], 20, 1),
-				ZIndex = -1,
+				ZIndex = -1000000,
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5), -- Always centered
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -818,7 +819,7 @@ return function(Target, props)
 							ImageColor3 = Color3.fromRGB(255, 255, 255),
 							ImageTransparency = scope:Spring(transparencies[7], 20, 1),
 							Size = UDim2.fromScale(1, 1),
-							ZIndex = -1,
+							ZIndex = -1000000,
 						}
 						rotatingItems[7].gaussian = gaussian
 						return gaussian
@@ -835,7 +836,7 @@ return function(Target, props)
 				BorderSizePixel = 0,
 				Image = "rbxassetid://77169026051033",
 				ImageTransparency = scope:Spring(transparencies[8], 20, 1),
-				ZIndex = -1,
+				ZIndex = -1000000,
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5),
                 AnchorPoint = Vector2.new(0.5, 0.5),
@@ -851,7 +852,7 @@ return function(Target, props)
 						Image = "rbxassetid://72074880829814",
 						ImageTransparency = scope:Spring(transparencies[8], 20, 1),
 						Size = UDim2.fromScale(1, 1),
-						ZIndex = -1,
+						ZIndex = -1000000,
 					},
 				}
 			},
@@ -865,7 +866,7 @@ return function(Target, props)
 				BorderSizePixel = 0,
 				Image = "rbxassetid://121601902182489",
 				ImageTransparency = scope:Spring(transparencies[9], 20, 1),
-				ZIndex = -1,
+				ZIndex = -1000000,
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5), -- Always centered
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -881,7 +882,7 @@ return function(Target, props)
 						Image = "rbxassetid://135957360987869",
 						ImageTransparency = scope:Spring(transparencies[9], 20, 1),
 						Size = UDim2.fromScale(1, 1),
-						ZIndex = -1,
+						ZIndex = -1000000,
 					},
 				}
 			},
@@ -895,7 +896,7 @@ return function(Target, props)
 				BorderSizePixel = 0,
 				Image = "rbxassetid://81055312846796",
 				ImageTransparency = scope:Spring(transparencies[10], 20, 1),
-				ZIndex = -1,
+				ZIndex = -1000000,
 				Size = UDim2.fromScale(1, 1),
 				Position = UDim2.fromScale(0.5, 0.5), -- Always centered
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -911,7 +912,7 @@ return function(Target, props)
 						Image = "rbxassetid://103623487479394",
 						ImageTransparency = scope:Spring(transparencies[10], 20, 1),
 						Size = UDim2.fromScale(1, 1),
-						ZIndex = -1,
+						ZIndex = -1000000,
 					},
 				}
 			},
