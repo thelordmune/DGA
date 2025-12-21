@@ -26,15 +26,24 @@ local Transform = comps.Transform
 local Locomotion = comps.Locomotion
 local Hitbox = comps.Hitbox
 local CombatNPC = comps.CombatNPC
+local WandererNPC = comps.WandererNPC
 
 -- OPTIMIZATION: Cache state components for direct access
 local StateStuns = comps.StateStuns
 local StateActions = comps.StateActions
 
+-- Query combat NPCs
 local moving_mobs = world
     :query(Character, Transform, Locomotion)
     :with(Mob)
     :with(CombatNPC)
+    :cached()
+
+-- Query wanderer NPCs (non-combat citizens)
+local moving_wanderers = world
+    :query(Character, Transform, Locomotion)
+    :with(Mob)
+    :with(WandererNPC)
     :cached()
 
 local EPS = 1e-4
@@ -181,6 +190,90 @@ local function mobMoveStep(_dt: number)
         end
 
         -- OPTIMIZATION: Only update Transform if CFrame actually changed
+        local currentCF = hrp.CFrame
+        if transform.new ~= currentCF then
+            transform.new = currentCF
+            world:set(e, Transform, transform)
+        end
+    end
+
+    -- Process wanderer NPCs (non-combat citizens)
+    for e, char, transform, loco in moving_wanderers do
+        if not char or not char:IsDescendantOf(workspace) then
+            if lastMovementState[char] then
+                lastMovementState[char] = nil
+            end
+            continue
+        end
+
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char:FindFirstChild("Humanoid")
+        if not hrp or not humanoid then
+            continue
+        end
+
+        -- Ensure proper platform standing
+        if humanoid.PlatformStand then
+            humanoid.PlatformStand = false
+        end
+
+        -- Check stuns for wanderers too
+        local hasStuns = false
+        if world:has(e, StateStuns) then
+            local stuns = world:get(e, StateStuns)
+            hasStuns = stuns and #stuns > 0
+        end
+
+        if hasStuns then
+            continue
+        end
+
+        local dir = loco.dir
+        local speed = loco.speed or 0
+
+        -- Lock Y-axis to prevent vertical movement
+        local dirX, dirZ = dir.X, dir.Z
+        local dirMagnitude2D = math.sqrt(dirX * dirX + dirZ * dirZ)
+
+        local lastState = lastMovementState[char]
+        local shouldUpdateMovement = false
+        local newMoveDir = VECTOR3_ZERO
+        local newSpeed = 0
+
+        if dirMagnitude2D > EPS and speed > 0 then
+            local invMag = 1 / dirMagnitude2D
+            dirX = dirX * invMag
+            dirZ = dirZ * invMag
+            newMoveDir = Vector3.new(dirX, 0, dirZ)
+            newSpeed = speed
+
+            if not lastState then
+                shouldUpdateMovement = true
+            else
+                local dirDot = newMoveDir:Dot(lastState.dir)
+                local speedDiff = math.abs(newSpeed - lastState.speed)
+                if dirDot < (1 - DIRECTION_CHANGE_THRESHOLD) or speedDiff > MOVEMENT_CHANGE_THRESHOLD then
+                    shouldUpdateMovement = true
+                end
+            end
+        else
+            newMoveDir = VECTOR3_ZERO
+            newSpeed = 0
+            if lastState and (lastState.speed > 0 or lastState.dir.Magnitude > 0) then
+                shouldUpdateMovement = true
+            end
+        end
+
+        if shouldUpdateMovement then
+            humanoid:Move(newMoveDir)
+            humanoid.WalkSpeed = newSpeed
+            lastMovementState[char] = {
+                dir = newMoveDir,
+                speed = newSpeed
+            }
+        end
+
+        -- Update Transform
         local currentCF = hrp.CFrame
         if transform.new ~= currentCF then
             transform.new = currentCF

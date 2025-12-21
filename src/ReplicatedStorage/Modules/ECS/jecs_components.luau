@@ -208,6 +208,34 @@ local components: {
     Hitbox: Entity<Part>,
     CombatNPC: Entity<boolean>, -- Marks NPCs that should use ECS AI for combat
     BehaviorTreeOverride: Entity<boolean>, -- Allows behavior tree to override ECS AI
+
+    -- Interaction System
+    Interactable: Entity<{objectId: string, promptText: string, handlerName: string, model: Model}>,
+
+    -- Wandering NPC System (Non-Combat Citizens)
+    WandererNPC: Entity<boolean>, -- Marks NPCs as wandering citizens (not combat)
+    NPCIdentity: Entity<{
+        name: string,           -- "Heinrich", "Maria", etc.
+        occupation: string,     -- "Automail Engineer", "Soldier", etc.
+        occupationType: string, -- "Military" | "Civilian"
+        personality: string,    -- "Friendly" | "Grumpy" | "Nervous" | "Professional" | "Curious"
+    }>,
+    NPCRelationship: Entity<{
+        relationships: {[number]: number},    -- [userId] = 0-100 relationship value
+        hitCounts: {[number]: number},        -- [userId] = hits taken for flee trigger
+        dailyInteractions: {[number]: number}, -- [userId] = interaction count today
+        lastDayReset: number,                 -- timestamp of last daily reset
+    }>,
+    NPCProximity: Entity<{
+        nearbyPlayer: Model?,     -- Current nearby player model
+        isWanderPaused: boolean,  -- Is wandering paused due to player proximity
+        detectionRange: number,   -- Detection range in studs (default 8)
+    }>,
+    NPCFlee: Entity<{
+        isFleeing: boolean,       -- Currently fleeing from player
+        fleeTarget: Model?,       -- Player to flee from
+        fleeEndTime: number,      -- When to stop fleeing (os.clock timestamp)
+    }>,
 } =
 	{
 		Character = world:component(),
@@ -335,6 +363,16 @@ local components: {
         NPCWander = world:component(),
         NPCConfig = world:component(),
         NPCSpawnData = world:component(),
+
+        -- Interaction System
+        Interactable = world:component(),
+
+        -- Wandering NPC System
+        WandererNPC = world:component(),
+        NPCIdentity = world:component(),
+        NPCRelationship = world:component(),
+        NPCProximity = world:component(),
+        NPCFlee = world:component(),
 	}
 
     for name, component in components :: {[string]: jecs.Entity} do 

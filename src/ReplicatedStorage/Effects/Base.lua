@@ -756,13 +756,18 @@ function Base.Clap(Character: Model, Duration: number)
 	end
 end
 
-function Base.Transmute(Character: Model)
+function Base.Transmute(Character: Model, Distance: number?, Height: number?)
 	local root = Character.HumanoidRootPart
 	local Construct = Replicated.Assets.VFX.Construct:Clone()
+	local CirlceBreak = Replicated.Assets.VFX.TP.CircleBreak:Clone()
 
-	Construct:PivotTo(root.CFrame * CFrame.new(0, 2, -3))
+	local dist = Distance or -3
+	local height = Height or 2
+	Construct:PivotTo(root.CFrame * CFrame.new(0, height, dist))
+	CirlceBreak:PivotTo(root.CFrame * CFrame.new(0, 0, 0))
 	-- Construct.Anchored = true
 	-- Construct.CanCollide = false
+	CirlceBreak.Parent = workspace.World.Visuals
 	Construct.Parent = workspace.World.Visuals
 
 	-- for _, v in (Construct:GetDescendants()) do
@@ -773,8 +778,16 @@ function Base.Transmute(Character: Model)
 
 	EmitModule.emit(Construct)
 
+	-- Play transmute sound (alchemy sound, not clap)
+	local transmuteSound = Replicated.Assets.SFX.FMAB.Transmute:Clone()
+	transmuteSound.Volume = 2
+	transmuteSound.Parent = root
+	transmuteSound:Play()
+	game:GetService("Debris"):AddItem(transmuteSound, transmuteSound.TimeLength)
+
 	local TInfo4 = TweenInfo.new(1, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut, 0)
-	local TInfo5 = TweenInfo.new(0.25, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut, 0)
+	local TInfo5 = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0) -- Extended fade time
+	local TInfoDecalFade = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0)
 
 	local activeTweens = {}
 	local t1 = TweenService:Create(Construct.Attachment.PointLight, TInfo4, { Range = 30 })
@@ -783,11 +796,283 @@ function Base.Transmute(Character: Model)
 
 	local t2 = TweenService:Create(Construct.Attachment.PointLight, TInfo5, { Brightness = 0 })
 	table.insert(activeTweens, t2)
+
+	-- Fade out decals and textures (the visual effects of the transmutation circle)
+	local fadeOutDecals = {}
+	for _, v in Construct:GetDescendants() do
+		local success, fadeTween = pcall(function()
+			if v:IsA("ParticleEmitter") or v:IsA("Beam") then
+				return TweenService:Create(v, TInfoDecalFade, { Transparency = NumberSequence.new(1) })
+			elseif v:IsA("Decal") or v:IsA("Texture") then
+				return TweenService:Create(v, TInfoDecalFade, { Transparency = 1 })
+			end
+		end)
+
+		if success and fadeTween then
+			table.insert(fadeOutDecals, fadeTween)
+		end
+	end
+
 	t1.Completed:Connect(function()
+		task.delay(.15, function()
+EmitModule.emit(CirlceBreak)
+		local Breaksound = Replicated.Assets.SFX.MISC.Break:Clone()
+	Breaksound.Volume = 2
+	Breaksound.Parent = root
+	Breaksound:Play()
+	game:GetService("Debris"):AddItem(Breaksound, Breaksound.TimeLength)
+	CamShake({
+		Location = root.Position,
+		Magnitude = 5.5,
+		Damp = 0.00005,
+		Frequency = 35,
+		Influence = Vector3.new(0.55, 1, 0.55),
+		Falloff = 89,
+	})
+		end)
+		
 		t2:Play()
+		-- Start fading out the decals/textures
+		for _, tween in fadeOutDecals do
+			tween:Play()
+		end
 	end)
 	t2.Completed:Connect(function()
+		-- Wait for decal fade to complete before destroying
+		
+		
+		task.wait(0.5)
 		Construct:Destroy()
+	end)
+end
+
+function Base.TeleportGlow(Character: Model)
+	-- Create a white glow effect on the character before teleport
+	local root = Character.HumanoidRootPart
+
+	-- Create a bright white point light at the character
+	local glowAttachment = Instance.new("Attachment")
+	glowAttachment.Parent = root
+
+	local pointLight = Instance.new("PointLight")
+	pointLight.Color = Color3.fromRGB(255, 255, 255)
+	pointLight.Brightness = 0
+	pointLight.Range = 0
+	pointLight.Parent = glowAttachment
+
+	-- Tween the light to full brightness
+	local glowTween = TweenService:Create(
+		pointLight,
+		TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ Brightness = 10, Range = 25 }
+	)
+	glowTween:Play()
+
+	-- Store original colors and tween to white
+	local originalColors = {}
+	for _, part in Character:GetDescendants() do
+		if part:IsA("BasePart") or part:IsA("MeshPart") then
+			originalColors[part] = part.Color
+			local colorTween = TweenService:Create(
+				part,
+				TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{ Color = Color3.fromRGB(255, 255, 255) }
+			)
+			colorTween:Play()
+		end
+	end
+
+	-- Store the original colors on the character for later restoration
+	Character:SetAttribute("_TeleportOriginalColors", true)
+	for part, color in pairs(originalColors) do
+		part:SetAttribute("_OriginalColor", color)
+	end
+	-- Cleanup after effect completes
+	task.delay(3, function()
+		glowAttachment:Destroy()
+	end)
+end
+
+function Base.TeleportFadeOut(Character: Model)
+	-- Store original transparencies before fading out
+	for _, part in Character:GetDescendants() do
+		if part:IsA("BasePart") or part:IsA("MeshPart") then
+			-- Store original transparency as an attribute
+			if not part:GetAttribute("_OriginalTransparency") then
+				part:SetAttribute("_OriginalTransparency", part.Transparency)
+			end
+		elseif part:IsA("Decal") or part:IsA("Texture") then
+			if not part:GetAttribute("_OriginalTransparency") then
+				part:SetAttribute("_OriginalTransparency", part.Transparency)
+			end
+		end
+	end
+
+	-- Fade out the character and all parts
+	local fadeTime = 0.5
+
+	for _, part in Character:GetDescendants() do
+		if part:IsA("BasePart") or part:IsA("MeshPart") then
+			local fadeTween = TweenService:Create(
+				part,
+				TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ Transparency = 1 }
+			)
+			fadeTween:Play()
+		elseif part:IsA("Decal") or part:IsA("Texture") then
+			local fadeTween = TweenService:Create(
+				part,
+				TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ Transparency = 1 }
+			)
+			fadeTween:Play()
+		end
+	end
+end
+
+function Base.TeleportFadeIn(Character: Model)
+	-- Retrieve stored transparencies and colors from attributes
+	local originalTransparencies = {}
+	local originalColors = {}
+
+	for _, part in Character:GetDescendants() do
+		if part:IsA("BasePart") or part:IsA("MeshPart") then
+			-- Get stored transparency or default to 0
+			local storedTransparency = part:GetAttribute("_OriginalTransparency")
+			originalTransparencies[part] = storedTransparency or 0
+			part.Transparency = 1
+
+			-- Restore original color from attribute if it exists
+			local storedColor = part:GetAttribute("_OriginalColor")
+			if storedColor then
+				originalColors[part] = storedColor
+				part.Color = storedColor
+			else
+				originalColors[part] = part.Color
+			end
+		elseif part:IsA("Decal") or part:IsA("Texture") then
+			local storedTransparency = part:GetAttribute("_OriginalTransparency")
+			originalTransparencies[part] = storedTransparency or 0
+			part.Transparency = 1
+		end
+	end
+
+	-- Track which parts we've already faded in
+	local fadedParts = {}
+
+	-- Get all body parts in order for reassembly effect
+	local bodyParts = {
+		Character:FindFirstChild("HumanoidRootPart"),
+		Character:FindFirstChild("Torso") or Character:FindFirstChild("UpperTorso"),
+		Character:FindFirstChild("Head"),
+		Character:FindFirstChild("Left Arm") or Character:FindFirstChild("LeftUpperArm"),
+		Character:FindFirstChild("Right Arm") or Character:FindFirstChild("RightUpperArm"),
+		Character:FindFirstChild("Left Leg") or Character:FindFirstChild("LeftUpperLeg"),
+		Character:FindFirstChild("Right Leg") or Character:FindFirstChild("RightUpperLeg"),
+	}
+
+	-- Fade in each part with a slight delay for reassembly effect
+	local baseDelay = 0
+	local delayIncrement = 0.1
+
+	for i, part in ipairs(bodyParts) do
+		if part then
+			fadedParts[part] = true
+			local delay = baseDelay + (i - 1) * delayIncrement
+			task.delay(delay, function()
+				-- Fade in the part transparency
+				local originalTrans = originalTransparencies[part] or 0
+				local fadeTween = TweenService:Create(
+					part,
+					TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ Transparency = originalTrans }
+				)
+				fadeTween:Play()
+
+				-- Restore original color if it was stored
+				if originalColors[part] then
+					local colorTween = TweenService:Create(
+						part,
+						TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+						{ Color = originalColors[part] }
+					)
+					colorTween:Play()
+
+					-- Clean up the attributes after restoring
+					part:SetAttribute("_OriginalColor", nil)
+				end
+
+				-- Clean up transparency attribute
+				part:SetAttribute("_OriginalTransparency", nil)
+
+				-- Fade in all accessories and decals attached to this part
+				for _, child in part:GetDescendants() do
+					fadedParts[child] = true
+					if originalTransparencies[child] then
+						local childTween = TweenService:Create(
+							child,
+							TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+							{ Transparency = originalTransparencies[child] }
+						)
+						childTween:Play()
+
+						-- Clean up child transparency attribute
+						child:SetAttribute("_OriginalTransparency", nil)
+					end
+
+					-- Restore child colors too
+					if (child:IsA("BasePart") or child:IsA("MeshPart")) and originalColors[child] then
+						local childColorTween = TweenService:Create(
+							child,
+							TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+							{ Color = originalColors[child] }
+						)
+						childColorTween:Play()
+						child:SetAttribute("_OriginalColor", nil)
+					end
+				end
+			end)
+		end
+	end
+
+	-- Fade in any remaining parts that weren't in the bodyParts list (fallback)
+	task.delay(0.8, function()
+		for part, transparency in pairs(originalTransparencies) do
+			if not fadedParts[part] then
+				if part:IsA("BasePart") or part:IsA("MeshPart") then
+					local fadeTween = TweenService:Create(
+						part,
+						TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+						{ Transparency = transparency }
+					)
+					fadeTween:Play()
+					part:SetAttribute("_OriginalTransparency", nil)
+
+					if originalColors[part] then
+						local colorTween = TweenService:Create(
+							part,
+							TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+							{ Color = originalColors[part] }
+						)
+						colorTween:Play()
+						part:SetAttribute("_OriginalColor", nil)
+					end
+				elseif part:IsA("Decal") or part:IsA("Texture") then
+					local fadeTween = TweenService:Create(
+						part,
+						TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+						{ Transparency = transparency }
+					)
+					fadeTween:Play()
+					part:SetAttribute("_OriginalTransparency", nil)
+				end
+			end
+		end
+	end)
+
+	-- Clean up the character attribute
+	task.delay(1, function()
+		Character:SetAttribute("_TeleportOriginalColors", nil)
 	end)
 end
 
@@ -3796,6 +4081,67 @@ Base.StoneLanceShake = function(lancePosition)
 		Influence = Vector3.new(0.5, 0.15, 0.5),
 		Falloff = 80,
 	})
+end
+
+-- Screen fade to white for teleportation effects
+function Base.ScreenFadeWhiteOut()
+	local PlayerGui = Player:WaitForChild("PlayerGui")
+
+	-- Create or get the fade screen GUI
+	local fadeScreen = PlayerGui:FindFirstChild("TeleportFadeScreen")
+	if not fadeScreen then
+		fadeScreen = Instance.new("ScreenGui")
+		fadeScreen.Name = "TeleportFadeScreen"
+		fadeScreen.DisplayOrder = 1000 -- High display order to be on top
+		fadeScreen.IgnoreGuiInset = true
+		fadeScreen.Parent = PlayerGui
+
+		local fadeFrame = Instance.new("Frame")
+		fadeFrame.Name = "FadeFrame"
+		fadeFrame.Size = UDim2.new(1, 0, 1, 0)
+		fadeFrame.Position = UDim2.new(0, 0, 0, 0)
+		fadeFrame.BackgroundColor3 = Color3.new(1, 1, 1) -- White
+		fadeFrame.BackgroundTransparency = 1
+		fadeFrame.BorderSizePixel = 0
+		fadeFrame.Parent = fadeScreen
+	end
+
+	local fadeFrame = fadeScreen.FadeFrame
+	fadeFrame.BackgroundTransparency = 1
+
+	-- Fade to white
+	local fadeTween = TweenService:Create(
+		fadeFrame,
+		TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ BackgroundTransparency = 0 }
+	)
+	fadeTween:Play()
+end
+
+-- Screen fade from white back to normal
+function Base.ScreenFadeWhiteIn()
+	local PlayerGui = Player:WaitForChild("PlayerGui")
+	local fadeScreen = PlayerGui:FindFirstChild("TeleportFadeScreen")
+
+	if fadeScreen then
+		local fadeFrame = fadeScreen.FadeFrame
+
+		-- Fade from white back to transparent
+		local fadeTween = TweenService:Create(
+			fadeFrame,
+			TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+			{ BackgroundTransparency = 1 }
+		)
+		fadeTween:Play()
+
+		-- Clean up after fade completes
+		fadeTween.Completed:Connect(function()
+			task.wait(0.1)
+			if fadeScreen and fadeScreen.Parent then
+				fadeScreen:Destroy()
+			end
+		end)
+	end
 end
 
 return Base

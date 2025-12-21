@@ -275,7 +275,7 @@ local function Marker(scope, props)
 
 					-- Create text with TextPlus
 					TextPlus.Create(labelFrame, label, {
-						Font = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
+						Font = Font.new("rbxasset://fonts/families/Sarpanch.json"),
 						Size = 14,
 						Color = Color3.fromRGB(255, 255, 255),
 						Transparency = 1, -- Start invisible for animation

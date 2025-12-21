@@ -324,12 +324,14 @@ return function(scope, props: {})
 
 				previousText = currentText
 				TextPlus.Create(textFrame, currentText, {
-					Font = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
+					Font = Font.new("rbxasset://fonts/families/Sarpanch.json"),
 					Size = 18,
 					Color = Color3.fromRGB(255, 255, 255),
 					Transparency = 1,
 					XAlignment = "Left",
 					YAlignment = "Top",
+					StrokeTransparency = 1,
+					StrokeSize = 1,
 				})
 
 				-- Reset showResponses when new text starts
@@ -437,7 +439,7 @@ return function(scope, props: {})
 				BackgroundTransparency = 1,
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
-				FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
+				FontFace = Font.new("rbxasset://fonts/families/Sarpanch.json"),
 				Position = UDim2.fromScale(0.376, 0.025),
 				Size = UDim2.fromOffset(107, 18),
 				Text = npcname or "NPC",
@@ -585,7 +587,7 @@ return function(scope, props: {})
 							BorderColor3 = Color3.fromRGB(0, 0, 0),
 							BorderSizePixel = 0,
 							FontFace = Font.new(
-								"rbxasset://fonts/families/SourceSansPro.json",
+								"rbxasset://fonts/families/Sarpanch.json",
 								Enum.FontWeight.Bold,
 								Enum.FontStyle.Normal
 							),
@@ -631,14 +633,17 @@ return function(scope, props: {})
 											BorderColor3 = Color3.fromRGB(0, 0, 0),
 											BorderSizePixel = 0,
 											FontFace = Font.new(
-												"rbxasset://fonts/families/SourceSansPro.json",
+												"rbxasset://fonts/families/Sarpanch.json",
 												Enum.FontWeight.Bold,
 												Enum.FontStyle.Normal
 											),
 											Size = UDim2.fromScale(1, 1),
 											Text = response.text or "",
 											TextColor3 = Color3.fromRGB(255, 255, 255),
-											TextSize = 14,
+											TextSize = 12,
+											TextWrapped = true,
+											TextTruncate = Enum.TextTruncate.AtEnd,
+											ClipsDescendants = true,
 										}),
 									},
 								}),

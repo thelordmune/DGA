@@ -11,6 +11,25 @@ local dialogueController = require(Replicated.Client.Dialogue)
 
 
 InputModule.InputBegan = function(_, Client)
+	-- Check for object interaction first
+	if Client.Character:GetAttribute("CanInteract") == true then
+		local objectId = Client.Character:GetAttribute("NearbyObject")
+
+		if objectId then
+			---- print("Interacting with object:", objectId)
+
+			-- Hide the object prompt
+			if _G.ObjectInteraction_HidePrompt then
+				_G.ObjectInteraction_HidePrompt()
+			end
+
+			-- Fire interaction event to server
+			Client.Packets.ObjectInteract.send({ ObjectId = objectId })
+		end
+		return
+	end
+
+	-- Check for NPC dialogue
 	if Client.Character:GetAttribute("Commence") == true then
 		---- print("commencing bro bro")
 
@@ -30,6 +49,45 @@ InputModule.InputBegan = function(_, Client)
 			local dialogueFolder = workspace.World:FindFirstChild("Dialogue")
 			local npcModel = dialogueFolder and dialogueFolder:FindFirstChild(npcName)
 
+			-- If not in Dialogue folder, check Live folder for wanderer NPCs
+			if not npcModel then
+				local liveFolder = workspace.World:FindFirstChild("Live")
+				if liveFolder then
+					-- Search for the NPC in Live folder (wanderers are nested in Actor containers)
+					for _, descendant in liveFolder:GetDescendants() do
+						if descendant:IsA("Model") and descendant.Name == npcName then
+							npcModel = descendant
+							break
+						end
+					end
+				end
+			end
+
+			-- Check if this is a wanderer NPC and use "Wanderer" as dialogue name
+			local dialogueName = npcName
+			local displayName = npcName
+			local npcOccupation = nil
+			local npcPersonality = nil
+
+			if npcModel and npcModel.Name:lower():find("wanderer") then
+				dialogueName = "Wanderer"
+				-- Get the wanderer's identity from attributes (set by mobs.luau)
+				-- Try model first, then HRP as fallback
+				displayName = npcModel:GetAttribute("NPCName") or "Citizen"
+				npcOccupation = npcModel:GetAttribute("Occupation")
+				npcPersonality = npcModel:GetAttribute("Personality")
+
+				-- Fallback to HRP if model attributes not found
+				if not npcOccupation or not npcPersonality then
+					local hrp = npcModel:FindFirstChild("HumanoidRootPart")
+					if hrp then
+						displayName = displayName ~= "Citizen" and displayName or hrp:GetAttribute("NPCName") or "Citizen"
+						npcOccupation = npcOccupation or hrp:GetAttribute("Occupation")
+						npcPersonality = npcPersonality or hrp:GetAttribute("Personality")
+					end
+				end
+			end
+
 			-- Hide the proximity prompt when dialogue starts
 			if _G.DialogueProximity_HidePrompt then
 				_G.DialogueProximity_HidePrompt()
@@ -37,7 +95,10 @@ InputModule.InputBegan = function(_, Client)
 
 			-- Pass the correct params format that OnEvent expects
 			dialogueController:Start({
-				name = npcName,
+				name = dialogueName,
+				displayName = displayName,
+				occupation = npcOccupation,
+				personality = npcPersonality,
 				npc = npcModel
 			})
 		else

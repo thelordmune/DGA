@@ -410,4 +410,24 @@ Bridges.UpdateAdrenaline:Connect(function(data)
     end
 end)
 
+-- Money update function
+Controller.Money = function(Value)
+    if healthComponentData and healthComponentData.moneyValue then
+        healthComponentData.moneyValue:set(Value or 0)
+    end
+end
+
+-- Set up BridgeNet2 listener for money updates
+Bridges.UpdateMoney:Connect(function(data)
+    -- Don't update during loading screen or if UI isn't ready
+    if _G.LoadingScreenActive then
+        return
+    end
+
+    -- Update money value for the Fusion component
+    if healthComponentData and healthComponentData.moneyValue then
+        healthComponentData.moneyValue:set(data.money or 0)
+    end
+end)
+
 return Controller;

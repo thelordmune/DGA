@@ -122,7 +122,7 @@ return function(scope: any, props: {})
 			-- Create new text with TextPlus (automatically clears previous text)
 			TextPlus.Create(textFrame, "The echoes of the dead transmit through the stone. A sharp tingle engulfs your body... or maybe its just the wind, who knows?", {
 				Size = 14,
-				Font = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Italic),
+				Font = Font.new("rbxasset://fonts/families/Sarpanch.json", Enum.FontWeight.Bold, Enum.FontStyle.Italic),
 				Color = Color3.fromHex("#a30000"),
 
 				-- Perfect character spacing (no gaps!)

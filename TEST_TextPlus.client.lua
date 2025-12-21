@@ -39,7 +39,7 @@ textFrame.Parent = frame
 -- Render text with TextPlus
 local success, err = pcall(function()
 	TextPlus.Create(textFrame, "Hello from TextPlus! This is a test.", {
-		Font = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
+		Font = Font.new("rbxasset://fonts/families/Sarpanch.json"),
 		Size = 24,
 		Color = Color3.fromRGB(255, 255, 255),
 		XAlignment = "Center",

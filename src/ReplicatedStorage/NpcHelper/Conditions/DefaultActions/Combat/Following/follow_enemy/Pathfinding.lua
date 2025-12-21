@@ -18,9 +18,16 @@ return function(npc: Model, mainConfig, target: Model | Vector3, Folder)
 		return false
 	end
 
+	-- Skip wanderer NPCs - ECS handles their movement
+	local ECSBridge = require(game.ReplicatedStorage.NpcHelper.ECSBridge)
+	if ECSBridge.isWandererNPC(npc) then
+		return false
+	end
+
 	-- Don't pathfind during attacks to prevent stuttering
 	local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
-	if Server.Library.StateCheck(npc.Actions, "Attacking") then
+	local actionsFolder = npc:FindFirstChild("Actions")
+	if actionsFolder and Server.Library.StateCheck(actionsFolder, "Attacking") then
 		return false
 	end
 
@@ -65,7 +72,7 @@ return function(npc: Model, mainConfig, target: Model | Vector3, Folder)
 			end
 
 			-- Don't pathfind during attacks to prevent stuttering
-			if Server.Library.StateCheck(npc.Actions, "Attacking") then
+			if actionsFolder and Server.Library.StateCheck(actionsFolder, "Attacking") then
 				task.wait(0.1)
 				continue
 			end
@@ -112,7 +119,7 @@ return function(npc: Model, mainConfig, target: Model | Vector3, Folder)
 
 				while not waypointReached and (Folder.StateId.Value == StateId and Folder.PathState.Value == 2 and Root ~= nil and not terminated) do
 					-- Don't move during attacks to prevent stuttering
-					if Server.Library.StateCheck(npc.Actions, "Attacking") then
+					if actionsFolder and Server.Library.StateCheck(actionsFolder, "Attacking") then
 						task.wait(0.1)
 						break
 					end

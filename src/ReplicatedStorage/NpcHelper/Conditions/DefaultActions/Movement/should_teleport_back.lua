@@ -5,7 +5,13 @@ return function(actor: Actor, mainConfig: table)
 	if not npc then
 		return false
 	end
-	
+
+	-- Skip if this is a wanderer NPC (ECS AI handles movement)
+	local ECSBridge = require(game.ReplicatedStorage.NpcHelper.ECSBridge)
+	if ECSBridge.isWandererNPC(npc) then
+		return false
+	end
+
 	if not mainConfig.Spawning.Despawning.Enabled  then
 		return false
 	end

@@ -1,11 +1,18 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Fusion = require(ReplicatedStorage.Modules.Fusion)
 local Players = game:GetService("Players")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local plrGui = player:WaitForChild("PlayerGui")
 
 local Children, scoped, peek, out = Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out
 local TInfo = TweenInfo.new(1.5, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut, 0)
+
+-- Zone sound effect
+local zoneSound = ReplicatedStorage.Assets.SFX.MISC.Zone:Clone()
+zoneSound.Parent = SoundService
+zoneSound.Volume = 0 -- Start at 0 for fade in
 
 -- Store UI references globally to manage cleanup
 local currentUI
@@ -45,6 +52,31 @@ local function ZoneDisplay()
         local newZone = workspace:GetAttribute("CurrentZone") or "Unknown" :: string
         currentZone:set(newZone)
         started:set(true)
+
+        -- Play zone sound effect with fade in/out
+        if zoneSound then
+            zoneSound.Volume = 0
+            zoneSound:Play()
+
+            -- Fade in
+            local fadeInTween = TweenService:Create(
+                zoneSound,
+                TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+                { Volume = 0.5 }
+            )
+            fadeInTween:Play()
+
+            -- Fade out after 1 second
+            task.delay(1, function()
+                local fadeOutTween = TweenService:Create(
+                    zoneSound,
+                    TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                    { Volume = 0 }
+                )
+                fadeOutTween:Play()
+            end)
+        end
+
         task.wait(1.5)
         started:set(false)
     end

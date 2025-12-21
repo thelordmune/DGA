@@ -257,6 +257,36 @@ NetworkModule.EndPoint = function(Player, Data)
         else
             ---- print("No Quests folder found - using new quest system")
         end
+    else
+        -- Handle custom quest actions (e.g., "Teleport")
+        ---- print("🎯 [Quest Custom Action] Received:", Data.Function)
+        ---- print("  NPC:", Data.Module)
+        ---- print("  Arguments:", Data.Arguments)
+
+        local questModulesFolder = Replicated.Modules:FindFirstChild("QuestsFolder")
+        if questModulesFolder then
+            local questModule = questModulesFolder:FindFirstChild(Data.Module)
+            if questModule then
+                local success, err = pcall(function()
+                    local QuestScript = require(questModule)
+                    -- Call the function with the same name as Data.Function (e.g., "Teleport")
+                    if typeof(QuestScript) == "table" and QuestScript[Data.Function] then
+                        ---- print("[Quest Custom Action] 🎯 Calling quest module function:", Data.Function)
+                        QuestScript[Data.Function](Player, unpack(Data.Arguments or {}))
+                    else
+                        warn("[Quest Custom Action] ⚠️ Function not found in quest module:", Data.Function)
+                    end
+                end)
+
+                if not success then
+                    warn("[Quest Custom Action] ❌ Failed to call quest module function:", err)
+                end
+            else
+                warn("[Quest Custom Action] ❌ Quest module not found:", Data.Module)
+            end
+        else
+            warn("[Quest Custom Action] ❌ QuestsFolder not found")
+        end
     end
 end
 

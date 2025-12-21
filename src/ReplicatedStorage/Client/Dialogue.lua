@@ -1,6 +1,8 @@
 local StarterGui = game:GetService("StarterGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+local Debris = game:GetService("Debris")
 local wait = task.wait
 local Fusion = require(ReplicatedStorage.Modules.Fusion)
 local Children, scoped, peek, out, OnEvent, Value, Computed, Tween =
@@ -9,6 +11,11 @@ local RichText = require(ReplicatedStorage.Modules.RichText)
 local Controller = {}
 local Bridges = require(ReplicatedStorage.Modules.Bridges)
 local QuestData = require(ReplicatedStorage.Modules.Quests)
+local WandererDialogue = require(ReplicatedStorage.Modules.WandererDialogue)
+
+-- UI Sounds
+local openUISound = ReplicatedStorage.Assets.SFX.MISC.OpenUI
+local closeUISound = ReplicatedStorage.Assets.SFX.MISC.CloseUI
 
 local PromptTypeWaitTime = 0.0075 -- Set to 0 to remove type writer effect
 local PromptWaitTime = 1
@@ -67,6 +74,79 @@ local CurrentNode = nil -- Track the current dialogue node for AutoClose support
 local InrangeMonitorConnection = nil -- Track the inrange monitoring connection
 local HealthChangedConnection = nil -- Track health monitoring connection
 local CombatMonitorConnection = nil -- Track combat state monitoring connection
+
+-- Function to replace placeholders in dialogue text (module-level for reuse)
+local function processDialogueText(text)
+	if not text or not CurrentParams then return text end
+
+	local processed = text
+	local name = CurrentParams.displayName or CurrentParams.name or "Citizen"
+	local occupation = CurrentParams.occupation or "citizen"
+	local personality = CurrentParams.personality or "Professional"
+
+	-- Basic placeholders
+	processed = processed:gsub("{name}", name)
+	processed = processed:gsub("{occupation}", occupation)
+	processed = processed:gsub("{personality}", personality)
+
+	-- Use WandererDialogue for dynamic content
+	-- Greeting (personality-based)
+	if processed:find("{greeting}") then
+		local personalityData = WandererDialogue.PersonalityText[personality]
+		if personalityData and personalityData.greetings then
+			local greetings = personalityData.greetings
+			local greeting = greetings[math.random(#greetings)] or "Hello. "
+			processed = processed:gsub("{greeting}", greeting)
+		else
+			processed = processed:gsub("{greeting}", "Hello. ")
+		end
+	end
+
+	-- Occupation intro
+	if processed:find("{intro}") then
+		local occData = WandererDialogue.Occupations[occupation]
+		if occData and occData.intro then
+			local intro = WandererDialogue.processText(occData.intro, personality)
+			processed = processed:gsub("{intro}", intro)
+		else
+			processed = processed:gsub("{intro}", "I work around here.")
+		end
+	end
+
+	-- Work response (occupation-specific)
+	if processed:find("{work_response}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "work", personality)
+		processed = processed:gsub("{work_response}", response)
+	end
+
+	-- Town response (occupation-specific)
+	if processed:find("{town_response}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "town", personality)
+		processed = processed:gsub("{town_response}", response)
+	end
+
+	-- Rumors response (occupation-specific)
+	if processed:find("{rumors_response}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "rumors", personality)
+		processed = processed:gsub("{rumors_response}", response)
+	end
+
+	-- Farewell (personality-based)
+	if processed:find("{farewell}") then
+		local farewell = WandererDialogue.getFarewell(personality)
+		processed = processed:gsub("{farewell}", farewell)
+	end
+
+	-- Ask options (occupation-specific question text)
+	if processed:find("{ask_work}") or processed:find("{ask_town}") or processed:find("{ask_rumors}") then
+		local askOptions = WandererDialogue.getAskOptions(occupation)
+		processed = processed:gsub("{ask_work}", askOptions.work)
+		processed = processed:gsub("{ask_town}", askOptions.town)
+		processed = processed:gsub("{ask_rumors}", askOptions.rumors)
+	end
+
+	return processed
+end
 
 function GetRootNode(Tree)
 	 ---- print("Getting root node from tree: " .. tostring(Tree))
@@ -456,7 +536,7 @@ function LoadNode(Node, Params)
 
 		 ---- print("Quest action found:", questAction, questName)
 
-		if questAction == "Accept" and Params then
+		if (questAction == "Accept" or questAction == "Start") and Params then
 			QuestManager.acceptQuest(Player, Params.name, questName)
 			pendingQuest = {
 				npcName = Params.name,
@@ -474,6 +554,19 @@ function LoadNode(Node, Params)
 				Module = Params.name,
 				Function = "Complete",
 				Arguments = {questName, questAction}, -- Send as array: [questName, choice]
+			})
+		else
+			-- Handle custom quest actions (like "Teleport")
+			-- Send to server to call the quest module's function
+			 ---- print("🎯 Sending custom quest action to server:")
+			 ---- print("  NPC:", Params.name)
+			 ---- print("  Action:", questAction)
+			 ---- print("  Quest Name:", questName)
+
+			Client.Packets.Quests.send({
+				Module = Params.name,
+				Function = questAction, -- The action name is the function name (e.g., "Teleport")
+				Arguments = {questName}, -- Send quest name as argument
 			})
 		end
 	end
@@ -512,16 +605,18 @@ function LoadNode(Node, Params)
 				 ---- print("Setting dpText to empty")
 				dpText:set("")
 				task.wait(0.1)
-				 ---- print("Setting dpText to:", Node.Text.Value)
-				dpText:set(Node.Text.Value)
+				local processedText = processDialogueText(Node.Text.Value)
+				 ---- print("Setting dpText to:", processedText)
+				dpText:set(processedText)
 			elseif Node.Text then
 				-- Fallback: just set the text even if container not found yet
 				 ---- print("TextPlusContainer not found, setting text anyway: " .. Node.Text.Value)
 				 ---- print("Setting dpText to empty")
 				dpText:set("")
 				task.wait(0.1)
-				 ---- print("Setting dpText to:", Node.Text.Value)
-				dpText:set(Node.Text.Value)
+				local processedText = processDialogueText(Node.Text.Value)
+				 ---- print("Setting dpText to:", processedText)
+				dpText:set(processedText)
 			else
 				 ---- print("WARNING: Node.Text not found")
 			end
@@ -571,8 +666,42 @@ function Close(Params)
 		 ---- print("Disconnected combat monitor")
 	end
 
+	-- Send relationship progress for wanderer NPCs
+	if CurrentParams and CurrentParams.name == "Wanderer" and CurrentParams.npc then
+		local npcModel = CurrentParams.npc
+		local npcId = npcModel:GetAttribute("NPCId")
+
+		if npcId then
+			-- Gather appearance data to save if they become friends
+			local appearance = {
+				outfitId = npcModel:GetAttribute("OutfitId"),
+				race = npcModel:GetAttribute("Race"),
+				gender = npcModel:GetAttribute("Gender"),
+				hairId = npcModel:GetAttribute("HairId"),
+				skinColor = npcModel:GetAttribute("SkinColor"),
+			}
+
+			-- Send relationship progress to server
+			Client.Packets.NPCRelationship.send({
+				Action = "Interact",
+				NPCId = npcId,
+				NPCName = CurrentParams.displayName or "Citizen",
+				Occupation = CurrentParams.occupation or "Civilian",
+				Personality = CurrentParams.personality or "Professional",
+				Appearance = appearance,
+			})
+			---- print("[Dialogue] Sent relationship progress for NPC:", npcId)
+		end
+	end
+
 	if CurrentDialogueUI then
 		 ---- print("Animating dialogue close")
+
+		-- Play close UI sound
+		local closeSound = closeUISound:Clone()
+		closeSound.Parent = SoundService
+		closeSound:Play()
+		Debris:AddItem(closeSound, closeSound.TimeLength)
 
 		-- Animate out
 		if fadein and begin then
@@ -611,6 +740,8 @@ function GetResponses(Nodes)
 	for _, Node in (Nodes or {}) do
 		if Node:GetAttribute("Type") == "Response" and not IsLocked(Node) and not CheckForCondition(Node) then
 			local responseText = Node.Text and Node.Text.Value or "No text"
+			-- Process placeholders in response text (for occupation-specific ask options)
+			responseText = processDialogueText(responseText)
 			local priority = Node:GetAttribute("Priority") or 0
 
 			table.insert(responseData, {
@@ -858,7 +989,7 @@ function OnEvent(Params)
 	 ---- print("Creating dialogue with dpText:", dpText, "begin:", begin, "fadein:", fadein)
 	scope:Dialogue({
 		displayText = dpText,
-		npcname = Params.name,
+		npcname = Params.displayName or Params.name,
 		start = begin,
 		Parent = parent,
 		fade = fadein,
@@ -875,6 +1006,12 @@ function OnEvent(Params)
 	 ---- print("Starting fade animation")
 	fadein:set(true)
 	begin:set(true)
+
+	-- Play open UI sound
+	local openSound = openUISound:Clone()
+	openSound.Parent = SoundService
+	openSound:Play()
+	Debris:AddItem(openSound, openSound.TimeLength)
 
 	CurrentParams = Params or {}
 	 ---- print("Current params set: " .. tostring(CurrentParams))

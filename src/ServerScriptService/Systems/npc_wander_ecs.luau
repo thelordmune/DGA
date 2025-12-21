@@ -20,134 +20,172 @@ local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 local Jecs = require(ReplicatedStorage.Modules.Imports.jecs)
 
--- Query NPCs that should wander (no target)
-local query = world:query(
+-- Query combat NPCs that should wander (no target)
+local combatQuery = world:query(
     comps.Character,
     comps.Transform,
     comps.NPCWander,
     comps.Locomotion
 ):with(comps.CombatNPC):without(comps.NPCTarget):cached()
 
+-- Query wanderer NPCs (non-combat citizens)
+local wandererQuery = world:query(
+    comps.Character,
+    comps.Transform,
+    comps.NPCWander,
+    comps.Locomotion
+):with(comps.WandererNPC):cached()
+
 -- Throttle to 10 Hz (IMPROVED: was 8 Hz / 0.125s)
 local lastUpdate = 0
 local UPDATE_INTERVAL = 0.1
 
--- Simplified Perlin noise function (matches behavior tree noise generator)
-local function noise(x: number, y: number): number
-    -- Hash function
-    local n = math.floor(x) + math.floor(y) * 57
-    n = bit32.bxor(n, bit32.lshift(n, 13))
-    local result = bit32.band(n * (n * n * 15731 + 789221) + 1376312589, 0x7fffffff)
-    return 1.0 - result / 1073741824.0
+-- Generate a random direction on the XZ plane
+local function randomDirection(): Vector3
+    local angle = math.random() * math.pi * 2
+    return Vector3.new(math.cos(angle), 0, math.sin(angle))
+end
+
+-- Process a single NPC's wander behavior
+local function processWander(entity, char, transform, wander, now: number, isWanderer: boolean)
+    -- Check if NPC is stunned - stop wandering if stunned
+    if StateManager.StateCount(char, "Stuns") then
+        world:set(entity, comps.Locomotion, {
+            dir = Vector3.zero,
+            speed = 0,
+        })
+        return
+    end
+
+    -- Skip if wanderer is paused due to player proximity
+    if world:has(entity, comps.NPCProximity) then
+        local proximity = world:get(entity, comps.NPCProximity)
+        if proximity and proximity.isWanderPaused then
+            return -- Proximity system handles this NPC
+        end
+    end
+
+    -- Skip if wanderer is fleeing
+    if world:has(entity, comps.NPCFlee) then
+        local flee = world:get(entity, comps.NPCFlee)
+        if flee and flee.isFleeing then
+            return -- Flee system handles this NPC
+        end
+    end
+
+    local currentPos = transform.new.Position
+
+    -- Initialize wander state if needed
+    if not wander.targetDirection then
+        wander.targetDirection = randomDirection()
+        wander.directionChangeTime = now + math.random(8, 20) -- Change direction every 8-20 seconds
+        wander.isPaused = false
+        wander.pauseEndTime = 0
+        wander.moveEndTime = now + math.random(10, 25) -- Move for 10-25 seconds
+    end
+
+    -- Handle pause/move cycle
+    if wander.isPaused then
+        -- Currently paused - check if pause is over
+        if now >= wander.pauseEndTime then
+            -- End pause, start moving with new random direction
+            wander.isPaused = false
+            wander.targetDirection = randomDirection()
+            wander.directionChangeTime = now + math.random(8, 20)
+            wander.moveEndTime = now + math.random(10, 25)
+        else
+            -- Still paused - stay idle
+            world:set(entity, comps.Locomotion, {
+                dir = Vector3.zero,
+                speed = 0,
+            })
+            world:set(entity, comps.NPCWander, wander)
+            return
+        end
+    else
+        -- Currently moving - check if should pause
+        if now >= wander.moveEndTime then
+            -- Start pause
+            wander.isPaused = true
+            wander.pauseEndTime = now + math.random(3, 8) -- Pause for 3-8 seconds
+            world:set(entity, comps.Locomotion, {
+                dir = Vector3.zero,
+                speed = 0,
+            })
+            world:set(entity, comps.NPCWander, wander)
+            return
+        end
+
+        -- Check if should change direction (random turns while walking)
+        if now >= wander.directionChangeTime then
+            -- Pick a new random direction (with some bias toward current direction for natural movement)
+            local newDir = randomDirection()
+            -- 70% chance to turn slightly, 30% chance to turn completely
+            if math.random() < 0.7 then
+                wander.targetDirection = wander.targetDirection:Lerp(newDir, 0.3 + math.random() * 0.4)
+            else
+                wander.targetDirection = newDir
+            end
+            wander.directionChangeTime = now + math.random(5, 15)
+        end
+    end
+
+    -- Use the target direction
+    local direction = wander.targetDirection
+
+    -- Wanderers can roam freely - only redirect if they hit map boundaries
+    -- Check if too far from spawn (use large radius for free roaming)
+    local wanderCenter = wander.center
+    local distanceFromCenter = (currentPos - wanderCenter).Magnitude
+    local maxDistance = isWanderer and 150 or (wander.radius or 30) -- Wanderers can go 150 studs
+
+    -- Only redirect toward center if very far out
+    if distanceFromCenter > maxDistance then
+        local toCenter = (wanderCenter - currentPos).Unit
+        local weight = math.clamp((distanceFromCenter - maxDistance) / 50, 0, 1)
+        direction = direction:Lerp(toCenter, weight)
+        wander.targetDirection = direction -- Update target so they don't fight the correction
+    end
+
+    -- Normalize direction
+    if direction.Magnitude > 0.01 then
+        direction = direction.Unit
+    else
+        direction = Vector3.zero
+    end
+
+    -- Smooth interpolation for natural movement
+    local smoothingAlpha = 0.15 -- Slower lerp for smoother turns
+    local smoothed = wander.currentDirection:Lerp(direction, smoothingAlpha)
+
+    -- Update wander state
+    wander.currentDirection = smoothed
+    world:set(entity, comps.NPCWander, wander)
+
+    -- Update locomotion (wanderers move slower than combat NPCs)
+    local wanderSpeed = isWanderer and 8 or 8
+    world:set(entity, comps.Locomotion, {
+        dir = smoothed,
+        speed = wanderSpeed,
+    })
 end
 
 -- Main system function
-local hasLoggedWander = false
-
-local function updateWander(dt: number)
+local function updateWander()
     local now = os.clock()
     if now - lastUpdate < UPDATE_INTERVAL then
         return
     end
     lastUpdate = now
 
-    for entity, char, transform, wander, loco in query do
-        -- Debug: Verify this NPC doesn't have a target
-        if not hasLoggedWander then
-            local hasTarget = world:has(entity, comps.NPCTarget)
-           -- print(`[npc_wander_ecs] Processing {char.Name} - has NPCTarget: {hasTarget}`)
-            hasLoggedWander = true
-        end
+    -- Process combat NPCs
+    for entity, char, transform, wander, _loco in combatQuery do
+        processWander(entity, char, transform, wander, now, false)
+    end
 
-        -- Check if NPC is stunned - stop wandering if stunned
-        if StateManager.StateCount(char, "Stuns") then
-            world:set(entity, comps.Locomotion, {
-                dir = Vector3.zero,
-                speed = 0,
-            })
-            continue
-        end
-
-        local currentPos = transform.new.Position
-        local wanderCenter = wander.center -- Use wander center, not spawn position
-
-        -- Initialize pause state if needed
-        if not wander.isPaused then
-            wander.isPaused = false
-            wander.pauseEndTime = 0
-            wander.moveEndTime = now + math.random(5, 10) -- Move for 5-10 seconds
-        end
-
-        -- Handle pause/move cycle
-        if wander.isPaused then
-            -- Currently paused - check if pause is over
-            if now >= wander.pauseEndTime then
-                -- End pause, start moving
-                wander.isPaused = false
-                wander.moveEndTime = now + math.random(5, 10) -- Move for 5-10 seconds
-            else
-                -- Still paused - stay idle
-                world:set(entity, comps.Locomotion, {
-                    dir = Vector3.zero,
-                    speed = 0,
-                })
-                world:set(entity, comps.NPCWander, wander)
-                continue
-            end
-        else
-            -- Currently moving - check if should pause
-            if now >= wander.moveEndTime then
-                -- Start pause
-                wander.isPaused = true
-                wander.pauseEndTime = now + math.random(3, 7) -- Pause for 3-7 seconds
-                world:set(entity, comps.Locomotion, {
-                    dir = Vector3.zero,
-                    speed = 0,
-                })
-                world:set(entity, comps.NPCWander, wander)
-                continue
-            end
-        end
-
-        -- Generate Perlin noise direction (matches behavior tree SwayX/SwayY)
-        local time = now + wander.noiseOffset
-        local swayX = noise(time * 0.5, 0)
-        local swayY = noise(0, time * 0.5)
-
-        -- Create movement vector from noise
-        local direction = Vector3.new(swayX, 0, swayY)
-
-        -- Calculate distance from wander center
-        local distanceFromCenter = (currentPos - wanderCenter).Magnitude
-        local maxDistance = wander.radius or 30
-
-        -- Weight toward center if too far (matches behavior tree wander.lua logic)
-        if distanceFromCenter > maxDistance then
-            local toCenter = (wanderCenter - currentPos).Unit
-            local weight = math.clamp(distanceFromCenter / maxDistance, 0, 1)
-            direction = direction:Lerp(toCenter, weight)
-        end
-
-        -- Normalize direction
-        if direction.Magnitude > 0.01 then
-            direction = direction.Unit
-        else
-            direction = Vector3.zero
-        end
-
-        -- Smooth interpolation (matches behavior tree smoothingAlpha)
-        local smoothingAlpha = 0.5
-        local smoothed = wander.currentDirection:Lerp(direction, smoothingAlpha)
-
-        -- Update wander state
-        wander.currentDirection = smoothed
-        world:set(entity, comps.NPCWander, wander)
-
-        -- Update locomotion (slow wander speed)
-        world:set(entity, comps.Locomotion, {
-            dir = smoothed,
-            speed = 8, -- Slow wander speed (matches behavior tree idle speed)
-        })
+    -- Process wanderer NPCs (non-combat citizens)
+    for entity, char, transform, wander, _loco in wandererQuery do
+        processWander(entity, char, transform, wander, now, true)
     end
 end
 

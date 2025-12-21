@@ -169,11 +169,23 @@ local function animateTextIn(textFrame, delayPerChar)
 	-- popFadeAnimation(textFrame, delayPerChar)  -- Pop up with fade in
 end
 
+-- Relationship tier colors
+local tierColors = {
+	Stranger = Color3.fromRGB(150, 150, 150),
+	Acquaintance = Color3.fromRGB(255, 255, 255),
+	Friend = Color3.fromRGB(100, 200, 255),
+	["Close Friend"] = Color3.fromRGB(255, 200, 50),
+	Trusted = Color3.fromRGB(200, 100, 255),
+}
+
 return function(scope, props: {})
 	local started = props.begin
 	local fadein = props.fadein
 	local textstart = props.textstart
 	local npcName = props.npcName or "Magnus" -- Default to Magnus if not provided
+	local occupation = props.occupation or "" -- NPC occupation (e.g., "Automail Engineer")
+	local relationshipTier = props.relationshipTier or "Stranger" -- Relationship status
+	local isWanderer = props.isWanderer or false -- Is this a wandering citizen NPC
 	local rotation = scope:Value(0)
 	local tileSize = scope:Value(0.05)
     local slowrotation = scope:Value(0)
@@ -207,6 +219,9 @@ return function(scope, props: {})
 		return if use(fadein) then textstart:set(true) else textstart:set(false)
 	end)
 
+	-- Use larger size for wanderers (BillboardGui)
+	local frameSize = isWanderer and 150 or 100
+
 	scope:New "Frame" {
 		Parent = parent,
 		Name = "Frame",
@@ -214,10 +229,11 @@ return function(scope, props: {})
 		BackgroundTransparency = 0,
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
-		Position = UDim2.fromScale(0, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
 		Size = scope:Spring(
 			scope:Computed(function(use)
-				return if use(started) then UDim2.fromOffset(100, 100) else UDim2.fromOffset(100, 0)
+				return if use(started) then UDim2.fromOffset(frameSize, frameSize) else UDim2.fromOffset(frameSize, 0)
 			end),
 			12,
 			0.7
@@ -274,7 +290,7 @@ return function(scope, props: {})
 						ScaleType = Enum.ScaleType.Slice,
 						Size = scope:Spring(
 							scope:Computed(function(use)
-								return if use(started) then UDim2.fromOffset(100, 100) else UDim2.fromOffset(100, 0)
+								return if use(started) then UDim2.fromOffset(frameSize, frameSize) else UDim2.fromOffset(frameSize, 0)
 							end),
 							12,
 							0.7
@@ -293,8 +309,9 @@ return function(scope, props: {})
 				}
 			},
 
+			-- NPC Name Label
 			scope:New "TextLabel" {
-				Name = "TextLabel",
+				Name = "NameLabel",
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 1,
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
@@ -302,15 +319,21 @@ return function(scope, props: {})
 				FontFace = Font.new("rbxassetid://12187607287", Enum.FontWeight.Regular, Enum.FontStyle.Italic),
 				Position = scope:Spring(
 					scope:Computed(function(use)
-						return if use(fadein) then UDim2.fromScale(0.25, 0.1) else UDim2.fromScale(0.25, 0.5)
+						-- Adjust position based on whether it's a wanderer (more info to show)
+						if isWanderer then
+							return if use(fadein) then UDim2.fromScale(0.5, 0.08) else UDim2.fromScale(0.5, 0.5)
+						else
+							return if use(fadein) then UDim2.fromScale(0.25, 0.1) else UDim2.fromScale(0.25, 0.5)
+						end
 					end),
 					12,
 					0.7
 				),
-				Size = UDim2.fromOffset(50, 25),
+				AnchorPoint = isWanderer and Vector2.new(0.5, 0) or Vector2.zero,
+				Size = isWanderer and UDim2.fromOffset(130, 28) or UDim2.fromOffset(50, 20),
 				Text = npcName,
 				TextColor3 = Color3.fromRGB(255, 255, 255),
-				TextSize = 10,
+				TextSize = isWanderer and 16 or 10,
 				TextTransparency = scope:Spring(
 					scope:Computed(function(use)
 						return if use(fadein) then 0 else 1
@@ -334,7 +357,6 @@ return function(scope, props: {})
 							12,
 							0.7
 						),
-						--ImageContent = Content.new(Content),
 						ScaleType = Enum.ScaleType.Slice,
 						Size = UDim2.fromScale(1, 1),
 						SliceCenter = Rect.new(14, 14, 36, 32),
@@ -343,8 +365,71 @@ return function(scope, props: {})
 				}
 			},
 
+			-- Occupation Label (only for wanderers)
+			isWanderer and scope:New "TextLabel" {
+				Name = "OccupationLabel",
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				FontFace = Font.new(
+					"rbxasset://fonts/families/Sarpanch.json",
+					Enum.FontWeight.Regular,
+					Enum.FontStyle.Normal
+				),
+				Position = scope:Spring(
+					scope:Computed(function(use)
+						return if use(fadein) then UDim2.fromScale(0.5, 0.28) else UDim2.fromScale(0.5, 0.6)
+					end),
+					12,
+					0.7
+				),
+				AnchorPoint = Vector2.new(0.5, 0),
+				Size = UDim2.fromOffset(130, 18),
+				Text = occupation,
+				TextColor3 = Color3.fromRGB(200, 200, 200),
+				TextSize = 12,
+				TextTransparency = scope:Spring(
+					scope:Computed(function(use)
+						return if use(fadein) then 0 else 1
+					end),
+					12,
+					0.7
+				),
+			} or nil,
+
+			-- Relationship Tier Label (only for wanderers)
+			isWanderer and scope:New "TextLabel" {
+				Name = "RelationshipLabel",
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				FontFace = Font.new(
+					"rbxasset://fonts/families/Sarpanch.json",
+					Enum.FontWeight.Bold,
+					Enum.FontStyle.Normal
+				),
+				Position = scope:Spring(
+					scope:Computed(function(use)
+						return if use(fadein) then UDim2.fromScale(0.5, 0.42) else UDim2.fromScale(0.5, 0.7)
+					end),
+					12,
+					0.7
+				),
+				AnchorPoint = Vector2.new(0.5, 0),
+				Size = UDim2.fromOffset(130, 18),
+				Text = relationshipTier,
+				TextColor3 = tierColors[relationshipTier] or tierColors.Stranger,
+				TextSize = 13,
+				TextTransparency = scope:Spring(
+					scope:Computed(function(use)
+						return if use(fadein) then 0 else 1
+					end),
+					12,
+					0.7
+				),
+			} or nil,
+
+			-- E Button Label
 			scope:New "TextLabel" {
-				Name = "TextLabel",
+				Name = "EButtonLabel",
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 1,
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
@@ -356,15 +441,20 @@ return function(scope, props: {})
 				),
 				Position = scope:Spring(
 					scope:Computed(function(use)
-						return if use(fadein) then UDim2.fromScale(0.37, 0.5) else UDim2.fromScale(0.37, 1.5)
+						if isWanderer then
+							return if use(fadein) then UDim2.fromScale(0.5, 0.58) else UDim2.fromScale(0.5, 1.5)
+						else
+							return if use(fadein) then UDim2.fromScale(0.37, 0.5) else UDim2.fromScale(0.37, 1.5)
+						end
 					end),
 					12,
 					0.7
 				),
-				Size = UDim2.fromOffset(25, 25),
+				AnchorPoint = isWanderer and Vector2.new(0.5, 0) or Vector2.zero,
+				Size = isWanderer and UDim2.fromOffset(40, 40) or UDim2.fromOffset(25, 25),
 				Text = "E",
 				TextColor3 = Color3.fromRGB(255, 255, 255),
-				TextSize = 14,
+				TextSize = isWanderer and 22 or 14,
 				TextTransparency = scope:Spring(
 					scope:Computed(function(use)
 						return if use(fadein) then 0 else 1

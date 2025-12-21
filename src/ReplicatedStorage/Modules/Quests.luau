@@ -22,5 +22,16 @@ return {
                 ["Alignment"] = 1
             }
         }
+    },
+    ["Librarian"] = {
+        ["Explore"] = {
+            ["Description"] = "Find out what knowledge the library has to give you.",
+            ["Rewards"] = {
+                ["Items"] = {},
+                ["Experience"] = math.random(50, 100),
+                ["Alignment"] = 1
+            }
+        }
     }
+
 }

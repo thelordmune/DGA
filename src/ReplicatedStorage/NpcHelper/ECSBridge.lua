@@ -95,7 +95,7 @@ end
 
 --[[
     Check if NPC is a combat NPC (has ECS AI)
-    
+
     @param npcModel: Model - The NPC character model
     @return boolean - True if combat NPC
 ]]
@@ -104,8 +104,28 @@ function ECSBridge.isCombatNPC(npcModel: Model): boolean
     if not entity then
         return false
     end
-    
+
     return world:has(entity, comps.CombatNPC)
+end
+
+--[[
+    Check if NPC is a wanderer NPC (non-combat citizen)
+
+    @param npcModel: Model - The NPC character model
+    @return boolean - True if wanderer NPC
+]]
+function ECSBridge.isWandererNPC(npcModel: Model): boolean
+    local entity = RefManager.entity.find(npcModel)
+    if not entity then
+        -- Fallback: check HRP attribute or name
+        local hrp = npcModel:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp:GetAttribute("IsWandererNPC") then
+            return true
+        end
+        return npcModel.Name:lower():find("wanderer") ~= nil
+    end
+
+    return world:has(entity, comps.WandererNPC)
 end
 
 --[[

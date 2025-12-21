@@ -1,15 +1,14 @@
 return function(actor: Actor, mainConfig: table)
-	------ print("alr")
-
-	------ print(":herasfdsa")
 	local npc = actor:FindFirstChildOfClass("Model")
 	if not npc then
 		return false
 	end
 
-	--if mainConfig.Idle.Enabled ~= true then
-	--	return false
-	--end
+	-- Skip if this is a wanderer NPC (ECS AI handles movement)
+	local ECSBridge = require(game.ReplicatedStorage.NpcHelper.ECSBridge)
+	if ECSBridge.isWandererNPC(npc) then
+		return false
+	end
 
 	local humanoid = npc:FindFirstChild("Humanoid")
 	if not humanoid or humanoid.Health <= mainConfig.EnemyDetection.RunAway.RunHp then

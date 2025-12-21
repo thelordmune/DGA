@@ -11,7 +11,7 @@ local player = players.LocalPlayer
 -- MUSIC CONTROL TOGGLE
 -- Set this to true to disable all music in the game
 -- ============================================
-local MUSIC_DISABLED = true
+local MUSIC_DISABLED = false
 -- ============================================
 
 local playing = false

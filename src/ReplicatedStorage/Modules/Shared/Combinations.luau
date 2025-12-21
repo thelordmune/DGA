@@ -28,4 +28,7 @@ return {
     ["X"] = "Deconstruct",            -- X (opposite of construct)
     ["ZXCX"] = "AlchemicAssault",     -- Z -> X -> C -> X (complex attack)
 
+    -- Misc
+    ["CCXZ"] = "Motor"
+
 }

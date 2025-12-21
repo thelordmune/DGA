@@ -32,7 +32,11 @@ return {
             Name = "Granted",
             Type = "Prompt",
             Priority = 0,
-            Text = "You have been granted access to the library you have 30 minutes in there, use your time wisely",
+            Text = "I have my ways.",
+            Quest = {
+                Action = "Teleport",
+                QuestName = "Library Access"
+            },
             Outputs = {},
             AutoClose = true
         },

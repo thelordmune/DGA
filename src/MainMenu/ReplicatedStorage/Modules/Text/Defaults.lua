@@ -11,7 +11,7 @@ local optionsList = require(script.Parent.Options)
 
 -- Default defaults.
 local defaults = {
-	Font = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
+	Font = Font.new("rbxasset://fonts/families/Sarpanch.json"),
 	
 	Size = 14,
 	

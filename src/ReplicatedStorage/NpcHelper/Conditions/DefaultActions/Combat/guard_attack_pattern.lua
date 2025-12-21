@@ -16,6 +16,30 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local CombatProperties = require(ReplicatedStorage.Modules.CombatProperties)
 local Library = require(ReplicatedStorage.Modules.Library)
 
+-- All weapon skills by weapon type (guards can use ALL moves)
+local WEAPON_SKILLS = {
+	["Spear"] = {
+		"Needle Thrust",
+		"Grand Cleave",
+		"Charged Thrust",
+		"Rapid Thrust",
+		"WhirlWind",
+	},
+	["Guns"] = {
+		"Shell Piercer",
+		"Strategist Combination",
+		"Inverse Slide",
+		"Tapdance",
+		"Hellraiser",
+	},
+	["Fist"] = {
+		"Axe Kick",
+		"Downslam Kick",
+		"Triple Kick",
+		"Pincer Impact",
+	},
+}
+
 -- Get Server from main VM (Actors have separate module caches, so use _G)
 local function getServer()
 	local Server = require(ServerScriptService.ServerConfig.Server)
@@ -170,26 +194,59 @@ local function executePatternAction(mainConfig, npc, target, distance, currentSt
         mainConfig.GuardPattern.ComboCount = (mainConfig.GuardPattern.ComboCount or 0) + 1
 
     elseif currentState == GuardPatterns.SPECIAL then
-        -- Use weapon-specific special skill
-        if weapon == "Spear" then
-            if not isSkillOnCooldown(npc, "Grand Cleave") and distance < 10 then
-                skillToUse = "Grand Cleave"
-            elseif not isSkillOnCooldown(npc, "Needle Thrust") and distance < 15 then
-                skillToUse = "Needle Thrust"
-            end
-        elseif weapon == "Guns" then
-            if not isSkillOnCooldown(npc, "Shell Piercer") and distance > 10 then
-                skillToUse = "Shell Piercer"
-            elseif not isSkillOnCooldown(npc, "Strategist Combination") and distance < 20 then
-                skillToUse = "Strategist Combination"
-            end
-        elseif weapon == "Fist" then
-            if not isSkillOnCooldown(npc, "Axe Kick") and distance < 8 then
-                skillToUse = "Axe Kick"
-            elseif not isSkillOnCooldown(npc, "Downslam Kick") and distance < 8 then
-                skillToUse = "Downslam Kick"
+        -- Use weapon-specific special skill - guards can use ALL moves for their weapon
+        local availableSkills = WEAPON_SKILLS[weapon] or {}
+
+        -- Score each skill based on distance and cooldown
+        local bestSkill = nil
+        local bestScore = 0
+
+        for _, skillName in ipairs(availableSkills) do
+            if not isSkillOnCooldown(npc, skillName) then
+                local props = CombatProperties[skillName]
+                local score = 1
+
+                if props and props.TargetingProperties then
+                    local minRange = props.TargetingProperties.MinRange or 0
+                    local maxRange = props.TargetingProperties.MaxRange or 20
+                    local optimalRange = props.TargetingProperties.OptimalRange or 10
+
+                    -- Check if in range
+                    if distance >= minRange and distance <= maxRange then
+                        -- Score based on how close to optimal range
+                        local rangeDiff = math.abs(distance - optimalRange)
+                        score = math.max(1, 10 - rangeDiff)
+
+                        -- Bonus for priority skills
+                        if props.SkillPriority then
+                            score = score + (props.SkillPriority * 0.5)
+                        end
+
+                        -- Bonus for guard breaks when target is blocking
+                        if props.IsGuardBreak and isTargetAttacking(target) then
+                            score = score + 5
+                        end
+
+                        -- Add randomness for variety
+                        score = score + math.random() * 3
+                    else
+                        score = 0 -- Out of range
+                    end
+                else
+                    -- No props, use distance-based fallback
+                    if distance < 15 then
+                        score = 5 + math.random() * 3
+                    end
+                end
+
+                if score > bestScore then
+                    bestScore = score
+                    bestSkill = skillName
+                end
             end
         end
+
+        skillToUse = bestSkill
 
         -- Fallback to M2 if no special available
         if not skillToUse and not isSkillOnCooldown(npc, "M2") then

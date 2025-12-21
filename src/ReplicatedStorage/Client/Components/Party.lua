@@ -96,7 +96,7 @@ return function(scope, props: {})
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
 				FontFace = Font.new(
-					"rbxasset://fonts/families/SourceSansPro.json",
+					"rbxasset://fonts/families/Sarpanch.json",
 					Enum.FontWeight.Bold,
 					Enum.FontStyle.Normal
 				),
@@ -132,7 +132,7 @@ return function(scope, props: {})
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
 				FontFace = Font.new(
-					"rbxasset://fonts/families/SourceSansPro.json",
+					"rbxasset://fonts/families/Sarpanch.json",
 					Enum.FontWeight.Bold,
 					Enum.FontStyle.Normal
 				),
@@ -168,7 +168,7 @@ return function(scope, props: {})
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
 				FontFace = Font.new(
-					"rbxasset://fonts/families/SourceSansPro.json",
+					"rbxasset://fonts/families/Sarpanch.json",
 					Enum.FontWeight.Bold,
 					Enum.FontStyle.Normal
 				),
@@ -238,7 +238,7 @@ return function(scope, props: {})
 						BorderColor3 = Color3.fromRGB(0, 0, 0),
 						BorderSizePixel = 0,
 						FontFace = Font.new(
-							"rbxasset://fonts/families/SourceSansPro.json",
+							"rbxasset://fonts/families/Sarpanch.json",
 							Enum.FontWeight.Bold,
 							Enum.FontStyle.Normal
 						),

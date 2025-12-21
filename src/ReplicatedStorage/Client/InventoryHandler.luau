@@ -184,8 +184,6 @@ Bridges.Inventory:Connect(function(syncData)
             end
         end
 
-        warn("[InventoryHandler] Client: ⚠️ Could not find Stats interface after", maxUIAttempts, "attempts")
-        warn("[InventoryHandler] Client: Hotbar UI may not be updated - try manually updating")
     end)
 end)
 

@@ -12,12 +12,14 @@ local AB = require(Replicated.Modules.Utils.AymanBolt)
 local Player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local CamShake = require(Replicated.Modules.Utils.CamShake)
+local EmitModule = require(game.ReplicatedStorage.Modules.Utils.EmitModule)
+local TweenService = game:GetService("TweenService")
 
 local Misc = {}
 
 function Misc.DoEffect(Character: Model, FX: Part?)
 	local Effect = FX:Clone()
-	
+
 	if Effect:IsA("Part") then
 		Effect.CFrame = Character.HumanoidRootPart
 		Misc.Emit(Effect)
@@ -29,19 +31,19 @@ end
 
 function Misc.Emit(Object: Part?, Descendants: boolean)
 	local DebrisTimer = 0
-	
-	for _,v in pairs(Object:GetDescendants()) do
+
+	for _, v in pairs(Object:GetDescendants()) do
 		if v:IsA("ParticleEmitter") then
 			if v.Lifetime.Max > DebrisTimer then
 				DebrisTimer = v.Lifetime.Max
 			end
 		end
 	end
-	
+
 	if Descendants then
 		for _, Emitter in pairs(Object:GetDescendants()) do
 			if Emitter:IsA("ParticleEmitter") then
-				task.delay(Emitter:GetAttribute("EmitDelay"),function()
+				task.delay(Emitter:GetAttribute("EmitDelay"), function()
 					if Emitter:GetAttribute("EmitDuration") and Emitter:GetAttribute("EmitDuration") > 0 then
 						Emitter.Enabled = true
 						task.wait(Emitter:GetAttribute("EmitDuration"))
@@ -52,10 +54,10 @@ function Misc.Emit(Object: Part?, Descendants: boolean)
 				end)
 			end
 		end
- 	else
-		for _,Emitter in pairs(Object:GetChildren()) do
+	else
+		for _, Emitter in pairs(Object:GetChildren()) do
 			if Emitter:IsA("ParticleEmitter") then
-				task.delay(Emitter:GetAttribute("EmitDelay"),function()
+				task.delay(Emitter:GetAttribute("EmitDelay"), function()
 					if Emitter:GetAttribute("EmitDuration") and Emitter:GetAttribute("EmitDuration") > 0 then
 						Emitter.Enabled = true
 						task.wait(Emitter:GetAttribute("EmitDuration"))
@@ -67,48 +69,50 @@ function Misc.Emit(Object: Part?, Descendants: boolean)
 			end
 		end
 	end
-	
-	Debris:AddItem(Object,DebrisTimer)
-	
+
+	Debris:AddItem(Object, DebrisTimer)
+
 	return DebrisTimer
 end
 
 function Misc.EnableStatus(Character: Model, FXName: string, FXDuration: number)
-    local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    
-    local rootAttachment = humanoidRootPart:FindFirstChild("RootAttachment")
-    if not rootAttachment then
-        rootAttachment = Instance.new("Attachment")
-        rootAttachment.Name = "RootAttachment"
-        rootAttachment.Parent = humanoidRootPart
-    end
-    
-    local FX = Replicated.Assets.VFX[FXName]:Clone()
-    FX.CFrame = humanoidRootPart.CFrame
-    FX.Anchored = false
-    FX.CanCollide = false
-    FX.CanQuery = false
-    FX.Transparency = 1
-    FX.Parent = workspace.World.Visuals
-    Misc.Emit(FX)
+	local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+	if not humanoidRootPart then
+		return
+	end
 
-    for _, v in pairs(FX:GetDescendants()) do
-        if v:IsA("ParticleEmitter") then
-            v.Enabled = true
-            v.Parent = rootAttachment
-        end
-    end
+	local rootAttachment = humanoidRootPart:FindFirstChild("RootAttachment")
+	if not rootAttachment then
+		rootAttachment = Instance.new("Attachment")
+		rootAttachment.Name = "RootAttachment"
+		rootAttachment.Parent = humanoidRootPart
+	end
 
-    task.delay(FXDuration, function()
-        for _, v in pairs(rootAttachment:GetChildren()) do
-            if v:IsA("ParticleEmitter") then
-                v.Enabled = false
-            end
-        end
-    end)
-    
-    Debris:AddItem(FX, FXDuration + .25)
+	local FX = Replicated.Assets.VFX[FXName]:Clone()
+	FX.CFrame = humanoidRootPart.CFrame
+	FX.Anchored = false
+	FX.CanCollide = false
+	FX.CanQuery = false
+	FX.Transparency = 1
+	FX.Parent = workspace.World.Visuals
+	Misc.Emit(FX)
+
+	for _, v in pairs(FX:GetDescendants()) do
+		if v:IsA("ParticleEmitter") then
+			v.Enabled = true
+			v.Parent = rootAttachment
+		end
+	end
+
+	task.delay(FXDuration, function()
+		for _, v in pairs(rootAttachment:GetChildren()) do
+			if v:IsA("ParticleEmitter") then
+				v.Enabled = false
+			end
+		end
+	end)
+
+	Debris:AddItem(FX, FXDuration + 0.25)
 end
 
 function Misc.CameraShake(State)
@@ -117,7 +121,9 @@ end
 
 -- Hyperarmor visual indicator system
 function Misc.StartHyperarmor(Character: Model)
-	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then
+		return
+	end
 
 	-- Remove any existing hyperarmor highlight
 	local existingHighlight = Character:FindFirstChild("HyperarmorHighlight")
@@ -139,10 +145,14 @@ function Misc.StartHyperarmor(Character: Model)
 end
 
 function Misc.UpdateHyperarmor(Character: Model, damagePercent: number)
-	if not Character then return end
+	if not Character then
+		return
+	end
 
 	local highlight = Character:FindFirstChild("HyperarmorHighlight")
-	if not highlight then return end
+	if not highlight then
+		return
+	end
 
 	-- Interpolate color from white (0% damage) to red (100% damage)
 	local white = Color3.fromRGB(255, 255, 255)
@@ -157,11 +167,13 @@ function Misc.UpdateHyperarmor(Character: Model, damagePercent: number)
 	highlight.FillTransparency = 0.3 - (damagePercent * 0.2) -- Gets more opaque as damage increases
 
 	---- print(string.format("Hyperarmor visual updated for %s: %.0f%% damage (Color: R%.0f G%.0f B%.0f)",
-		--Character.Name, damagePercent * 100, currentColor.R * 255, currentColor.G * 255, currentColor.B * 255))
+	--Character.Name, damagePercent * 100, currentColor.R * 255, currentColor.G * 255, currentColor.B * 255))
 end
 
 function Misc.RemoveHyperarmor(Character: Model)
-	if not Character then return end
+	if not Character then
+		return
+	end
 
 	local highlight = Character:FindFirstChild("HyperarmorHighlight")
 	if highlight then
@@ -170,7 +182,7 @@ function Misc.RemoveHyperarmor(Character: Model)
 		local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
 		local tween = TweenService:Create(highlight, tweenInfo, {
 			FillTransparency = 1,
-			OutlineTransparency = 1
+			OutlineTransparency = 1,
 		})
 		tween:Play()
 		tween.Completed:Connect(function()
@@ -182,7 +194,9 @@ function Misc.RemoveHyperarmor(Character: Model)
 end
 
 function Misc.AdrenalineFX(Character: Model)
-	if not Character then return end
+	if not Character then
+		return
+	end
 	local ADVfx = Replicated.Assets.VFX.Adrenaline:Clone()
 	ADVfx.Anchored = true
 	ADVfx.CanCollide = false
@@ -191,19 +205,19 @@ function Misc.AdrenalineFX(Character: Model)
 
 	for _, particleEmitter in ipairs(ADVfx:GetDescendants()) do
 		if particleEmitter:IsA("ParticleEmitter") then
-	particleEmitter:Emit(particleEmitter:GetAttribute("EmitCount"))
+			particleEmitter:Emit(particleEmitter:GetAttribute("EmitCount"))
 		end
 	end
 
 	-- Brief up-and-down screen shake for adrenaline level up
 	CamShake({
-			Location = Character.PrimaryPart.Position,
-			Magnitude = 5.5,
-			Damp = 0.00005,
-			Frequency = 35,
-			Influence = Vector3.new(.55, 1, .55),
-			Falloff = 89,
-		})
+		Location = Character.PrimaryPart.Position,
+		Magnitude = 5.5,
+		Damp = 0.00005,
+		Frequency = 35,
+		Influence = Vector3.new(0.55, 1, 0.55),
+		Falloff = 89,
+	})
 
 	Debris:AddItem(ADVfx, 1)
 end
@@ -211,22 +225,97 @@ end
 function Misc.DeconBolt(Character: Model, Position: Vector3 | Vector2)
 	local hrp = Character:FindFirstChild("HumanoidRootPart")
 	task.spawn(function()
-        for _ = 1,2 do
-            AB.new(hrp.CFrame * CFrame.new(0,0,-2), hrp.CFrame * CFrame.new(0, 0, -6.5), {
-                PartCount = 10, -- self explanatory
-                CurveSize0 = 5, -- self explanatory
-                CurveSize1 = 5, -- self explanatory
-                PulseSpeed = 11, -- how fast the bolts will be 
-                PulseLength = 1, -- how long each bolt is
-                FadeLength = 0.25, -- self explanatory
-                MaxRadius = 10, -- the zone of the bolts
-                Thickness = .5, -- self explanatory
-                Frequency = 0.85, -- how much it will zap around the less frequency (jitter amp)
-                Color = Color3.fromRGB(36, 140, 185),
-            })
-            task.wait(0.065)
-        end
-    end)
+		for _ = 1, 2 do
+			AB.new(hrp.CFrame * CFrame.new(0, 0, -2), hrp.CFrame * CFrame.new(0, 0, -6.5), {
+				PartCount = 10, -- self explanatory
+				CurveSize0 = 5, -- self explanatory
+				CurveSize1 = 5, -- self explanatory
+				PulseSpeed = 11, -- how fast the bolts will be
+				PulseLength = 1, -- how long each bolt is
+				FadeLength = 0.25, -- self explanatory
+				MaxRadius = 10, -- the zone of the bolts
+				Thickness = 0.5, -- self explanatory
+				Frequency = 0.85, -- how much it will zap around the less frequency (jitter amp)
+				Color = Color3.fromRGB(36, 140, 185),
+			})
+			task.wait(0.065)
+		end
+	end)
+end
+
+function Misc.Teleport(Character: Model)
+	local root = Character:FindFirstChild("HumanoidRootPart")
+
+	local conjure = Replicated.Assets.VFX.TP.conjure:Clone()
+	local CircleBreak = Replicated.Assets.VFX.TP.CircleBreak:Clone()
+	local h = Replicated.Assets.VFX.TP.Highlight:Clone()
+	local f = Replicated.Assets.VFX.TP.Highlight:Clone()
+	conjure.Parent = workspace.World.Visuals
+	CircleBreak.Parent = workspace.World.Visuals
+	conjure.CFrame = root.CFrame * CFrame.new(0, -2.5, 0)
+	CircleBreak.CFrame = root.CFrame * CFrame.new(0, -2.5, 0)
+
+	EmitModule.emit(conjure)
+	local transmuteSound = Replicated.Assets.SFX.FMAB.Transmute:Clone()
+	transmuteSound.Volume = 2
+	transmuteSound.Parent = root
+	transmuteSound:Play()
+	game:GetService("Debris"):AddItem(transmuteSound, transmuteSound.TimeLength)
+	-- task.delay(0.05, function()
+	-- 	-- for _, v in conjure:GetDescendants() do
+	-- 	-- 	if v:IsA("ParticleEmitter") then
+	-- 	-- 		local tween = TweenService:Create(
+	-- 	-- 			v,
+	-- 	-- 			TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	-- 	-- 			{ TimeScale = 0 }
+	-- 	-- 		)
+	-- 	-- 		tween:Play()
+	-- 	-- 	end
+	-- 	-- end
+	-- 	task.delay(0.1, function()
+	-- 		-- for _, v in conjure:GetDescendants() do
+	-- 		-- 	if v:IsA("ParticleEmitter") then
+	-- 		-- 		local tween = TweenService:Create(
+	-- 		-- 			v,
+	-- 		-- 			TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	-- 		-- 			{ TimeScale = 1 }
+	-- 		-- 		)
+	-- 		-- 		tween:Play()
+	-- 		-- 	end
+	-- 		-- end
+	-- 		h.Parent = CircleBreak.Dome.End
+	-- 		f.Parent = CircleBreak.Dome.Start
+	-- 		EmitModule.emit(CircleBreak)
+	-- 		-- for _, v in CircleBreak:GetDescendants() do
+	-- 		-- 	if v:IsA("ParticleEmitter") then
+	-- 		-- 		local tween = TweenService:Create(
+	-- 		-- 			v,
+	-- 		-- 			TweenInfo.new(0.01, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	-- 		-- 			{ TimeScale = 0 }
+	-- 		-- 		)
+	-- 		-- 		tween:Play()
+	-- 		-- 	end
+	-- 		-- end
+	-- 		-- for _, v in CircleBreak:GetDescendants() do
+	-- 		-- 	if v:IsA("ParticleEmitter") then
+	-- 		-- 		local tween = TweenService:Create(
+	-- 		-- 			v,
+	-- 		-- 			TweenInfo.new(0.025, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	-- 		-- 			{ TimeScale = 1 }
+	-- 		-- 		)
+	-- 		-- 		tween:Play()
+	-- 		-- 	end
+	-- 		-- end
+	-- 		CamShake({
+	-- 			Location = root.Position,
+	-- 			Magnitude = 5.5,
+	-- 			Damp = 0.00005,
+	-- 			Frequency = 35,
+	-- 			Influence = Vector3.new(0.55, 1, 0.55),
+	-- 			Falloff = 89,
+	-- 		})
+	-- 	end)
+	-- end)
 end
 
 return Misc

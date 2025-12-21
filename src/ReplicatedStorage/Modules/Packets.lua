@@ -38,6 +38,13 @@ return ByteNet.defineNamespace("Networking", function()
 				Air  = ByteNet.bool,
 			})
 		});
+		Motor = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Held = ByteNet.bool,
+				Air  = ByteNet.bool,
+			})
+		});
 		
 		Critical = ByteNet.definePacket({
 			reliabilityType = "reliable";
@@ -209,6 +216,58 @@ return ByteNet.defineNamespace("Networking", function()
 			reliabilityType = "reliable";
 			value = ByteNet.struct({
 				Enabled = ByteNet.bool;
+			})
+		});
+
+		ObjectInteract = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				ObjectId = ByteNet.string;
+			})
+		});
+
+		-- NPC Relationship System
+		NPCRelationship = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Action = ByteNet.string; -- "Interact", "GetRelationship"
+				NPCId = ByteNet.string; -- Unique NPC identifier
+				NPCName = ByteNet.optional(ByteNet.string);
+				Occupation = ByteNet.optional(ByteNet.string);
+				Personality = ByteNet.optional(ByteNet.string);
+				Appearance = ByteNet.optional(ByteNet.unknown); -- Appearance data table
+			})
+		});
+
+		-- Server to client relationship sync
+		NPCRelationshipSync = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				NPCId = ByteNet.string;
+				Value = ByteNet.int16; -- Relationship value 0-100
+				Tier = ByteNet.string; -- "Stranger", "Acquaintance", etc.
+				IsBefriended = ByteNet.bool; -- True if Friend tier or higher
+			})
+		});
+
+		-- Pickpocket system
+		Pickpocket = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				NPCId = ByteNet.string; -- NPC being pickpocketed
+				Occupation = ByteNet.optional(ByteNet.string); -- NPC's occupation
+			})
+		});
+
+		-- Pickpocket result (server to client)
+		PickpocketResult = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Success = ByteNet.bool;
+				Message = ByteNet.string;
+				Money = ByteNet.optional(ByteNet.int32);
+				Item = ByteNet.optional(ByteNet.string);
+				GuardsSpawning = ByteNet.bool;
 			})
 		});
 

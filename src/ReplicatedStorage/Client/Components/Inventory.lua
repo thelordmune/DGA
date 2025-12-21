@@ -600,7 +600,7 @@ local function InventoryUI(scope, props)
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
 		CursorPosition = -1,
-		FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
+		FontFace = Font.new("rbxasset://fonts/families/Sarpanch.json"),
 		PlaceholderText = "Search...",
 		Position = UDim2.fromScale(0.168, 0.0273),
 		Size = UDim2.fromOffset(131, 10),

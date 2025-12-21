@@ -27,9 +27,9 @@ local function getWandererSpawns()
     return spawns
 end
 
--- Get spawns and ensure we have at least 1
+-- Get spawns and ensure we have at least 1, but cap at 20
 local wandererSpawns = getWandererSpawns()
-local wandererCount = math.max(1, #wandererSpawns) -- At least 1 wanderer
+local wandererCount = math.clamp(#wandererSpawns, 1, 20) -- Between 1-20 wanderers max
 
 --print("[Wanderer] 🚶 Loading Wanderer configuration")
 --print("[Wanderer] Spawn count:", wandererCount)
@@ -45,8 +45,8 @@ local WandererData = {
 	SpawnCooldown = 1,
 
 	Type = "Active",
-	AlwaysSpawn = false, -- ENABLED - Wanderers spawn for testing regen system
-	LoadDistance = nil, -- Disabled - no proximity spawning
+	AlwaysSpawn = true, -- ENABLED - Wanderers spawn on game start
+	LoadDistance = nil, -- No proximity spawning needed since AlwaysSpawn is true
 
 	DataToSendOverAndUdpate = {
 		Spawning = {

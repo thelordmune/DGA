@@ -585,5 +585,148 @@ CombatProperties["Firestorm"] = {
     HasHyperArmor = false,
 }
 
+-- ADDITIONAL SPEAR SKILLS
+CombatProperties["Charged Thrust"] = {
+    SkillType = "Offensive",
+    RangeType = "Medium",
+    TargetingProperties = {
+        MinRange = 3,
+        MaxRange = 18,
+        OptimalRange = 12,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = true,
+        FollowupWindow = 0.7,
+    },
+    DashProperty = "Forward",
+    SkillPriority = 12, -- High priority charged attack
+    IsGuardBreak = true, -- Charged attacks break blocks
+    IsComboExtender = false,
+    HasHyperArmor = true,
+}
+
+CombatProperties["Rapid Thrust"] = {
+    SkillType = "Offensive",
+    RangeType = "Close",
+    TargetingProperties = {
+        MinRange = 0,
+        MaxRange = 10,
+        OptimalRange = 6,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = false,
+        FollowupWindow = 0.5,
+    },
+    DashProperty = nil,
+    SkillPriority = 11, -- High priority rapid attack
+    IsGuardBreak = false,
+    IsComboExtender = true, -- Good for comboing
+    HasHyperArmor = false,
+}
+
+CombatProperties["WhirlWind"] = {
+    SkillType = "Offensive",
+    RangeType = "Close",
+    TargetingProperties = {
+        MinRange = 0,
+        MaxRange = 12,
+        OptimalRange = 7,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = true,
+        FollowupWindow = 0.8,
+    },
+    DashProperty = nil,
+    SkillPriority = 14, -- Very high priority - AOE spin
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = true, -- Protected during spin
+}
+
+-- ADDITIONAL GUN SKILLS
+CombatProperties["Inverse Slide"] = {
+    SkillType = "Movement",
+    RangeType = "Medium",
+    TargetingProperties = {
+        MinRange = 5,
+        MaxRange = 25,
+        OptimalRange = 15,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = false,
+        FollowupWindow = 0.6,
+    },
+    DashProperty = "Back",
+    SkillPriority = 10, -- Repositioning move
+    IsGuardBreak = false,
+    IsComboExtender = false,
+    HasHyperArmor = false,
+}
+
+CombatProperties["Tapdance"] = {
+    SkillType = "Offensive",
+    RangeType = "Medium",
+    TargetingProperties = {
+        MinRange = 5,
+        MaxRange = 20,
+        OptimalRange = 12,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = false,
+        FollowupWindow = 0.7,
+    },
+    DashProperty = nil,
+    SkillPriority = 12, -- Rapid fire attack
+    IsGuardBreak = false,
+    IsComboExtender = true,
+    HasHyperArmor = false,
+}
+
+CombatProperties["Hellraiser"] = {
+    SkillType = "Offensive",
+    RangeType = "Long",
+    TargetingProperties = {
+        MinRange = 10,
+        MaxRange = 35,
+        OptimalRange = 22,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = true,
+        FollowupWindow = 1.0,
+    },
+    DashProperty = nil,
+    SkillPriority = 15, -- Ultimate gun move
+    IsGuardBreak = true,
+    IsComboExtender = false,
+    HasHyperArmor = false,
+}
+
+-- ADDITIONAL FIST SKILLS
+CombatProperties["Triple Kick"] = {
+    SkillType = "Offensive",
+    RangeType = "Close",
+    TargetingProperties = {
+        MinRange = 0,
+        MaxRange = 8,
+        OptimalRange = 5,
+    },
+    ComboProperties = {
+        IsComboStarter = true,
+        IsComboEnder = false,
+        FollowupWindow = 0.6,
+    },
+    DashProperty = nil,
+    SkillPriority = 11, -- Good combo starter
+    IsGuardBreak = false,
+    IsComboExtender = true, -- Great for comboing
+    HasHyperArmor = false,
+}
+
 return CombatProperties
 

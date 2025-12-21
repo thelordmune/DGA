@@ -10,6 +10,11 @@ return function(actor: Actor, mainConfig: table)
 		return false
 	end
 
+	-- Skip if this is a wanderer NPC (ECS AI handles flee behavior)
+	if ECSBridge.isWandererNPC(npc) then
+		return false
+	end
+
 	local root,humanoid = npc:FindFirstChild("HumanoidRootPart") :: BasePart,npc:FindFirstChild("Humanoid") :: Humanoid
 	if not root or not humanoid then
 		return false

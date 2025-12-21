@@ -195,7 +195,7 @@ return function(scope, props: {
 						BackgroundTransparency = 1,
 						BorderColor3 = Color3.fromRGB(0, 0, 0),
 						BorderSizePixel = 0,
-						FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json"),
+						FontFace = Font.new("rbxasset://fonts/families/Sarpanch.json"),
 						Position = UDim2.fromScale(0.5, 0.5),
 						Size = UDim2.fromScale(1, 1),
 						Text = keyLabel,
@@ -216,7 +216,7 @@ return function(scope, props: {
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
 				BorderSizePixel = 0,
 				FontFace = Font.new(
-					"rbxasset://fonts/families/SourceSansPro.json",
+					"rbxasset://fonts/families/Sarpanch.json",
 					Enum.FontWeight.Bold,
 					Enum.FontStyle.Normal
 				),

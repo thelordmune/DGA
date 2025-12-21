@@ -316,7 +316,7 @@ end
 	Setup leveling and experience observers
 	Reacts to Level and Experience component changes
 
-	NOTE: jecs-utils monitors only support :added() and :removed(), not :changed()
+	NOTE: jecs-utils monitors only support .added() and .removed(), not :changed()
 	So we track when Level/Experience components are first added to entities
 ]]
 function ObserversManager.setupLevelingObservers()
@@ -380,7 +380,7 @@ function ObserversManager.cleanup()
 	---- print("[Observers] Cleaning up all observers...")
 	for _, observer in ipairs(ObserversManager.activeObservers) do
 		if observer.disconnect then
-			observer:disconnect()
+			observer.disconnect()
 		end
 	end
 	table.clear(ObserversManager.activeObservers)

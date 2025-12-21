@@ -14,6 +14,7 @@ local function HealthBarColumn(scope, props)
 	local delayTime = props.delayTime or 0
 	local health = props.health
 	local adrenaline = props.adrenaline
+	local gradientOffset = props.gradientOffset -- Shared gradient offset for all columns
 
 	local localDisplay = scope:Value(false)
 
@@ -100,7 +101,7 @@ local function HealthBarColumn(scope, props)
 		),
 
 		[Children] = {
-			-- Red glow effect on each bar
+			-- Red glow effect on each bar with silver gradient overlay
 			scope:New("ImageLabel")({
 				Name = "GaussianBlur",
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -118,6 +119,24 @@ local function HealthBarColumn(scope, props)
 					30,
 					9
 				),
+				[Children] = {
+					-- Silver flashing gradient effect (more dramatic)
+					scope:New("UIGradient")({
+						Name = "SilverFlash",
+						Rotation = 90,
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 100, 100)),
+							ColorSequenceKeypoint.new(0.324, Color3.fromRGB(143, 143, 143)),
+							ColorSequenceKeypoint.new(0.5, Color3.fromRGB(249, 249, 249)),
+							ColorSequenceKeypoint.new(0.692, Color3.fromRGB(103, 103, 103)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 100)),
+						}),
+						Offset = scope:Computed(function(use)
+							local currentOffset = use(gradientOffset)
+							return Vector2.new(currentOffset, 0)
+						end),
+					}),
+				},
 			}),
 		},
 	})
@@ -132,14 +151,24 @@ return function(Target)
 	local display = scope:Value(false)
 	local circleRotation = scope:Value(0)
 	local showCastingCircle = scope:Value(false) -- Control whether to show casting UI instead of health circle
+	local gradientOffset = scope:Value(-1) -- Silver gradient animation offset
 
 	-- Health and Adrenaline values (0-100) - exposed for external updates
 	local health = scope:Value(100)
 	local adrenaline = scope:Value(0)
+	local money = scope:Value(0) -- Player's money for display
 
-	-- Rotate circle background every frame
+	-- Rotate circle background and animate silver gradient every frame
 	local rotationConnection = RunService.RenderStepped:Connect(function(dt)
 		circleRotation:set((peek(circleRotation) + (dt * 50)) % 360)
+
+		-- Animate silver gradient offset (flows from -1 to 2 and loops)
+		local currentOffset = peek(gradientOffset)
+		local newOffset = currentOffset + (dt * 1.2) -- Speed of silver flash (faster for more dramatic effect)
+		if newOffset > 2 then
+			newOffset = -1 -- Reset to create continuous loop
+		end
+		gradientOffset:set(newOffset)
 	end)
 
 	-- Initial animation delay
@@ -165,6 +194,7 @@ return function(Target)
 				delayTime = columnDelay,
 				health = health,
 				adrenaline = adrenaline,
+				gradientOffset = gradientOffset,
 			})
 		)
 	end
@@ -231,6 +261,44 @@ return function(Target)
 							NumberSequenceKeypoint.new(0, 0.356),
 							NumberSequenceKeypoint.new(0.495, 0.387),
 							NumberSequenceKeypoint.new(1, 0.306),
+						}),
+					}),
+				},
+			}),
+
+			scope:New("ImageLabel")({
+				Name = "ImageLabel",
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BackgroundTransparency = 1,
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				Image = "rbxassetid://130684158382755",
+				ImageTransparency = scope:Spring(
+					scope:Computed(function(use)
+						return if use(display) then 0 else 1
+					end),
+					30,
+					9
+				),
+				Position = UDim2.fromScale(0, -0.0696),
+				ScaleType = Enum.ScaleType.Slice,
+				Size = UDim2.fromOffset(612, 129),
+				SliceCenter = Rect.new(44, 134, 473, 169),
+				SliceScale = 0.5,
+				ZIndex = -30,
+
+				[Children] = {
+					scope:New("UIGradient")({
+						Name = "UIGradient",
+						Transparency = NumberSequence.new({
+							NumberSequenceKeypoint.new(0, 1),
+							NumberSequenceKeypoint.new(0.0499, 0.944),
+							NumberSequenceKeypoint.new(0.202, 0.119),
+							NumberSequenceKeypoint.new(0.424, 0.762),
+							NumberSequenceKeypoint.new(0.555, 0.756),
+							NumberSequenceKeypoint.new(0.798, 0.181),
+							NumberSequenceKeypoint.new(0.964, 0.944),
+							NumberSequenceKeypoint.new(1, 1),
 						}),
 					}),
 				},
@@ -630,11 +698,97 @@ return function(Target)
 	-- Add cleanup to scope
 	table.insert(scope, cleanupRotation)
 
+	-- Money display above the health bar
+	local moneyDisplay = scope:New("Frame")({
+		Parent = Target,
+		Name = "MoneyDisplay",
+		AnchorPoint = Vector2.new(0.5, 1),
+		BackgroundTransparency = 1,
+		Position = scope:Spring(
+			scope:Computed(function(use)
+				return if use(display) then UDim2.new(0.5, 0, 0, -8) else UDim2.new(0.5, 0, 0, -50)
+			end),
+			30,
+			3
+		),
+		Size = UDim2.fromOffset(150, 30),
+		ZIndex = 100,
+
+		[Children] = {
+			-- Money icon (coin symbol)
+			scope:New("TextLabel")({
+				Name = "CoinIcon",
+				BackgroundTransparency = 1,
+				Position = UDim2.fromOffset(0, 0),
+				Size = UDim2.fromOffset(24, 24),
+				Text = "\u{1FA99}", -- Coin emoji
+				TextColor3 = Color3.fromRGB(255, 215, 0), -- Gold color
+				TextSize = 20,
+				Font = Enum.Font.GothamBold,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				TextTransparency = scope:Spring(
+					scope:Computed(function(use)
+						return if use(display) then 0 else 1
+					end),
+					30,
+					9
+				),
+			}),
+
+			-- Money amount
+			scope:New("TextLabel")({
+				Name = "MoneyAmount",
+				BackgroundTransparency = 1,
+				Position = UDim2.fromOffset(28, 0),
+				Size = UDim2.new(1, -28, 1, 0),
+				Text = scope:Computed(function(use)
+					local amount = use(money)
+					-- Format with commas for thousands
+					local formatted = tostring(amount)
+					local k = 1
+					while true do
+						formatted, k = formatted:gsub("^(-?%d+)(%d%d%d)", '%1,%2')
+						if k == 0 then break end
+					end
+					return formatted
+				end),
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+				TextSize = 18,
+				Font = Enum.Font.GothamBold,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				TextStrokeTransparency = 0.3,
+				TextStrokeColor3 = Color3.fromRGB(0, 0, 0),
+				TextTransparency = scope:Spring(
+					scope:Computed(function(use)
+						return if use(display) then 0 else 1
+					end),
+					30,
+					9
+				),
+
+				[Children] = {
+					-- Gold gradient on text
+					scope:New("UIGradient")({
+						Color = ColorSequence.new({
+							ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 223, 128)),
+							ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+							ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 215, 0)),
+						}),
+						Rotation = 90,
+					}),
+				},
+			}),
+		},
+	})
+
 	-- Return the UI frame, values, and scope for external updates and cleanup
 	return {
 		frame = holderFrame,
 		healthValue = health,
 		adrenalineValue = adrenaline,
+		moneyValue = money, -- Expose money value for external updates
 		castingAPI = castingAPI, -- Expose casting API for external control
 		scope = scope, -- Expose scope for cleanup on death
 	}

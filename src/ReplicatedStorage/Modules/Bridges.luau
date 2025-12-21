@@ -13,6 +13,10 @@ local bridgeTree = {
 	UpdateHotbar = bridgeNet2.ReferenceBridge("UpdateHotbar"),
 	QuestCompleted = bridgeNet2.ReferenceBridge("QuestCompleted"),
 	UpdateAdrenaline = bridgeNet2.ReferenceBridge("UpdateAdrenaline"),
+	UpdateMoney = bridgeNet2.ReferenceBridge("UpdateMoney"),
+	UpdateInfluence = bridgeNet2.ReferenceBridge("UpdateInfluence"),
+	NightTransition = bridgeNet2.ReferenceBridge("NightTransition"),
+	JailPlayer = bridgeNet2.ReferenceBridge("JailPlayer"),
 }
 
 return bridgeTree

@@ -34,19 +34,18 @@ function QuestTrackerManager.new()
 	local self = setmetatable({}, QuestTrackerManager)
 	
 	-- Fusion scope for managing UI lifecycle
-	self.scope = scoped(Fusion, {
-		QuestTrackerComponent = require(ReplicatedStorage.Client.Components.QuestTrackers)
-	})
+	self.scope = scoped(Fusion, {})
 	
 	-- State
 	self.isOpen = self.scope:Value(false)
-	self.currentView = self.scope:Value("ActiveQuest") -- "ActiveQuest" or "QuestIndex"
 	self.activeQuestData = self.scope:Value(nil)
 	self.questsList = self.scope:Value({})
+	self.questsVisible = self.scope:Value(false)
 	
 	-- UI References
 	self.questTrackerGui = nil
-	
+	self.questUIFrame = nil
+
 	instance = self
 	return self
 end
@@ -81,7 +80,7 @@ end
 function QuestTrackerManager:CreateUI()
 	local player = Players.LocalPlayer
 	local playerGui = player:WaitForChild("PlayerGui")
-	
+
 	-- Create ScreenGui for quest tracker
 	self.questTrackerGui = self.scope:New "ScreenGui" {
 		Name = "QuestTrackerGui",
@@ -89,17 +88,36 @@ function QuestTrackerManager:CreateUI()
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		DisplayOrder = 5,
+		Enabled = self.scope:Computed(function(use)
+			return use(self.isOpen)
+		end),
 	}
-	
-	-- Create the quest tracker using the component
-	local questTrackerFrame = self.scope:QuestTrackerComponent({
-		isOpen = self.isOpen,
-		currentView = self.currentView,
-		activeQuestData = self.activeQuestData,
-		questsList = self.questsList,
+
+	-- Create a container frame
+	local containerFrame = self.scope:New "Frame" {
+		Name = "QuestContainer",
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = UDim2.fromScale(0.02, 0.05), -- Top left corner
+		Size = UDim2.fromOffset(380, 500),
 		Parent = self.questTrackerGui,
+	}
+
+	-- Add corner to container
+	self.scope:New "UICorner" {
+		CornerRadius = UDim.new(0, 10),
+		Parent = containerFrame,
+	}
+
+	-- Create the new quest UI using the component
+	local NewQuestComponent = require(ReplicatedStorage.Client.Components.Newquest)
+	self.questUIFrame = NewQuestComponent(self.scope, {
+		Parent = containerFrame,
+		questsList = self.questsList, -- Pass the questsList so the component can observe it
+		isVisible = self.questsVisible, -- Pass visibility state for fade animations
 	})
-	
+
 	-- ---- print("[QuestTracker] UI created")
 end
 
@@ -128,38 +146,47 @@ function QuestTrackerManager:UpdateQuestData()
 	-- Update active quest
 	if world:has(playerEntity, comps.ActiveQuest) then
 		local activeQuest = world:get(playerEntity, comps.ActiveQuest)
-		-- -- ---- print("[QuestTracker] Active quest found:", activeQuest.npcName, activeQuest.questName)
-
 		local questInfo = QuestData[activeQuest.npcName] and QuestData[activeQuest.npcName][activeQuest.questName]
 
 		if questInfo then
-			-- ---- print("[QuestTracker] Quest info found, updating UI")
-			self.activeQuestData:set({
+			local questData = {
 				npcName = activeQuest.npcName,
 				questName = activeQuest.questName,
 				description = questInfo.Description or "No description available",
 				startTime = activeQuest.startTime,
-			})
-		else
-			-- ---- print("[QuestTracker] Quest info not found in QuestData for:", activeQuest.npcName, activeQuest.questName)
+			}
+			self.activeQuestData:set(questData)
+
+			-- Update questsList - the Newquest component will observe this and update automatically
+			local currentQuests = peek(self.questsList)
+			local alreadyExists = false
+			for _, quest in ipairs(currentQuests) do
+				if quest.name == activeQuest.questName then
+					alreadyExists = true
+					break
+				end
+			end
+
+			-- Only add if it doesn't exist
+			if not alreadyExists then
+				local updatedList = {}
+				for _, q in ipairs(currentQuests) do
+					table.insert(updatedList, q)
+				end
+				table.insert(updatedList, {
+					name = activeQuest.questName,
+					desc = questInfo.Description or "No description available",
+					icon = "rbxassetid://99100008402900", -- Default icon
+					npcName = activeQuest.npcName,
+				})
+				self.questsList:set(updatedList)
+			end
 		end
 	else
-		-- ---- print("[QuestTracker] No active quest")
 		self.activeQuestData:set(nil)
+		-- Clear all quests from UI when no active quest
+		self.questsList:set({})
 	end
-
-	-- Update quests list (for Quest Index)
-	local quests = {}
-	if world:has(playerEntity, comps.ActiveQuest) then
-		local activeQuest = world:get(playerEntity, comps.ActiveQuest)
-		table.insert(quests, {
-			npcName = activeQuest.npcName,
-			questName = activeQuest.questName,
-			isActive = true,
-		})
-	end
-	self.questsList:set(quests)
-	-- -- ---- print("[QuestTracker] Updated quests list, count:", #quests)
 end
 
 function QuestTrackerManager:SetupKeybind()
@@ -174,29 +201,40 @@ end
 
 function QuestTrackerManager:Toggle()
 	local newState = not peek(self.isOpen)
-	self.isOpen:set(newState)
-	
-	-- Update quest data when opening
-	if newState then
+
+	if not newState then
+		-- Trigger fade-out animation before closing
+		self.questsVisible:set(false)
+		-- Wait for fade-out to complete before hiding UI
+		task.delay(0.35, function()
+			self.isOpen:set(false)
+		end)
+	else
+		-- Open immediately and trigger fade-in
+		self.isOpen:set(true)
 		self:UpdateQuestData()
+		-- Trigger fade-in animation
+		task.delay(0.05, function()
+			self.questsVisible:set(true)
+		end)
 	end
-	
+
 	-- ---- print("[QuestTracker] Toggled:", newState and "Open" or "Closed")
 end
 
 function QuestTrackerManager:Show()
 	self.isOpen:set(true)
 	self:UpdateQuestData()
+	task.delay(0.05, function()
+		self.questsVisible:set(true)
+	end)
 end
 
 function QuestTrackerManager:Hide()
-	self.isOpen:set(false)
-end
-
-function QuestTrackerManager:SwitchView(viewName)
-	if viewName == "ActiveQuest" or viewName == "QuestIndex" then
-		self.currentView:set(viewName)
-	end
+	self.questsVisible:set(false)
+	task.delay(0.35, function()
+		self.isOpen:set(false)
+	end)
 end
 
 function QuestTrackerManager:Destroy()
