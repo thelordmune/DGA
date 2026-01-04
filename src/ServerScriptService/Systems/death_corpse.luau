@@ -123,32 +123,26 @@ local function createCorpse(character: Model, deathPosition: Vector3)
 end
 
 local function setupDeathHandler(character: Model)
-    -- Disconnect old connection if it exists
+    -- Disconnect old connections if they exist
     if deathConnections[character] then
-        deathConnections[character]:Disconnect()
+        for _, conn in deathConnections[character] do
+            if conn then conn:Disconnect() end
+        end
         deathConnections[character] = nil
     end
-    
+
     local humanoid = character:WaitForChild("Humanoid", 5)
     if not humanoid then return end
-    
-    -- Also listen for low health to ragdoll before death (prevents body from falling apart)
-    local healthConnection
-    healthConnection = humanoid.HealthChanged:Connect(function(health)
-        if health <= 0 and character.Parent then
-            -- Ragdoll immediately when health reaches 0 (before Died event)
-            Ragdoll:Enable(character)
 
-            -- Disconnect health listener
-            if healthConnection then
-                healthConnection:Disconnect()
-                healthConnection = nil
-            end
-        end
-    end)
+    deathConnections[character] = {}
 
-    deathConnections[character] = humanoid.Died:Connect(function()
-       -- print(`[DeathCorpse] {character.Name} died, creating corpse...`)
+    -- Function to handle death (shared between CustomDeath and health check)
+    local function handleDeath()
+        -- Prevent duplicate death handling
+        if character:GetAttribute("DeathHandled") then return end
+        character:SetAttribute("DeathHandled", true)
+
+       -- print(`[DeathCorpse] {character.Name} died (custom death system), creating corpse...`)
 
         -- Get death position
         local rootPart = character:FindFirstChild("HumanoidRootPart")
@@ -159,9 +153,15 @@ local function setupDeathHandler(character: Model)
         VFXCleanup.DisableCharacterParticles(character)
        -- print(`[DeathCorpse] Cleaned up VFX for {character.Name}`)
 
-        -- Ensure ragdoll is enabled (in case HealthChanged didn't fire)
+        -- Enable ragdoll
         if not character:FindFirstChild("Ragdoll") then
             Ragdoll:Enable(character)
+        end
+
+        -- Actually kill the character by setting health to 0
+        -- This triggers Roblox's death system (respawn for players, cleanup for NPCs)
+        if humanoid then
+            humanoid.Health = 0
         end
 
         -- Create corpse clone
@@ -169,19 +169,53 @@ local function setupDeathHandler(character: Model)
             createCorpse(character, deathPosition)
         end)
 
-        -- Clean up connections
-        if healthConnection then
-            healthConnection:Disconnect()
-            healthConnection = nil
-        end
+        -- Clean up all connections
         if deathConnections[character] then
-            deathConnections[character]:Disconnect()
+            for _, conn in deathConnections[character] do
+                if conn then conn:Disconnect() end
+            end
             deathConnections[character] = nil
         end
-    end)
+    end
+
+    -- Listen for CustomDeath BindableEvent (fired by Damage.lua when health <= 1)
+    local customDeathEvent = character:FindFirstChild("CustomDeath")
+    if customDeathEvent then
+        table.insert(deathConnections[character], customDeathEvent.Event:Connect(handleDeath))
+    end
+
+    -- Also listen for CustomDeath being added (in case it's created after setup)
+    table.insert(deathConnections[character], character.ChildAdded:Connect(function(child)
+        if child.Name == "CustomDeath" and child:IsA("BindableEvent") then
+            child.Event:Connect(handleDeath)
+        end
+    end))
+
+    -- Listen for health reaching 1 (death threshold) as backup
+    table.insert(deathConnections[character], humanoid.HealthChanged:Connect(function(health)
+        if health <= 1 and character.Parent then
+            -- Check if marked as dead by Damage.lua
+            if character:GetAttribute("IsDead") then
+                handleDeath()
+            end
+        end
+    end))
+
+    -- Fallback: Also listen for Humanoid.Died in case Roblox death somehow triggers
+    -- (shouldn't happen with 1 HP threshold, but good for safety)
+    table.insert(deathConnections[character], humanoid.Died:Connect(function()
+        handleDeath()
+    end))
 end
 
 local initialized = false
+
+local function setupCharacterDeathHandler(character)
+    if character:IsDescendantOf(workspace.World.Live) and not character:GetAttribute("NotActualRig") then
+        setupDeathHandler(character)
+       -- print(`[DeathCorpse] Set up death handler for {character.Name}`)
+    end
+end
 
 local function init()
     if initialized then return end
@@ -190,20 +224,24 @@ local function init()
     -- Wait for workspace to be ready
     task.wait(1)
 
-    -- Setup death handlers for all existing characters
+    -- Setup death handlers for all existing NPC characters
     for _, character in CollectionService:GetTagged("Humanoids") do
-        if character:IsDescendantOf(workspace.World.Live) and not character:GetAttribute("NotActualRig") then
-            setupDeathHandler(character)
-           -- print(`[DeathCorpse] Set up death handler for {character.Name}`)
-        end
+        setupCharacterDeathHandler(character)
     end
 
-    -- Setup death handlers for new characters as they're added
+    -- Setup death handlers for all existing player characters
+    for _, character in CollectionService:GetTagged("Players") do
+        setupCharacterDeathHandler(character)
+    end
+
+    -- Setup death handlers for new NPC characters as they're added
     CollectionService:GetInstanceAddedSignal("Humanoids"):Connect(function(character)
-        if character:IsDescendantOf(workspace.World.Live) and not character:GetAttribute("NotActualRig") then
-            setupDeathHandler(character)
-           -- print(`[DeathCorpse] Set up death handler for {character.Name}`)
-        end
+        setupCharacterDeathHandler(character)
+    end)
+
+    -- Setup death handlers for new player characters as they're added
+    CollectionService:GetInstanceAddedSignal("Players"):Connect(function(character)
+        setupCharacterDeathHandler(character)
     end)
 
    -- print("[DeathCorpse] ✅ Death corpse system initialized")

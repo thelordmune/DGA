@@ -4,6 +4,7 @@ local Fusion = require(ReplicatedStorage.Modules.Fusion)
 local Library = require(ReplicatedStorage.Modules.Library)
 local Tooltip = require(ReplicatedStorage.Client.Components.Tooltip)
 local SkillStats = require(ReplicatedStorage.Modules.Utils.SkillStats)
+local InventoryState = require(ReplicatedStorage.Client.InventoryState)
 
 local Children, scoped, peek, Computed, Spring, Value, OnEvent =
 	Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Computed, Fusion.Spring, Fusion.Value, Fusion.OnEvent
@@ -73,7 +74,7 @@ return function(scope, props: {
 		end
 	end)
 
-	-- Cleanup cooldown connection when scope is destroyed
+	-- Cleanup cooldown connection when scope is destroyed (tooltip cleanup added after tooltip vars are defined)
 	table.insert(scope, function()
 		if cooldownConnection then
 			cooldownConnection:Disconnect()
@@ -102,6 +103,16 @@ return function(scope, props: {
 	local tooltipFrame = nil
 	local tooltipScope = nil
 	local tooltipStarted = scope:Value(false)
+
+	-- Cleanup tooltip scope when parent scope is destroyed (prevents memory leak if player dies while hovering)
+	table.insert(scope, function()
+		if tooltipScope then
+			tooltipScope:doCleanup()
+			tooltipScope = nil
+			tooltipFrame = nil
+			---- print(`[HotbarButton] 🧹 Cleaned up tooltip scope for slot {slotNumber}`)
+		end
+	end)
 
 	local button
 
@@ -156,6 +167,14 @@ return function(scope, props: {
 		end
 		tooltipFrame = nil
 		tooltipScope = nil
+		end,
+		[OnEvent "MouseButton1Click"] = function()
+			-- Check if an inventory item is selected for hotbar assignment
+			local selectedSlot = InventoryState.getSelectedSlot()
+			if selectedSlot then
+				-- An inventory item is selected - handle the hotbar click
+				InventoryState.handleHotbarClick(slotNumber)
+			end
 		end,
 
 		[Children] = {

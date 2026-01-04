@@ -145,6 +145,73 @@ local function processDialogueText(text)
 		processed = processed:gsub("{ask_rumors}", askOptions.rumors)
 	end
 
+	-- Work detail responses (follow-up conversations)
+	if processed:find("{work_detail_1}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "work_detail_1", personality)
+		processed = processed:gsub("{work_detail_1}", response)
+	end
+	if processed:find("{work_detail_2}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "work_detail_2", personality)
+		processed = processed:gsub("{work_detail_2}", response)
+	end
+	if processed:find("{work_detail_3}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "work_detail_3", personality)
+		processed = processed:gsub("{work_detail_3}", response)
+	end
+
+	-- Town detail responses (follow-up conversations)
+	if processed:find("{town_detail_1}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "town_detail_1", personality)
+		processed = processed:gsub("{town_detail_1}", response)
+	end
+	if processed:find("{town_detail_2}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "town_detail_2", personality)
+		processed = processed:gsub("{town_detail_2}", response)
+	end
+	if processed:find("{town_detail_3}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "town_detail_3", personality)
+		processed = processed:gsub("{town_detail_3}", response)
+	end
+
+	-- Rumors detail responses (follow-up conversations)
+	if processed:find("{rumors_detail_1}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "rumors_detail_1", personality)
+		processed = processed:gsub("{rumors_detail_1}", response)
+	end
+	if processed:find("{rumors_detail_2}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "rumors_detail_2", personality)
+		processed = processed:gsub("{rumors_detail_2}", response)
+	end
+	if processed:find("{rumors_detail_3}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "rumors_detail_3", personality)
+		processed = processed:gsub("{rumors_detail_3}", response)
+	end
+
+	-- Personal responses (about themselves)
+	if processed:find("{personal_intro}") then
+		local response = WandererDialogue.getPersonalIntro(occupation, personality)
+		processed = processed:gsub("{personal_intro}", response)
+	end
+	if processed:find("{personal_history}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "personal_history", personality)
+		processed = processed:gsub("{personal_history}", response)
+	end
+	if processed:find("{personal_family}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "personal_family", personality)
+		processed = processed:gsub("{personal_family}", response)
+	end
+	if processed:find("{personal_hopes}") then
+		local response = WandererDialogue.getTopicResponse(occupation, "personal_hopes", personality)
+		processed = processed:gsub("{personal_hopes}", response)
+	end
+
+	-- Pickpocket result (handled by server, but provide default)
+	if processed:find("{pickpocket_result}") then
+		-- This will be replaced by the server's actual result
+		-- Default text shown briefly before server response
+		processed = processed:gsub("{pickpocket_result}", "You reach for their belongings...")
+	end
+
 	return processed
 end
 
@@ -555,6 +622,19 @@ function LoadNode(Node, Params)
 				Function = "Complete",
 				Arguments = {questName, questAction}, -- Send as array: [questName, choice]
 			})
+		elseif questAction == "Pickpocket" then
+			-- Handle pickpocket action - send to server and wait for result
+			local npcModel = Params and Params.model
+			local npcId = npcModel and tostring(npcModel:GetAttribute("NPCId") or npcModel.Name) or "Unknown"
+			local occupation = npcModel and npcModel:GetAttribute("Occupation") or "Civilian"
+
+			-- Send pickpocket request to server
+			Client.Packets.Pickpocket.send({
+				NPCId = npcId,
+				Occupation = occupation,
+			})
+
+			-- The result will be handled by the PickpocketResult listener below
 		else
 			-- Handle custom quest actions (like "Teleport")
 			-- Send to server to call the quest module's function
@@ -1121,6 +1201,48 @@ function Controller.HandleResponseClick(node)
 	local outputNodes = GetOutputNodes(node)
 	LoadNodes(outputNodes, params)
 end
+
+-- Listen for pickpocket results from server
+Client.Packets.PickpocketResult.listen(function(data)
+	if not data then return end
+
+	local resultText = ""
+
+	if data.Success then
+		-- Success - show what they got
+		if data.Money and data.Money > 0 then
+			resultText = "You successfully pickpocketed " .. data.Money .. " Cenz"
+			if data.Item then
+				resultText = resultText .. " and a " .. data.Item .. "!"
+			else
+				resultText = resultText .. "!"
+			end
+		elseif data.Item then
+			resultText = "You successfully pickpocketed a " .. data.Item .. "!"
+		else
+			resultText = "You found nothing of value..."
+		end
+	else
+		-- Failed - guards spawning
+		if data.GuardsSpawning then
+			resultText = "You were caught! Guards are on their way!"
+		else
+			resultText = "You were caught! The NPC is now hostile."
+		end
+	end
+
+	-- Update the dialogue text
+	dpText:set(resultText)
+
+	-- Guards are spawned server-side in Pickpocket.lua if data.GuardsSpawning is true
+
+	-- Close dialogue after a short delay
+	task.delay(2, function()
+		if CurrentDialogueUI then
+			Close(CurrentParams)
+		end
+	end)
+end)
 
  ---- print("Dialogue controller initialized")
 return Controller

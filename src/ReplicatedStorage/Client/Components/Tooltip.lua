@@ -3,8 +3,9 @@ local RunService = game:GetService("RunService")
 local Fusion = require(ReplicatedStorage.Modules.Fusion)
 local TweenService = game:GetService("TweenService")
 local SlotMachineText = require(ReplicatedStorage.Modules.Utils.TextStyles.SlotMachine) -- Your new module
+local BodyHighlight = require(script.Parent.BodyHighlight)
 
-local Children, scoped, peek, out, OnEvent, Value, Tween = 
+local Children, scoped, peek, out, OnEvent, Value, Tween =
 	Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out, Fusion.OnEvent, Fusion.Value, Fusion.Tween
 
 local TInfo = TweenInfo.new(.1, Enum.EasingStyle.Circular, Enum.EasingDirection.InOut, 0, false)
@@ -12,7 +13,7 @@ local TInfo = TweenInfo.new(.1, Enum.EasingStyle.Circular, Enum.EasingDirection.
 return function(scope, props: {
 	Parent: Instance,
 	Started: any,
-	Stats: {Damage: number, Cooldown: number, Augments: number},
+	Stats: {Damage: number, Cooldown: number, Augments: number, Junction: string?, JunctionChance: number?},
 	SourceButton: Instance?,
 })
     local parent = props.Parent
@@ -71,7 +72,8 @@ return function(scope, props: {
 			if cooldownLabel then cooldownLabel.Text = "" end
 			if augmentsLabel then augmentsLabel.Text = "" end
 			disconnect()
-            task.cancel(tsk)
+			if tsk then tsk = nil end
+			-- tsk = nil
 		end
 	end)
 
@@ -208,6 +210,13 @@ return function(scope, props: {
 			cooldownLabel,
 			augmentsLabel,
 
+			-- Body highlight for Junction system (shows which limbs skill targets)
+			if statsData.Junction then BodyHighlight(scope, {
+				Junction = statsData.Junction,
+				JunctionChance = statsData.JunctionChance,
+				Visible = textinit,
+			}) else nil,
+
 			scope:New "ImageLabel" {
 				Name = "Background",
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
@@ -243,7 +252,6 @@ return function(scope, props: {
 									ColorSequenceKeypoint.new(0.75, Color3.fromRGB(0, 0, 0)),
 									ColorSequenceKeypoint.new(1, Color3.fromRGB(141, 130, 91)),
 								}),
-                                ZIndex = 1000000,
 							},
 						}
 					},

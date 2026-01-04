@@ -9,12 +9,16 @@ local DialogueProximity = {}
 local CSystem = require(script.Parent)
 
 local TweenService = CSystem.Service.TweenService
-local RunService = CSystem.Service.RunService
 local ReplicatedStorage = CSystem.Service.ReplicatedStorage
 local Players = CSystem.Service.Players
 
 local Fusion = require(ReplicatedStorage.Modules.Fusion)
 local scoped = Fusion.scoped
+
+-- Pre-require ECS modules once at load time
+local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -30,7 +34,6 @@ local promptScope = nil
 local promptStarted = nil
 local promptFadeIn = nil
 local promptTextStart = nil
-local lastCheckTime = 0
 
 local function isWandererNPC(npc)
 	local hrp = npc:FindFirstChild("HumanoidRootPart")
@@ -191,33 +194,53 @@ local function findNearbyNPC()
 		return nil
 	end
 
+	local playerPos = root.Position
 	local closestNPC = nil
-	local closestDistance = DETECTION_RANGE
+	local closestDistanceSq = DETECTION_RANGE * DETECTION_RANGE -- Use squared distance to avoid sqrt
 
 	local dialogueFolder = workspace.World:FindFirstChild("Dialogue")
 	if dialogueFolder then
 		for _, npc in dialogueFolder:GetChildren() do
 			local npcRoot = npc:FindFirstChild("HumanoidRootPart")
 			if npcRoot then
-				local distance = (root.Position - npcRoot.Position).Magnitude
-				if distance <= closestDistance then
+				local offset = playerPos - npcRoot.Position
+				local distanceSq = offset.X * offset.X + offset.Y * offset.Y + offset.Z * offset.Z
+				if distanceSq <= closestDistanceSq then
 					closestNPC = npc
-					closestDistance = distance
+					closestDistanceSq = distanceSq
 				end
 			end
 		end
 	end
 
+	-- Only check Live folder for wanderer NPCs using GetChildren on direct children
+	-- This avoids expensive GetDescendants call
 	local liveFolder = workspace.World:FindFirstChild("Live")
 	if liveFolder then
-		for _, descendant in liveFolder:GetDescendants() do
-			if descendant:IsA("Model") and descendant:FindFirstChild("HumanoidRootPart") then
-				if isWandererNPC(descendant) then
-					local npcRoot = descendant:FindFirstChild("HumanoidRootPart")
-					local distance = (root.Position - npcRoot.Position).Magnitude
-					if distance <= closestDistance then
-						closestNPC = descendant
-						closestDistance = distance
+		for _, child in liveFolder:GetChildren() do
+			if child:IsA("Model") then
+				local npcRoot = child:FindFirstChild("HumanoidRootPart")
+				if npcRoot and isWandererNPC(child) then
+					local offset = playerPos - npcRoot.Position
+					local distanceSq = offset.X * offset.X + offset.Y * offset.Y + offset.Z * offset.Z
+					if distanceSq <= closestDistanceSq then
+						closestNPC = child
+						closestDistanceSq = distanceSq
+					end
+				end
+			elseif child:IsA("Folder") then
+				-- Check one level deep into subfolders
+				for _, subChild in child:GetChildren() do
+					if subChild:IsA("Model") then
+						local npcRoot = subChild:FindFirstChild("HumanoidRootPart")
+						if npcRoot and isWandererNPC(subChild) then
+							local offset = playerPos - npcRoot.Position
+							local distanceSq = offset.X * offset.X + offset.Y * offset.Y + offset.Z * offset.Z
+							if distanceSq <= closestDistanceSq then
+								closestNPC = subChild
+								closestDistanceSq = distanceSq
+							end
+						end
 					end
 				end
 			end
@@ -242,9 +265,6 @@ local function updateProximity()
 			end
 
 			pcall(function()
-				local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
-				local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
-				local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 				local pent = ref.get("local_player")
 				if pent then
 					local dialogueComp = world:get(pent, comps.Dialogue)
@@ -266,9 +286,6 @@ local function updateProximity()
 			end
 
 			pcall(function()
-				local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
-				local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
-				local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 				local pent = ref.get("local_player")
 				if pent then
 					local dialogueComp = world:get(pent, comps.Dialogue)
@@ -315,11 +332,11 @@ task.spawn(function()
 		cleanup()
 	end)
 
-	RunService.Heartbeat:Connect(function()
-		local currentTime = os.clock()
-
-		if currentTime - lastCheckTime >= CHECK_INTERVAL then
-			lastCheckTime = currentTime
+	-- Use a simple task loop instead of Heartbeat for interval checks
+	-- This is more efficient as it doesn't run every frame
+	task.spawn(function()
+		while true do
+			task.wait(CHECK_INTERVAL)
 			updateProximity()
 		end
 	end)

@@ -10,147 +10,32 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
 
 local Global = require(ReplicatedStorage.Modules.Shared.Global)
-local CustomizationData = require(ReplicatedStorage.Modules.CustomizationData)
 local InfluenceManager = require(ReplicatedStorage.Modules.Utils.InfluenceManager)
 local Bridges = require(ReplicatedStorage.Modules.Bridges)
+local Seralizer = require(ReplicatedStorage.Seralizer)
+
+-- Use the existing QuestGuard data module (same as Magnus quest)
+-- This includes BehaviorTree and Appearance which are required for NPC spawning
+local QuestGuardData = require(ReplicatedStorage.Regions.Forest.Npcs.QuestGuard)
+
+-- Tag for spawned guards to prevent them from attacking each other
+local GUARD_TAG = "SpawnedGuard"
 
 -- Track spawned guards per player
 local playerGuards: {[number]: {Model}} = {}
 local guardSpawnCooldowns: {[number]: number} = {}
 
+-- Track players pending jail (killed by guards, waiting for respawn)
+local pendingJail: {[number]: {duration: number, reason: string}} = {}
+
 local GUARD_SPAWN_COOLDOWN = 60 -- Seconds between guard spawns
 local GUARDS_PER_SPAWN = 2
 
--- Preloaded guard template (from workspace or ReplicatedStorage)
-local function getGuardTemplate(): Model?
-	-- Try to find existing guard template
-	local npcFile = ReplicatedStorage:FindFirstChild("NpcFile")
-	if npcFile then
-		return npcFile:Clone()
-	end
-	return nil
-end
 
--- Apply alchemist outfit and appearance to guard
-local function applyGuardAppearance(guardModel: Model)
-	-- Get alchemist outfit (outfit 1 is typically military/alchemist)
-	local outfitId = 1
-	local outfit = CustomizationData.Clothes[outfitId]
-
-	if not outfit then return end
-
-	-- Delete existing clothes and accessories
-	for _, child in guardModel:GetChildren() do
-		if child:IsA("Shirt") or child:IsA("Pants") or child:IsA("Accessory") then
-			child:Destroy()
-		end
-	end
-
-	task.wait()
-
-	-- Apply shirt
-	local shirt = Instance.new("Shirt")
-	shirt.Name = "Shirt"
-	shirt.ShirtTemplate = outfit.shirt
-	shirt.Parent = guardModel
-
-	-- Apply pants
-	local pants = Instance.new("Pants")
-	pants.Name = "Pants"
-	pants.PantsTemplate = outfit.pants
-	pants.Parent = guardModel
-
-	-- Pick random race for skin color (mostly Amestrian for guards)
-	local race = math.random() > 0.8 and "Xing" or "Amestrian"
-	local raceData = CustomizationData.Races[race]
-	local variants = {"variant1", "variant2", "variant3"}
-	local skinColor = raceData[variants[math.random(1, 3)]]
-	local skinBrickColor = BrickColor.new(skinColor)
-
-	-- Apply skin color to BodyColors
-	local bodyColors = guardModel:FindFirstChild("Body Colors")
-	if bodyColors then
-		bodyColors.HeadColor = skinBrickColor
-		bodyColors.LeftArmColor = skinBrickColor
-		bodyColors.RightArmColor = skinBrickColor
-		bodyColors.LeftLegColor = skinBrickColor
-		bodyColors.RightLegColor = skinBrickColor
-		bodyColors.TorsoColor = skinBrickColor
-	end
-
-	-- Also apply to individual body parts for R15 mesh characters
-	for _, part in guardModel:GetDescendants() do
-		if part:IsA("BasePart") then
-			local partName = part.Name:lower()
-			if partName:find("head") or partName:find("arm") or partName:find("leg") or partName:find("hand") or partName:find("foot") or partName:find("torso") then
-				part.BrickColor = skinBrickColor
-			end
-		end
-	end
-
-	-- Apply random hair from CustomizationData
-	local gender = math.random() > 0.3 and "Male" or "Female"
-	local hairOptions = CustomizationData.Hair[gender]
-	if hairOptions and #hairOptions > 0 then
-		local hairData = hairOptions[math.random(1, #hairOptions)]
-		if hairData and hairData.asset then
-			local hairClone = hairData.asset:Clone()
-			if hairClone then
-				-- Get hair color based on race
-				local hairColorData = CustomizationData.HairColor[race]
-				local hairColor = hairColorData and hairColorData[1] or Color3.fromHSV(0, 0, 0.2)
-
-				-- Apply hair color to all mesh parts in hair accessory
-				for _, part in hairClone:GetDescendants() do
-					if part:IsA("BasePart") then
-						part.Color = hairColor
-					end
-				end
-
-				hairClone.Parent = guardModel
-			end
-		end
-	end
-
-	-- Apply face from CustomizationData
-	local faceOptions = CustomizationData.Face[gender]
-	if faceOptions and #faceOptions > 0 then
-		local faceData = faceOptions[1]
-		if faceData and faceData.assets then
-			local faceAssets = faceData.assets:GetChildren()
-			if #faceAssets > 0 then
-				local randomFace = faceAssets[math.random(1, #faceAssets)]
-				if randomFace then
-					local faceClone = randomFace:Clone()
-					local head = guardModel:FindFirstChild("Head")
-					if head then
-						-- Remove existing face
-						local existingFace = head:FindFirstChild("face") or head:FindFirstChildOfClass("Decal")
-						if existingFace then
-							existingFace:Destroy()
-						end
-						faceClone.Parent = head
-					end
-				end
-			end
-		end
-	end
-
-	-- Set guard attributes
-	guardModel:SetAttribute("IsGuard", true)
-	guardModel:SetAttribute("SpawnedBySystem", true)
-	guardModel:SetAttribute("Weapon", "Spear") -- Guards use spears
-
-	-- Give guard a random name
-	local firstName = CustomizationData.FirstNames[math.random(1, #CustomizationData.FirstNames)]
-	local lastName = CustomizationData.LastNames[math.random(1, #CustomizationData.LastNames)]
-	guardModel:SetAttribute("GuardName", firstName .. " " .. lastName)
-	guardModel:SetAttribute("Occupation", "Military Police")
-end
-
--- Spawn guards near a player
+-- Spawn guards near a player using proper NPC spawning pipeline
 local function spawnGuardsOnPlayer(player: Player)
 	local character = player.Character
 	if not character then return end
@@ -166,7 +51,7 @@ local function spawnGuardsOnPlayer(player: Player)
 	end
 	guardSpawnCooldowns[player.UserId] = now
 
-	-- Clean up old guards
+	-- Clean up old guard NpcFiles
 	if playerGuards[player.UserId] then
 		for _, guard in playerGuards[player.UserId] do
 			if guard and guard.Parent then
@@ -176,53 +61,129 @@ local function spawnGuardsOnPlayer(player: Player)
 	end
 	playerGuards[player.UserId] = {}
 
+	-- Get NpcFile template (configuration container)
+	local npcFileTemplate = ReplicatedStorage:FindFirstChild("NpcFile")
+	if not npcFileTemplate then
+		warn("[GuardSpawner] No NpcFile template found!")
+		return
+	end
+
+	-- Set up region/NPCs container structure (same as Magnus quest)
+	local regionName = "SpawnedGuards"
+	local regionContainer = workspace.World.Live:FindFirstChild(regionName)
+	if not regionContainer then
+		regionContainer = Instance.new("Folder")
+		regionContainer.Name = regionName
+		regionContainer.Parent = workspace.World.Live
+	end
+
+	local npcsContainer = regionContainer:FindFirstChild("NPCs")
+	if not npcsContainer then
+		npcsContainer = Instance.new("Folder")
+		npcsContainer.Name = "NPCs"
+		npcsContainer.Parent = regionContainer
+	end
+
 	-- Spawn new guards
 	local spawnPositions = {
 		hrp.Position + Vector3.new(10, 0, 10),
 		hrp.Position + Vector3.new(-10, 0, -10),
 	}
 
+	-- Available weapons for guards (randomly assigned)
+	local GUARD_WEAPONS = {"Spear", "Guns"}
+
 	for i = 1, GUARDS_PER_SPAWN do
 		local spawnPos = spawnPositions[i] or (hrp.Position + Vector3.new(math.random(-15, 15), 0, math.random(-15, 15)))
 
-		-- Create guard from template
-		local guardTemplate = getGuardTemplate()
-		if not guardTemplate then
-			warn("[GuardSpawner] No guard template found!")
-			return
-		end
+		-- Update QuestGuardData spawn location (like Magnus quest does)
+		QuestGuardData.DataToSendOverAndUdpate.Spawning.Locations = { spawnPos }
+		QuestGuardData.Quantity = 1
+		QuestGuardData.AlwaysSpawn = true
 
-		local guard = guardTemplate:Clone()
-		guard.Name = "SpawnedGuard_" .. player.UserId .. "_" .. i
+		-- Randomly assign weapon (Spear or Guns)
+		local randomWeapon = GUARD_WEAPONS[math.random(1, #GUARD_WEAPONS)]
+		QuestGuardData.DataToSendOverAndUdpate.Weapons.Weapon2 = randomWeapon
 
-		-- Position guard
-		local guardHRP = guard:FindFirstChild("HumanoidRootPart")
-		if guardHRP then
-			guardHRP.CFrame = CFrame.new(spawnPos + Vector3.new(0, 3, 0))
-		end
+		-- Clone NpcFile (config container)
+		-- IMPORTANT: Name must be "QuestGuard" to match QuestGuard_BehaviorTree
+		-- The NpcBrain script looks for {npcName}_BehaviorTree in the Behaviors module
+		local npcFile = npcFileTemplate:Clone()
+		local guardId = "SystemGuard_" .. player.UserId .. "_" .. i
+		npcFile.Name = "QuestGuard" -- Must match behavior tree name
+		npcFile:SetAttribute("SetName", guardId) -- Custom ID for targeting
+		npcFile:SetAttribute("DefaultName", "Military Police")
+		npcFile:SetAttribute("IsGuard", true)
+		npcFile:SetAttribute("IsSpawnedGuard", true) -- For spawn_entity to copy to model
+		npcFile:SetAttribute("SpawnedBySystem", true)
+		npcFile:SetAttribute("TargetPlayerId", player.UserId)
+		npcFile:SetAttribute("IsHostile", true)
+		npcFile:SetAttribute("GuardId", guardId) -- Store for lookup
 
-		-- Apply appearance
-		applyGuardAppearance(guard)
+		-- Create Data folder with QuestGuard configuration (includes BehaviorTree, Appearance, etc.)
+		local dataFolder = Instance.new("Folder")
+		dataFolder.Name = "Data"
+		Seralizer.LoadTableThroughInstance(dataFolder, QuestGuardData.DataToSendOverAndUdpate)
+		dataFolder.Parent = npcFile
 
-		-- Set target to criminal player
-		guard:SetAttribute("TargetPlayerId", player.UserId)
-		guard:SetAttribute("IsHostile", true)
+		-- Parent to NPCs container - the NPC system will spawn the actual model
+		npcFile.Parent = npcsContainer
 
-		-- Parent to Live folder
-		local liveFolder = workspace.World:FindFirstChild("Live")
-		if liveFolder then
-			guard.Parent = liveFolder
-		else
-			guard.Parent = workspace
-		end
+		-- Track the NpcFile for cleanup
+		table.insert(playerGuards[player.UserId], npcFile)
 
-		table.insert(playerGuards[player.UserId], guard)
-
-		print(string.format("[GuardSpawner] Spawned guard %d for criminal %s", i, player.Name))
+		print(string.format("[GuardSpawner] Created guard NpcFile %d for criminal %s at %s", i, player.Name, tostring(spawnPos)))
 	end
 
+	-- Wait for guards to spawn and set them to target the player
+	task.spawn(function()
+		local guardsFound = 0
+		local maxWaitTime = 10
+		local startTime = os.clock()
+		local targetPattern = "SystemGuard_" .. player.UserId
+
+		while guardsFound < GUARDS_PER_SPAWN and (os.clock() - startTime) < maxWaitTime do
+			for _, model in workspace.World.Live:GetDescendants() do
+				if model:IsA("Model") and model:FindFirstChild("Humanoid") then
+					-- spawn_entity sets model.Name = SetName + random number
+					-- So check the model's Name property for our pattern
+					if model.Name:find(targetPattern) and not model:GetAttribute("GuardSetup") then
+						-- Mark as setup to prevent duplicate processing
+						model:SetAttribute("GuardSetup", true)
+
+						-- Tag guard so they won't attack each other
+						CollectionService:AddTag(model, GUARD_TAG)
+
+						-- Set attributes to identify as spawned guard
+						model:SetAttribute("IsSpawnedGuard", true)
+						model:SetAttribute("TargetPlayerId", player.UserId)
+
+						-- Add player to damage log so guard targets them immediately
+						local damageLog = model:FindFirstChild("Damage_Log")
+						if damageLog then
+							local attackRecord = Instance.new("ObjectValue")
+							attackRecord.Name = "GuardTarget"
+							attackRecord.Value = character
+							attackRecord.Parent = damageLog
+						end
+
+						guardsFound = guardsFound + 1
+						print(string.format("[GuardSpawner] Guard %s now targeting %s", model.Name, player.Name))
+					end
+				end
+			end
+			if guardsFound < GUARDS_PER_SPAWN then
+				task.wait(0.5)
+			end
+		end
+
+		if guardsFound < GUARDS_PER_SPAWN then
+			warn("[GuardSpawner] Only found", guardsFound, "guards after", maxWaitTime, "seconds")
+		end
+	end)
+
 	-- Notify player
-	Bridges.UpdateInfluence:FireTo(player, {
+	Bridges.UpdateInfluence:Fire(player, {
 		reputation = -50,
 		wantedLevel = 3,
 		jailTime = 0,
@@ -232,7 +193,7 @@ end
 
 -- Check if guard killed player (for jail system)
 local function onGuardKillPlayer(player: Player, _killerGuard: Model)
-	print(string.format("[GuardSpawner] Guard killed %s - sending to jail!", player.Name))
+	print(string.format("[GuardSpawner] Guard killed %s - marking for jail on respawn!", player.Name))
 
 	-- Calculate jail time
 	local playerData = Global.GetData(player)
@@ -240,15 +201,20 @@ local function onGuardKillPlayer(player: Player, _killerGuard: Model)
 
 	local jailTime = InfluenceManager.calculateJailTime(playerData.Influence)
 
-	-- Send to jail
-	local success = InfluenceManager.jailPlayer(player, jailTime)
-	if success then
-		-- Notify client
-		Bridges.JailPlayer:FireTo(player, {
-			duration = jailTime,
-			reason = "Arrested for crimes against Amestris",
-		})
-	end
+	-- Mark player for jail on respawn (can't teleport dead character)
+	pendingJail[player.UserId] = {
+		duration = jailTime,
+		reason = "Arrested for crimes against Amestris",
+	}
+
+	-- Update player data to reset wanted level
+	Global.SetData(player, function(data)
+		if data.Influence then
+			data.Influence.JailTime = jailTime
+			data.Influence.WantedLevel = 0
+		end
+		return data
+	end)
 
 	-- Clean up spawned guards
 	if playerGuards[player.UserId] then
@@ -261,17 +227,125 @@ local function onGuardKillPlayer(player: Player, _killerGuard: Model)
 	end
 end
 
--- Monitor player deaths for guard kills
+-- Get a random jail cell position
+local function getJailPosition()
+	local jailFolder = workspace.World:FindFirstChild("AreaSpawns")
+	local jailCells = jailFolder and jailFolder:FindFirstChild("Jail")
+
+	if not jailCells then
+		warn("[GuardSpawner] No jail cells found at workspace.World.AreaSpawns.Jail")
+		return nil
+	end
+
+	local cells = jailCells:GetChildren()
+	if #cells == 0 then
+		warn("[GuardSpawner] Jail folder is empty")
+		return nil
+	end
+
+	local randomCell = cells[math.random(1, #cells)]
+	if randomCell:IsA("BasePart") then
+		return randomCell.CFrame * CFrame.new(0, 3, 0)
+	end
+
+	return nil
+end
+
+-- Teleport player to jail (called after character is fully loaded)
+local function teleportToJail(player: Player, targetCFrame: CFrame)
+	local character = player.Character
+	if not character then
+		warn("[GuardSpawner] No character for teleport")
+		return false
+	end
+
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then
+		warn("[GuardSpawner] No HumanoidRootPart for teleport")
+		return false
+	end
+
+	-- Use PivotTo for model teleport (more reliable)
+	character:PivotTo(targetCFrame)
+	print("[GuardSpawner] Teleported", player.Name, "to", targetCFrame.Position)
+	return true
+end
+
+-- Monitor player deaths for guard kills and handle jail on respawn
 local function setupDeathMonitoring(player: Player)
 	player.CharacterAdded:Connect(function(character)
+		-- Check if player has pending jail from being killed by guards
+		local jailInfo = pendingJail[player.UserId]
+		if jailInfo then
+			print("[GuardSpawner] Player has pending jail:", player.Name)
+			-- Clear pending jail immediately to prevent double processing
+			pendingJail[player.UserId] = nil
+
+			-- Get jail position now (before any delays)
+			local jailCFrame = getJailPosition()
+			if not jailCFrame then
+				warn("[GuardSpawner] Could not get jail position")
+				return
+			end
+
+			-- Set Jailed attribute on the server (required for Deconstruct escape check)
+			character:SetAttribute("Jailed", true)
+
+			-- Notify client about jail immediately
+			Bridges.JailPlayer:Fire(player, {
+				duration = jailInfo.duration,
+				reason = jailInfo.reason,
+			})
+
+			-- Teleport multiple times to ensure it sticks
+			task.spawn(function()
+				-- Wait for HumanoidRootPart to exist
+				local hrp = character:WaitForChild("HumanoidRootPart", 15)
+				if not hrp then
+					warn("[GuardSpawner] HumanoidRootPart never appeared")
+					return
+				end
+
+				-- First teleport attempt
+				task.wait(0.5)
+				print("[GuardSpawner] First teleport attempt")
+				teleportToJail(player, jailCFrame)
+
+				-- Second teleport attempt after character stabilizes more
+				task.wait(1)
+				print("[GuardSpawner] Second teleport attempt")
+				teleportToJail(player, jailCFrame)
+
+				-- Third teleport attempt
+				task.wait(1)
+				print("[GuardSpawner] Third teleport attempt")
+				teleportToJail(player, jailCFrame)
+			end)
+		end
+
+		-- Set up death monitoring for this character
 		local humanoid = character:WaitForChild("Humanoid", 10)
 		if humanoid then
 			humanoid.Died:Connect(function()
-				-- Check if killed by spawned guard
-				-- Look at damage log or last attacker
-				local lastDamager = character:GetAttribute("LastDamager")
-				if lastDamager and typeof(lastDamager) == "Instance" and lastDamager:GetAttribute("SpawnedBySystem") then
-					onGuardKillPlayer(player, lastDamager)
+				-- Check if killed by spawned guard by looking at Damage_Log
+				local damageLog = character:FindFirstChild("Damage_Log")
+				if damageLog then
+					-- Get the most recent attacker
+					local records = damageLog:GetChildren()
+					if #records > 0 then
+						-- Sort by name (timestamp) to get most recent
+						table.sort(records, function(a, b)
+							return a.Name > b.Name
+						end)
+						local latestRecord = records[1]
+						if latestRecord and latestRecord:IsA("ObjectValue") and latestRecord.Value then
+							local attacker = latestRecord.Value
+							-- Check if attacker is a spawned guard
+							if attacker:GetAttribute("IsSpawnedGuard") then
+								onGuardKillPlayer(player, attacker)
+							end
+						end
+					end
 				end
 			end)
 		end
@@ -289,6 +363,7 @@ Players.PlayerRemoving:Connect(function(player)
 		playerGuards[player.UserId] = nil
 	end
 	guardSpawnCooldowns[player.UserId] = nil
+	pendingJail[player.UserId] = nil
 end)
 
 -- Set up death monitoring for existing players

@@ -37,6 +37,13 @@ end
 local previousInventory = {}
 local isFirstSync = true
 
+-- Cleanup function to reset state on death/respawn (called from PlayerHandler)
+local function resetInventoryState()
+	previousInventory = {}
+	isFirstSync = true
+	-- print("[InventoryHandler] 🧹 Reset inventory state for new character")
+end
+
 -- Handle inventory updates from server
 Bridges.Inventory:Connect(function(syncData)
 
@@ -187,4 +194,6 @@ Bridges.Inventory:Connect(function(syncData)
     end)
 end)
 
-return {}
+return {
+	resetInventoryState = resetInventoryState,
+}

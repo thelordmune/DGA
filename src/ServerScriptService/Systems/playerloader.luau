@@ -135,8 +135,8 @@ local function processPlayer(world, player)
 
     -- Wait for character to stabilize (detect if it gets respawned)
     local startTime = os.clock()
-    local MAX_WAIT_TIME = 60
-    local STABLE_WAIT = 5 -- Wait 5 seconds to see if character gets destroyed/respawned
+    local MAX_WAIT_TIME = 30
+    local STABLE_WAIT = 0.5 -- Wait 0.5 seconds to see if character gets destroyed/respawned
     local checkInterval = 0.1
     local checksPerformed = 0
     local maxChecks = STABLE_WAIT / checkInterval
@@ -317,6 +317,31 @@ local function processPlayer(world, player)
             world:set(e, comps.Inventory, {items = {}, maxSlots = 50})
             world:set(e, comps.Hotbar, {slots = {}, activeSlot = 1})
 
+            -- Initialize LimbState from player data (persistent limb loss)
+            local LimbManager = require(ReplicatedStorage.Modules.Utils.LimbManager)
+            local savedLimbState = playerData and playerData.LimbState
+            if savedLimbState then
+                -- Use saved limb state
+                world:set(e, comps.LimbState, {
+                    leftArm = savedLimbState.leftArm ~= false,
+                    rightArm = savedLimbState.rightArm ~= false,
+                    leftLeg = savedLimbState.leftLeg ~= false,
+                    rightLeg = savedLimbState.rightLeg ~= false,
+                    bleedingStacks = savedLimbState.bleedingStacks or 0,
+                })
+
+                -- Physically sever any limbs that were missing
+                for limbName, isAttached in pairs(savedLimbState) do
+                    if limbName ~= "bleedingStacks" and isAttached == false then
+                        LimbManager.SeverLimb(rig, limbName)
+                        print(`[PlayerLoader] Restored severed limb {limbName} for {player.Name}`)
+                    end
+                end
+            else
+                -- Default: all limbs attached
+                world:set(e, comps.LimbState, LimbManager.GetDefaultLimbState())
+            end
+
             ---- print(`[Character] Finished initializing {rig.Name} for {player.Name}`)
 
             -- Give starter items to player
@@ -430,7 +455,7 @@ return {
     end,
 
     cleanup = function(world, player)
-        ---- print(`[Cleanup] Cleaning up resources for {player.Name}`)
+        -- print(`[Cleanup] Cleaning up resources for {player.Name}`)
 
         -- Remove from processed players tracking
         processedPlayers[player] = nil
@@ -439,15 +464,14 @@ return {
         if playerConnections[player] then
             playerConnections[player]:Disconnect()
             playerConnections[player] = nil
-            ---- print(`[Cleanup] Disconnected CharacterAdded for {player.Name}`)
+            -- print(`[Cleanup] Disconnected CharacterAdded for {player.Name}`)
         end
 
-        -- Clean up entity reference
+        -- Clean up entity - MUST delete to prevent memory leaks
         local entity = ref.get("player", player)
         if entity then
-            ---- print(`[Cleanup] Removing entity {entity} for {player.Name}`)
-            -- Note: Don't delete the entity, just remove the reference
-            -- The entity will be cleaned up by the ECS system
+            -- print(`[Cleanup] Deleting entity {entity} for {player.Name}`)
+            ref.delete("player", player) -- This calls world:delete internally
         end
     end,
 

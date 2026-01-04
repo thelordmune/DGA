@@ -220,7 +220,8 @@ Movement.Run = function(State)
 	local Weapon   = Client.Player:GetAttribute("Weapon");
 	local Equipped = Client.Character:GetAttribute("Equipped");
 
-	if State and not Client.Library.StateCount(Client.Stuns) and not Client.Library.StateCount(Client.Actions) and not Client.Running then
+	-- Don't allow running during parkour actions
+	if State and not Client.Library.StateCount(Client.Stuns) and not Client.Library.StateCount(Client.Actions) and not Client.Running and not Client.Leaping and not Client.Sliding and not Client.WallRunning and not Client.LedgeClimbing then
 		print("[Movement.Run] ✅ Starting running - adding RunSpeedSet30 to Speeds")
 		Client.Library.StopAllAnims(Client.Character);
 		Client.Library.AddState(Client.Speeds, "RunSpeedSet30")

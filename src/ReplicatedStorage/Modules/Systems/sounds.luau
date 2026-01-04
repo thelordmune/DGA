@@ -51,8 +51,8 @@ local function stopCurrentSound()
 end
 
 local function sound()
-    -- If music is disabled, stop any playing music and return
-    if MUSIC_DISABLED then
+    -- If music is disabled, jail escape is active, or in Truth room, stop any playing music and return
+    if MUSIC_DISABLED or _G.JailEscapeActive or _G.TruthActive then
         stopCurrentSound()
         return
     end

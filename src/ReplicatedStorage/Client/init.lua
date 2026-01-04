@@ -50,6 +50,11 @@ System.InAir   = false;
 System.Dodging = false;
 System.Running = false;
 System.RunAtk = false;
+System.Sliding = false; -- Parkour sliding state
+System.WallRunning = false; -- Parkour wall running state
+System.LedgeClimbing = false; -- Parkour ledge climbing state
+System.Leaping = false; -- Parkour leap state (slide jump)
+System.LeapLanding = false; -- Flag to prevent landing animation after leap
 
 System.RunAnim = nil;
 
@@ -90,6 +95,7 @@ System.Settings = {
 		Leaderboard = Enum.KeyCode.Period;
 		HitboxDebug = Enum.KeyCode.F2; -- F2 key for hitbox visualization toggle
 		UIToggle = Enum.KeyCode.F1; -- F1 key to hide/show all UI
+		StatMenu = Enum.KeyCode.M; -- M key for stat menu
 	}
 }
 

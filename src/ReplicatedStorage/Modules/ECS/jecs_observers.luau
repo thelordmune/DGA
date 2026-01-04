@@ -24,34 +24,54 @@ local Sift = require(ReplicatedStorage.Modules.Imports.Sift)
 local ObserversManager = {}
 ObserversManager.activeObservers = {}
 
+-- Track destruction connections to clean them up
+local modelDestructionConnections = {}
+
 --[[
 	NPC Observers
 ]]
 function ObserversManager.setupNPCObservers()
 	---- print("[Observers] Setting up NPC observers...")
-	
+
 	-- Monitor NPC spawning
 	local npcSpawnMonitor = observers.monitor(
 		world:query(comps.Character, comps.Mob)
 	)
-	
+
 	npcSpawnMonitor:added(function(entity)
 		local character = world:get(entity, comps.Character)
 		if character then
 			---- print("[Observers] NPC spawned:", character.Name, "Entity:", entity)
 			-- Store bidirectional reference
 			RefManager.entity.set(character, entity)
+
+			-- Monitor model destruction to clean up entity
+			if character:IsA("Model") then
+				local conn = character.Destroying:Connect(function()
+					-- Clean up entity when model is destroyed
+					RefManager.entity.delete(character)
+					if modelDestructionConnections[character] then
+						modelDestructionConnections[character] = nil
+					end
+				end)
+				modelDestructionConnections[character] = conn
+			end
 		end
 	end)
-	
+
 	npcSpawnMonitor:removed(function(entity)
 		local character = world:get(entity, comps.Character)
 		if character then
 			---- print("[Observers] NPC despawned:", character.Name)
+			-- Clean up destruction connection
+			if modelDestructionConnections[character] then
+				modelDestructionConnections[character]:Disconnect()
+				modelDestructionConnections[character] = nil
+			end
 			RefManager.entity.delete(character)
 		end
 	end)
-	
+
 	table.insert(ObserversManager.activeObservers, npcSpawnMonitor)
 	---- print("[Observers] ✅ NPC spawn monitor active")
 end

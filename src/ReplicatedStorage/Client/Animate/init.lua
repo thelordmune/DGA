@@ -216,6 +216,11 @@ end
 AnimationController.Listeners["Move"] = function()
 	local Speed = Client.Humanoid.MoveDirection.Magnitude
 
+	-- Don't play walking animations during parkour actions
+	if Client.InAir or Client.Sliding or Client.WallRunning or Client.LedgeClimbing or Client.Leaping then
+		return
+	end
+
 	if Speed > 0 then
 		self.PlayAnimation("Walking", 0.1)
 		self.Pose = "Running"
@@ -236,7 +241,10 @@ AnimationController.Listeners["Jumping"] = function()
 end
 
 AnimationController.Listeners["Freefall"] = function()
-	self.FreeFallTime = os.clock()
+	-- Don't track freefall time during leap (prevents landing animation after leap)
+	if not Client.Leaping then
+		self.FreeFallTime = os.clock()
+	end
 	self.Pose = "FreeFall"
 
 	if self.JumpAnimTime <= 0 then
@@ -255,10 +263,29 @@ AnimationController.Listeners["Swimming"] = function()
 end
 
 AnimationController.Listeners["Landed"] = function()
+	-- Don't play landing animation if we're leaping or just finished a leap
+	if Client.Leaping or Client.LeapLanding then
+		self.FreeFallTime = 0
+		return
+	end
+
 	if self.FreeFallTime ~= 0 and (os.clock() - self.FreeFallTime >= 1) then
 		self.PlayRawAnimation("Landing", 0.1, Enum.AnimationPriority.Idle)
 		self.Pose = "Landing"
 		self.FreeFallTime = 0
+
+		-- Add forward momentum during landing roll
+		local Character = Client.Character
+		if Character and Character:FindFirstChild("HumanoidRootPart") then
+			local RootPart = Character.HumanoidRootPart
+			local forwardDirection = RootPart.CFrame.LookVector
+			-- Apply forward velocity during the roll (20 studs/s forward)
+			RootPart.AssemblyLinearVelocity = Vector3.new(
+				forwardDirection.X * 20,
+				RootPart.AssemblyLinearVelocity.Y, -- Preserve vertical velocity
+				forwardDirection.Z * 20
+			)
+		end
 	end
 end
 
@@ -350,8 +377,8 @@ AnimationController.Init = function()
 				local Angle = Amplitude * math.sin(DeltaTime * Frequency)
 				Client.Character.Torso["Right Shoulder"]:SetDesiredAngle(Angle)
 				Client.Character.Torso["Left Shoulder"]:SetDesiredAngle(Angle)
-				Client.Character.Torso["RightHip"]:SetDesiredAngle(-Angle)
-				Client.Character.Torso["LeftHip"]:SetDesiredAngle(-Angle)
+				Client.Character.Torso["Right Hip"]:SetDesiredAngle(-Angle)
+				Client.Character.Torso["Left Hip"]:SetDesiredAngle(-Angle)
 			end
 
 			self.FrameCount -= 1 / 60

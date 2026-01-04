@@ -67,7 +67,10 @@ local function showTransitionText(message: string, isNight: boolean)
 	isTransitioning = true
 
 	createUI()
-	TextPlus.Clear(container)
+	-- Clear existing text by destroying children
+	for _, child in container:GetChildren() do
+		child:Destroy()
+	end
 
 	local textColor = isNight
 		and Color3.fromRGB(200, 180, 220)

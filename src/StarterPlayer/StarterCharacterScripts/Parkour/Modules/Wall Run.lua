@@ -11,6 +11,7 @@ local Camera = workspace.CurrentCamera
 local Maid = require(Utils.Maid)
 local Raycast = require(Utils.Raycast)
 local Base = require(ReplicatedStorage.Effects.Base)
+local Client = require(ReplicatedStorage.Client)
 
 local Sliding = {}
 Sliding.__index = Sliding
@@ -62,6 +63,7 @@ function Sliding:_stopWallrunning()
 	-- Stop wall run dust particles
 	Base.StopWallRunDust(Character)
 
+	Client.WallRunning = false -- Clear Client state
 	self.Parent.Busy = false
 end
 
@@ -84,7 +86,7 @@ function Sliding:Start()
 		}
 
 		RootPart.AssemblyLinearVelocity = (self.CrossVector + self.Normal + Vector3.yAxis) * 50
-		AnimationService:Play('Wall Jump Run '.. Inverse[self.Side])
+		AnimationService:Play('Wall Jump Run '.. Inverse[self.Side], 1.5)
 
 		-- Mark that we just wall jumped to enable air dash
 		self.JustWallJumped = true
@@ -163,6 +165,7 @@ function Sliding:Start()
 
 	local elapsed = 0
 	self.Parent.Busy = true
+	Client.WallRunning = true -- Set Client state
 
 	self.Cleaner.WallRunning = RunService.Heartbeat:Connect(function(dt)
 		local ForwardDetection = Raycast({

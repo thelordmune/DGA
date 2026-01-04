@@ -29,6 +29,8 @@ return {
     ["ZXCX"] = "AlchemicAssault",     -- Z -> X -> C -> X (complex attack)
 
     -- Misc
-    ["CCXZ"] = "Motor"
+    ["CCXZ"] = "Motor",
 
+    -- TRUTH (Gate of Truth - FMA Brotherhood)
+    ["XXXXX"] = "Truth",              -- X -> X -> X -> X -> X (forbidden alchemy)
 }

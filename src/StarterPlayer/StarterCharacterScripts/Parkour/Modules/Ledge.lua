@@ -11,6 +11,7 @@ local Camera = workspace.CurrentCamera
 -- // requires
 local Maid = require(Utils.Maid)
 local Raycast = require(Utils.Raycast)
+local Client = require(ReplicatedStorage.Client)
 local PlayerModule = require(Player:WaitForChild('PlayerScripts'):WaitForChild('PlayerModule'))
 
 local Controls = PlayerModule:GetControls()
@@ -43,6 +44,7 @@ function Ledge:_stopClimbing()
 
 	self.Parent.Busy = false
 	self.LedgeClimbing = false
+	Client.LedgeClimbing = false -- Clear Client state
 	Humanoid.AutoRotate = true
 
 	self.Cleaner:Destroy()
@@ -210,7 +212,9 @@ function Ledge:_climbStart(ForwardDetection, DownwardDetection)
 	ghostPart.Anchored = true
 	ghostPart.CanCollide = false
 	self.Cleaner:AddTask(ghostPart)
-	
+
+	Client.LedgeClimbing = true -- Set Client state
+
 	self.Cleaner.RunService = RunService.Heartbeat:Connect(function(dt)
 		-- check side
 

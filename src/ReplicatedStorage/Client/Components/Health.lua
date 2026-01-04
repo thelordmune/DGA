@@ -698,15 +698,15 @@ return function(Target)
 	-- Add cleanup to scope
 	table.insert(scope, cleanupRotation)
 
-	-- Money display above the health bar
+	-- Money display in bottom left corner of screen
 	local moneyDisplay = scope:New("Frame")({
 		Parent = Target,
 		Name = "MoneyDisplay",
-		AnchorPoint = Vector2.new(0.5, 1),
+		AnchorPoint = Vector2.new(0, 1),
 		BackgroundTransparency = 1,
 		Position = scope:Spring(
 			scope:Computed(function(use)
-				return if use(display) then UDim2.new(0.5, 0, 0, -8) else UDim2.new(0.5, 0, 0, -50)
+				return if use(display) then UDim2.new(0, 20, 1, -20) else UDim2.new(0, -150, 1, -20)
 			end),
 			30,
 			3
@@ -715,33 +715,12 @@ return function(Target)
 		ZIndex = 100,
 
 		[Children] = {
-			-- Money icon (coin symbol)
-			scope:New("TextLabel")({
-				Name = "CoinIcon",
-				BackgroundTransparency = 1,
-				Position = UDim2.fromOffset(0, 0),
-				Size = UDim2.fromOffset(24, 24),
-				Text = "\u{1FA99}", -- Coin emoji
-				TextColor3 = Color3.fromRGB(255, 215, 0), -- Gold color
-				TextSize = 20,
-				Font = Enum.Font.GothamBold,
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-				TextTransparency = scope:Spring(
-					scope:Computed(function(use)
-						return if use(display) then 0 else 1
-					end),
-					30,
-					9
-				),
-			}),
-
-			-- Money amount
+			-- Money amount (no coin icon)
 			scope:New("TextLabel")({
 				Name = "MoneyAmount",
 				BackgroundTransparency = 1,
-				Position = UDim2.fromOffset(28, 0),
-				Size = UDim2.new(1, -28, 1, 0),
+				Position = UDim2.fromOffset(0, 0),
+				Size = UDim2.fromScale(1, 1),
 				Text = scope:Computed(function(use)
 					local amount = use(money)
 					-- Format with commas for thousands
@@ -751,7 +730,7 @@ return function(Target)
 						formatted, k = formatted:gsub("^(-?%d+)(%d%d%d)", '%1,%2')
 						if k == 0 then break end
 					end
-					return formatted
+					return "$" .. formatted
 				end),
 				TextColor3 = Color3.fromRGB(255, 255, 255),
 				TextSize = 18,

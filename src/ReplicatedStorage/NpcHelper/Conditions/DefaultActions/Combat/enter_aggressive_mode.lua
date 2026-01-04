@@ -51,16 +51,26 @@ return function(actor: Actor, mainConfig: table)
         end
 
         -- Set the attacker as the target if we found one
+        -- But skip other spawned guards - they shouldn't attack each other
         if attacker and attacker:IsA("Model") and attacker:FindFirstChild("Humanoid") then
-            -- ------ print("Setting attacker", attacker.Name, "as target for aggressive NPC", npc.Name)
-            mainConfig.EnemyDetection.Current = attacker
+            local shouldTarget = true
 
-            -- Alert the NPC
-            mainConfig.Alert(npc)
+            -- Skip if both are spawned guards
+            if npc:GetAttribute("IsSpawnedGuard") and attacker:GetAttribute("IsSpawnedGuard") then
+                shouldTarget = false
+            end
 
-            -- Mark first detection
-            if mainConfig.States.FirstDetection == nil then
-                mainConfig.States.FirstDetection = true
+            if shouldTarget then
+                -- ------ print("Setting attacker", attacker.Name, "as target for aggressive NPC", npc.Name)
+                mainConfig.EnemyDetection.Current = attacker
+
+                -- Alert the NPC
+                mainConfig.Alert(npc)
+
+                -- Mark first detection
+                if mainConfig.States.FirstDetection == nil then
+                    mainConfig.States.FirstDetection = true
+                end
             end
         end
         

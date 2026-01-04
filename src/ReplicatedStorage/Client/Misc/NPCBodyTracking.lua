@@ -8,6 +8,7 @@ local NPCBodyTracking = {}
 local DETECTION_RANGE = 15
 local UPDATE_INTERVAL = 0.1
 local ROTATION_SPEED = 0.25
+local BODY_ROTATION_SPEED = 0.08 -- Slower, smoother body rotation
 local VERTICAL_RESTRICTION = 0.75
 local HORIZONTAL_RESTRICTION = 0.75
 
@@ -86,16 +87,77 @@ local function initializeNPC(npcModel)
 
 	local surfaceGuiPart = torso:FindFirstChild("Part")
 
+	local hrp = npcModel:FindFirstChild("HumanoidRootPart")
+	local humanoid = npcModel:FindFirstChild("Humanoid")
+	local isWanderer = hrp and (hrp:GetAttribute("IsWandererNPC") or npcModel.Name:lower():find("wanderer"))
+
 	trackedNPCs[npcModel] = {
 		head = head,
 		neck = neck,
+		hrp = hrp,
+		humanoid = humanoid,
 		surfaceGuiPart = surfaceGuiPart,
 		originalNeckC0 = neck.C0,
 		originalSurfaceGuiCFrame = surfaceGuiPart and surfaceGuiPart.CFrame or nil,
 		currentNeckTween = nil,
 		currentSurfaceGuiTween = nil,
 		isTracking = false,
+		isWanderer = isWanderer,
+		targetBodyRotation = nil,
+		currentBodyRotation = hrp and hrp.CFrame or nil,
 	}
+end
+
+local function updateWandererBodyRotation(npcModel, shouldTrack)
+	local npcData = trackedNPCs[npcModel]
+	if not npcData or not npcData.isWanderer then
+		return
+	end
+
+	local hrp = npcData.hrp
+	local humanoid = npcData.humanoid
+	if not hrp or not humanoid then
+		return
+	end
+
+	-- Don't rotate if NPC is walking/moving
+	if humanoid.MoveDirection.Magnitude > 0.1 then
+		npcData.currentBodyRotation = hrp.CFrame
+		return
+	end
+
+	local playerRoot = Client.Character and Client.Character:FindFirstChild("HumanoidRootPart")
+	if not playerRoot then
+		return
+	end
+
+	if shouldTrack then
+		-- Calculate target rotation to face player (only Y axis)
+		local npcPos = hrp.Position
+		local playerPos = playerRoot.Position
+		local direction = (playerPos - npcPos) * Vector3.new(1, 0, 1)
+
+		if direction.Magnitude > 0.1 then
+			direction = direction.Unit
+
+			-- Smoothly lerp current rotation toward target
+			if npcData.currentBodyRotation then
+				local currentLook = npcData.currentBodyRotation.LookVector * Vector3.new(1, 0, 1)
+				if currentLook.Magnitude > 0 then
+					currentLook = currentLook.Unit
+
+					-- Lerp the look direction
+					local lerpedLook = currentLook:Lerp(direction, BODY_ROTATION_SPEED)
+					local newCFrame = CFrame.new(npcPos, npcPos + lerpedLook)
+
+					npcData.currentBodyRotation = newCFrame
+					hrp.CFrame = newCFrame
+				end
+			else
+				npcData.currentBodyRotation = hrp.CFrame
+			end
+		end
+	end
 end
 
 local function updateNPCHead(npcModel, shouldTrack)
@@ -201,6 +263,7 @@ local function updateBodyTracking()
 		local inRange = isPlayerInRange(npcModel)
 
 		updateNPCHead(npcModel, inRange)
+		updateWandererBodyRotation(npcModel, inRange)
 	end
 end
 

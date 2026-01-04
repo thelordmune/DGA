@@ -1,7 +1,5 @@
 -- Services
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local Player = Players.LocalPlayer
 
@@ -103,34 +101,44 @@ local function updValues(character: Model)
 		end
 	end
 
-	if humanoid.Health > 0 and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
-		if ragdolled then
-			if not rag then
-				rag = true
-				humanoid.AutoRotate = false
+	-- Handle ragdoll for both alive and dead states
+	-- Death threshold is 1 HP (not 0) to prevent Roblox's death system from interfering
+	local isDead = humanoid.Health <= 1 or humanoid:GetState() == Enum.HumanoidStateType.Dead or character:GetAttribute("IsDead")
 
-				for _, state in disableStates do
-					humanoid:SetStateEnabled(state, false)
-				end
+	if ragdolled then
+		if not rag then
+			rag = true
+			humanoid.AutoRotate = false
 
-				-- Check if recently reset (within 2 seconds) and apply downward velocity
-				local lastReset = character:GetAttribute("LastReset")
-				if lastReset and os.clock() - lastReset < 2 then
-					local fallVelocity = Vector3.new(0, -50, 0)
-					humanoidRootPart.Velocity = fallVelocity
-				end
-				
-				humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+			for _, state in disableStates do
+				humanoid:SetStateEnabled(state, false)
 			end
-		else
-			if rag then
-				doUp(character)
+
+			-- Check if recently reset (within 2 seconds) and apply downward velocity
+			local lastReset = character:GetAttribute("LastReset")
+			if lastReset and os.clock() - lastReset < 2 then
+				local fallVelocity = Vector3.new(0, -50, 0)
+				humanoidRootPart.AssemblyLinearVelocity = fallVelocity
 			end
+
+			-- Change to Physics state for ragdoll effect (works for both alive and dead)
+			humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+		end
+	else
+		-- Only allow getting up if alive
+		if rag and not isDead then
+			doUp(character)
 		end
 	end
 end
 
 local function init(character: Model)
+	-- Reset rag state for new character
+	rag = false
+
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if not humanoid then return end
+
 	character.ChildAdded:Connect(function(child: Instance)
 		if table.find(ragdollValues, child.Name) or table.find(cancelRagdollValues, child.Name) or table.find(forceUp, child.Name) then
 			if HasState(character, "Knocked") then
@@ -152,6 +160,37 @@ local function init(character: Model)
 				doUp(character)
 			end
 			updValues(character)
+		end
+	end)
+
+	-- Handle death ragdoll - ensure physics state is set when player dies
+	-- Listen for IsDead attribute (custom death at 1 HP threshold)
+	character:GetAttributeChangedSignal("IsDead"):Connect(function()
+		if character:GetAttribute("IsDead") then
+			-- Force physics state for death ragdoll
+			rag = true
+			humanoid.AutoRotate = false
+			for _, state in disableStates do
+				humanoid:SetStateEnabled(state, false)
+			end
+			humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+		end
+	end)
+
+	-- Fallback: Also handle Humanoid.Died in case it somehow fires
+	humanoid.Died:Connect(function()
+		-- Check if ragdoll value exists
+		for _, ragdollName in ragdollValues do
+			if character:FindFirstChild(ragdollName) then
+				-- Force physics state for death ragdoll
+				rag = true
+				humanoid.AutoRotate = false
+				for _, state in disableStates do
+					humanoid:SetStateEnabled(state, false)
+				end
+				humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+				break
+			end
 		end
 	end)
 end

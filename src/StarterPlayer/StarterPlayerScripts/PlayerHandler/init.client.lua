@@ -1,8 +1,27 @@
 local Players = game:GetService("Players")
 local Replicated = game:GetService("ReplicatedStorage")
 local ContentProvider = game:GetService("ContentProvider")
+local StarterGui = game:GetService("StarterGui")
 
 local StarterPlayer = game:GetService("StarterPlayer")
+
+-- Disable default Roblox CoreGui elements (backpack and playerlist/leaderboard)
+local function disableCoreGui()
+	local success, err = pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+	end)
+	if not success then
+		-- Retry after a short delay if it fails (CoreGui may not be ready yet)
+		task.delay(1, function()
+			pcall(function()
+				StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+				StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+			end)
+		end)
+	end
+end
+disableCoreGui()
 local world = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_world)
 local comps = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_components)
 local ref = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_ref)
@@ -195,6 +214,18 @@ local function Remove()
 	-- Clean up Dialogue Proximity (call global cleanup function)
 	if _G.DialogueProximity_Cleanup then
 		_G.DialogueProximity_Cleanup()
+	end
+
+	-- Clean up InventoryState (reset selection on death)
+	local InventoryState = require(Replicated.Client.InventoryState)
+	if InventoryState and InventoryState.reset then
+		InventoryState.reset()
+	end
+
+	-- Clean up InventoryHandler (reset inventory tracking state on death)
+	local InventoryHandler = require(Replicated.Client.InventoryHandler)
+	if InventoryHandler and InventoryHandler.resetInventoryState then
+		InventoryHandler.resetInventoryState()
 	end
 
 	if Client.Connections then

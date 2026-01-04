@@ -49,6 +49,16 @@ local function createGrabWeld(grabber: Model, target: Model, distance: number)
 		return nil
 	end
 
+	-- Set network ownership of target to server so we have full control
+	local targetParts = target:GetDescendants()
+	for _, part in targetParts do
+		if part:IsA("BasePart") then
+			pcall(function()
+				part:SetNetworkOwner(nil) -- nil = server ownership
+			end)
+		end
+	end
+
 	-- Create attachment on grabber (in front at specified distance)
 	local grabberAttachment = Instance.new("Attachment")
 	grabberAttachment.Name = "GrabberAttachment"
@@ -61,38 +71,48 @@ local function createGrabWeld(grabber: Model, target: Model, distance: number)
 	targetAttachment.Position = Vector3.new(0, 0, 0)
 	targetAttachment.Parent = targetRoot
 
-	-- Create AlignPosition to hold target in place
+	-- Disable collisions on target so they don't collide with grabber/others
+	for _, part in targetParts do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+		end
+	end
+
+	-- Use AlignPosition to pull target toward grabber (allows movement)
 	local alignPos = Instance.new("AlignPosition")
 	alignPos.Name = "GrabAlign"
 	alignPos.Attachment0 = targetAttachment
 	alignPos.Attachment1 = grabberAttachment
-	alignPos.MaxForce = 100000
+	alignPos.MaxForce = 500000
 	alignPos.MaxVelocity = math.huge
 	alignPos.Responsiveness = 200
-	alignPos.RigidityEnabled = true
+	alignPos.RigidityEnabled = false -- Allow some flexibility for movement
 	alignPos.Parent = targetRoot
 
-	-- Create AlignOrientation to match grabber's facing direction
+	-- Use AlignOrientation to face target toward grabber
 	local alignOri = Instance.new("AlignOrientation")
 	alignOri.Name = "GrabOrient"
 	alignOri.Attachment0 = targetAttachment
 	alignOri.Attachment1 = grabberAttachment
-	alignOri.MaxTorque = 100000
+	alignOri.MaxTorque = 500000
 	alignOri.MaxAngularVelocity = math.huge
 	alignOri.Responsiveness = 200
-	alignOri.RigidityEnabled = true
+	alignOri.RigidityEnabled = false
 	alignOri.Parent = targetRoot
 
 	-- Disable target's humanoid controls
 	local targetHumanoid = target:FindFirstChildOfClass("Humanoid")
 	if targetHumanoid then
 		targetHumanoid.PlatformStand = true
+		targetHumanoid.AutoRotate = false
 	end
 
-	-- Apply CantMove state to target
-	StateManager.addState(target, "Stuns", "Grabbed", 999) -- Long duration, will be removed when grab ends
+	-- Apply Grabbed state to target
+	pcall(function()
+		StateManager.AddState(target, "Stuns", "Grabbed")
+	end)
 
-	return {alignPos = alignPos, alignOri = alignOri}
+	return {alignPos = alignPos, alignOri = alignOri, grabberAttachment = grabberAttachment, targetAttachment = targetAttachment}
 end
 
 -- Helper function to remove grab weld
@@ -132,10 +152,35 @@ local function removeGrabWeld(grabber: Model, target: Model)
 		local targetHumanoid = target:FindFirstChildOfClass("Humanoid")
 		if targetHumanoid then
 			targetHumanoid.PlatformStand = false
+			targetHumanoid.AutoRotate = true
+		end
+
+		-- Re-enable collisions on target
+		local targetParts = target:GetDescendants()
+		for _, part in targetParts do
+			if part:IsA("BasePart") then
+				part.CanCollide = true
+			end
+		end
+
+		-- Restore network ownership to the target player (if it's a player)
+		local Players = game:GetService("Players")
+		local targetPlayer = Players:GetPlayerFromCharacter(target)
+		if targetPlayer then
+			local targetParts = target:GetDescendants()
+			for _, part in targetParts do
+				if part:IsA("BasePart") then
+					pcall(function()
+						part:SetNetworkOwner(targetPlayer)
+					end)
+				end
+			end
 		end
 
 		-- Remove Grabbed state
-		StateManager.removeState(target, "Stuns", "Grabbed")
+		pcall(function()
+			StateManager.RemoveState(target, "Stuns", "Grabbed")
+		end)
 	end
 
 	-- Clear from active welds
@@ -149,11 +194,17 @@ local function canAct(character: Model): boolean
 	end
 
 	-- Check if character is stunned or in an action that prevents grabbing
-	if StateManager.hasState(character, "Stuns", "Stunned") then
+	local success1, isStunned = pcall(function()
+		return StateManager.StateCheck(character, "Stuns", "Stunned")
+	end)
+	if success1 and isStunned then
 		return false
 	end
 
-	if StateManager.hasState(character, "Actions", "Ragdoll") then
+	local success2, isRagdoll = pcall(function()
+		return StateManager.StateCheck(character, "Actions", "Ragdoll")
+	end)
+	if success2 and isRagdoll then
 		return false
 	end
 

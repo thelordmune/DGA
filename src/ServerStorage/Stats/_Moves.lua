@@ -11,6 +11,17 @@ local Server = require(ServerScriptService.ServerConfig.Server)
 
 local Table = {
 
+	["Truth"] = {
+		["DamageTable"] = {
+			BlockBreak = false,
+			Damage = 0, -- This move doesn't deal damage, it teleports
+			PostureDamage = 0,
+			LightKnockback = false,
+			M2 = false,
+			Stun = 0,
+		},
+	},
+
 	["Deconstruct"] = {
 		["DamageTable"] = {
 			BlockBreak = false,
@@ -20,6 +31,9 @@ local Table = {
 			M2 = false,
 			FX = Replicated.Assets.VFX.Blood.Attachment,
 			Stun = 0.2,
+			-- Junction system: 10% chance arm removal
+			Junction = "RandomArm",
+			JunctionChance = 0.10,
 		},
 	},
 	["Alchemic Assault"] = {

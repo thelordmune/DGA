@@ -14,20 +14,55 @@ local healthComponentData = nil
 -- Track Fusion scopes for cleanup on death
 local activeScopes = {}
 
+-- UI Reuse: Store persistent UI components that survive respawns
+local persistentHealthUI = nil -- Stores the reusable Health UI
+local persistentHotbarScope = nil -- Stores the reusable Hotbar scope
+
 -- Expose healthComponentData for DirectionalCasting to access
 Controller.healthComponentData = healthComponentData
 
--- Cleanup function to destroy all UI scopes
+-- Cleanup function to destroy all UI scopes (called on death)
+-- NOTE: We preserve persistentHealthUI for reuse on respawn to reduce memory churn
 Controller.CleanupUI = function()
-	print("[Stats] 🧹 Cleaning up UI components...")
+	print("[Stats] 🧹 Cleaning up UI components (preserving reusable Health UI)...")
 
-	-- Clean up health component
-	if healthComponentData and healthComponentData.scope then
-		healthComponentData.scope:doCleanup()
-		print("[Stats] ✅ Health component scope cleaned up")
-	end
+	-- DON'T clean up health component - we want to reuse it
+	-- Just reset the reference so Check() knows to reuse persistentHealthUI
 	healthComponentData = nil
 	Controller.healthComponentData = nil
+	-- persistentHealthUI is intentionally preserved for reuse
+
+	-- Clean up all tracked scopes (Hotbar, Party, etc.)
+	for i, scopeData in ipairs(activeScopes) do
+		if scopeData.scope then
+			scopeData.scope:doCleanup()
+			print(`[Stats] ✅ Cleaned up scope: {scopeData.name}`)
+		end
+	end
+	table.clear(activeScopes)
+
+	print("[Stats] ✅ UI cleanup complete (Health UI preserved for reuse)")
+end
+
+-- Full cleanup function for when player leaves or UI needs complete reset
+Controller.FullCleanupUI = function()
+	print("[Stats] 🧹 Full UI cleanup (destroying all components)...")
+
+	-- Clean up health component completely
+	if persistentHealthUI and persistentHealthUI.scope then
+		persistentHealthUI.scope:doCleanup()
+		print("[Stats] ✅ Health component scope fully cleaned up")
+	end
+	persistentHealthUI = nil
+	healthComponentData = nil
+	Controller.healthComponentData = nil
+
+	-- Clean up persistent hotbar scope
+	if persistentHotbarScope then
+		persistentHotbarScope:doCleanup()
+		print("[Stats] ✅ Hotbar scope fully cleaned up")
+	end
+	persistentHotbarScope = nil
 
 	-- Clean up all tracked scopes
 	for i, scopeData in ipairs(activeScopes) do
@@ -38,7 +73,7 @@ Controller.CleanupUI = function()
 	end
 	table.clear(activeScopes)
 
-	print("[Stats] ✅ All UI components cleaned up")
+	print("[Stats] ✅ Full UI cleanup complete")
 end
 
 Controller.Check = function()
@@ -48,6 +83,7 @@ Controller.Check = function()
 	   UI = ui -- Update the UI reference
 	   -- Reset health component data when UI is recreated
 	   healthComponentData = nil
+	   persistentHealthUI = nil -- Also reset persistent UI when base UI is recreated
     end
 
     -- Hide the old health bar container
@@ -60,8 +96,21 @@ Controller.Check = function()
             end
         end
 
-        -- Initialize the new Fusion-based Health component (or reinitialize after respawn)
-        if not healthComponentData or not healthComponentData.frame.Parent then
+        -- UI REUSE: Check if we can reuse existing Health component
+        if persistentHealthUI and persistentHealthUI.frame and persistentHealthUI.frame.Parent then
+            -- Reuse existing UI - just reset values to defaults
+            healthComponentData = persistentHealthUI
+            Controller.healthComponentData = healthComponentData
+
+            -- Reset health to 100% on respawn
+            if healthComponentData.healthValue then
+                healthComponentData.healthValue:set(100)
+            end
+            if healthComponentData.adrenalineValue then
+                healthComponentData.adrenalineValue:set(0)
+            end
+            -- print("[Stats] ♻️ Reused existing Health component")
+        elseif not healthComponentData or not healthComponentData.frame or not healthComponentData.frame.Parent then
             -- CLEANUP OLD HEALTH COMPONENT FIRST to prevent memory leak
             if healthComponentData and healthComponentData.scope then
                 healthComponentData.scope:doCleanup()
@@ -69,8 +118,9 @@ Controller.Check = function()
             end
 
             healthComponentData = HealthComponent(statsFrame)
+            persistentHealthUI = healthComponentData -- Store for reuse
             Controller.healthComponentData = healthComponentData -- Update the exposed reference
-           -- print("[Stats] ✅ New Health component initialized")
+           -- print("[Stats] ✅ New Health component initialized (will be reused on respawn)")
         end
     end
 end
@@ -293,12 +343,28 @@ end
 Controller.Party = function()
 local Fusion = require(Replicated.Modules.Fusion)
 
-local Children, scoped, peek, out, OnEvent, Value, Tween = 
+local Children, scoped, peek, out, OnEvent, Value, Tween =
 	Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out, Fusion.OnEvent, Fusion.Value, Fusion.Tween
 
+	-- CLEANUP OLD PARTY SCOPE FIRST to prevent memory leak
+	for i = #activeScopes, 1, -1 do
+		if activeScopes[i].name == "Party" then
+			if activeScopes[i].scope then
+				activeScopes[i].scope:doCleanup()
+				print("[Stats] 🧹 Cleaned up old Party scope before creating new one")
+			end
+			table.remove(activeScopes, i)
+		end
+	end
 
     local scope = scoped(Fusion, {
 		Party = require(Replicated.Client.Components.Party)
+	})
+
+	-- Track this scope for cleanup
+	table.insert(activeScopes, {
+		name = "Party",
+		scope = scope
 	})
 	
 	local start = scope:Value(false)

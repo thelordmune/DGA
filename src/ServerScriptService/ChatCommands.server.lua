@@ -12,6 +12,7 @@ local TextChatService = game:GetService("TextChatService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
 
 -- Admin user IDs
 local ADMIN_IDS = {
@@ -86,8 +87,10 @@ end
 -- Load Commands module for weapon/alchemy
 local Commands
 task.spawn(function()
-	local Server = require(game.ServerScriptService.ServerConfig.Server)
-	Commands = require(Server.Network.Commands)
+	local commandsModule = game.ServerScriptService.ServerConfig.Server.Network:FindFirstChild("Commands")
+	if commandsModule then
+		Commands = require(commandsModule)
+	end
 end)
 
 -- Process chat commands
@@ -184,28 +187,44 @@ end
 -- Initialize
 task.spawn(setupChatCommands)
 
+-- Handle !rejoin command
+local function handleRejoin(player: Player)
+	local placeId = game.PlaceId
+	local success, errorMessage = pcall(function()
+		TeleportService:TeleportAsync(placeId, {player})
+	end)
+
+	if not success then
+		warn("[ChatCommands] Failed to rejoin player " .. player.Name .. ": " .. tostring(errorMessage))
+	end
+end
+
+-- Handle chat messages (both / and ! commands)
+local function handleChatMessage(player: Player, message: string)
+	-- Handle / commands
+	if message:sub(1, 1) == "/" then
+		local success, result = processCommand(player, message)
+		if result then
+			print(string.format("[ChatCommands] %s: %s", player.Name, result))
+		end
+	-- Handle !rejoin command
+	elseif message:lower() == "!rejoin" then
+		print(string.format("[ChatCommands] %s is rejoining...", player.Name))
+		handleRejoin(player)
+	end
+end
+
 -- Also handle legacy chat for backwards compatibility
 Players.PlayerAdded:Connect(function(player)
 	player.Chatted:Connect(function(message)
-		if message:sub(1, 1) == "/" then
-			local success, result = processCommand(player, message)
-			if result then
-				-- Could send a notification to player here
-				print(string.format("[ChatCommands] %s: %s", player.Name, result))
-			end
-		end
+		handleChatMessage(player, message)
 	end)
 end)
 
 -- Handle existing players
 for _, player in Players:GetPlayers() do
 	player.Chatted:Connect(function(message)
-		if message:sub(1, 1) == "/" then
-			local success, result = processCommand(player, message)
-			if result then
-				print(string.format("[ChatCommands] %s: %s", player.Name, result))
-			end
-		end
+		handleChatMessage(player, message)
 	end)
 end
 

@@ -6,6 +6,8 @@ local TextPlus = require(ReplicatedStorage.Modules.Utils.Text)
 local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManager)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+local InventoryState = require(ReplicatedStorage.Client.InventoryState)
+local Packets = require(ReplicatedStorage.Modules.Packets)
 
 -- Rarity color gradients (lighter to darker)
 local RARITY_GRADIENTS = {
@@ -429,12 +431,22 @@ local function InventoryUI(scope, props)
 		end
 
 		local inventory = world:get(entity, comps.Inventory)
+		local hotbar = world:has(entity, comps.Hotbar) and world:get(entity, comps.Hotbar) or {slots = {}}
 		local items = {}
 
-		-- Get all items from inventory (slots 8-50 are inventory items)
-		for slot = 8, 50 do
+		-- Build a map of which inventory slots are equipped to which hotbar slots
+		local equippedSlots = {}
+		for hotbarSlot, invSlot in pairs(hotbar.slots) do
+			equippedSlots[invSlot] = hotbarSlot
+		end
+
+		-- Get ALL items from inventory (slots 1-50)
+		for slot = 1, 50 do
 			if inventory.items[slot] then
-				table.insert(items, inventory.items[slot])
+				local item = inventory.items[slot]
+				-- Add equipped info to the item
+				item.equippedToHotbar = equippedSlots[slot]
+				table.insert(items, item)
 			end
 		end
 
@@ -459,6 +471,22 @@ local function InventoryUI(scope, props)
 		if inventoryUpdateConnection then
 			inventoryUpdateConnection:Disconnect()
 		end
+	end)
+
+	-- Register hotbar click handler for inventory-to-hotbar assignment
+	InventoryState.registerHotbarClickHandler(function(hotbarSlot: number)
+		local selectedSlot = InventoryState.getSelectedSlot()
+		if not selectedSlot then return end
+
+		-- Send the action to server
+		Packets.InventoryAction.send({
+			action = "MoveToHotbar",
+			inventorySlot = selectedSlot,
+			hotbarSlot = hotbarSlot,
+		})
+
+		-- Clear the selection after sending
+		InventoryState.clearSelection()
 	end)
 
 	-- Spring values for holder animation - scroll down from top (thin line to full height)
@@ -536,8 +564,8 @@ local function InventoryUI(scope, props)
 		BorderColor3 = Color3.fromRGB(0, 0, 0),
 		BorderSizePixel = 0,
 		FontFace = Font.new("rbxassetid://12187365364"),
-		Position = UDim2.fromScale(0.0619, 0.36),
-		Size = UDim2.fromOffset(187, 52),
+		Position = UDim2.fromScale(0.0619, 0.28),
+		Size = UDim2.fromOffset(187, 36),
 		Text = "",
 		TextColor3 = Color3.fromRGB(255, 255, 255),
 		TextSize = 14,
@@ -545,6 +573,201 @@ local function InventoryUI(scope, props)
 		TextTransparency = 1, -- Start hidden
 		ZIndex = 12, -- Higher than HoverDesc background
 	})
+
+	-- Slot picker label
+	local slotPickerLabel = scope:New("TextLabel")({
+		Name = "SlotPickerLabel",
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		BackgroundTransparency = 1,
+		BorderColor3 = Color3.fromRGB(0, 0, 0),
+		BorderSizePixel = 0,
+		FontFace = Font.new("rbxassetid://12187365364"),
+		Position = UDim2.fromScale(0.0619, 0.58),
+		Size = UDim2.fromOffset(187, 14),
+		Text = "Assign to Slot:",
+		TextColor3 = Color3.fromRGB(200, 200, 200),
+		TextSize = 10,
+		TextTransparency = 1, -- Start hidden
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 12,
+	})
+
+	-- Slot picker container
+	local slotPickerContainer = scope:New("Frame")({
+		Name = "SlotPickerContainer",
+		BackgroundColor3 = Color3.fromRGB(40, 40, 45),
+		BackgroundTransparency = 0.3,
+		BorderColor3 = Color3.fromRGB(0, 0, 0),
+		BorderSizePixel = 0,
+		Position = UDim2.fromScale(0.0619, 0.72),
+		Size = UDim2.fromOffset(187, 28),
+		ZIndex = 12,
+		Visible = false,
+	})
+
+	-- Add corner radius to slot picker
+	scope:New("UICorner")({
+		CornerRadius = UDim.new(0, 4),
+		Parent = slotPickerContainer,
+	})
+
+	-- Create 7 slot buttons
+	local slotButtons = {}
+	for i = 1, 7 do
+		local slotButton = scope:New("TextButton")({
+			Name = "Slot" .. i,
+			BackgroundColor3 = Color3.fromRGB(60, 60, 70),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.fromScale((i - 1) * 0.135 + 0.025, 0.12),
+			Size = UDim2.fromScale(0.115, 0.76),
+			Text = tostring(i),
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			TextSize = 12,
+			FontFace = Font.new("rbxassetid://12187365364"),
+			ZIndex = 13,
+			Parent = slotPickerContainer,
+		})
+
+		-- Add corner radius to button
+		scope:New("UICorner")({
+			CornerRadius = UDim.new(0, 3),
+			Parent = slotButton,
+		})
+
+		-- Hover effect
+		slotButton.MouseEnter:Connect(function()
+			TweenService:Create(slotButton, TweenInfo.new(0.15), {
+				BackgroundColor3 = Color3.fromRGB(100, 100, 120)
+			}):Play()
+		end)
+
+		slotButton.MouseLeave:Connect(function()
+			TweenService:Create(slotButton, TweenInfo.new(0.15), {
+				BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+			}):Play()
+		end)
+
+		-- Click handler - assign item to this hotbar slot
+		slotButton.MouseButton1Click:Connect(function()
+			local selectedSlot = InventoryState.getSelectedSlot()
+			if not selectedSlot then return end
+
+			-- Send the action to server
+			Packets.InventoryAction.send({
+				action = "MoveToHotbar",
+				inventorySlot = selectedSlot,
+				hotbarSlot = i,
+			})
+
+			-- Flash effect on click
+			TweenService:Create(slotButton, TweenInfo.new(0.1), {
+				BackgroundColor3 = Color3.fromRGB(150, 255, 150)
+			}):Play()
+			task.delay(0.1, function()
+				TweenService:Create(slotButton, TweenInfo.new(0.2), {
+					BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+				}):Play()
+			end)
+		end)
+
+		slotButtons[i] = slotButton
+	end
+
+	-- Unequip button (shown when item is equipped)
+	local unequipButton = scope:New("TextButton")({
+		Name = "UnequipButton",
+		BackgroundColor3 = Color3.fromRGB(180, 60, 60),
+		BorderColor3 = Color3.fromRGB(0, 0, 0),
+		BorderSizePixel = 0,
+		Position = UDim2.fromScale(0.0619, 0.58),
+		Size = UDim2.fromOffset(187, 24),
+		Text = "Unequip from Slot",
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextSize = 11,
+		FontFace = Font.new("rbxassetid://12187365364"),
+		ZIndex = 13,
+		Visible = false,
+	})
+
+	-- Add corner radius to unequip button
+	scope:New("UICorner")({
+		CornerRadius = UDim.new(0, 4),
+		Parent = unequipButton,
+	})
+
+	-- Unequip button hover effect
+	unequipButton.MouseEnter:Connect(function()
+		TweenService:Create(unequipButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = Color3.fromRGB(220, 80, 80)
+		}):Play()
+	end)
+
+	unequipButton.MouseLeave:Connect(function()
+		TweenService:Create(unequipButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+		}):Play()
+	end)
+
+	-- Track current equipped hotbar slot for unequip
+	local currentEquippedHotbarSlot = nil
+
+	-- Unequip button click handler
+	unequipButton.MouseButton1Click:Connect(function()
+		if not currentEquippedHotbarSlot then return end
+
+		-- Send unequip action to server
+		Packets.InventoryAction.send({
+			action = "UnequipFromHotbar",
+			hotbarSlot = currentEquippedHotbarSlot,
+		})
+
+		-- Flash effect
+		TweenService:Create(unequipButton, TweenInfo.new(0.1), {
+			BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+		}):Play()
+		task.delay(0.1, function()
+			TweenService:Create(unequipButton, TweenInfo.new(0.2), {
+				BackgroundColor3 = Color3.fromRGB(180, 60, 60)
+			}):Play()
+		end)
+
+		-- Hide unequip button and show slot picker
+		unequipButton.Visible = false
+		slotPickerContainer.Visible = true
+		currentEquippedHotbarSlot = nil
+	end)
+
+	-- Function to show/hide slot picker (updated to handle equipped items)
+	local function showSlotPicker(show, equippedHotbarSlot)
+		if show and equippedHotbarSlot then
+			-- Item is equipped - show unequip button instead of slot picker
+			slotPickerContainer.Visible = false
+			unequipButton.Visible = true
+			unequipButton.Text = "Unequip from Slot " .. equippedHotbarSlot
+			currentEquippedHotbarSlot = equippedHotbarSlot
+			TweenService:Create(slotPickerLabel, TweenInfo.new(0.2), {
+				TextTransparency = 1
+			}):Play()
+		elseif show then
+			-- Item is not equipped - show slot picker
+			slotPickerContainer.Visible = true
+			unequipButton.Visible = false
+			currentEquippedHotbarSlot = nil
+			local targetTransparency = 0
+			TweenService:Create(slotPickerLabel, TweenInfo.new(0.2), {
+				TextTransparency = targetTransparency
+			}):Play()
+		else
+			-- Hide both
+			slotPickerContainer.Visible = false
+			unequipButton.Visible = false
+			currentEquippedHotbarSlot = nil
+			TweenService:Create(slotPickerLabel, TweenInfo.new(0.2), {
+				TextTransparency = 1
+			}):Play()
+		end
+	end
 
 	local hoverDesc = scope:New("ImageLabel")({
 		Name = "HoverDesc",
@@ -560,7 +783,7 @@ local function InventoryUI(scope, props)
 			local height = use(hoverDescHeightSpring)
 			-- Position relative to holder, moved down
 			-- Y position accounts for height change to keep centered
-			local yPos = 0.35 + (100 - height) / 2 / 549
+			local yPos = 0.35 + (140 - height) / 2 / 549
 			return UDim2.new(baseX, floatX, yPos, floatY)
 		end),
 		AnchorPoint = Vector2.new(1, 0.5), -- Anchor to right edge so it slides out to the left
@@ -575,6 +798,9 @@ local function InventoryUI(scope, props)
 		[Children] = {
 			headerTextLabel,
 			descTextLabel,
+			slotPickerLabel,
+			slotPickerContainer,
+			unequipButton,
 		}
 	})
 
@@ -657,6 +883,12 @@ local function InventoryUI(scope, props)
 			holderHeight:set(0)
 			bgTransparency:set(1)
 
+			-- Hide slot picker and hover desc
+			showSlotPicker(false)
+			hoverDescX:set(-0.5)
+			hoverDescHeight:set(0)
+			hoverDescTransparency:set(1)
+
 			-- Clear all icons when closing
 			for _, child in ipairs(iconFolder:GetChildren()) do
 				if child:IsA("ImageButton") then
@@ -667,6 +899,7 @@ local function InventoryUI(scope, props)
 			-- Clear deselect functions
 			table.clear(deselectFunctions)
 			selectedItem:set(nil)
+			InventoryState.clearSelection()
 
 			return
 		end
@@ -692,6 +925,8 @@ local function InventoryUI(scope, props)
 				local itemIcon = item.icon or "rbxassetid://125715866811318" -- Default icon if none provided
 				local itemRarity = item.rarity or "common" -- Default to common if no rarity specified
 				local rarityGradient = RARITY_GRADIENTS[itemRarity] or RARITY_GRADIENTS.common
+				local itemSlot = item.slot -- Store the inventory slot for this item
+				local itemEquippedHotbar = item.equippedToHotbar -- Hotbar slot if equipped, nil otherwise
 
 				-- Create spring values for each icon
 				local iconTransparency = scope:Value(1)
@@ -807,7 +1042,7 @@ local function InventoryUI(scope, props)
 			})
 
 			-- Add gradient to text
-			local textGradient = scope:New("UIGradient")({
+			scope:New("UIGradient")({
 				Name = "RarityGradient",
 				Color = ColorSequence.new({
 					ColorSequenceKeypoint.new(0, rarityGradient[1]),
@@ -816,6 +1051,28 @@ local function InventoryUI(scope, props)
 				Rotation = 90, -- Vertical gradient
 				Parent = itemNameLabel,
 			})
+
+			-- Add equipped indicator badge if item is in hotbar
+			if itemEquippedHotbar then
+				local equippedBadge = scope:New("TextLabel")({
+					Name = "EquippedBadge",
+					BackgroundColor3 = Color3.fromRGB(80, 180, 80),
+					BorderSizePixel = 0,
+					Position = UDim2.fromScale(0.7, 0),
+					Size = UDim2.fromOffset(16, 16),
+					Text = tostring(itemEquippedHotbar),
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					TextSize = 10,
+					FontFace = Font.new("rbxassetid://12187365364", Enum.FontWeight.Bold),
+					ZIndex = 16,
+					Parent = icon,
+				})
+
+				scope:New("UICorner")({
+					CornerRadius = UDim.new(0.5, 0),
+					Parent = equippedBadge,
+				})
+			end
 
 			-- Store rainbow animation flag for priceless items
 			local isPriceless = itemRarity == "priceless"
@@ -863,6 +1120,9 @@ local function InventoryUI(scope, props)
 					selectedItem:set(icon)
 					hoverScale:set(1.15)
 
+					-- Update shared state for hotbar interaction
+					InventoryState.setSelectedItem(itemSlot, item)
+
 					-- Keep floating while selected with smooth spring animation
 					floatThread = task.spawn(function()
 						local angle = 0
@@ -878,8 +1138,11 @@ local function InventoryUI(scope, props)
 
 					-- Slide out hover desc to the LEFT of the holder (0 = at left edge of holder)
 					hoverDescX:set(0)
-					hoverDescHeight:set(100) -- Fold out to full height
+					hoverDescHeight:set(140) -- Fold out to full height (increased for slot picker)
 					hoverDescTransparency:set(0)
+
+					-- Show slot picker (or unequip button if item is equipped)
+					showSlotPicker(true, itemEquippedHotbar)
 
 					-- Start HoverDesc floating (smooth circular motion with springs)
 					hoverDescFloatConnection = task.spawn(function()
@@ -946,6 +1209,12 @@ local function InventoryUI(scope, props)
 				else
 					selectedItem:set(nil)
 					deselectIcon()
+
+					-- Clear shared state
+					InventoryState.clearSelection()
+
+					-- Hide slot picker
+					showSlotPicker(false)
 
 					-- Stop HoverDesc floating (task.spawn returns a thread, not a connection)
 					if hoverDescFloatConnection then

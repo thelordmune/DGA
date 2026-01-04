@@ -15,6 +15,7 @@ local ref = require(Replicated.Modules.ECS.jecs_ref)
 local RefManager = require(Replicated.Modules.ECS.jecs_ref_manager)
 local comps = require(Replicated.Modules.ECS.jecs_components)
 local Global = require(Replicated.Modules.Shared.Global)
+local LimbManager = require(Replicated.Modules.Utils.LimbManager)
 -- Adrenaline system (lazy load to avoid circular dependencies)
 local AdrenalineSystem = nil
 local function getAdrenalineSystem()
@@ -618,64 +619,59 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		-- -- ---- print("Damage.Tag called - Target:", Target.Name, "IsNPC:", Target:GetAttribute("IsNPC"))
 
-		if Target:GetAttribute("IsNPC") then
-        -- Log the attack for NPC aggression system
-        local damageLog = Target:FindFirstChild("Damage_Log")
-        if not damageLog then
-            damageLog = Instance.new("Folder")
-            damageLog.Name = "Damage_Log"
-            damageLog.Parent = Target
-        end
+		-- Log the attack for aggression/death tracking
+		local damageLog = Target:FindFirstChild("Damage_Log")
+		if not damageLog then
+			damageLog = Instance.new("Folder")
+			damageLog.Name = "Damage_Log"
+			damageLog.Parent = Target
+		end
 
-        -- Create attack record
-        local attackRecord = Instance.new("ObjectValue")
-        attackRecord.Name = "Attack_" .. os.clock()
-        attackRecord.Value = Invoker
-        attackRecord.Parent = damageLog
+		-- Create attack record
+		local attackRecord = Instance.new("ObjectValue")
+		attackRecord.Name = "Attack_" .. os.clock()
+		attackRecord.Value = Invoker
+		attackRecord.Parent = damageLog
 
-        -- Clean up old attack records (keep only last 5)
-        local records = damageLog:GetChildren()
-        if #records > 5 then
-            for i = 1, #records - 5 do
-                records[i]:Destroy()
-            end
-        end
+		-- Clean up old attack records (keep only last 5)
+		local records = damageLog:GetChildren()
+		if #records > 5 then
+			for i = 1, #records - 5 do
+				records[i]:Destroy()
+			end
+		end
 
-        -- Set recently attacked state using the character's IFrames (which is a StringValue)
-        -- local iFrames = Target:FindFirstChild("IFrames")
-        -- if iFrames and iFrames:IsA("StringValue") then
-        --     Library.TimedState(iFrames, "RecentlyAttacked", 2) -- Short window just for aggression trigger
-        --     Library.TimedState(iFrames, "Damaged", 1) -- Very short immediate reaction
-        --     -- -- ---- print("Set RecentlyAttacked and Damaged states for NPC:", Target.Name)
-        -- else
-        --     -- -- ---- print("Warning: Could not find IFrames StringValue for NPC:", Target.Name)
-        -- end
-
-        -- -- -- ---- print("NPC", Target.Name, "was attacked by", Invoker.Name, "- logging for aggression system")
-
-        -- Note: Original NPC damage handling removed as Server.Modules.NPC doesn't exist
-        -- The aggression system will handle NPC behavior through the behavior trees
-    end
+		-- Note: NPC aggression is now handled through behavior trees using the Damage_Log above
 
 		-- Apply the FINAL calculated damage (not Table.Damage which is the original base)
-		if pData then
-			Target.Humanoid.Health -= finalDamage + pData.Stats.Damage
-			--[[-- -- ---- print(
-				"Total damage dealt:",
-				finalDamage + pData.Stats.Damage,
-				"(Base:",
-				originalBaseDamage,
-				"+ Player Stats:",
-				pData.Stats.Damage,
-				"+ Adrenaline:",
-				adrenalineBonusDamage,
-				"+ Kinetic:",
-				bonusDamage,
-				")"
-			)]]
+		-- DEATH THRESHOLD: Clamp health at 1 HP instead of 0 to prevent Roblox's death system from interfering
+		local totalDamage = pData and (finalDamage + pData.Stats.Damage) or finalDamage
+		local newHealth = Target.Humanoid.Health - totalDamage
+
+		-- Check if this damage would kill the target (bring to 1 or below)
+		if newHealth <= 1 then
+			-- Skip if already dead
+			if Target:GetAttribute("IsDead") then
+				return
+			end
+
+			-- Set health to exactly 1 (death threshold)
+			Target.Humanoid.Health = 1
+
+			-- Mark as dead via attribute so other systems can detect it
+			Target:SetAttribute("IsDead", true)
+			Target:SetAttribute("DeathTime", os.clock())
+
+			-- Fire custom death event for death_corpse and other systems
+			local deathEvent = Target:FindFirstChild("CustomDeath")
+			if not deathEvent then
+				deathEvent = Instance.new("BindableEvent")
+				deathEvent.Name = "CustomDeath"
+				deathEvent.Parent = Target
+			end
+			deathEvent:Fire()
 		else
-			Target.Humanoid.Health -= finalDamage
-			-- -- ---- print("Total damage dealt:", finalDamage, "(Base:", originalBaseDamage, "+ Adrenaline:", adrenalineBonusDamage, "+ Kinetic:", bonusDamage, ")")
+			Target.Humanoid.Health = newHealth
 		end
 	end
 
@@ -714,7 +710,28 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				data.dura = data.dura - dt
 
 				if data.dura % proctick < dtx then
-					Target.Humanoid.Health -= procdmg
+					-- DEATH THRESHOLD: Clamp health at 1 HP instead of 0
+					local newHealth = Target.Humanoid.Health - procdmg
+					if newHealth <= 1 then
+						-- Skip if already dead
+						if Target:GetAttribute("IsDead") then
+							return
+						end
+						-- Set health to exactly 1 (death threshold)
+						Target.Humanoid.Health = 1
+						-- Mark as dead and fire custom death event
+						Target:SetAttribute("IsDead", true)
+						Target:SetAttribute("DeathTime", os.clock())
+						local deathEvent = Target:FindFirstChild("CustomDeath")
+						if not deathEvent then
+							deathEvent = Instance.new("BindableEvent")
+							deathEvent.Name = "CustomDeath"
+							deathEvent.Parent = Target
+						end
+						deathEvent:Fire()
+					else
+						Target.Humanoid.Health = newHealth
+					end
 				end
 			end)
 		end
@@ -1182,6 +1199,76 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		-- MULTI-HIT FIX: Removed NPC IFrame after damage to allow multi-hit combos
 		-- NPCs no longer get brief immunity after taking damage - allows rapid consecutive hits
 		-- Multi-hit moves will mark their victims with "MultiHitVictim" state instead
+
+		-- JUNCTION SYSTEM: Roll for limb loss after damage
+		if Table.Junction and Table.JunctionChance then
+			-- Get target's current limb state
+			local targetEntity = nil
+			if TargetPlayer then
+				targetEntity = ref.get("player", TargetPlayer)
+			else
+				targetEntity = RefManager.entity.find(Target)
+			end
+
+			if targetEntity then
+				local limbState = world:get(targetEntity, comps.LimbState)
+				if not limbState then
+					-- Initialize limb state if not present
+					limbState = LimbManager.GetDefaultLimbState()
+					world:set(targetEntity, comps.LimbState, limbState)
+				end
+
+				-- Calculate junction chance (increases at low HP)
+				local humanoid = Target:FindFirstChild("Humanoid")
+				local healthPercent = humanoid and (humanoid.Health / humanoid.MaxHealth) or 1
+				local finalChance = LimbManager.calculateJunctionChance(Table.JunctionChance, healthPercent)
+
+				-- Roll for limb loss
+				if math.random() <= finalChance or Table.JunctionGuaranteed then
+					local limbToSever = LimbManager.GetRandomLimb(Table.Junction, limbState)
+
+					if limbToSever then
+						-- Sever the limb
+						local success = LimbManager.SeverLimb(Target, limbToSever)
+
+						if success then
+							-- Update ECS component
+							if limbToSever == "LeftArm" then limbState.leftArm = false
+							elseif limbToSever == "RightArm" then limbState.rightArm = false
+							elseif limbToSever == "LeftLeg" then limbState.leftLeg = false
+							elseif limbToSever == "RightLeg" then limbState.rightLeg = false
+							end
+							limbState.bleedingStacks = limbState.bleedingStacks + 1
+							world:set(targetEntity, comps.LimbState, limbState)
+
+							-- Fire visual effects for limb detachment
+							Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {
+								Module = "LimbDetach",
+								Function = "SeverLimb",
+								Arguments = { Target, limbToSever, Invoker },
+							})
+
+							-- Apply bleeding status (permanent until healed)
+							Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {
+								Module = "Misc",
+								Function = "EnableStatus",
+								Arguments = { Target, "Bleeding", -1 }, -- -1 = permanent
+							})
+
+							-- Save limb state to player data (persistence)
+							if TargetPlayer then
+								Global.SetData(TargetPlayer, function(data)
+									data.LimbState = limbState
+									return data
+								end)
+							end
+
+							print(`[Junction] {Invoker.Name} severed {Target.Name}'s {limbToSever}!`)
+						end
+					end
+				end
+			end
+		end
 	end
 
 	if Table.Status then

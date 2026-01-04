@@ -17,6 +17,9 @@ local bridgeTree = {
 	UpdateInfluence = bridgeNet2.ReferenceBridge("UpdateInfluence"),
 	NightTransition = bridgeNet2.ReferenceBridge("NightTransition"),
 	JailPlayer = bridgeNet2.ReferenceBridge("JailPlayer"),
+	InventoryAction = bridgeNet2.ReferenceBridge("InventoryAction"),
+	JailEscape = bridgeNet2.ReferenceBridge("JailEscape"),
+	TruthReturn = bridgeNet2.ReferenceBridge("TruthReturn"),
 }
 
 return bridgeTree

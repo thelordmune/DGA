@@ -33,7 +33,7 @@ NetworkModule.EndPoint = function(Player, Data)
 	local now = os.clock()
 	local lastAttempt = pickpocketCooldowns[Player.UserId] or 0
 	if now - lastAttempt < InfluenceManager.PICKPOCKET_COOLDOWN then
-		Packets.PickpocketResult.send({
+		Packets.PickpocketResult.sendTo({
 			Success = false,
 			Message = "Wait before pickpocketing again!",
 			Money = nil,
@@ -53,7 +53,7 @@ NetworkModule.EndPoint = function(Player, Data)
 	InfluenceManager.setNPCHostile(Player, npcId)
 
 	-- Send result to client
-	Packets.PickpocketResult.send({
+	Packets.PickpocketResult.sendTo({
 		Success = success,
 		Message = message,
 		Money = loot and loot.money or nil,
@@ -71,19 +71,21 @@ NetworkModule.EndPoint = function(Player, Data)
 			loot and loot.money or 0,
 			loot and loot.item and (" + " .. loot.item) or ""))
 	else
-		print(string.format("[Pickpocket] %s FAILED to pickpocket %s (%s) - Caught!",
-			Player.Name, npcId, occupation))
+		print(string.format("[Pickpocket] %s FAILED to pickpocket %s (%s) - Caught! GuardsSpawning: %s",
+			Player.Name, npcId, occupation, tostring(guardsSpawning)))
 	end
 
-	-- Spawn guards if threshold reached
+	-- Guard spawning is handled by guard_spawner.luau system
+	-- Just update player data here when guards should spawn
 	if guardsSpawning then
-		print(string.format("[Pickpocket] %s has triggered guard spawn!", Player.Name))
-		-- Guard spawning is handled by the GuardSpawner system
-		-- We just need to mark the player as wanted
+		print(string.format("[Pickpocket] %s has triggered guard spawn - guard_spawner will handle it", Player.Name))
+
+		-- Update player data to trigger guard_spawner
 		local playerData = Global.GetData(Player)
 		if playerData then
 			Global.SetData(Player, function(data)
 				data.Influence.GuardsSpawnedOn = (data.Influence.GuardsSpawnedOn or 0) + 1
+				data.Influence.WantedLevel = math.min((data.Influence.WantedLevel or 0) + 2, 5)
 				return data
 			end)
 		end

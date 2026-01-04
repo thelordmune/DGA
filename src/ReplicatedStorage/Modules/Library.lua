@@ -87,8 +87,14 @@ Library.StopAllAnims = function(Char: Model)
 		Weapon = "Fist"
 	end
 
+	local miscFolder = Replicated.Assets.Animations:FindFirstChild("Misc")
+
 	for _, v in next, Char.Humanoid.Animator:GetPlayingAnimationTracks() do
-		if tonumber(v.Name) or Replicated.Assets.Animations.Abilities:FindFirstChild(v.Name) or Replicated.Assets.Animations.Weapons[Weapon].Swings:FindFirstChild(v.Name) or Replicated.Assets.Animations.Weapons[Weapon]:FindFirstChild(v.Name) then
+		if tonumber(v.Name)
+			or Replicated.Assets.Animations.Abilities:FindFirstChild(v.Name)
+			or Replicated.Assets.Animations.Weapons[Weapon].Swings:FindFirstChild(v.Name)
+			or Replicated.Assets.Animations.Weapons[Weapon]:FindFirstChild(v.Name)
+			or (miscFolder and miscFolder:FindFirstChild(v.Name)) then
 			v:Stop(.2)
 		end
 	end

@@ -51,7 +51,7 @@ return function(scope, props)
         Parent = parent,
         Name = "ClockFrame",
         AnchorPoint = Vector2.new(0, 0),
-        Position = UDim2.new(0, 15, 0, 15),
+        Position = UDim2.new(0, 15, 0, 50),
         Size = UDim2.fromOffset(90, 35),
         BackgroundColor3 = Color3.fromRGB(20, 20, 25),
         BackgroundTransparency = 0.3,

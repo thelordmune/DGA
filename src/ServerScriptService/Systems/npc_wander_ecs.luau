@@ -36,9 +36,9 @@ local wandererQuery = world:query(
     comps.Locomotion
 ):with(comps.WandererNPC):cached()
 
--- Throttle to 10 Hz (IMPROVED: was 8 Hz / 0.125s)
+-- Throttle to 2 Hz for better performance (was 10 Hz / 0.1s)
 local lastUpdate = 0
-local UPDATE_INTERVAL = 0.1
+local UPDATE_INTERVAL = 0.5
 
 -- Generate a random direction on the XZ plane
 local function randomDirection(): Vector3
@@ -78,10 +78,10 @@ local function processWander(entity, char, transform, wander, now: number, isWan
     -- Initialize wander state if needed
     if not wander.targetDirection then
         wander.targetDirection = randomDirection()
-        wander.directionChangeTime = now + math.random(8, 20) -- Change direction every 8-20 seconds
+        wander.directionChangeTime = now + math.random(20, 40) -- Change direction every 20-40 seconds (was 8-20)
         wander.isPaused = false
         wander.pauseEndTime = 0
-        wander.moveEndTime = now + math.random(10, 25) -- Move for 10-25 seconds
+        wander.moveEndTime = now + math.random(15, 35) -- Move for 15-35 seconds (was 10-25)
     end
 
     -- Handle pause/move cycle
@@ -91,8 +91,8 @@ local function processWander(entity, char, transform, wander, now: number, isWan
             -- End pause, start moving with new random direction
             wander.isPaused = false
             wander.targetDirection = randomDirection()
-            wander.directionChangeTime = now + math.random(8, 20)
-            wander.moveEndTime = now + math.random(10, 25)
+            wander.directionChangeTime = now + math.random(20, 40) -- (was 8-20)
+            wander.moveEndTime = now + math.random(15, 35) -- (was 10-25)
         else
             -- Still paused - stay idle
             world:set(entity, comps.Locomotion, {
@@ -107,7 +107,7 @@ local function processWander(entity, char, transform, wander, now: number, isWan
         if now >= wander.moveEndTime then
             -- Start pause
             wander.isPaused = true
-            wander.pauseEndTime = now + math.random(3, 8) -- Pause for 3-8 seconds
+            wander.pauseEndTime = now + math.random(8, 20) -- Pause for 8-20 seconds (was 3-8)
             world:set(entity, comps.Locomotion, {
                 dir = Vector3.zero,
                 speed = 0,
@@ -126,7 +126,7 @@ local function processWander(entity, char, transform, wander, now: number, isWan
             else
                 wander.targetDirection = newDir
             end
-            wander.directionChangeTime = now + math.random(5, 15)
+            wander.directionChangeTime = now + math.random(15, 30) -- (was 5-15)
         end
     end
 

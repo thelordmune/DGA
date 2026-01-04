@@ -32,6 +32,20 @@ return {
                 ["Alignment"] = 1
             }
         }
+    },
+
+    -- System-generated quest for jail escape
+    ["System"] = {
+        ["Escape"] = {
+            ["Description"] = "A prisoner has escaped! Find a way out of Central Command HQ.",
+            ["Rewards"] = {
+                ["Items"] = {},
+                ["Experience"] = 0,
+                ["Alignment"] = -5 -- Negative alignment for escaping
+            },
+            ["SystemQuest"] = true, -- Flag to indicate this is auto-assigned
+            ["HideFromNPC"] = true, -- Don't show in NPC dialogue
+        }
     }
 
 }

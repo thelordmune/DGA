@@ -236,6 +236,15 @@ local components: {
         fleeTarget: Model?,       -- Player to flee from
         fleeEndTime: number,      -- When to stop fleeing (os.clock timestamp)
     }>,
+
+    -- Limb Loss & Junction System
+    LimbState: Entity<{
+        leftArm: boolean,         -- true = attached, false = severed
+        rightArm: boolean,
+        leftLeg: boolean,
+        rightLeg: boolean,
+        bleedingStacks: number,   -- Each missing limb adds 1 stack of bleeding
+    }>,
 } =
 	{
 		Character = world:component(),
@@ -373,6 +382,9 @@ local components: {
         NPCRelationship = world:component(),
         NPCProximity = world:component(),
         NPCFlee = world:component(),
+
+        -- Limb Loss & Junction System
+        LimbState = world:component(),
 	}
 
     for name, component in components :: {[string]: jecs.Entity} do 

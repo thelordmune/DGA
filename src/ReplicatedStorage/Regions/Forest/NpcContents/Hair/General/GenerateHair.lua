@@ -74,8 +74,38 @@ return function(npc: Model, mainConfig)
 		return
 	end
 
-	-- DISABLED: InsertService.LoadAsset() is destroying HumanoidRootPart
-	-- TODO: Fix InsertService loading to not corrupt NPCs
+	local humanoid = npc:FindFirstChild("Humanoid")
+	if not humanoid then
+		return
+	end
 
-	return
+	-- Determine gender and color randomly
+	local isMale = math.random() > 0.5
+	local isBlack = math.random() > 0.7 -- 30% chance for black hair
+	local gender = isMale and "Male" or "Female"
+
+	-- Get exactly 1 random hair ID (to prevent multiple hairs)
+	local hairIds = getRandomHairIds(gender, isBlack, 1)
+
+	for _, hairId in hairIds do
+		-- Safe asset loading with pcall
+		local success, result = pcall(function()
+			return InsertService:LoadAsset(hairId)
+		end)
+
+		if success and result then
+			-- Find the accessory in the loaded model
+			local accessory = result:FindFirstChildWhichIsA("Accessory")
+			if accessory then
+				-- Clone the accessory (don't parent the whole model)
+				local hairAccessory = accessory:Clone()
+				-- Use AddAccessory for proper attachment
+				humanoid:AddAccessory(hairAccessory)
+			end
+			-- Clean up the loaded model
+			result:Destroy()
+		else
+			warn("[GenerateHair] Failed to load hair asset:", hairId, result)
+		end
+	end
 end

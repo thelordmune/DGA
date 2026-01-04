@@ -65,6 +65,13 @@ function delete(key: any)
 	if not key then
 		return
 	end
+	local entity = refs[key]
+	if entity then
+		-- Delete the entity from the ECS world to prevent memory leaks
+		pcall(function()
+			set_world:delete(entity)
+		end)
+	end
 	refs[key] = nil
 end
 

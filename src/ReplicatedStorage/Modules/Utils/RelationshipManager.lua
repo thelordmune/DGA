@@ -218,7 +218,7 @@ function RelationshipManager.syncToClient(player, npcId: string, value: number, 
 
 	local Packets = require(ReplicatedStorage.Modules.Packets)
 
-	Packets.NPCRelationshipSync.send({
+	Packets.NPCRelationshipSync.sendTo({
 		NPCId = npcId,
 		Value = value,
 		Tier = tier,

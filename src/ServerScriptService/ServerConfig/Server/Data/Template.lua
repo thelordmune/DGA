@@ -28,6 +28,8 @@ return {
 		["Health"] = 100,
 		["Armor"] = 0,
 		["Speed"] = 1,
+		["PhysicalResistance"] = 0, -- Reduces physical damage taken (percentage)
+		["AlchemicalResistance"] = 0, -- Reduces alchemical/elemental damage taken (percentage)
 	},
 	["FirstJoin"] = true,
 	["Customization"] = {
@@ -105,5 +107,15 @@ return {
 		Dexerity = 0,
 	},
 	Injury = "None",
-	Innate = "Survival Instincts"
+	Innate = "Survival Instincts",
+
+	-- Limb Loss System
+	-- Tracks severed limbs (persistent until healed by doctor or healing item)
+	["LimbState"] = {
+		leftArm = true,     -- true = attached, false = severed
+		rightArm = true,
+		leftLeg = true,
+		rightLeg = true,
+		bleedingStacks = 0, -- Number of missing limbs causing bleeding
+	},
 }

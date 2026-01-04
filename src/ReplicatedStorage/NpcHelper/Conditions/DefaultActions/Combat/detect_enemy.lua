@@ -80,12 +80,17 @@ return function(actor: Actor, mainConfig: table)
             
             for _, victim in taggedEntities do
                  ---- print("Evaluating potential victim:", victim.Name)
-                
+
                 if victim == npc then
                      ---- print("Skipping self:", victim.Name)
                     continue
                 end
-                
+
+                -- Skip other spawned guards - they shouldn't attack each other
+                if npc:GetAttribute("IsSpawnedGuard") and victim:GetAttribute("IsSpawnedGuard") then
+                    continue
+                end
+
                 if mainConfig.EnemyDetection.Current then
                      ---- print("Already have target, skipping:", victim.Name)
                     continue

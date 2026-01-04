@@ -91,6 +91,18 @@ return function(actor: Actor, mainConfig: table)
 	npcModel:SetAttribute("Equipped", false) -- Always start unequipped, let EquipWeapon handle it
 	npcModel:SetAttribute("IsNPC", true) -- Mark as NPC for damage system
 
+	-- Copy display name from NpcFile for death screen display
+	local defaultName = actor.Parent:GetAttribute("DefaultName")
+	if defaultName then
+		npcModel:SetAttribute("DisplayName", defaultName)
+	end
+
+	-- Copy spawned guard attributes from NpcFile to model
+	if actor.Parent:GetAttribute("IsSpawnedGuard") or actor.Parent:GetAttribute("SpawnedBySystem") then
+		npcModel:SetAttribute("IsSpawnedGuard", true)
+		npcModel:SetAttribute("TargetPlayerId", actor.Parent:GetAttribute("TargetPlayerId"))
+	end
+
 	---- print("Spawning NPC:", npcModel.Name, "Weapon:", randomWeapon, "ShouldEquip:", shouldEquip)
 
 	-- ---- print("Spawning NPC:", npcModel.Name, "with IsNPC attribute:", npcModel:GetAttribute("IsNPC"))

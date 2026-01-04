@@ -244,6 +244,14 @@ function Ragdoller:Disable(character: Model)
 		end
 	end
 
+	-- Map joint names to their corresponding severed limb attributes
+	local jointToSeveredAttr = {
+		["Right Shoulder"] = "Severed_RightArm",
+		["Left Shoulder"] = "Severed_LeftArm",
+		["Right Hip"] = "Severed_RightLeg",
+		["Left Hip"] = "Severed_LeftLeg",
+	}
+
 	for _, v in character:GetDescendants() do
 		if v:IsA("Motor6D") then
 			if
@@ -253,20 +261,32 @@ function Ragdoller:Disable(character: Model)
 				or v.Name == "Left Hip"
 				or v.Name == "Neck"
 			then
-				v.Part0 = character.Torso
+				-- Check if this limb was severed - don't reconnect if so
+				local severedAttr = jointToSeveredAttr[v.Name]
+				local isSevered = severedAttr and character:GetAttribute(severedAttr)
+
+				if not isSevered then
+					v.Part0 = character.Torso
+				end
 			end
 		elseif v.Name == "RagdollAttachment" or v.Name == "ConstraintJoint" or v.Name == "Collision" then
 			v:Destroy()
 		end
 
 		if (v:IsA("Motor6D") or v:IsA("Weld")) and v:GetAttribute("C0Position") ~= nil then
-			local C0Position = v:GetAttribute("C0Position")
-			local C1Position = v:GetAttribute("C1Position")
-			local C0Angle = v:GetAttribute("C0Angle")
-			local C1Angle = v:GetAttribute("C1Angle")
+			-- Check if this joint's limb was severed - don't restore C0/C1 if so
+			local severedAttr = jointToSeveredAttr[v.Name]
+			local isSevered = severedAttr and character:GetAttribute(severedAttr)
 
-			v.C0 = CFrame.new(C0Position.X, C0Position.Y, C0Position.Z) * CFrame.Angles(C0Angle.X, C0Angle.Y, C0Angle.Z)
-			v.C1 = CFrame.new(C1Position.X, C1Position.Y, C1Position.Z) * CFrame.Angles(C1Angle.X, C1Angle.Y, C1Angle.Z)
+			if not isSevered then
+				local C0Position = v:GetAttribute("C0Position")
+				local C1Position = v:GetAttribute("C1Position")
+				local C0Angle = v:GetAttribute("C0Angle")
+				local C1Angle = v:GetAttribute("C1Angle")
+
+				v.C0 = CFrame.new(C0Position.X, C0Position.Y, C0Position.Z) * CFrame.Angles(C0Angle.X, C0Angle.Y, C0Angle.Z)
+				v.C1 = CFrame.new(C1Position.X, C1Position.Y, C1Position.Z) * CFrame.Angles(C1Angle.X, C1Angle.Y, C1Angle.Z)
+			end
 		end
 	end
 
@@ -286,13 +306,21 @@ function Ragdoller:Disable(character: Model)
 		rootPart["Root Hip"].C0 = CFrame.Angles(-math.pi / 2, 0, -math.pi)
 		rootPart["Root Hip"].C1 = CFrame.Angles(-math.pi / 2, 0, -math.pi)
 
-		-- Hips
-		character.Torso["Right Hip"].C0 = CFrame.new(1, -1, 0) * CFrame.Angles(0, math.pi / 2, 0)
-		character.Torso["Left Hip"].C0 = CFrame.new(-1, -1, 0) * CFrame.Angles(0, -math.pi / 2, 0)
+		-- Hips (only if not severed)
+		if not character:GetAttribute("Severed_RightLeg") then
+			character.Torso["Right Hip"].C0 = CFrame.new(1, -1, 0) * CFrame.Angles(0, math.pi / 2, 0)
+		end
+		if not character:GetAttribute("Severed_LeftLeg") then
+			character.Torso["Left Hip"].C0 = CFrame.new(-1, -1, 0) * CFrame.Angles(0, -math.pi / 2, 0)
+		end
 
-		-- Shoulders
-		character.Torso["Right Shoulder"].C0 = CFrame.new(1, 0.5, 0) * CFrame.Angles(0, math.pi / 2, 0)
-		character.Torso["Left Shoulder"].C0 = CFrame.new(-1, 0.5, 0) * CFrame.Angles(0, -math.pi / 2, 0)
+		-- Shoulders (only if not severed)
+		if not character:GetAttribute("Severed_RightArm") then
+			character.Torso["Right Shoulder"].C0 = CFrame.new(1, 0.5, 0) * CFrame.Angles(0, math.pi / 2, 0)
+		end
+		if not character:GetAttribute("Severed_LeftArm") then
+			character.Torso["Left Shoulder"].C0 = CFrame.new(-1, 0.5, 0) * CFrame.Angles(0, -math.pi / 2, 0)
+		end
 
 		-- Heads
 		character.Torso["Neck"].C0 = CFrame.new(0, 1, 0) * CFrame.Angles(-math.pi / 2, 0, -math.pi)

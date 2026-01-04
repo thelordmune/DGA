@@ -14,7 +14,7 @@
 local Lighting = game:GetService("Lighting")
 
 -- Day/Night cycle configuration
-local DAY_LENGTH = 20 * 60 -- 20 minutes in seconds for a full day/night cycle
+local DAY_LENGTH = 3 * 60 -- 20 minutes in seconds for a full day/night cycle
 local START_TIME = 6 -- Start at 6 AM
 
 -- Calculate start time offset so that the cycle begins at START_TIME

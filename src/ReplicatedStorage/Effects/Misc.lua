@@ -222,6 +222,19 @@ function Misc.AdrenalineFX(Character: Model)
 	Debris:AddItem(ADVfx, 1)
 end
 
+-- Wall construction VFX for jail escape system (minimal - no alchemy effects)
+function Misc.WallConstruct(position: Vector3, wallWidth: number, wallHeight: number, duration: number)
+	-- Screen shake for nearby players as wall rises
+	CamShake({
+		Location = position,
+		Magnitude = 2,
+		Damp = 0.0002,
+		Frequency = 15,
+		Influence = Vector3.new(0.4, 0.6, 0.4),
+		Falloff = 40,
+	})
+end
+
 function Misc.DeconBolt(Character: Model, Position: Vector3 | Vector2)
 	local hrp = Character:FindFirstChild("HumanoidRootPart")
 	task.spawn(function()

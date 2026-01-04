@@ -141,6 +141,15 @@ local function walkspeed_controller()
 	local finalWalkSpeed = math.max(0, DeltaSpeed) -- Ensure never negative
 	local finalJumpPower = math.max(0, DeltaJump) -- Ensure never negative
 
+	-- Apply limb loss speed multiplier if present (leg loss slows movement)
+	local limbSpeedMultiplier = character:GetAttribute("LimbSpeedMultiplier")
+	if limbSpeedMultiplier and limbSpeedMultiplier < 1 then
+		finalWalkSpeed = finalWalkSpeed * limbSpeedMultiplier
+		if DEBUG then
+			---- print(`[WalkspeedController] Applied limb speed multiplier: {limbSpeedMultiplier}, final: {finalWalkSpeed}`)
+		end
+	end
+
 	-- ALWAYS update walkspeed (remove the "only if changed" check for debugging)
 	humanoid.WalkSpeed = finalWalkSpeed
 

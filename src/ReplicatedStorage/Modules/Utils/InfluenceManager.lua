@@ -24,61 +24,61 @@ local InfluenceManager = {}
 
 -- Constants
 InfluenceManager.PICKPOCKET_COOLDOWN = 5 -- Seconds between pickpocket attempts
-InfluenceManager.PICKPOCKET_SUCCESS_CHANCE = 0.6 -- 60% base success rate
+InfluenceManager.PICKPOCKET_SUCCESS_CHANCE = 0.25 -- 25% base success rate (high fail chance)
 InfluenceManager.PICKPOCKET_REPUTATION_LOSS = 5 -- Reputation lost per pickpocket
 InfluenceManager.PICKPOCKET_FAIL_REPUTATION_LOSS = 10 -- Extra loss on failure
-InfluenceManager.GUARD_SPAWN_THRESHOLD = 3 -- Pickpockets before guards spawn
+InfluenceManager.GUARD_SPAWN_THRESHOLD = 1 -- Guards spawn on first failure (high chance)
 InfluenceManager.JAIL_TIME_PER_CRIME = 30 -- Seconds of jail per crime level
 
--- Loot tables by occupation
+-- Loot tables by occupation (all use 50-300 Cenz range)
 InfluenceManager.LOOT_TABLES = {
 	["State Alchemist"] = {
-		money = {min = 50, max = 200},
+		money = {min = 50, max = 300},
 		items = {"Alchemy Notes", "Research Journal", "Philosopher's Stone Fragment"},
 		itemChance = 0.15,
 	},
 	["Soldier"] = {
-		money = {min = 20, max = 80},
+		money = {min = 50, max = 300},
 		items = {"Military Rations", "Ammo Pouch", "Dog Tags"},
 		itemChance = 0.2,
 	},
 	["Military Police"] = {
-		money = {min = 30, max = 100},
+		money = {min = 50, max = 300},
 		items = {"Handcuffs", "Wanted Poster", "Badge"},
 		itemChance = 0.1,
 	},
 	["Intelligence Agent"] = {
-		money = {min = 40, max = 150},
+		money = {min = 50, max = 300},
 		items = {"Coded Message", "Secret Documents", "Spy Gadget"},
 		itemChance = 0.25,
 	},
 	["Automail Engineer"] = {
-		money = {min = 60, max = 180},
+		money = {min = 50, max = 300},
 		items = {"Automail Parts", "Precision Tools", "Oil Can"},
 		itemChance = 0.3,
 	},
 	["Merchant"] = {
-		money = {min = 100, max = 300},
+		money = {min = 50, max = 300},
 		items = {"Rare Goods", "Trade License", "Gold Coin"},
 		itemChance = 0.35,
 	},
 	["Blacksmith"] = {
-		money = {min = 40, max = 120},
+		money = {min = 50, max = 300},
 		items = {"Metal Ingot", "Smithing Hammer", "Blade Fragment"},
 		itemChance = 0.25,
 	},
 	["Doctor"] = {
-		money = {min = 50, max = 150},
+		money = {min = 50, max = 300},
 		items = {"Medical Supplies", "Medicine Bottle", "Surgical Tools"},
 		itemChance = 0.3,
 	},
 	["Librarian"] = {
-		money = {min = 10, max = 50},
+		money = {min = 50, max = 300},
 		items = {"Rare Book", "Ancient Scroll", "Research Notes"},
 		itemChance = 0.4,
 	},
 	["Farmer"] = {
-		money = {min = 5, max = 30},
+		money = {min = 50, max = 300},
 		items = {"Fresh Produce", "Seeds", "Farm Tools"},
 		itemChance = 0.2,
 	},
@@ -86,9 +86,9 @@ InfluenceManager.LOOT_TABLES = {
 
 -- Default loot for unknown occupations
 InfluenceManager.DEFAULT_LOOT = {
-	money = {min = 10, max = 50},
+	money = {min = 50, max = 300},
 	items = {"Pocket Watch", "Handkerchief", "Loose Change"},
-	itemChance = 0.1,
+	itemChance = 0.15,
 }
 
 -- Reputation tier thresholds
@@ -170,13 +170,18 @@ function InfluenceManager.calculateJailTime(influence): number
 	return math.clamp(time, 30, 300) -- 30 seconds to 5 minutes max
 end
 
--- Check if guards should spawn on player
-function InfluenceManager.shouldSpawnGuards(influence): boolean
+-- Check if guards should spawn on player (high chance on any failed pickpocket)
+function InfluenceManager.shouldSpawnGuards(influence, didFail): boolean
+	-- If the pickpocket failed, 75% chance to spawn guards immediately
+	if didFail then
+		return math.random() < 0.75
+	end
+
 	local pickpocketCount = influence.SuccessfulPickpockets or 0
 	local wantedLevel = influence.WantedLevel or 0
 
-	-- Spawn guards if pickpocket threshold reached or wanted level high
-	return pickpocketCount >= InfluenceManager.GUARD_SPAWN_THRESHOLD or wantedLevel >= 2
+	-- Also spawn guards if wanted level is high
+	return wantedLevel >= 2
 end
 
 -- Server-side functions (only run on server)
@@ -255,9 +260,9 @@ if RunService:IsServer() then
 			end)
 		end
 
-		-- Check if guards should spawn
+		-- Check if guards should spawn (pass whether pickpocket failed)
 		local updatedData = Global.GetData(player)
-		local shouldSpawn = InfluenceManager.shouldSpawnGuards(updatedData.Influence)
+		local shouldSpawn = InfluenceManager.shouldSpawnGuards(updatedData.Influence, not success)
 
 		return success, success and "Pickpocket successful!" or "You were caught!", loot, shouldSpawn
 	end
@@ -332,7 +337,7 @@ if RunService:IsServer() then
 		local playerData = Global.GetData(player)
 
 		if playerData and playerData.Influence then
-			Bridges.UpdateInfluence:FireTo(player, {
+			Bridges.UpdateInfluence:Fire(player, {
 				reputation = playerData.Influence.Reputation or 0,
 				wantedLevel = playerData.Influence.WantedLevel or 0,
 				jailTime = playerData.Influence.JailTime or 0,
@@ -341,7 +346,7 @@ if RunService:IsServer() then
 
 		-- Also sync money
 		if playerData and playerData.Stats then
-			Bridges.UpdateMoney:FireTo(player, {
+			Bridges.UpdateMoney:Fire(player, {
 				money = playerData.Stats.Money or 0,
 			})
 		end

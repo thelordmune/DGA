@@ -162,7 +162,14 @@ return ByteNet.defineNamespace("Networking", function()
 				Air = ByteNet.bool;
 			})
 		});
-		
+
+		Truth = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				Air = ByteNet.bool;
+			})
+		});
+
 		Block = ByteNet.definePacket({
 			reliabilityType = "reliable";
 			value = ByteNet.struct({
@@ -268,6 +275,16 @@ return ByteNet.defineNamespace("Networking", function()
 				Money = ByteNet.optional(ByteNet.int32);
 				Item = ByteNet.optional(ByteNet.string);
 				GuardsSpawning = ByteNet.bool;
+			})
+		});
+
+		-- Inventory actions (move items between inventory and hotbar)
+		InventoryAction = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.struct({
+				action = ByteNet.string; -- "MoveToHotbar", "SwapWithHotbar", "MoveToInventory", "AssignToHotbar"
+				inventorySlot = ByteNet.optional(ByteNet.int16);
+				hotbarSlot = ByteNet.optional(ByteNet.int8);
 			})
 		});
 

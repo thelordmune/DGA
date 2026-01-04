@@ -259,23 +259,25 @@ return function(scope, props: {})
 
 	-- Create a local state to control when responses should show (after text animation)
 	local showResponses = scope:Value(false)
+	local textAnimationComplete = scope:Value(false) -- Track if text animation is done
 
-	-- When responseMode becomes true, check if we should show responses
+	-- When responseMode becomes true, wait for text animation to complete before showing responses
 	scope:Computed(function(use)
 		local respMode = use(responseMode)
-		if respMode then
-			-- If response mode is activated, show responses after a short delay
-			-- (to allow any ongoing text animation to complete)
+		local animComplete = use(textAnimationComplete)
+
+		if respMode and animComplete then
+			-- Both conditions met - show responses
 			task.spawn(function()
-				task.wait(0.5) -- Wait for any ongoing animation
-				if peek(responseMode) then -- Double-check it's still in response mode
-					---- print("[DialogueComp] Response mode activated, showing responses")
+				task.wait(0.1) -- Small delay for polish
+				if peek(responseMode) and peek(textAnimationComplete) then
 					showResponses:set(true)
 				end
 			end)
-		else
+		elseif not respMode then
 			showResponses:set(false)
 		end
+		-- If respMode is true but animComplete is false, we wait
 	end)
 
 	local textFrame = scope:New("Frame")({
@@ -300,6 +302,7 @@ return function(scope, props: {})
 				end
 
 				isAnimating = true
+				textAnimationComplete:set(false) -- Mark animation as in progress
 
 				local maxWait = 0
 				while not textFrame:IsDescendantOf(game) and maxWait < 100 do
@@ -309,6 +312,7 @@ return function(scope, props: {})
 				if not textFrame:IsDescendantOf(game) then
 					warn("[DialogueComp] TextFrame not in DataModel, cannot render text")
 					isAnimating = false
+					textAnimationComplete:set(true) -- Mark complete even on error
 					return
 				end
 
@@ -340,15 +344,13 @@ return function(scope, props: {})
 				-- Animate text in
 				animateTextIn(textFrame, 0.015)
 
-				-- After animation completes, show responses
-				task.spawn(function()
-					-- Calculate animation duration (chars * delay + buffer)
-					local charCount = #currentText
-					local animDuration = charCount * 0.015 + 0.5
-					task.wait(animDuration)
-					showResponses:set(true)
-				end)
+				-- Calculate animation duration (chars * delay + buffer)
+				local charCount = #currentText
+				local animDuration = charCount * 0.015 + 0.3
+				task.wait(animDuration)
 
+				-- Mark animation as complete - this triggers responses to show
+				textAnimationComplete:set(true)
 				isAnimating = false
 			end)
 		end
@@ -617,9 +619,12 @@ return function(scope, props: {})
 									BorderColor3 = Color3.fromRGB(0, 0, 0),
 									BorderSizePixel = 0,
 									Image = "rbxassetid://118973584856362",
-									ImageTransparency = innerScope:Computed(function(use)
-										return use(buttonTransparency)
-									end),
+									ImageTransparency = innerScope:Tween(
+										innerScope:Computed(function(use)
+											return use(buttonTransparency)
+										end),
+										TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+									),
 									ScaleType = Enum.ScaleType.Slice,
 									Size = UDim2.fromScale(1, 1),
 									SliceCenter = Rect.new(20, 20, 200, 20),
@@ -644,6 +649,12 @@ return function(scope, props: {})
 											TextWrapped = true,
 											TextTruncate = Enum.TextTruncate.AtEnd,
 											ClipsDescendants = true,
+											TextTransparency = innerScope:Tween(
+												innerScope:Computed(function(use)
+													return use(buttonTransparency)
+												end),
+												TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+											),
 										}),
 									},
 								}),
@@ -671,15 +682,18 @@ return function(scope, props: {})
 
 								-- Fade out and slide out button before progressing
 								task.spawn(function()
-									-- Slide out in the opposite direction it came from
-									local exitOffset = -slideDirection * 100
-									for i = 1, 10 do
-										local t = i / 10
-										buttonTransparency:set(t)
+									-- Slide out in the opposite direction it came from with smoother easing
+									local exitOffset = -slideDirection * 80
+									local steps = 15
+									for i = 1, steps do
+										local t = i / steps
+										-- Smooth cubic ease in for exit
+										local eased = t * t * t
+										buttonTransparency:set(eased)
 										-- Slide out smoothly
-										local currentOffset = exitOffset * t
+										local currentOffset = exitOffset * eased
 										buttonPosition:set(UDim2.fromOffset(currentOffset, 0))
-										task.wait(0.02)
+										task.wait(0.015)
 									end
 								end)
 
