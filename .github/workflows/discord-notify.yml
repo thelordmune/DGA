@@ -1,57 +1,58 @@
 name: Discord Push Notification
+
 on:
   push:
     branches: [ main, master ]
+  workflow_call:
+    secrets:
+      DISCORD_WEBHOOK:
+        required: true
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
       - name: Send Discord Notification
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
-          DISCORD_WEBHOOK="https://discordapp.com/api/webhooks/1419064748238180423/rQzkMO5ZErFf5YfZbnspMth8uxWm2rZEsY7U2pd6dTop-yn7zXExeVxO-wWAT7wXUiA0"
+          # Get commit info
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s")
+          COMMIT_DESCRIPTION=$(git log -1 --pretty=format:"%b")
+          AUTHOR=$(git log -1 --pretty=format:"%an")
+          REPO_NAME="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
 
-          # Get the full commit message and preserve newlines
-          FULL_MESSAGE="${{ github.event.head_commit.message }}"
+          # Get lines added/removed
+          DIFF_STATS=$(git diff --numstat HEAD~1 HEAD | awk '{added+=$1; removed+=$2} END {printf "🟢 +%d lines | 🔴 -%d lines", added, removed}')
 
-          # Split into summary (first line) and description (rest)
-          SUMMARY=$(echo "$FULL_MESSAGE" | head -n1)
-          DESCRIPTION=$(echo "$FULL_MESSAGE" | tail -n +2 | sed '/^$/d')
+          # Create the JSON payload using jq for proper JSON formatting
+          JSON_DATA=$(jq -n \
+            --arg branch "$BRANCH" \
+            --arg title "$COMMIT_MESSAGE" \
+            --arg desc "$COMMIT_DESCRIPTION" \
+            --arg footer "$DIFF_STATS" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            '{
+              "embeds": [{
+                "title": $title,
+                "description": $desc,
+                "color": 5814783,
+                "timestamp": $timestamp,
+                "footer": {
+                  "text": $footer
+                }
+              }]
+            }')
 
-          # Get stats for lines added/removed
-          STATS=$(git diff --shortstat HEAD~1 HEAD 2>/dev/null || echo "")
-
-          # Extract numbers from stats (format: "X files changed, Y insertions(+), Z deletions(-)")
-          if [ -n "$STATS" ]; then
-            FILES_CHANGED=$(echo "$STATS" | grep -oP '\d+(?= file)' || echo "0")
-            INSERTIONS=$(echo "$STATS" | grep -oP '\d+(?= insertion)' || echo "0")
-            DELETIONS=$(echo "$STATS" | grep -oP '\d+(?= deletion)' || echo "0")
-            STATS_LINE="\\n**Stats:** ${FILES_CHANGED} files changed, +${INSERTIONS} lines added, -${DELETIONS} lines removed"
-          else
-            STATS_LINE=""
-          fi
-
-          # Format the message with proper newline handling
-          if [ -n "$DESCRIPTION" ]; then
-            # Properly escape the description for JSON
-            ESCAPED_DESCRIPTION=$(printf '%s' "$DESCRIPTION" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
-            ESCAPED_SUMMARY=$(printf '%s' "$SUMMARY" | sed 's/"/\\"/g')
-            FORMATTED_MESSAGE="**${ESCAPED_SUMMARY}**\\n${ESCAPED_DESCRIPTION}${STATS_LINE}"
-          else
-            ESCAPED_SUMMARY=$(printf '%s' "$SUMMARY" | sed 's/"/\\"/g')
-            FORMATTED_MESSAGE="**${ESCAPED_SUMMARY}**${STATS_LINE}"
-          fi
-
-          # Create JSON payload manually with proper escaping
-          echo "{\"content\": \"${FORMATTED_MESSAGE}\"}" > payload.json
-
-          # Send the webhook
+          # Send to Discord
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d @payload.json \
+               -d "$JSON_DATA" \
                "$DISCORD_WEBHOOK"
