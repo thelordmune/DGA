@@ -3,6 +3,7 @@ local Replicated = game:GetService("ReplicatedStorage")
 local Library = require(Replicated.Modules.Library)
 local Skills = require(ServerStorage.Stats._Skills)
 local Ragdoller = require(Replicated.Modules.Utils.Ragdoll)
+local StateManager = require(Replicated.Modules.ECS.StateManager)
 
 local Global = require(Replicated.Modules.Shared.Global)
 return function(Player, Data, Server)
@@ -36,7 +37,7 @@ return function(Player, Data, Server)
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
 
-	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then
+	if StateManager.StateCount(Character, "Actions") or StateManager.StateCount(Character, "Stuns") then
 		return
 	end
 
@@ -51,9 +52,9 @@ return function(Player, Data, Server)
 		-- Move:Play()
 		local animlength = Move.Length
 
-		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
-		Server.Library.TimedState(Character.Speeds, "AlcSpeed4", Move.Length)
-		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
+		StateManager.TimedState(Character, "Actions", script.Name, Move.Length)
+		StateManager.TimedState(Character, "Speeds", "AlcSpeed4", Move.Length)
+		StateManager.TimedState(Character, "Speeds", "Jump-50", Move.Length) -- Prevent jumping during move
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
@@ -67,7 +68,7 @@ return function(Player, Data, Server)
 
 		task.delay(hittimes[1], function()
 			-- CHECK IF SKILL WAS CANCELLED
-			if not Server.Library.StateCheck(Character.Actions, script.Name) then
+			if not StateManager.StateCheck(Character, "Actions", script.Name) then
 				if swingSound and swingSound.Parent then
 					swingSound:Stop()
 					swingSound:Destroy()
@@ -84,7 +85,7 @@ return function(Player, Data, Server)
 
 		task.delay(hittimes[2], function()
 			-- CHECK IF SKILL WAS CANCELLED
-			if not Server.Library.StateCheck(Character.Actions, script.Name) then
+			if not StateManager.StateCheck(Character, "Actions", script.Name) then
 				if swingSound and swingSound.Parent then
 					swingSound:Stop()
 					swingSound:Destroy()
@@ -96,7 +97,7 @@ return function(Player, Data, Server)
 			rocksSound = Library.PlaySound(Character.HumanoidRootPart, Replicated.Assets.SFX.Skills.AxeKick.Rocks, true)
 			task.delay(.1, function()
 				-- CHECK IF SKILL WAS CANCELLED
-				if not Server.Library.StateCheck(Character.Actions, script.Name) then
+				if not StateManager.StateCheck(Character, "Actions", script.Name) then
 					if rocksSound and rocksSound.Parent then
 						rocksSound:Stop()
 						rocksSound:Destroy()
@@ -122,9 +123,8 @@ return function(Player, Data, Server)
 				for _, Target in pairs(HitTargets) do
 					if Target ~= Character and Target:IsA("Model") then
 						-- Check if target is blocking or parrying before applying damage
-						local targetFrames = Target:FindFirstChild("Frames")
-						local isBlocking = targetFrames and Library.StateCheck(targetFrames, "Blocking")
-						local isParrying = targetFrames and Library.StateCheck(targetFrames, "Parry")
+						local isBlocking = StateManager.StateCheck(Target, "Frames", "Blocking")
+						local isParrying = StateManager.StateCheck(Target, "Frames", "Parry")
 
 						-- Only ragdoll on direct hits, not when blocked or parried
 						if not isBlocking and not isParrying then

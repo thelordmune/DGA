@@ -161,7 +161,12 @@ local function showTransitionText(message: string, isNight: boolean)
 	end
 
 	task.wait(1.2)
-	TextPlus.Clear(container)
+	-- Clear all text children from container
+	for _, child in container:GetChildren() do
+		if child:IsA("TextLabel") or child:IsA("ImageLabel") or child:IsA("Folder") then
+			child:Destroy()
+		end
+	end
 	isTransitioning = false
 end
 

@@ -988,21 +988,21 @@ function ShowQuestPopup(npcName, questName)
 end
 
 function OnEvent(Params)
-	 ---- print("OnEvent triggered with params: " .. tostring(Params))
+	print("[Dialogue] OnEvent triggered with params:", Params and Params.name or "nil")
 
 	-- Close existing dialogue first
 	if CurrentDialogueUI then
-		 ---- print("Closing existing dialogue UI before opening new one")
+		print("[Dialogue] Closing existing dialogue UI before opening new one")
 		Close(Params)
 		task.wait(0.1) -- Small delay to ensure cleanup
 	end
 
 	if not Params or not Params.name then
-		 ---- print("ERROR: Invalid parameters received")
+		warn("[Dialogue] ERROR: Invalid parameters received")
 		return
 	end
 
-	 ---- print("Looking for dialogue tree: " .. Params.name)
+	print("[Dialogue] Looking for dialogue tree:", Params.name)
 
 	-- Check if Dialogues folder exists
 	local dialoguesFolder = ReplicatedStorage:FindFirstChild("Dialogues")
@@ -1027,24 +1027,28 @@ function OnEvent(Params)
 	local DialogueTree = dialoguesFolder:FindFirstChild(tostring(Params.name))
 
 	if not DialogueTree then
-		 ---- print("ERROR: Dialogue tree not found: " .. Params.name)
+		warn("[Dialogue] ❌ Dialogue tree not found:", Params.name)
 		warn("[Dialogue] ❌ Available dialogues:", dialoguesFolder:GetChildren())
 		return
 	end
 
+	print("[Dialogue] ✅ Found dialogue tree:", DialogueTree.Name)
+
 	local RootNode = GetRootNode(DialogueTree)
 
 	if not RootNode then
-		 ---- print("ERROR: Root node not found in dialogue tree")
+		warn("[Dialogue] ❌ Root node not found in dialogue tree")
 		return
 	end
+
+	print("[Dialogue] ✅ Found root node:", RootNode.Name)
 
 	if uidisable then
 		uidisable.Enabled = false
 	end
 
 	-- Clear any existing dialogue state BEFORE creating UI
-	 ---- print("Clearing previous dialogue state")
+	print("[Dialogue] Clearing previous dialogue state")
 
 	-- Force reset all state values to ensure fresh start (fixes dialogue after death)
 	dpText:set("")
@@ -1055,7 +1059,8 @@ function OnEvent(Params)
 	fadein:set(false)
 
 	-- Create the new Fusion-based UI
-	 ---- print("Creating Fusion dialogue UI")
+	print("[Dialogue] Creating Fusion dialogue UI")
+	print("[Dialogue] fadein value before creating UI:", peek(fadein))
 
 	local Target = scope:New("ScreenGui")({
 		Name = "DialogueHolder",
@@ -1063,10 +1068,12 @@ function OnEvent(Params)
 		Parent = Player.PlayerGui,
 	})
 
+	print("[Dialogue] ✅ Created ScreenGui:", Target)
+
 	local parent = Target
 
 	-- Store the created UI
-	 ---- print("Creating dialogue with dpText:", dpText, "begin:", begin, "fadein:", fadein)
+	print("[Dialogue] Creating DialogueComp with npcname:", Params.displayName or Params.name)
 	scope:Dialogue({
 		displayText = dpText,
 		npcname = Params.displayName or Params.name,
@@ -1079,13 +1086,32 @@ function OnEvent(Params)
 
 	-- Find the actual UI instance in the player's GUI
 	CurrentDialogueUI = parent:FindFirstChild("Frame") -- Adjust this based on your actual UI structure
-	 ---- print("Dialogue UI created: " .. tostring(CurrentDialogueUI))
+	print("[Dialogue] ✅ Dialogue UI created:", CurrentDialogueUI)
 
-	task.wait(1)
-
-	 ---- print("Starting fade animation")
+	-- Set animation states immediately - the Spring will animate from false to true position
+	print("[Dialogue] Setting fadein and begin to true immediately")
 	fadein:set(true)
 	begin:set(true)
+	print("[Dialogue] fadein value after set:", peek(fadein))
+
+	-- Wait for animation to start
+	task.wait(0.1)
+	print("[Dialogue] Frame position after 0.1s:", CurrentDialogueUI and CurrentDialogueUI.Position or "nil")
+
+	-- Check position after delays to see if animation is working
+	task.delay(0.5, function()
+		print("[Dialogue] Position check after 0.5s:")
+		if CurrentDialogueUI then
+			print("  Frame Position:", CurrentDialogueUI.Position)
+		end
+	end)
+
+	task.delay(1.0, function()
+		print("[Dialogue] Position check after 1.0s:")
+		if CurrentDialogueUI then
+			print("  Frame Position:", CurrentDialogueUI.Position)
+		end
+	end)
 
 	-- Play open UI sound
 	local openSound = openUISound:Clone()
@@ -1107,35 +1133,48 @@ function OnEvent(Params)
 	end
 
 	-- Set up inrange monitoring to close dialogue if player leaves NPC range
-	 ---- print("Setting up inrange monitoring...")
-	local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
-	local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
-	local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+	-- NOTE: We check actual distance to NPC, not ECS component (which is server-only)
+	print("[Dialogue] Setting up inrange monitoring...")
 
-	local pent = ref.get("local_player")
-	if pent then
-		local lastInrangeState = true -- Dialogue just started, so we're in range
+	local DIALOGUE_RANGE = 15 -- studs - max distance before dialogue closes
+	local npcModel = Params.npc -- The NPC model passed in params
 
-		-- Monitor the Dialogue component's inrange state
-		InrangeMonitorConnection = game:GetService("RunService").Heartbeat:Connect(function()
-			local dialogueComp = world:get(pent, comps.Dialogue)
-			if dialogueComp then
-				local currentInrange = dialogueComp.inrange
+	print("[Dialogue] NPC model for range check:", npcModel and npcModel.Name or "nil")
+	if npcModel then
+		print("[Dialogue] NPC model is descendant of workspace:", npcModel:IsDescendantOf(workspace))
+		local npcHRP = npcModel:FindFirstChild("HumanoidRootPart")
+		print("[Dialogue] NPC HumanoidRootPart:", npcHRP and npcHRP.Name or "NOT FOUND")
+	end
 
-				-- If inrange state changed from true to false, close dialogue
-				if lastInrangeState and not currentInrange then
-					 ---- print("⚠️ Player left NPC range during dialogue, closing...")
-					Close(Params)
+	if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+		if npcModel then
+			InrangeMonitorConnection = game:GetService("RunService").Heartbeat:Connect(function()
+				-- Skip if NPC model was destroyed or removed from workspace
+				if not npcModel or not npcModel.Parent then
+					return
 				end
 
-				lastInrangeState = currentInrange
-			end
-		end)
-		 ---- print("✅ Inrange monitoring active")
+				local playerHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+				local npcHRP = npcModel:FindFirstChild("HumanoidRootPart")
+
+				if playerHRP and npcHRP then
+					local distance = (playerHRP.Position - npcHRP.Position).Magnitude
+					if distance > DIALOGUE_RANGE then
+						print("[Dialogue] ⚠️ CLOSING: Player left NPC range (distance:", distance, ")")
+						Close(Params)
+					end
+				end
+			end)
+			print("[Dialogue] ✅ Inrange monitoring active (distance-based)")
+		else
+			print("[Dialogue] ⚠️ No NPC model found, skipping inrange monitoring")
+		end
+	else
+		print("[Dialogue] ⚠️ No character/HRP, skipping inrange monitoring")
 	end
 
 	-- Set up health monitoring to close dialogue if player gets hit
-	 ---- print("Setting up health monitoring...")
+	print("[Dialogue] Setting up health monitoring...")
 	if Player.Character then
 		local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
@@ -1144,30 +1183,31 @@ function OnEvent(Params)
 			HealthChangedConnection = humanoid.HealthChanged:Connect(function(newHealth)
 				-- If health decreased (player got hit), close dialogue
 				if newHealth < lastHealth then
-					 ---- print("⚠️ Player took damage during dialogue, closing...")
+					print("[Dialogue] ⚠️ CLOSING: Player took damage during dialogue")
 					Close(Params)
 				end
 				lastHealth = newHealth
 			end)
-			 ---- print("✅ Health monitoring active")
+			print("[Dialogue] ✅ Health monitoring active")
 		end
 	end
 
 	-- Set up combat state monitoring to close dialogue if player enters combat
-	 ---- print("Setting up combat state monitoring...")
+	print("[Dialogue] Setting up combat state monitoring...")
+	print("[Dialogue] Current _G.PlayerInCombat value:", _G.PlayerInCombat)
 	CombatMonitorConnection = game:GetService("RunService").Heartbeat:Connect(function()
 		if _G.PlayerInCombat then
-			 ---- print("⚠️ Player entered combat during dialogue, closing...")
+			print("[Dialogue] ⚠️ CLOSING: Player entered combat during dialogue")
 			Close(Params)
 		end
 	end)
-	 ---- print("✅ Combat state monitoring active")
+	print("[Dialogue] ✅ Combat state monitoring active")
 
 	LoadNodes(GetOutputNodes(RootNode), Params)
 end
 
 function Controller:Start(data)
-	 ---- print("Controller Start called with data: " .. tostring(data))
+	print("[Dialogue] Controller:Start called with:", data and data.name or "nil")
 	OnEvent(data)
 end
 
@@ -1242,6 +1282,101 @@ Client.Packets.PickpocketResult.listen(function(data)
 			Close(CurrentParams)
 		end
 	end)
+end)
+
+-- Listen for StartDialogue packet from server (wanderer NPC interactions)
+Client.Packets.StartDialogue.listen(function(data)
+	if not data then return end
+
+	print("[Dialogue] Received StartDialogue packet:", data.NPCName, data.Occupation, data.Personality, "ChronoId:", data.ChronoId)
+
+	-- Check if Dialogues folder exists
+	local dialoguesFolder = ReplicatedStorage:FindFirstChild("Dialogues")
+	if not dialoguesFolder then
+		warn("[Dialogue] ❌ Dialogues folder not found! Attempting to build...")
+		local DialogueBuilder = ReplicatedStorage.Modules.Utils:FindFirstChild("DialogueBuilder")
+		if DialogueBuilder then
+			local success, builder = pcall(require, DialogueBuilder)
+			if success then
+				builder.BuildAll()
+				dialoguesFolder = ReplicatedStorage:FindFirstChild("Dialogues")
+				print("[Dialogue] ✅ Built dialogues folder")
+			else
+				warn("[Dialogue] ❌ Failed to require DialogueBuilder:", builder)
+			end
+		end
+	end
+
+	-- Check if Wanderer dialogue exists
+	if dialoguesFolder then
+		local wandererDialogue = dialoguesFolder:FindFirstChild("Wanderer")
+		if wandererDialogue then
+			print("[Dialogue] ✅ Wanderer dialogue tree found")
+		else
+			warn("[Dialogue] ❌ Wanderer dialogue tree NOT found! Available:", dialoguesFolder:GetChildren())
+		end
+	end
+
+	-- Find the NPC model on client using Chrono's NpcRegistry
+	-- Chrono stores client-side NPC models indexed by their ChronoId
+	local npcModel = nil
+
+	if data.ChronoId and data.ChronoId > 0 then
+		-- Use Chrono's NpcRegistry to get the client model by ChronoId
+		local NpcRegistry = require(ReplicatedStorage.Modules.Chrono.Shared.NpcRegistry)
+		npcModel = NpcRegistry.GetModel(data.ChronoId)
+		print("[Dialogue] Got NPC model from NpcRegistry (ChronoId " .. data.ChronoId .. "):", npcModel and npcModel.Name or "NOT FOUND")
+	end
+
+	-- Fallback: check workspace.World.Live (for non-Chrono or server-owned NPCs)
+	if not npcModel then
+		local liveFolder = workspace.World and workspace.World:FindFirstChild("Live")
+		if liveFolder then
+			for _, descendant in liveFolder:GetDescendants() do
+				if descendant:IsA("Model") then
+					if descendant:GetAttribute("NPCId") == data.NPCId then
+						npcModel = descendant
+						break
+					elseif descendant:GetAttribute("NPCName") == data.NPCName then
+						npcModel = descendant
+						break
+					end
+				end
+			end
+		end
+		if npcModel then
+			print("[Dialogue] Found NPC model in Live folder:", npcModel.Name)
+		end
+	end
+
+	print("[Dialogue] Final NPC model:", npcModel and npcModel.Name or "NOT FOUND")
+	if npcModel then
+		print("[Dialogue] NPC model location:", npcModel:GetFullName())
+	end
+
+	-- Build dialogue params for wanderer NPC
+	-- "Wanderer" is the dialogue tree name that handles all wandering citizen conversations
+	local dialogueParams = {
+		name = "Wanderer",           -- Dialogue tree to use (ReplicatedStorage/Dialogues/Wanderer)
+		displayName = data.NPCName,  -- NPC's display name (e.g., "Ludwig")
+		occupation = data.Occupation, -- NPC's occupation (e.g., "Farmer")
+		personality = data.Personality, -- NPC's personality (e.g., "Friendly")
+		npcId = data.NPCId,          -- Unique NPC ID for relationship tracking
+		npc = npcModel,              -- The NPC model for distance checking
+	}
+
+	-- Hide the interaction prompt since we're starting dialogue
+	if _G.DialogueProximity_HidePrompt then
+		_G.DialogueProximity_HidePrompt()
+	end
+	if _G.ObjectInteraction_HidePrompt then
+		_G.ObjectInteraction_HidePrompt()
+	end
+
+	print("[Dialogue] Starting dialogue with params:", dialogueParams.name, dialogueParams.displayName)
+
+	-- Start the dialogue UI
+	Controller:Start(dialogueParams)
 end)
 
  ---- print("Dialogue controller initialized")

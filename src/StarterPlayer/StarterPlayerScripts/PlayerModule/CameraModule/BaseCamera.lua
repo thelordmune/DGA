@@ -685,9 +685,9 @@ function BaseCamera:UpdateMouseBehavior()
 			if success and Client then
 				isSprinting = Client.Running == true
 				-- Check if performing any action (attacking, blocking, skills, etc.)
-				if Client.Character and Client.Character:FindFirstChild("Actions") then
+				if Client.Character then
 					-- StateCount returns a boolean, not a number
-					isPerformingAction = Client.Library.StateCount(Client.Character.Actions)
+					isPerformingAction = Client.Library.StateCount(Client.Character, "Actions")
 				end
 			end
 

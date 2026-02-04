@@ -142,39 +142,76 @@ local function spawnGuardsOnPlayer(player: Player)
 		local startTime = os.clock()
 		local targetPattern = "SystemGuard_" .. player.UserId
 
-		while guardsFound < GUARDS_PER_SPAWN and (os.clock() - startTime) < maxWaitTime do
-			for _, model in workspace.World.Live:GetDescendants() do
-				if model:IsA("Model") and model:FindFirstChild("Humanoid") then
-					-- spawn_entity sets model.Name = SetName + random number
-					-- So check the model's Name property for our pattern
-					if model.Name:find(targetPattern) and not model:GetAttribute("GuardSetup") then
-						-- Mark as setup to prevent duplicate processing
-						model:SetAttribute("GuardSetup", true)
+		-- PERFORMANCE: Use DescendantAdded instead of polling GetDescendants
+		local connection: RBXScriptConnection?
+		local processedModels = {}
 
-						-- Tag guard so they won't attack each other
-						CollectionService:AddTag(model, GUARD_TAG)
+		local function processModel(model: Instance)
+			if not model:IsA("Model") then return end
+			if processedModels[model] then return end
+			if not model:FindFirstChild("Humanoid") then return end
 
-						-- Set attributes to identify as spawned guard
-						model:SetAttribute("IsSpawnedGuard", true)
-						model:SetAttribute("TargetPlayerId", player.UserId)
+			-- spawn_entity sets model.Name = SetName + random number
+			-- So check the model's Name property for our pattern
+			if model.Name:find(targetPattern) and not model:GetAttribute("GuardSetup") then
+				processedModels[model] = true
 
-						-- Add player to damage log so guard targets them immediately
-						local damageLog = model:FindFirstChild("Damage_Log")
-						if damageLog then
-							local attackRecord = Instance.new("ObjectValue")
-							attackRecord.Name = "GuardTarget"
-							attackRecord.Value = character
-							attackRecord.Parent = damageLog
-						end
+				-- Mark as setup to prevent duplicate processing
+				model:SetAttribute("GuardSetup", true)
 
-						guardsFound = guardsFound + 1
-						print(string.format("[GuardSpawner] Guard %s now targeting %s", model.Name, player.Name))
+				-- Tag guard so they won't attack each other
+				CollectionService:AddTag(model, GUARD_TAG)
+
+				-- Set attributes to identify as spawned guard
+				model:SetAttribute("IsSpawnedGuard", true)
+				model:SetAttribute("TargetPlayerId", player.UserId)
+
+				-- Add player to damage log so guard targets them immediately
+				local damageLog = model:FindFirstChild("Damage_Log")
+				if damageLog then
+					local attackRecord = Instance.new("ObjectValue")
+					attackRecord.Name = "GuardTarget"
+					attackRecord.Value = character
+					attackRecord.Parent = damageLog
+				end
+
+				guardsFound = guardsFound + 1
+				print(string.format("[GuardSpawner] Guard %s now targeting %s", model.Name, player.Name))
+
+				-- Disconnect if we found all guards
+				if guardsFound >= GUARDS_PER_SPAWN and connection then
+					connection:Disconnect()
+					connection = nil
+				end
+			end
+		end
+
+		-- Check existing models in the SpawnedGuards folder first (more targeted)
+		local spawnedGuardsFolder = workspace.World.Live:FindFirstChild("SpawnedGuards")
+		if spawnedGuardsFolder then
+			local npcsFolder = spawnedGuardsFolder:FindFirstChild("NPCs")
+			if npcsFolder then
+				for _, child in npcsFolder:GetChildren() do
+					if child:IsA("Model") then
+						processModel(child)
 					end
 				end
 			end
-			if guardsFound < GUARDS_PER_SPAWN then
-				task.wait(0.5)
-			end
+		end
+
+		-- Listen for new descendants being added
+		if guardsFound < GUARDS_PER_SPAWN then
+			connection = workspace.World.Live.DescendantAdded:Connect(processModel)
+		end
+
+		-- Wait for timeout
+		while guardsFound < GUARDS_PER_SPAWN and (os.clock() - startTime) < maxWaitTime do
+			task.wait(0.5)
+		end
+
+		-- Clean up connection
+		if connection then
+			connection:Disconnect()
 		end
 
 		if guardsFound < GUARDS_PER_SPAWN then

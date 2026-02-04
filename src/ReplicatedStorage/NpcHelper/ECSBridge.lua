@@ -73,7 +73,7 @@ function ECSBridge.enableOverride(npcModel: Model)
         return
     end
     
-    world:set(entity, comps.BehaviorTreeOverride, true)
+    world:add(entity, comps.BehaviorTreeOverride)
 end
 
 --[[

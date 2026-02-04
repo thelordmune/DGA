@@ -53,14 +53,14 @@ end
 function QuestTrackerManager:Initialize()
 	-- ---- print("[QuestTracker] Initializing...")
 
-	-- Clean up old UI if it exists (for respawns)
+	-- Show existing UI if it exists (for respawns), otherwise create new
 	if self.questTrackerGui and self.questTrackerGui.Parent then
-		self.questTrackerGui:Destroy()
-		self.questTrackerGui = nil
+		self.questTrackerGui.Enabled = true
+		---- print("[QuestTracker] Showing existing UI")
+	else
+		-- Create the quest tracker UI only if it doesn't exist
+		self:CreateUI()
 	end
-
-	-- Create the quest tracker UI
-	self:CreateUI()
 
 	-- Set up keybind (only once)
 	if not self.keybindSetup then
@@ -238,6 +238,17 @@ function QuestTrackerManager:Hide()
 end
 
 function QuestTrackerManager:Destroy()
+	-- Hide the UI instead of destroying it
+	if self.questTrackerGui then
+		self.questTrackerGui.Enabled = false
+	end
+
+	-- DON'T cancel update thread or cleanup scope - keep it running
+	-- DON'T destroy the GUI - just hide it for reuse on respawn
+end
+
+-- Full cleanup for when player leaves (not used on death)
+function QuestTrackerManager:FullDestroy()
 	-- Cancel update loop thread to prevent memory leak
 	if self.updateThread then
 		task.cancel(self.updateThread)

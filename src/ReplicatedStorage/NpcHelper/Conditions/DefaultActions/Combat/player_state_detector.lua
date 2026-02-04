@@ -6,19 +6,18 @@
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Library = require(ReplicatedStorage.Modules.Library)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 
 local PlayerStateDetector = {}
 
 -- Check if player is blocking
 function PlayerStateDetector.IsBlocking(target)
     if not target then return false end
-    
-    local frames = target:FindFirstChild("Frames")
-    if frames and Library.StateCheck(frames, "Blocking") then
+
+    if StateManager.StateCheck(target, "Frames", "Blocking") then
         return true
     end
-    
+
     return false
 end
 
@@ -47,90 +46,59 @@ end
 -- Check if player is using a move with hyper armor
 function PlayerStateDetector.HasHyperArmor(target)
     if not target then return false end
-    
+
     -- Check for HyperarmorMove attribute (set when player uses hyper armor skill)
     local hyperarmorMove = target:GetAttribute("HyperarmorMove")
     if hyperarmorMove then
         return true
     end
-    
-    -- Check for HyperArmor state in Status folder
-    local status = target:FindFirstChild("States")
-    if status then
-        status = status:FindFirstChild("Status")
-        if status and status:FindFirstChild("HyperArmor") then
-            return true
-        end
+
+    -- Check for HyperArmor state using ECS StateManager
+    if StateManager.StateCheck(target, "Status", "HyperArmor") then
+        return true
     end
-    
+
     return false
 end
 
 -- Check if player is attacking
 function PlayerStateDetector.IsAttacking(target)
     if not target then return false end
-    
-    local actions = target:FindFirstChild("Actions")
-    if not actions or not actions:IsA("StringValue") then
-        return false
-    end
-    
-    -- Decode the actions JSON
-    local success, decodedActions = pcall(function()
-        return game:GetService("HttpService"):JSONDecode(actions.Value)
-    end)
-    
-    if not success or type(decodedActions) ~= "table" then
-        return false
-    end
-    
-    -- Check if any action is present (means player is doing something)
-    return #decodedActions > 0
+
+    -- Use ECS StateManager to check if any actions are present
+    local allActions = StateManager.GetAllStates(target, "Actions")
+    return #allActions > 0
 end
 
 -- Get the current action the player is performing
 function PlayerStateDetector.GetCurrentAction(target)
     if not target then return nil end
-    
-    local actions = target:FindFirstChild("Actions")
-    if not actions or not actions:IsA("StringValue") then
-        return nil
-    end
-    
-    -- Decode the actions JSON
-    local success, decodedActions = pcall(function()
-        return game:GetService("HttpService"):JSONDecode(actions.Value)
-    end)
-    
-    if not success or type(decodedActions) ~= "table" then
-        return nil
-    end
-    
+
+    -- Use ECS StateManager to get all actions
+    local allActions = StateManager.GetAllStates(target, "Actions")
     -- Return the first action found (most recent)
-    return decodedActions[1]
+    return allActions[1]
 end
 
 -- Check if player is stunned
 function PlayerStateDetector.IsStunned(target)
     if not target then return false end
-    
-    local stuns = target:FindFirstChild("Stuns")
-    if stuns and Library.StateCount(stuns) then
+
+    if StateManager.StateCount(target, "Stuns") then
         return true
     end
-    
+
     return false
 end
 
 -- Check if player is in iframes
 function PlayerStateDetector.HasIFrames(target)
     if not target then return false end
-    
-    local iframes = target:FindFirstChild("IFrames")
-    if iframes and Library.StateCount(iframes) then
+
+    if StateManager.StateCount(target, "IFrames") then
         return true
     end
-    
+
     return false
 end
 

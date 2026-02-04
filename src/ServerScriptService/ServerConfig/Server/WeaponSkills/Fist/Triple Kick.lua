@@ -4,6 +4,7 @@ local Library = require(Replicated.Modules.Library)
 local Skills = require(ServerStorage.Stats._Skills)
 local RunService = game:GetService("RunService")
 local Sfx = Replicated.Assets.SFX
+local StateManager = require(Replicated.Modules.ECS.StateManager)
 
 local Global = require(Replicated.Modules.Shared.Global)
 return function(Player, Data, Server)
@@ -49,7 +50,7 @@ return function(Player, Data, Server)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
 	print("[Triple Kick] Animation:", Animation)
 
-	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then
+	if StateManager.StateCount(Character, "Actions") or StateManager.StateCount(Character, "Stuns") then
 		print("[Triple Kick] ❌ Character is in action or stunned")
 		return
 	end
@@ -68,9 +69,9 @@ return function(Player, Data, Server)
 		print("[Triple Kick] Animation playing, length:", Move.Length)
 		local animlength = Move.Length
 
-		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
-		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
-		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
+		StateManager.TimedState(Character, "Actions", script.Name, Move.Length)
+		StateManager.TimedState(Character, "Speeds", "AlcSpeed-0", Move.Length)
+		StateManager.TimedState(Character, "Speeds", "Jump-50", Move.Length) -- Prevent jumping during move
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
@@ -226,7 +227,7 @@ return function(Player, Data, Server)
 						if not multiHitVictim then
 							multiHitVictim = Target
 							-- Mark victim for multi-hit combo (duration = full animation length)
-							Server.Library.TimedState(Target.IFrames, "MultiHitVictim", animlength)
+							StateManager.TimedState(Target, "IFrames", "MultiHitVictim", animlength)
 						end
 
 						Server.Modules.Damage.Tag(Character, Target, Skills[Weapon][script.Name].DamageTable)
@@ -285,8 +286,8 @@ return function(Player, Data, Server)
 							local duration = KnockbackAnim.Length
 
 							-- Lock rotation and disable controls during knockback
-							Library.TimedState(Target.Stuns, "NoRotate", duration)
-							Library.TimedState(Target.Stuns, "KnockbackStun", duration)
+							StateManager.TimedState(Target, "Stuns", "NoRotate", duration)
+							StateManager.TimedState(Target, "Stuns", "KnockbackStun", duration)
 
 							-- Enable dash VFX during knockback (it will automatically follow the target)
 							Server.Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {

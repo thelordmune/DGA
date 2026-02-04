@@ -1,4 +1,6 @@
 local PathfindingService = game:GetService("PathfindingService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 
 local MapParams = RaycastParams.new()
 MapParams.FilterDescendantsInstances = {workspace.World.Map}
@@ -24,10 +26,8 @@ return function(npc: Model, mainConfig, target: Model | Vector3, Folder)
 		return false
 	end
 
-	-- Don't pathfind during attacks to prevent stuttering
-	local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
-	local actionsFolder = npc:FindFirstChild("Actions")
-	if actionsFolder and Server.Library.StateCheck(actionsFolder, "Attacking") then
+	-- Don't pathfind during attacks to prevent stuttering using ECS StateManager
+	if StateManager.StateCheck(npc, "Actions", "Attacking") then
 		return false
 	end
 
@@ -71,8 +71,8 @@ return function(npc: Model, mainConfig, target: Model | Vector3, Folder)
 				break
 			end
 
-			-- Don't pathfind during attacks to prevent stuttering
-			if actionsFolder and Server.Library.StateCheck(actionsFolder, "Attacking") then
+			-- Don't pathfind during attacks to prevent stuttering using ECS StateManager
+			if StateManager.StateCheck(npc, "Actions", "Attacking") then
 				task.wait(0.1)
 				continue
 			end
@@ -118,8 +118,8 @@ return function(npc: Model, mainConfig, target: Model | Vector3, Folder)
 				local waypointReached = false
 
 				while not waypointReached and (Folder.StateId.Value == StateId and Folder.PathState.Value == 2 and Root ~= nil and not terminated) do
-					-- Don't move during attacks to prevent stuttering
-					if actionsFolder and Server.Library.StateCheck(actionsFolder, "Attacking") then
+					-- Don't move during attacks to prevent stuttering using ECS StateManager
+					if StateManager.StateCheck(npc, "Actions", "Attacking") then
 						task.wait(0.1)
 						break
 					end

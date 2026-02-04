@@ -10,7 +10,7 @@ local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 
 -- Import the new components
 local Components = ReplicatedStorage.Client.Components
-local Skills = require(Components.Skills)
+-- Skills component removed - Hunter x Hunter Nen system will replace this
 local SkillPointsHolder = require(Components.SkillPointsHolder)
 local SkillPointsDisplay = require(Components.SkillPointsDisplay)
 
@@ -2232,11 +2232,7 @@ return function(scope, props: {})
 				}
 			},
 
-			-- Skills Component
-			Skills(scope, {
-				showSkillsSection = showSkillsSection,
-				availableSkillPoints = skillPoints,
-			}),
+			-- Skills Component removed - Hunter x Hunter Nen system will replace this
 
 			-- Skill Points Display (shows points available for skills)
 			SkillPointsDisplay(scope, {

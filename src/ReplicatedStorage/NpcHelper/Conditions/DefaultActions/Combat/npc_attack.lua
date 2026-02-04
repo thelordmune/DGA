@@ -1,4 +1,6 @@
 -- NPC Attack System - uses the same combat system as players
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 
 -- Main NPC attack function
 return function(actor: Actor, mainConfig: table)
@@ -68,9 +70,8 @@ return function(actor: Actor, mainConfig: table)
         end
     end
 
-    -- Check if NPC is already in an M1 animation (prevent spam)
-    local actions = npc:FindFirstChild("Actions")
-    if actions and Server.Library.StateCount(actions) then
+    -- Check if NPC is already in an M1 animation (prevent spam) using ECS StateManager
+    if StateManager.StateCount(npc, "Actions") then
         -- NPC is already performing an action, don't spam M1
         return false
     end

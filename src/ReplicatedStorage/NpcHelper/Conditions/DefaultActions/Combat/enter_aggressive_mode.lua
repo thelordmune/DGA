@@ -25,14 +25,11 @@ return function(actor: Actor, mainConfig: table)
     
     -- Also check for attack states in IFrames (but only if we don't already have an attacker from damage log)
     if not hasBeenAttacked then
-        local iFrames = npc:FindFirstChild("IFrames")
-        if iFrames and iFrames:IsA("StringValue") then
-            local Library = require(game.ReplicatedStorage.Modules.Library)
-            if Library.StateCheck(iFrames, "RecentlyAttacked") or
-               Library.StateCheck(iFrames, "Damaged") then
-                hasBeenAttacked = true
-                -- ------ print("enter_aggressive_mode: Found attack state in IFrames")
-            end
+        local StateManager = require(game.ReplicatedStorage.Modules.ECS.StateManager)
+        if StateManager.StateCheck(npc, "IFrames", "RecentlyAttacked") or
+           StateManager.StateCheck(npc, "IFrames", "Damaged") then
+            hasBeenAttacked = true
+            -- ------ print("enter_aggressive_mode: Found attack state in IFrames")
         end
     end
     

@@ -9,7 +9,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
-local Library = require(ReplicatedStorage.Modules.Library)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 
 -- Get Server from main VM
 local function getServer()
@@ -22,24 +22,11 @@ end
 
 local Server = getServer()
 
--- Helper to get what action the player is performing
+-- Helper to get what action the player is performing using ECS StateManager
 local function getPlayerAction(target)
-    local actions = target:FindFirstChild("Actions")
-    if not actions or not actions:IsA("StringValue") then
-        return nil
-    end
-    
-    -- Decode the actions JSON
-    local success, decodedActions = pcall(function()
-        return game:GetService("HttpService"):JSONDecode(actions.Value)
-    end)
-    
-    if not success or type(decodedActions) ~= "table" then
-        return nil
-    end
-    
+    local allActions = StateManager.GetAllStates(target, "Actions")
     -- Return the first action found (most recent)
-    return decodedActions[1]
+    return allActions[1]
 end
 
 -- Determine the best defensive response based on player's action
@@ -227,14 +214,9 @@ local function executeDefense(npc, defenseType, mainConfig)
         task.delay(0.5, function()
             -- Only release if NPC still exists and isn't stunned/guard broken
             if npc and npc.Parent and mainConfig.InitiateBlock then
-                local npcStuns = npc:FindFirstChild("Stuns")
-                if npcStuns then
-                    -- Don't release block if guard broken or stunned
-                    if not Library.StateCheck(npcStuns, "BlockBreakStun")
-                        and not Library.StateCheck(npcStuns, "GuardbreakStun") then
-                        mainConfig.InitiateBlock(false)
-                    end
-                else
+                -- Don't release block if guard broken or stunned using ECS StateManager
+                if not StateManager.StateCheck(npc, "Stuns", "BlockBreakStun")
+                    and not StateManager.StateCheck(npc, "Stuns", "GuardbreakStun") then
                     mainConfig.InitiateBlock(false)
                 end
             end
@@ -263,12 +245,10 @@ local function executeDefense(npc, defenseType, mainConfig)
         local Entity = Server.Modules.Entities.Get(npc)
         if Entity and Entity.Character then
             -- Add dodge IFrame
-            if Entity.Character:FindFirstChild("IFrames") then
-                Library.AddState(Entity.Character.IFrames, "Dodge")
-                task.delay(0.5, function()
-                    Library.RemoveState(Entity.Character.IFrames, "Dodge")
-                end)
-            end
+            StateManager.AddState(Entity.Character, "IFrames", "Dodge")
+            task.delay(0.5, function()
+                StateManager.RemoveState(Entity.Character, "IFrames", "Dodge")
+            end)
 
             -- Create smooth velocity for dodge (match player dodge system exactly)
             local TweenService = game:GetService("TweenService")

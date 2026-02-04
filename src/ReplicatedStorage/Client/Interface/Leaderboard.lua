@@ -41,7 +41,8 @@ function LeaderboardManager.new()
 	self.isVisible = self.scope:Value(true)
 	self.playerData = self.scope:Value({}) -- Array of player data tables
 	self.playerComponents = {} -- Track created player UI components
-	
+	self.updateThread = nil -- Track update thread for cleanup
+
 	-- UI References
 	self.leaderboardGui = nil
 	self.playerListContainer = nil
@@ -59,14 +60,14 @@ function LeaderboardManager:Initialize()
 		---- print("[Leaderboard] Disabled default player list")
 	end)
 
-	-- Clean up old UI if it exists (for respawns)
+	-- Show existing UI if it exists (for respawns), otherwise create new
 	if self.leaderboardGui and self.leaderboardGui.Parent then
-		self.leaderboardGui:Destroy()
-		self.leaderboardGui = nil
+		self.leaderboardGui.Enabled = true
+		---- print("[Leaderboard] Showing existing UI")
+	else
+		-- Create the leaderboard UI only if it doesn't exist
+		self:CreateUI()
 	end
-
-	-- Create the leaderboard UI
-	self:CreateUI()
 
 	-- Set up player tracking (only once)
 	if not self.playerTrackingSetup then
@@ -135,7 +136,13 @@ function LeaderboardManager:SetupPlayerTracking()
 	end)
 
 	-- Update player data periodically (to catch DisplayName updates and prevent bugs)
-	task.spawn(function()
+	-- Cancel existing thread if one exists (prevents multiple loops on re-initialize)
+	if self.updateThread then
+		task.cancel(self.updateThread)
+		self.updateThread = nil
+	end
+
+	self.updateThread = task.spawn(function()
 		while true do
 			task.wait(1) -- Update every 1 second to prevent leaderboard bugs
 			self:UpdateAllPlayers()
@@ -341,6 +348,23 @@ function LeaderboardManager:Hide()
 end
 
 function LeaderboardManager:Destroy()
+	-- Hide the UI instead of destroying it
+	if self.leaderboardGui then
+		self.leaderboardGui.Enabled = false
+	end
+
+	-- DON'T cancel update thread or cleanup scope - keep it running
+	-- DON'T destroy the GUI - just hide it for reuse on respawn
+end
+
+-- Full cleanup for when player leaves (not used on death)
+function LeaderboardManager:FullDestroy()
+	-- Cancel the update thread to prevent memory leak
+	if self.updateThread then
+		task.cancel(self.updateThread)
+		self.updateThread = nil
+	end
+
 	if self.scope then
 		self.scope:doCleanup()
 	end

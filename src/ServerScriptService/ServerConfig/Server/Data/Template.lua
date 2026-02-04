@@ -1,6 +1,6 @@
 return {
 	--// Information
-	["Weapon"] = "Fist",
+	["Weapon"] = "Scythe",
 	["Alchemy"] = "Flame",
 	["Inventory"] = {},
 	["Emotes"] = {},
@@ -108,6 +108,14 @@ return {
 	},
 	Injury = "None",
 	Innate = "Survival Instincts",
+
+	-- Nen System
+	-- Tracks if player has unlocked Nen and their custom aura color
+	["Nen"] = {
+		Unlocked = false,  -- Has player awakened Nen
+		Type = "Enhance",  -- Nen type: Enhance, Emission, Conjure, Manipulate, Transmute, Specialist
+		Color = { R = 100, G = 200, B = 255 },  -- Custom Nen aura color (light blue for testing)
+	},
 
 	-- Limb Loss System
 	-- Tracks severed limbs (persistent until healed by doctor or healing item)

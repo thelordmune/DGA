@@ -6,140 +6,57 @@ local CastingComponent = require(ReplicatedStorage.Client.Components.Casting)
 local Children, scoped, peek, out, OnEvent, Value, Computed =
 	Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out, Fusion.OnEvent, Fusion.Value, Fusion.Computed
 
--- Health Bar Column Component (like audio visualizer bar)
--- Each column grows vertically like a bar chart
-local function HealthBarColumn(scope, props)
-	local columnIndex = props.columnIndex or 1
-	local display = props.display
-	local delayTime = props.delayTime or 0
-	local health = props.health
-	local adrenaline = props.adrenaline
-	local gradientOffset = props.gradientOffset -- Shared gradient offset for all columns
+-- ULTRA-OPTIMIZED Health Bar Column Component
+-- Drastically reduced reactive objects: NO per-column Computed/Observer/Spring
+-- All animations driven by direct property updates in RenderStepped
+local function HealthBarColumn(columnIndex: number, parentFrame: Instance)
+	local frame = Instance.new("Frame")
+	frame.Name = string.format("Column%d", columnIndex)
+	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	frame.BackgroundTransparency = 1 -- Start hidden
+	frame.BorderSizePixel = 0
+	frame.LayoutOrder = columnIndex
+	frame.Size = UDim2.new(0, 5, 0, 0) -- Start at 0 height
+	frame.Parent = parentFrame
 
-	local localDisplay = scope:Value(false)
+	-- Red glow effect (static, no reactive bindings)
+	local glow = Instance.new("ImageLabel")
+	glow.Name = "GaussianBlur"
+	glow.AnchorPoint = Vector2.new(0.5, 0.5)
+	glow.BackgroundTransparency = 1
+	glow.Image = "rbxassetid://90951534866312"
+	glow.ImageColor3 = Color3.fromRGB(255, 0, 0)
+	glow.Position = UDim2.fromScale(0.5, 0.5)
+	glow.Size = UDim2.fromScale(1.5, 1.5)
+	glow.ImageTransparency = 1 -- Start hidden
+	glow.Parent = frame
 
-	-- Delayed fade in from right to left
-	task.delay(delayTime, function()
-		if peek(display) then
-			localDisplay:set(true)
-		end
-	end)
-
-	-- Listen for parent display changes
-	scope:Observer(display):onChange(function()
-		if peek(display) then
-			task.delay(delayTime, function()
-				localDisplay:set(true)
-			end)
-		else
-			localDisplay:set(false)
-		end
-	end)
-
-	-- Calculate if this column should be visible based on health
-	-- Health controls how many columns from left are filled
-	local isHealthVisible = scope:Computed(function(use)
-		local currentHealth = use(health)
-		local maxColumnsVisible = math.floor((currentHealth / 100) * 84)
-		return columnIndex <= maxColumnsVisible
-	end)
-
-	-- Calculate bar height based on adrenaline (creates fluctuating wave effect)
-	local barHeight = scope:Computed(function(use)
-		local adrenalineLevel = use(adrenaline)
-		local isVisible = use(isHealthVisible)
-
-		if not isVisible then
-			return 0 -- Column is hidden if past health threshold
-		end
-
-		-- Base height depending on adrenaline level
-		local baseHeight
-		if adrenalineLevel <= 33 then
-			baseHeight = 0.3 -- Low: bars stay low (30% max height)
-		elseif adrenalineLevel <= 66 then
-			baseHeight = 0.6 -- Medium: bars reach middle (60% max height)
-		else
-			baseHeight = 0.9 -- High: bars reach high (90% max height)
-		end
-
-		-- Add wave effect across columns for smooth animation
-		local time = tick() * 0.2 -- Speed of wave animation
-		local wave = math.sin(time + columnIndex * 0.1) * 0.2 -- Wave variation per column
-
-		-- Random flutter for more natural/organic look
-		local flutter = (math.random() - 0.5) * 0.1
-
-		return math.clamp(baseHeight + wave + flutter, 0.1, 1)
-	end)
-
-	return scope:New("Frame")({
-		Name = string.format("Column%d", columnIndex),
-		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-		BackgroundTransparency = scope:Spring(
-			scope:Computed(function(use)
-				return if use(localDisplay) then 0.45 else 1
-			end),
-			30,
-			9
-		),
-		BorderSizePixel = 0,
-		LayoutOrder = columnIndex,
-		-- Size changes based on bar height (vertical growth)
-		Size = scope:Spring(
-			scope:Computed(function(use)
-				local height = use(barHeight)
-				local shouldDisplay = use(localDisplay)
-				if shouldDisplay then
-					return UDim2.new(0, 5, height, 0) -- Width: 5px, Height: 0-100%
-				else
-					return UDim2.new(0, 5, 0, 0)
-				end
-			end),
-			60,
-			3
-		),
-
-		[Children] = {
-			-- Red glow effect on each bar with silver gradient overlay
-			scope:New("ImageLabel")({
-				Name = "GaussianBlur",
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				BackgroundTransparency = 1,
-				Image = "rbxassetid://90951534866312",
-				ImageColor3 = Color3.fromRGB(255, 0, 0),
-				Position = UDim2.fromScale(0.5, 0.5),
-				Size = UDim2.fromScale(1.5, 1.5),
-				ImageTransparency = scope:Spring(
-					scope:Computed(function(use)
-						local shouldDisplay = use(localDisplay)
-						local isVisible = use(isHealthVisible)
-						return if shouldDisplay and isVisible then 0 else 1
-					end),
-					30,
-					9
-				),
-				[Children] = {
-					-- Silver flashing gradient effect (more dramatic)
-					scope:New("UIGradient")({
-						Name = "SilverFlash",
-						Rotation = 90,
-						Color = ColorSequence.new({
-							ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 100, 100)),
-							ColorSequenceKeypoint.new(0.324, Color3.fromRGB(143, 143, 143)),
-							ColorSequenceKeypoint.new(0.5, Color3.fromRGB(249, 249, 249)),
-							ColorSequenceKeypoint.new(0.692, Color3.fromRGB(103, 103, 103)),
-							ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 100)),
-						}),
-						Offset = scope:Computed(function(use)
-							local currentOffset = use(gradientOffset)
-							return Vector2.new(currentOffset, 0)
-						end),
-					}),
-				},
-			}),
-		},
+	-- Silver gradient (static color, offset updated directly)
+	local gradient = Instance.new("UIGradient")
+	gradient.Name = "SilverFlash"
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 100, 100)),
+		ColorSequenceKeypoint.new(0.324, Color3.fromRGB(143, 143, 143)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(249, 249, 249)),
+		ColorSequenceKeypoint.new(0.692, Color3.fromRGB(103, 103, 103)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 100, 100)),
 	})
+	gradient.Parent = glow
+
+	return {
+		frame = frame,
+		glow = glow,
+		gradient = gradient,
+		columnIndex = columnIndex,
+		-- Animation state (updated directly, no Fusion reactivity)
+		targetHeight = 0,
+		currentHeight = 0,
+		targetTransparency = 1,
+		currentTransparency = 1,
+		glowTargetTransparency = 1,
+		glowCurrentTransparency = 1,
+	}
 end
 
 -- CONTINUATION FROM PART 1
@@ -151,24 +68,82 @@ return function(Target)
 	local display = scope:Value(false)
 	local circleRotation = scope:Value(0)
 	local showCastingCircle = scope:Value(false) -- Control whether to show casting UI instead of health circle
-	local gradientOffset = scope:Value(-1) -- Silver gradient animation offset
 
 	-- Health and Adrenaline values (0-100) - exposed for external updates
 	local health = scope:Value(100)
 	local adrenaline = scope:Value(0)
 	local money = scope:Value(0) -- Player's money for display
+	local stamina = scope:Value(100) -- Stamina for Nen abilities (0-100)
+	local posture = scope:Value(0) -- Posture damage (0 = fresh, 100 = about to break)
 
-	-- Rotate circle background and animate silver gradient every frame
+	-- ULTRA-OPTIMIZED: Direct animation state (no Fusion reactivity for columns)
+	local COLUMNS = 84
+	local healthColumns = {} -- Will hold column data objects
+	local gradientOffset = -1 -- Direct value, not Fusion Value
+	local waveTime = 0 -- Direct value, not Fusion Value
+	local isDisplayed = false -- Direct boolean for column visibility
+	local currentHealth = 100
+	local currentAdrenaline = 0
+
+	-- ULTRA-OPTIMIZED: Single RenderStepped updates ALL 84 columns directly
+	-- No Fusion Computed/Spring overhead - just direct property manipulation
+	local LERP_SPEED = 12 -- Spring-like smoothing factor
 	local rotationConnection = RunService.RenderStepped:Connect(function(dt)
+		-- Update circle rotation (still uses Fusion for the main UI elements)
 		circleRotation:set((peek(circleRotation) + (dt * 50)) % 360)
 
-		-- Animate silver gradient offset (flows from -1 to 2 and loops)
-		local currentOffset = peek(gradientOffset)
-		local newOffset = currentOffset + (dt * 1.2) -- Speed of silver flash (faster for more dramatic effect)
-		if newOffset > 2 then
-			newOffset = -1 -- Reset to create continuous loop
+		-- Update gradient offset (direct value)
+		gradientOffset = gradientOffset + (dt * 1.2)
+		if gradientOffset > 2 then
+			gradientOffset = -1
 		end
-		gradientOffset:set(newOffset)
+
+		-- Update wave time (direct value)
+		waveTime = waveTime + dt * 0.2
+
+		-- Get current values from Fusion (only reads, minimal overhead)
+		currentHealth = peek(health)
+		currentAdrenaline = peek(adrenaline)
+		isDisplayed = peek(display)
+
+		-- Calculate how many columns should be visible based on health
+		local maxColumnsVisible = math.floor((currentHealth / 100) * COLUMNS)
+
+		-- Calculate base height from adrenaline
+		local baseHeight
+		if currentAdrenaline <= 33 then
+			baseHeight = 0.3
+		elseif currentAdrenaline <= 66 then
+			baseHeight = 0.6
+		else
+			baseHeight = 0.9
+		end
+
+		-- BATCH UPDATE all 84 columns in single loop (no Fusion overhead)
+		for i, colData in ipairs(healthColumns) do
+			local columnIndex = colData.columnIndex
+			local isVisible = columnIndex <= maxColumnsVisible and isDisplayed
+
+			-- Calculate target height with wave animation
+			local wave = math.sin(waveTime + columnIndex * 0.1) * 0.2
+			local flutter = math.sin(columnIndex * 1.7) * 0.05
+			local targetHeight = isVisible and math.clamp(baseHeight + wave + flutter, 0.1, 1) or 0
+
+			-- Calculate target transparencies
+			local targetTransparency = isDisplayed and 0.45 or 1
+			local glowTargetTransparency = isVisible and 0 or 1
+
+			-- Smooth lerp towards targets (spring-like behavior)
+			colData.currentHeight = colData.currentHeight + (targetHeight - colData.currentHeight) * math.min(1, dt * LERP_SPEED)
+			colData.currentTransparency = colData.currentTransparency + (targetTransparency - colData.currentTransparency) * math.min(1, dt * LERP_SPEED)
+			colData.glowCurrentTransparency = colData.glowCurrentTransparency + (glowTargetTransparency - colData.glowCurrentTransparency) * math.min(1, dt * LERP_SPEED)
+
+			-- Apply to instances (direct property set, no Fusion)
+			colData.frame.Size = UDim2.new(0, 5, colData.currentHeight, 0)
+			colData.frame.BackgroundTransparency = colData.currentTransparency
+			colData.glow.ImageTransparency = colData.glowCurrentTransparency
+			colData.gradient.Offset = Vector2.new(gradientOffset, 0)
+		end
 	end)
 
 	-- Initial animation delay
@@ -177,27 +152,6 @@ return function(Target)
 		task.wait(2)
 		display:set(true)
 	end)
-
-	-- Generate all 84 columns (visualizer bars)
-	local healthColumns = {}
-	local COLUMNS = 84
-
-	for col = 1, COLUMNS do
-		-- Calculate delay: fade from right to left
-		local columnDelay = (COLUMNS - col) * 0.002
-
-		table.insert(
-			healthColumns,
-			HealthBarColumn(scope, {
-				columnIndex = col,
-				display = display,
-				delayTime = columnDelay,
-				health = health,
-				adrenaline = adrenaline,
-				gradientOffset = gradientOffset,
-			})
-		)
-	end
 
 	-- CONTINUATION FROM PART 2 - Main Holder Frame
 
@@ -335,8 +289,7 @@ return function(Target)
 										SortOrder = Enum.SortOrder.LayoutOrder,
 										VerticalAlignment = Enum.VerticalAlignment.Bottom, -- Bars grow upward
 									}),
-									-- All 84 columns inserted here
-									table.unpack(healthColumns),
+									-- Columns created separately after frame exists (see below)
 								},
 							}),
 						},
@@ -432,9 +385,9 @@ return function(Target)
 				},
 			}),
 
-			-- Alignment meter
+			-- Posture bar (Deepwoken-style - fills up when blocking, breaks at 100%)
 			scope:New("Frame")({
-				Name = "Alignment",
+				Name = "Posture",
 				BackgroundTransparency = 1,
 				Position = scope:Spring(
 					scope:Computed(function(use)
@@ -443,53 +396,72 @@ return function(Target)
 					17,
 					2
 				),
-				Size = UDim2.fromOffset(372, 34),
+				Size = UDim2.fromOffset(372, 28),
 				[Children] = {
-					scope:New("ImageLabel")({
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-						BackgroundTransparency = 1,
-						BorderColor3 = Color3.fromRGB(0, 0, 0),
-						BorderSizePixel = 0,
-						Image = "rbxassetid://83147682654364",
-						Position = UDim2.fromScale(0.00806, 0.147),
-						ScaleType = Enum.ScaleType.Crop,
-						Size = UDim2.fromScale(0.968, 0.676),
-						SliceCenter = Rect.new(0, 0, 695, 86),
-						ImageTransparency = scope:Spring(
+					-- Background bar
+					scope:New("Frame")({
+						Name = "Background",
+						BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+						BorderColor3 = Color3.fromRGB(255, 255, 255),
+						BorderSizePixel = 2,
+						Position = UDim2.fromScale(0, 0),
+						Size = UDim2.fromScale(1, 1),
+						BackgroundTransparency = scope:Spring(
 							scope:Computed(function(use)
-								return if use(display) then 0 else 1
+								return if use(display) then 0.3 else 1
 							end),
 							30,
 							9
 						),
 						[Children] = {
-							scope:New("ImageLabel")({
-								BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-								BackgroundTransparency = 1,
-								BorderColor3 = Color3.fromRGB(0, 0, 0),
-								BorderSizePixel = 0,
-								Image = "rbxassetid://88633517919055",
-								Position = UDim2.fromOffset(0, -10),
-								ScaleType = Enum.ScaleType.Crop,
-								Size = UDim2.fromScale(1, 1.87),
-								SliceCenter = Rect.new(8, 8, 22, 22),
-								ImageTransparency = scope:Spring(
+							scope:New("UICorner")({ CornerRadius = UDim.new(0, 6) }),
+							scope:New("UIStroke")({
+								-- Stroke color changes based on posture level
+								Color = scope:Computed(function(use)
+									local p = use(posture)
+									if p > 75 then
+										return Color3.fromRGB(255, 50, 50) -- Red when near break
+									elseif p > 50 then
+										return Color3.fromRGB(255, 150, 50) -- Orange when medium
+									else
+										return Color3.fromRGB(200, 200, 200) -- Normal
+									end
+								end),
+								Thickness = 1,
+								Transparency = scope:Spring(
 									scope:Computed(function(use)
-										return if use(display) then 0 else 1
+										return if use(display) then 0.5 else 1
 									end),
 									30,
 									9
 								),
 							}),
-							scope:New("UICorner")({ CornerRadius = UDim.new(0, 6) }),
-							scope:New("UIGradient")({ Color = ColorSequence.new(Color3.fromRGB(255, 255, 255)) }),
 						},
 					}),
+					-- Filled posture bar (fills up as posture damage increases)
 					scope:New("Frame")({
-						BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+						Name = "Fill",
+						-- Color gradient: Yellow -> Orange -> Red based on posture level
+						BackgroundColor3 = scope:Computed(function(use)
+							local p = use(posture)
+							if p > 75 then
+								return Color3.fromRGB(255, 50, 50) -- Red when near break
+							elseif p > 50 then
+								return Color3.fromRGB(255, 150, 50) -- Orange when medium
+							else
+								return Color3.fromRGB(255, 220, 100) -- Yellow when low
+							end
+						end),
 						BorderSizePixel = 0,
-						Position = UDim2.fromScale(0.5, -0.113),
-						Size = UDim2.fromOffset(3, 40),
+						Position = UDim2.fromScale(0.005, 0.1),
+						Size = scope:Spring(
+							scope:Computed(function(use)
+								local posturePercent = use(posture) / 100
+								return UDim2.new(posturePercent * 0.99, 0, 0.8, 0)
+							end),
+							25,
+							8
+						),
 						BackgroundTransparency = scope:Spring(
 							scope:Computed(function(use)
 								return if use(display) then 0 else 1
@@ -498,16 +470,60 @@ return function(Target)
 							9
 						),
 						[Children] = {
+							scope:New("UICorner")({ CornerRadius = UDim.new(0, 4) }),
+							-- Gradient for shine effect
 							scope:New("UIGradient")({
-								Color = ColorSequence.new(Color3.fromRGB(0, 0, 0)),
-								Rotation = 90,
-								Transparency = NumberSequence.new({
-									NumberSequenceKeypoint.new(0, 1),
-									NumberSequenceKeypoint.new(0.486, 0),
-									NumberSequenceKeypoint.new(1, 1),
+								Color = ColorSequence.new({
+									ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+									ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 200, 200)),
+									ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
 								}),
+								Transparency = NumberSequence.new({
+									NumberSequenceKeypoint.new(0, 0.7),
+									NumberSequenceKeypoint.new(0.5, 0.5),
+									NumberSequenceKeypoint.new(1, 0.7),
+								}),
+								Rotation = 90,
 							}),
 						},
+					}),
+					-- Posture text label
+					scope:New("TextLabel")({
+						Name = "PostureText",
+						BackgroundTransparency = 1,
+						Position = UDim2.fromScale(0.5, 0.5),
+						Size = UDim2.fromScale(0.8, 0.8),
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Font = Enum.Font.GothamBold,
+						Text = scope:Computed(function(use)
+							local p = use(posture)
+							if p > 75 then
+								return "POSTURE: DANGER!"
+							elseif p > 50 then
+								return string.format("POSTURE: %.0f%%", p)
+							elseif p > 0 then
+								return string.format("POSTURE: %.0f%%", p)
+							else
+								return "POSTURE: OK"
+							end
+						end),
+						TextColor3 = scope:Computed(function(use)
+							local p = use(posture)
+							if p > 75 then
+								return Color3.fromRGB(255, 100, 100) -- Red text when danger
+							else
+								return Color3.fromRGB(255, 255, 255)
+							end
+						end),
+						TextScaled = true,
+						TextStrokeTransparency = 0.5,
+						TextTransparency = scope:Spring(
+							scope:Computed(function(use)
+								return if use(display) then 0 else 1
+							end),
+							30,
+							9
+						),
 					}),
 				},
 			}),
@@ -648,6 +664,14 @@ return function(Target)
 		},
 	})
 
+	-- ULTRA-OPTIMIZED: Create all 84 columns AFTER holderFrame exists
+	-- Using direct Instance creation instead of Fusion (eliminates 840+ reactive objects)
+	local centerHpFolder = holderFrame:WaitForChild("Health"):WaitForChild("Main"):WaitForChild("CenterHp")
+	for col = 1, COLUMNS do
+		local colData = HealthBarColumn(col, centerHpFolder)
+		table.insert(healthColumns, colData)
+	end
+
 	-- Create the Casting component inside the holderFrame
 	local castingAPI = CastingComponent(holderFrame)
 
@@ -768,7 +792,30 @@ return function(Target)
 		healthValue = health,
 		adrenalineValue = adrenaline,
 		moneyValue = money, -- Expose money value for external updates
+		staminaValue = stamina, -- Expose stamina value for Nen system
+		postureValue = posture, -- Expose posture value for Deepwoken-style posture system
 		castingAPI = castingAPI, -- Expose casting API for external control
 		scope = scope, -- Expose scope for cleanup on death
+
+		-- Reset function for reuse on respawn (avoids recreating 840+ Fusion objects)
+		reset = function()
+			health:set(100)
+			adrenaline:set(0)
+			money:set(0)
+			stamina:set(100)
+			posture:set(0) -- Reset posture to 0 (no damage)
+			-- Reset display state to trigger re-animation
+			display:set(false)
+			task.delay(0.1, function()
+				display:set(true)
+			end)
+			-- Reset casting state if needed
+			if castingAPI and castingAPI.keySequence then
+				castingAPI.keySequence:set("")
+			end
+			if castingAPI and castingAPI.isCasting then
+				castingAPI.isCasting:set(false)
+			end
+		end,
 	}
 end

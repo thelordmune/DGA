@@ -9,6 +9,9 @@ local Replicated = game:GetService("ReplicatedStorage")
 local world = require(Replicated.Modules.ECS.jecs_world)
 local comps = require(Replicated.Modules.ECS.jecs_components)
 
+-- OPTIMIZATION: Cache query for better performance
+local interactableQuery = world:query(comps.Interactable):cached()
+
 NetworkModule.EndPoint = function(Player, Data)
 	local Character = Player.Character
 	if not Character then
@@ -26,7 +29,7 @@ NetworkModule.EndPoint = function(Player, Data)
 	local targetObject = nil
 	local handlerName = nil
 
-	for entity in world:query(comps.Interactable):iter() do
+	for entity in interactableQuery do
 		local interactableData = world:get(entity, comps.Interactable)
 		if interactableData and interactableData.objectId == objectId then
 			targetEntity = entity

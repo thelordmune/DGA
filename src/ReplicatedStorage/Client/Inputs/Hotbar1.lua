@@ -8,49 +8,59 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManager)
 
-local player = Players.LocalPlayer
-local pent = ref.get("local_player", player)
+-- InputType enum for optimized packet serialization (string -> uint8)
+local InputTypeEnum = {
+    began = 0,
+    ended = 1,
+}
 
 -- Hotbar slot 1
 local HOTBAR_SLOT = 1
 
--- Track currently held skill
-local heldSkill = nil
+-- Track if skill is held
+local isHeld = false
 
 InputModule.InputBegan = function(input, Client)
-    -- Check if player is dashing
-    if Client.Dodging then
+    -- Block if in ANY action (not just dodging)
+    if Client.Dodging or Client.IsInAction() then
         return
     end
+
+    -- Block if stunned
+    if Client.Library.StateCount(Client.Character, "Stuns") then
+        return
+    end
+
+    -- BUGFIX: Get entity fresh each time (entity changes on respawn)
+    local pent = ref.get("local_player")
+    if not pent then return end
 
     local item = InventoryManager.getHotbarItem(pent, HOTBAR_SLOT)
     if not item then
         return
     end
 
-    -- Store the item for InputEnded
-    heldSkill = item
+    -- Mark as held
+    isHeld = true
 
-    -- Send to server to use item (InputBegan)
+    -- Send to server to use item (server looks up item from hotbar slot)
     Client.Packets.UseItem.send({
-        itemName = item.name,
         hotbarSlot = HOTBAR_SLOT,
-        inputType = "began"
+        inputType = InputTypeEnum.began
     })
 end
 
 InputModule.InputEnded = function(input, Client)
-    if not heldSkill then return end
+    if not isHeld then return end
 
     -- Send to server (InputEnded)
     Client.Packets.UseItem.send({
-        itemName = heldSkill.name,
         hotbarSlot = HOTBAR_SLOT,
-        inputType = "ended"
+        inputType = InputTypeEnum.ended
     })
 
-    -- Clear held skill
-    heldSkill = nil
+    -- Clear held state
+    isHeld = false
 end
 
 InputModule.InputChanged = function()

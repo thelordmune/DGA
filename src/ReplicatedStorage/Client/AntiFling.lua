@@ -32,6 +32,10 @@ local lastBodyMoverCheckTime = 0
 local bodyMoverCreationTimes = {}
 local MAX_BODY_MOVER_LIFETIME = 2
 
+-- PERFORMANCE: Cache body movers instead of GetDescendants every frame
+local cachedBodyMovers = {}
+local descendantConnections = {}
+
 -- Function to clamp velocity
 local function clampVelocity(velocity: Vector3): Vector3
 	local horizontal = Vector3.new(velocity.X, 0, velocity.Z)
@@ -50,42 +54,40 @@ local function clampVelocity(velocity: Vector3): Vector3
 	return horizontal + vertical
 end
 
--- Function to clean up orphaned body movers
-local function cleanupOrphanedBodyMovers(Character)
-	if not Character or not Character.Parent then return end
+-- PERFORMANCE: Check if instance is a body mover type
+local function isBodyMover(instance)
+	return instance:IsA("BodyVelocity")
+		or instance:IsA("BodyPosition")
+		or instance:IsA("BodyGyro")
+		or instance:IsA("BodyAngularVelocity")
+		or instance:IsA("LinearVelocity")
+		or instance:IsA("AngularVelocity")
+end
 
+-- Function to clean up orphaned body movers (now uses cached list)
+local function cleanupOrphanedBodyMovers()
 	local currentTime = os.clock()
-	local moversRemoved = 0
 
-	-- Check all descendants for body movers
-	for _, descendant in pairs(Character:GetDescendants()) do
-		if descendant:IsA("BodyVelocity")
-			or descendant:IsA("BodyPosition")
-			or descendant:IsA("BodyGyro")
-			or descendant:IsA("BodyAngularVelocity")
-			or descendant:IsA("LinearVelocity")
-			or descendant:IsA("AngularVelocity") then
-
+	-- PERFORMANCE: Iterate cached body movers instead of GetDescendants
+	for mover, _ in pairs(cachedBodyMovers) do
+		if not mover.Parent then
+			-- Body mover was destroyed externally
+			cachedBodyMovers[mover] = nil
+			bodyMoverCreationTimes[mover] = nil
+		else
 			-- Track when this body mover was first seen
-			if not bodyMoverCreationTimes[descendant] then
-				bodyMoverCreationTimes[descendant] = currentTime
+			if not bodyMoverCreationTimes[mover] then
+				bodyMoverCreationTimes[mover] = currentTime
 			end
 
 			-- Check if this body mover has been around too long
-			local lifetime = currentTime - bodyMoverCreationTimes[descendant]
+			local lifetime = currentTime - bodyMoverCreationTimes[mover]
 			if lifetime > MAX_BODY_MOVER_LIFETIME then
 				-- This is an orphaned body mover, remove it
-				bodyMoverCreationTimes[descendant] = nil
-				descendant:Destroy()
-				moversRemoved = moversRemoved + 1
+				cachedBodyMovers[mover] = nil
+				bodyMoverCreationTimes[mover] = nil
+				mover:Destroy()
 			end
-		end
-	end
-
-	-- Clean up tracking for destroyed body movers
-	for mover, _ in pairs(bodyMoverCreationTimes) do
-		if not mover.Parent then
-			bodyMoverCreationTimes[mover] = nil
 		end
 	end
 end
@@ -98,14 +100,49 @@ local function setupCharacterMonitoring(Character)
 	lastCheckTime = 0
 	lastBodyMoverCheckTime = 0
 
-	-- Clear body mover tracking
+	-- Clear previous tracking
 	table.clear(bodyMoverCreationTimes)
+	table.clear(cachedBodyMovers)
+
+	-- Disconnect previous descendant connections
+	for _, conn in pairs(descendantConnections) do
+		conn:Disconnect()
+	end
+	table.clear(descendantConnections)
+
+	-- PERFORMANCE: Use event-based tracking instead of GetDescendants every frame
+	-- Initial scan for existing body movers
+	for _, descendant in pairs(Character:GetDescendants()) do
+		if isBodyMover(descendant) then
+			cachedBodyMovers[descendant] = true
+		end
+	end
+
+	-- Listen for new body movers being added
+	descendantConnections[1] = Character.DescendantAdded:Connect(function(descendant)
+		if isBodyMover(descendant) then
+			cachedBodyMovers[descendant] = true
+		end
+	end)
+
+	-- Listen for body movers being removed
+	descendantConnections[2] = Character.DescendantRemoving:Connect(function(descendant)
+		if cachedBodyMovers[descendant] then
+			cachedBodyMovers[descendant] = nil
+			bodyMoverCreationTimes[descendant] = nil
+		end
+	end)
 
 	-- Monitor velocity every frame
 	local connection
 	connection = RunService.Heartbeat:Connect(function(deltaTime)
 		if not Character or not Character.Parent then
 			connection:Disconnect()
+			-- Cleanup descendant connections too
+			for _, conn in pairs(descendantConnections) do
+				conn:Disconnect()
+			end
+			table.clear(descendantConnections)
 			return
 		end
 
@@ -134,11 +171,11 @@ local function setupCharacterMonitoring(Character)
 			end
 		end
 
-		-- Check for orphaned body movers at interval
+		-- Check for orphaned body movers at interval (now uses cached list)
 		lastBodyMoverCheckTime = lastBodyMoverCheckTime + deltaTime
 		if lastBodyMoverCheckTime >= BODY_MOVER_CHECK_INTERVAL then
 			lastBodyMoverCheckTime = 0
-			cleanupOrphanedBodyMovers(Character)
+			cleanupOrphanedBodyMovers()
 		end
 	end)
 end

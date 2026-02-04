@@ -213,6 +213,13 @@ function NotificationManager.ShowQuest(questName)
 	queueNotification("Quest", questName)
 end
 
+-- Show a Nen ability notification
+function NotificationManager.ShowNen(abilityName, message)
+	initializeContainer()
+	local displayText = message or (abilityName .. " activated")
+	queueNotification("Nen", displayText)
+end
+
 -- Clear all notifications (useful for cleanup)
 function NotificationManager.ClearAll()
 	notificationQueue = {}

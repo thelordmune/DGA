@@ -212,12 +212,32 @@ return function(scope, props: {})
 		tileSize:set(size)
 	end)
 
-	scope:Computed(function(use)
-		return if use(started) then fadein:set(true) else fadein:set(false)
-	end)
-	scope:Computed(function(use)
-		return if use(fadein) then textstart:set(true) else textstart:set(false)
-	end)
+	-- Handle fadein/textstart reactively based on started state
+	-- If fadein/textstart are provided as Value objects, update them; otherwise create local ones
+	local localFadein = fadein or scope:Value(false)
+	local localTextstart = textstart or scope:Value(false)
+
+	-- Update fadein when started changes
+	if fadein and typeof(fadein) == "table" and fadein.set then
+		scope:Computed(function(use)
+			local isStarted = use(started)
+			fadein:set(isStarted)
+			return isStarted
+		end)
+	end
+
+	-- Update textstart when fadein changes
+	if textstart and typeof(textstart) == "table" and textstart.set then
+		scope:Computed(function(use)
+			local isFadein = use(localFadein)
+			textstart:set(isFadein)
+			return isFadein
+		end)
+	end
+
+	-- Use local values for internal component logic
+	fadein = localFadein
+	textstart = localTextstart
 
 	-- Use larger size for wanderers (BillboardGui)
 	local frameSize = isWanderer and 150 or 100

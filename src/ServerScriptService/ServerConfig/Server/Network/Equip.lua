@@ -12,6 +12,7 @@ local world = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_worl
 local comps = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_components)
 local ref = require(game:GetService("ReplicatedStorage").Modules.ECS.jecs_ref)
 local Bridges = require(Replicated.Modules.Bridges)
+local StateManager = require(Replicated.Modules.ECS.StateManager)
 
 local self = setmetatable({}, NetworkModule)
 
@@ -73,28 +74,26 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
     local AnimationSet = Replicated.Assets.Animations.Weapons[WeaponName]
     local WeaponFolder: Folder? = ServerStorage.Assets.Models.Weapons[WeaponName]
 
-    -- Clean up any stuck states first (fix for respawn issues)
-    if Character:FindFirstChild("Actions") then
-        -- Remove any stuck Equip states
-        if Library.StateCheck(Character.Actions, "Equip") then
-            Library.RemoveState(Character.Actions, "Equip")
-            ---- print("Cleaned up stuck Equip state")
-        end
+    -- Clean up any stuck states first (fix for respawn issues) using ECS StateManager
+    -- Remove any stuck Equip states
+    if StateManager.StateCheck(Character, "Actions", "Equip") then
+        StateManager.RemoveState(Character, "Actions", "Equip")
+        ---- print("Cleaned up stuck Equip state")
+    end
 
-        -- Remove any other stuck states that might prevent equipping
-        local stuckStates = {"FeintStun", "Stun", "Attacking", "Blocking"}
-        for _, stateName in pairs(stuckStates) do
-            if Library.StateCheck(Character.Actions, stateName) then
-                Library.RemoveState(Character.Actions, stateName)
-                ---- print("Cleaned up stuck state:", stateName)
-            end
+    -- Remove any other stuck states that might prevent equipping
+    local stuckStates = {"FeintStun", "Stun", "Attacking", "Blocking"}
+    for _, stateName in pairs(stuckStates) do
+        if StateManager.StateCheck(Character, "Actions", stateName) then
+            StateManager.RemoveState(Character, "Actions", stateName)
+            ---- print("Cleaned up stuck state:", stateName)
         end
+    end
 
-        -- Check if character still has other active states after cleanup
-        if Library.StateCount(Character.Actions) then
-            ---- print("Early return: Character still has active states after cleanup")
-            return
-        end
+    -- Check if character still has other active states after cleanup
+    if StateManager.StateCount(Character, "Actions") then
+        ---- print("Early return: Character still has active states after cleanup")
+        return
     end
 
     -- Initialize equipped attribute if it doesn't exist
@@ -140,11 +139,9 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
                 ---- print("Equip sound played")
             end
 
-            -- Add state only for players
-            if Character:FindFirstChild("Actions") then
-                Library.AddState(Character.Actions, "Equip")
-                ---- print("Added Equip state")
-            end
+            -- Add state only for players using ECS StateManager
+            StateManager.AddState(Character, "Actions", "Equip")
+            ---- print("Added Equip state")
         end
 
         local blacklist = {
@@ -166,7 +163,7 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
 
             if not hasWeaponParts then
                 ---- print("Weapon not found in character, creating new parts")
-                local weaponParts = ServerStorage.Assets.Models.Weapons[WeaponName]:GetChildren()
+                local weaponParts = ServerStorage.Assets.Models.Weapons[WeaponName]:GetDescendants()
 
                 for _, WepPart in pairs(weaponParts) do
                     ---- print("Processing weapon part:", WepPart.Name)
@@ -221,13 +218,11 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
             end
         end
 
-        -- Handle animation completion
+        -- Handle animation completion using ECS StateManager
         if EquipAnimation then
             EquipAnimation.Stopped:Once(function()
-                if Character:FindFirstChild("Actions") then
-                    Library.RemoveState(Character.Actions, "Equip")
-                    ---- print("Removed Equip state via animation completion")
-                end
+                StateManager.RemoveState(Character, "Actions", "Equip")
+                ---- print("Removed Equip state via animation completion")
                 for _, v in Character:GetDescendants() do
                     if v:GetAttribute("WeaponTrail") then
                         v.Enabled = false
@@ -236,10 +231,8 @@ NetworkModule.EquipWeapon = function(Character: Model, WeaponName: string?, skip
             end)
         else
             -- If no animation, immediately remove the Equip state
-            if Character:FindFirstChild("Actions") then
-                Library.RemoveState(Character.Actions, "Equip")
-                ---- print("Removed Equip state (no animation)")
-            end
+            StateManager.RemoveState(Character, "Actions", "Equip")
+            ---- print("Removed Equip state (no animation)")
         end
     else
         NetworkModule.UnequipWeapon(Character, WeaponName, skipAnimation)
@@ -273,9 +266,7 @@ NetworkModule.UnequipWeapon = function(Character: Model, WeaponName: string?, sk
             end
         end
 
-        if Character:FindFirstChild("Actions") then
-            Library.AddState(Character.Actions, "Equip")
-        end
+        StateManager.AddState(Character, "Actions", "Equip")
 
         local Player = game.Players:GetPlayerFromCharacter(Character)
         if Player then
@@ -368,9 +359,7 @@ NetworkModule.UnequipWeapon = function(Character: Model, WeaponName: string?, sk
                     v.Enabled = false
                 end
             end
-            if Character:FindFirstChild("Actions") then
-                Library.RemoveState(Character.Actions, "Equip")
-            end
+            StateManager.RemoveState(Character, "Actions", "Equip")
             -- Keep spear visible for unequipped idle, remove other weapons
             if shouldKeepVisible then
                 disconnectWelds()
@@ -426,13 +415,11 @@ NetworkModule.CleanupCharacterEquipState = function(Character: Model)
     ---- print("Character:", Character.Name)
 
     -- Remove any stuck equip states
-    if Character:FindFirstChild("Actions") then
-        local statesToClean = {"Equip", "FeintStun", "Stun", "Attacking", "Blocking"}
-        for _, stateName in pairs(statesToClean) do
-            if Library.StateCheck(Character.Actions, stateName) then
-                Library.RemoveState(Character.Actions, stateName)
-                ---- print("Cleaned up stuck state on character removal:", stateName)
-            end
+    local statesToClean = {"Equip", "FeintStun", "Stun", "Attacking", "Blocking"}
+    for _, stateName in pairs(statesToClean) do
+        if StateManager.StateCheck(Character, "Actions", stateName) then
+            StateManager.RemoveState(Character, "Actions", stateName)
+            ---- print("Cleaned up stuck state on character removal:", stateName)
         end
     end
 

@@ -7,8 +7,15 @@ local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local InventoryManager = require(ReplicatedStorage.Modules.Utils.InventoryManager)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 
 local self = setmetatable({}, NetworkModule)
+
+-- InputType enum decoder: uint8 -> string
+local EnumToInputType = {
+    [0] = "began",
+    [1] = "ended",
+}
 
 -- Track held weapon skills per player
 -- Format: {[Player] = {skillName, skillInstance, character}}
@@ -17,11 +24,13 @@ local heldWeaponSkills = {}
 NetworkModule.EndPoint = function(Player, Data)
     local Weapon = Player:GetAttribute("Weapon")
 
+    -- Decode uint8 inputType to string
+    local inputType = EnumToInputType[Data.inputType] or "began"
+
    -- print("=== USE ITEM ENDPOINT ===")
    -- print("Player:", Player.Name)
-   -- print("Item:", Data.itemName)
    -- print("Hotbar Slot:", Data.hotbarSlot)
-   -- print("InputType:", Data.inputType or "nil")
+   -- print("InputType:", inputType)
    -- print("Weapon:", Weapon)
 
     local pent = ref.get("player", Player)  -- Fixed: Use "player" on server, not "local_player"
@@ -53,20 +62,17 @@ NetworkModule.EndPoint = function(Player, Data)
         warn("Player has no Inventory component!")
     end
 
-    -- Verify item is still in hotbar slot
+    -- Look up item from hotbar slot (server authoritative - no need for client to send item name)
     local item = InventoryManager.getHotbarItem(pent, Data.hotbarSlot)
     if not item then
         warn("No item found in hotbar slot", Data.hotbarSlot)
         return
     end
 
-    if item.name ~= Data.itemName then
-        warn("Item mismatch! Expected:", Data.itemName, "Found:", item.name)
-        return
-    end
-    
+    local itemName = item.name
+
     -- Use the item
-    local success, usedItem = InventoryManager.useItem(pent, Data.itemName)
+    local success, usedItem = InventoryManager.useItem(pent, itemName)
     if success then
         ---- print("Successfully used item:", Data.itemName)
         
@@ -79,18 +85,15 @@ NetworkModule.EndPoint = function(Player, Data)
             Player:SetAttribute("Weapon", usedItem.name)
             ---- print("Switched to weapon:", usedItem.name)
         elseif usedItem.typ == "skill" then
-            -- Check if player is dashing
+            -- Check if player is dashing (Dashing is now a tag)
             local playerEntity = ref.get("player", Player)
             if playerEntity and world:has(playerEntity, comps.Dashing) then
-                local isDashing = world:get(playerEntity, comps.Dashing)
-                if isDashing then
-                    ---- print("[UseItem] Cannot use skill while dashing")
-                    return
-                end
+                ---- print("[UseItem] Cannot use skill while dashing")
+                return
             end
 
             -- Activate skill
-            ---- print("Activated skill:", usedItem.name, "for weapon:", Weapon, "InputType:", Data.inputType or "began")
+            ---- print("Activated skill:", usedItem.name, "for weapon:", Weapon, "InputType:", inputType or "began")
             local skillPath = script.Parent.Parent.WeaponSkills[Weapon]
             if skillPath and skillPath:FindFirstChild(usedItem.name) then
                 local skillModule = skillPath[usedItem.name]
@@ -104,7 +107,7 @@ NetworkModule.EndPoint = function(Player, Data)
                     ---- print("[UseItem] Skill metatable:", getmetatable(skill))
                     -- NEW HOLD SYSTEM
                     ---- print("[UseItem] Using NEW HOLD SYSTEM for:", usedItem.name)
-                    if Data.inputType == "began" then
+                    if inputType == "began" then
                         -- Additional server-side check: prevent spam if skill is on cooldown or executing
                         local Character = Player.Character
                         if Character then
@@ -115,7 +118,7 @@ NetworkModule.EndPoint = function(Player, Data)
                             end
 
                             -- Check if skill is already executing (Actions state)
-                            if Character:FindFirstChild("Actions") and Character.Actions:FindFirstChild(usedItem.name) then
+                            if StateManager.StateCheck(Character, "Actions", usedItem.name) then
                                 ---- print("[UseItem] Skill is already executing, ignoring input")
                                 return
                             end
@@ -140,7 +143,7 @@ NetworkModule.EndPoint = function(Player, Data)
                         -- Call OnInputBegan
                         ---- print("[UseItem] Calling OnInputBegan for:", usedItem.name)
                         skill:OnInputBegan(Player, Player.Character)
-                    elseif Data.inputType == "ended" then
+                    elseif inputType == "ended" then
                         -- Call OnInputEnded
                         ---- print("[UseItem] Calling OnInputEnded for:", usedItem.name)
                         local heldData = heldWeaponSkills[Player]
@@ -161,7 +164,7 @@ NetworkModule.EndPoint = function(Player, Data)
                     -- OLD SYSTEM (function-based skills)
                    -- print("[UseItem] Using OLD SYSTEM (function-based) for:", usedItem.name)
                     -- Only execute on 'ended' input to prevent double-triggering
-                    if Data.inputType == "ended" then
+                    if inputType == "ended" then
                        -- print("[UseItem] Executing skill on 'ended' input")
 
                         -- CANCEL SPRINT when using a skill

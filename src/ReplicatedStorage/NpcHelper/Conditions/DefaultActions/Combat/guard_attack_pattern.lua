@@ -14,7 +14,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CombatProperties = require(ReplicatedStorage.Modules.CombatProperties)
-local Library = require(ReplicatedStorage.Modules.Library)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 
 -- All weapon skills by weapon type (guards can use ALL moves)
 local WEAPON_SKILLS = {
@@ -73,15 +73,9 @@ local function getDistanceToTarget(npc, target)
     return (targetRoot.Position - npcRoot.Position).Magnitude
 end
 
--- Helper function to check if target is attacking
+-- Helper function to check if target is attacking using ECS StateManager
 local function isTargetAttacking(target)
-    local actions = target:FindFirstChild("Actions")
-    if not actions then
-        return false
-    end
-    
-    local Library = require(ReplicatedStorage.Modules.Library)
-    return Library.StateCheck(actions, "Attacking")
+    return StateManager.StateCheck(target, "Actions", "Attacking")
 end
 
 -- Helper function to check if skill is on cooldown (uses Library.CheckCooldown like players)
@@ -281,8 +275,7 @@ local function executePatternAction(mainConfig, npc, target, distance, currentSt
 
         if skillToUse == "M1" then
             -- Check if NPC is already in an M1 animation (prevent spam)
-            local actions = npc:FindFirstChild("Actions")
-            if actions and Library.StateCount(actions) then
+            if StateManager.StateCount(npc, "Actions") then
                 -- NPC is already performing an action, don't spam M1
                 return false
             end

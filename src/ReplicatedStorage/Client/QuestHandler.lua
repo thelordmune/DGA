@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+local QuestSignals = require(ReplicatedStorage.Modules.Signals.QuestSignals)
 
 local player = Players.LocalPlayer
 
@@ -18,6 +19,9 @@ local currentQuest = {
 }
 
 local activeMarkers = {}
+
+-- PERFORMANCE FIX: Track connection to prevent memory leak on respawn
+local updateConnection = nil
 
 local function cleanupMarkers()
 	local QuestMarkers = require(ReplicatedStorage.Client.QuestMarkers)
@@ -88,6 +92,10 @@ local function updateQuestState()
 						stage = currentQuest.stage,
 					})
 				end
+				-- Fire signal for stage end
+				if currentQuest.stage then
+					QuestSignals.OnStageEnd:fire(currentQuest.npcName, currentQuest.questName, currentQuest.stage, {})
+				end
 			end
 
 			cleanupMarkers()
@@ -103,6 +111,9 @@ local function updateQuestState()
 			currentQuest.stage = stage
 			currentQuest.module = questModule
 
+			-- Fire signal for quest accepted (new quest started)
+			QuestSignals.OnAccepted:fire(activeQuest.npcName, activeQuest.questName)
+
 			if questModule and questModule.OnStageStart then
 				pcall(questModule.OnStageStart, stage, {
 					npcName = activeQuest.npcName,
@@ -114,6 +125,11 @@ local function updateQuestState()
 				warn(`[QuestHandler] ⚠️ Quest module has no OnStageStart function`)
 			end
 
+			-- Fire signal for stage start
+			QuestSignals.OnStageStart:fire(activeQuest.npcName, activeQuest.questName, stage, {
+				progress = activeQuest.progress
+			})
+
 		elseif isNewStage then
 			if currentQuest.module then
 				if currentQuest.module.OnStageEnd then
@@ -123,6 +139,8 @@ local function updateQuestState()
 						stage = currentQuest.stage,
 					})
 				end
+				-- Fire signal for stage end
+				QuestSignals.OnStageEnd:fire(currentQuest.npcName, currentQuest.questName, currentQuest.stage, {})
 
 				cleanupMarkers()
 
@@ -134,6 +152,10 @@ local function updateQuestState()
 						progress = activeQuest.progress,
 					})
 				end
+				-- Fire signal for stage start
+				QuestSignals.OnStageStart:fire(activeQuest.npcName, activeQuest.questName, stage, {
+					progress = activeQuest.progress
+				})
 			end
 
 			currentQuest.stage = stage
@@ -148,6 +170,12 @@ local function updateQuestState()
 			})
 		end
 
+		-- Fire signal for progress update
+		QuestSignals.OnProgressUpdate:fire(activeQuest.npcName, activeQuest.questName, {
+			stage = stage,
+			progress = activeQuest.progress
+		})
+
 	else
 		if currentQuest.npcName then
 			if currentQuest.module and currentQuest.module.OnStageEnd and currentQuest.stage then
@@ -156,6 +184,12 @@ local function updateQuestState()
 					questName = currentQuest.questName,
 					stage = currentQuest.stage,
 				})
+			end
+
+			-- Fire signal for stage end (quest cleared/abandoned)
+			if currentQuest.stage then
+				QuestSignals.OnStageEnd:fire(currentQuest.npcName, currentQuest.questName, currentQuest.stage, {})
+				QuestSignals.OnAbandoned:fire(currentQuest.npcName, currentQuest.questName)
 			end
 
 			cleanupMarkers()
@@ -179,6 +213,11 @@ local function updateQuestState()
 				})
 			end
 		end
+
+		-- Fire signal for quest completion
+		QuestSignals.OnComplete:fire(completedQuest.npcName, completedQuest.questName, {
+			completedTime = completedQuest.completedTime
+		})
 	end
 end
 
@@ -188,13 +227,26 @@ function QuestHandler.Init()
 	end
 	task.wait(1)
 
-	RunService.RenderStepped:Connect(updateQuestState)
+	-- PERFORMANCE FIX: Disconnect old connection before creating new one
+	-- This prevents memory leak from stacking RenderStepped connections on respawn
+	if updateConnection then
+		updateConnection:Disconnect()
+		updateConnection = nil
+	end
+
+	updateConnection = RunService.RenderStepped:Connect(updateQuestState)
 
 	updateQuestState()
 end
 
 function QuestHandler.Cleanup()
 	cleanupMarkers()
+
+	-- PERFORMANCE FIX: Disconnect RenderStepped connection on cleanup
+	if updateConnection then
+		updateConnection:Disconnect()
+		updateConnection = nil
+	end
 
 	if currentQuest.module and currentQuest.module.OnStageEnd and currentQuest.stage then
 		pcall(currentQuest.module.OnStageEnd, currentQuest.stage, {

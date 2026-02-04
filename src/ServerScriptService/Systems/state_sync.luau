@@ -1,28 +1,36 @@
 --[[
-	State Sync System (SERVER) - HEAVILY OPTIMIZED
+	State Sync System (SERVER) - ECS Packet-Based Replication
 
-	Syncs ECS state components back to StringValues so they replicate to clients.
-	This is the SERVER version that runs in ServerScriptService/Systems.
+	Syncs ECS state components to clients via ByteNet packets.
+	This replaces the old StringValue-based replication with pure ECS.
 
-	When server adds states via Library.AddState(), this system syncs them to StringValues
-	which then automatically replicate to clients.
+	When server adds states via StateManager.AddState(), this system sends
+	packets to clients so they can update their local ECS world.
 
 	OPTIMIZATIONS:
 	- Cached queries for each state component (prevents query recreation)
-	- Pre-encoded empty state to avoid repeated JSON encoding
-	- Optimized cache cleanup using weak tables
-	- Reduced string allocations in cache keys
-	- **THROTTLED to 10 Hz** (was 60 Hz) - reduces network traffic by 83%
-	- **Only syncs when states actually change** - prevents redundant replication
-	- **Batched updates** - processes all state categories in one pass
+	- Only syncs when states actually change (delta sync)
+	- Throttled to 30 Hz for responsive combat
+	- Proximity filtering for NPCs (reduces bandwidth)
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
+local Packets = require(ReplicatedStorage.Modules.Packets)
 
--- Map ECS component names to StringValue names
+-- Category name to uint8 mapping for packet
+local CATEGORY_TO_ID = {
+	Actions = 0,
+	Stuns = 1,
+	IFrames = 2,
+	Speeds = 3,
+	Frames = 4,
+	Status = 5,
+}
+
+-- Map ECS component names to category names
 local STATE_SYNC_MAP = {
 	StateActions = "Actions",
 	StateStuns = "Stuns",
@@ -32,29 +40,25 @@ local STATE_SYNC_MAP = {
 	StateStatus = "Status",
 }
 
--- Pre-encode empty state to avoid repeated JSON encoding
-local EMPTY_STATE_JSON = HttpService:JSONEncode({})
-
--- Cache to avoid unnecessary updates (using weak keys for automatic cleanup)
+-- Cache to track last synced states (for delta sync)
 local lastSyncedStates = setmetatable({}, { __mode = "k" })
 
--- Debug flag (set to true to see sync activity)
+-- Debug flag
 local DEBUG = false
 
 -- Track first run
 local firstRun = true
 local frameCount = 0
-local hasLoggedQuery = false
 
--- OPTIMIZATION: Throttle to 10 Hz instead of 60 Hz (83% reduction in network traffic!)
-local SYNC_HZ = 10
+-- Throttle to 30 Hz for responsive stun sync
+local SYNC_HZ = 30
 local SYNC_TICK = 1 / SYNC_HZ
 local syncAcc = 0
 
--- OPTIMIZATION: Only sync NPCs within this distance of players (reduces network traffic for distant NPCs)
-local NPC_SYNC_DISTANCE = 150 -- studs (only sync NPCs within 150 studs of any player)
+-- Only sync NPCs within this distance of players
+local NPC_SYNC_DISTANCE = 150
 
--- OPTIMIZATION: Create cached queries for each state component
+-- Create cached queries for each state component
 local stateQueries = {}
 for componentName in pairs(STATE_SYNC_MAP) do
 	local component = comps[componentName]
@@ -64,7 +68,6 @@ for componentName in pairs(STATE_SYNC_MAP) do
 end
 
 -- Helper to check if character is near any player
-local Players = game:GetService("Players")
 local function isNearAnyPlayer(character: Model): boolean
 	local hrp = character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return false end
@@ -87,7 +90,7 @@ local function isNearAnyPlayer(character: Model): boolean
 	return false
 end
 
--- OPTIMIZATION: Reuse cache table for character to avoid string allocations
+-- Get or create cache for a character
 local function getCharacterCache(character: Model)
 	local cache = lastSyncedStates[character]
 	if not cache then
@@ -97,88 +100,89 @@ local function getCharacterCache(character: Model)
 	return cache
 end
 
-local function syncStateToStringValue(character: Model, stringValueName: string, states: {string})
-	-- Find the StringValue
-	local stringValue = character:FindFirstChild(stringValueName)
-	if not stringValue then
-		-- StringValue doesn't exist yet, skip (it will be created by Entities.Initialize)
-		return
+-- Compare two state arrays for equality
+local function statesEqual(a: {string}, b: {string}?): boolean
+	if not b then return false end
+	if #a ~= #b then return false end
+	for i, v in ipairs(a) do
+		if b[i] ~= v then return false end
 	end
+	return true
+end
 
-	if not stringValue:IsA("StringValue") then
-		warn(`[StateSync/Server] {stringValueName} in {character.Name} is not a StringValue!`)
-		return
+-- Copy state array
+local function copyStates(states: {string}): {string}
+	local copy = {}
+	for i, v in ipairs(states) do
+		copy[i] = v
 	end
+	return copy
+end
 
-	-- Get character-specific cache
+-- Sync state to clients via packet
+local function syncStateViaPacket(character: Model, categoryName: string, states: {string})
 	local cache = getCharacterCache(character)
 
-	-- OPTIMIZATION: Use pre-encoded empty state if states is empty
-	local jsonStates = if #states > 0 then HttpService:JSONEncode(states) else EMPTY_STATE_JSON
+	-- Only sync if changed (delta sync)
+	if statesEqual(states, cache[categoryName]) then
+		return
+	end
 
-	-- Only update if changed (avoid triggering unnecessary .Changed events)
-	if cache[stringValueName] ~= jsonStates then
-		stringValue.Value = jsonStates
-		cache[stringValueName] = jsonStates
+	-- Update cache
+	cache[categoryName] = copyStates(states)
 
-		if DEBUG and #states > 0 then
-			---- print(`[StateSync/Server] Updated {character.Name}.{stringValueName}: {jsonStates}`)
-		end
+	local categoryId = CATEGORY_TO_ID[categoryName]
+	if categoryId == nil then
+		warn(`[StateSync/Server] Unknown category: {categoryName}`)
+		return
+	end
+
+	-- Send packet to all players
+	-- TODO: Could optimize to only send to nearby players for NPCs
+	Packets.StateSync.sendToAll({
+		Character = character,
+		Category = categoryId,
+		States = states,
+	})
+
+	if DEBUG and #states > 0 then
+		print(`[StateSync/Server] Sent {categoryName} for {character.Name}: {table.concat(states, ", ")}`)
 	end
 end
 
 local function state_sync_step()
 	if firstRun then
-		---- print(`[StateSync] ✅ State sync system started on Server (HEAVILY OPTIMIZED - 10 Hz + proximity filtering)`)
+		print(`[StateSync/Server] ✅ ECS packet-based state sync started (30 Hz)`)
 		firstRun = false
 	end
 
 	frameCount = frameCount + 1
 
-	-- Log every 10 frames (1 second at 10 Hz) to confirm system is running
-	if DEBUG and frameCount % 10 == 0 then
-		---- print(`[StateSync/Server] System is running (frame {frameCount})`)
-	end
-
-	-- OPTIMIZATION: Use cached queries instead of iterating all characters
-	-- This processes only entities that have each specific state component
-	local entityCount = 0
-	local skippedCount = 0
-	for componentName, stringValueName in pairs(STATE_SYNC_MAP) do
+	-- Process all state components
+	for componentName, categoryName in pairs(STATE_SYNC_MAP) do
 		local query = stateQueries[componentName]
 		if query then
-			for _, character, states in query do
-				entityCount = entityCount + 1
-
+			for entityId, character, states in query do
 				-- Skip if character is destroyed
 				if not character or not character.Parent then
-					-- OPTIMIZATION: Weak table handles cleanup automatically
 					lastSyncedStates[character] = nil
 					continue
 				end
 
-				-- OPTIMIZATION: Skip NPCs that are far from all players (reduces network traffic)
-				-- Players always sync (they don't have Mob component)
-				local isMob = world:has(_, comps.Mob)
+				-- Skip NPCs that are far from all players
+				local isMob = world:has(entityId, comps.Mob)
 				if isMob and not isNearAnyPlayer(character) then
-					skippedCount = skippedCount + 1
 					continue
 				end
 
-				-- Sync this state category
-				syncStateToStringValue(character, stringValueName, states)
+				-- Sync this state category via packet
+				syncStateViaPacket(character, categoryName, states or {})
 			end
 		end
 	end
-
-	-- Log entity count once
-	if not hasLoggedQuery and entityCount > 0 then
-		---- print(`[StateSync/Server] Found {entityCount} state components ({skippedCount} distant NPCs skipped)`)
-		hasLoggedQuery = true
-	end
 end
 
--- OPTIMIZATION: Throttle wrapper to run at 10 Hz instead of 60 Hz
+-- Throttle wrapper
 local function state_sync_wrapper(dt: number)
 	syncAcc += dt
 	if syncAcc < SYNC_TICK then return end
@@ -194,7 +198,6 @@ return {
 	settings = {
 		phase = "Heartbeat",
 		depends_on = {},
-		server_only = true, -- Only run on server
+		server_only = true,
 	}
 }
-

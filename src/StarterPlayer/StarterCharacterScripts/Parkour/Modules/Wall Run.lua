@@ -27,6 +27,7 @@ function Sliding.new(Parkour)
 	self.Side = nil
 	self.JustWallJumped = false
 	self.WallJumpTime = 0
+	self.AirDashUsed = false -- Track if air dash was used after wall jump
 
 	local range = 8
 	self.Directions = {
@@ -35,7 +36,8 @@ function Sliding.new(Parkour)
 	}
 
 	-- Listen for space bar to perform camera-based air dash after wall jump
-	UIS.InputBegan:Connect(function(input, gameProcessedEvent)
+	-- Store connection for cleanup to prevent memory leak
+	self.InputConnection = UIS.InputBegan:Connect(function(input, gameProcessedEvent)
 		if gameProcessedEvent then return end
 
 		if input.KeyCode == Enum.KeyCode.Space then
@@ -46,19 +48,26 @@ function Sliding.new(Parkour)
 	return self
 end
 
-function Sliding:_stopWallrunning()
+function Sliding:_stopWallrunning(keepAutoRotateOff)
 	local Character: Model = self.Character
 	local RootPart: BasePart = Character.HumanoidRootPart
 	local Humanoid: Humanoid = Character.Humanoid
 	local AnimationService = self.Parent.AnimationService
 
 	self.Cleaner:Destroy()
-	Humanoid.AutoRotate = true
+
+	-- Only reset AutoRotate if we're not doing a wall jump
+	if not keepAutoRotateOff then
+		Humanoid.AutoRotate = true
+	end
 
 	AnimationService:Stop('Wall Run Right')
 	AnimationService:Stop('Wall Run Left')
 
-	RootPart.AssemblyLinearVelocity = Vector3.zero
+	-- Only zero velocity if we're not doing a wall jump
+	if not keepAutoRotateOff then
+		RootPart.AssemblyLinearVelocity = Vector3.zero
+	end
 
 	-- Stop wall run dust particles
 	Base.StopWallRunDust(Character)
@@ -68,7 +77,11 @@ function Sliding:_stopWallrunning()
 end
 
 function Sliding:Start()
+	print("[WallRun] Start() called")
+	print("[WallRun] Busy:", self.Parent.Busy, "WallRunning:", self.Cleaner.WallRunning ~= nil)
+
 	if self.Parent.Busy and not self.Cleaner.WallRunning then
+		print("[WallRun] Blocked - Busy and not wall running")
 		return
 	end
 
@@ -78,23 +91,53 @@ function Sliding:Start()
 	local AnimationService = self.Parent.AnimationService
 
 	if self.Cleaner.WallRunning then
-		self:_stopWallrunning()
+		print("[WallRun] WALL JUMP TRIGGERED!")
+		-- Store wall jump data BEFORE stopping wall run
+		local wallJumpSide = self.Side
 
 		local Inverse = {
 			Right = 'Left',
 			Left = 'Right'
 		}
 
-		RootPart.AssemblyLinearVelocity = (self.CrossVector + self.Normal + Vector3.yAxis) * 50
-		AnimationService:Play('Wall Jump Run '.. Inverse[self.Side], 1.5)
+		-- Stop wall running but keep AutoRotate off and don't zero velocity
+		self:_stopWallrunning(true)
+
+		-- Keep AutoRotate off during the jump
+		Humanoid.AutoRotate = false
+
+		-- Calculate wall jump direction with much stronger forces
+		-- Don't normalize - we want the full magnitude
+		local upwardForce = Vector3.new(0, 80, 0) -- Very strong upward
+		local outwardForce = self.Normal * 50 -- Push hard away from wall
+		local forwardForce = self.CrossVector * 30 -- Some forward momentum
+
+		local wallJumpVelocity = upwardForce + outwardForce + forwardForce
+
+		print(`[WallRun] Jump velocity: {wallJumpVelocity}`)
+
+		-- Apply wall jump velocity
+		RootPart.AssemblyLinearVelocity = wallJumpVelocity
+
+		-- Wait a frame and reapply to prevent it being overridden
+		task.wait()
+		RootPart.AssemblyLinearVelocity = wallJumpVelocity
+
+		print(`[WallRun] Final velocity applied: {RootPart.AssemblyLinearVelocity}`)
+
+		-- Play wall jump animation
+		AnimationService:Play('Wall Jump Run '.. Inverse[wallJumpSide], 1.5)
 
 		-- Mark that we just wall jumped to enable air dash
 		self.JustWallJumped = true
 		self.WallJumpTime = os.clock()
+		self.AirDashUsed = false -- Reset air dash availability
 
-		-- Reset the flag after a short window
+		-- Re-enable AutoRotate and reset flags after jump completes
 		task.delay(1.5, function()
+			Humanoid.AutoRotate = true
 			self.JustWallJumped = false
+			self.AirDashUsed = false
 		end)
 
 		self.Side = nil
@@ -211,13 +254,24 @@ end
 function Sliding:End()
 end
 
+function Sliding:Destroy()
+	-- Cleanup InputConnection to prevent memory leak
+	if self.InputConnection then
+		self.InputConnection:Disconnect()
+		self.InputConnection = nil
+	end
+
+	-- Also cleanup any active wall running
+	self.Cleaner:Destroy()
+end
+
 function Sliding:TryAirDash()
 	local Character: Model = self.Character
 	local RootPart: BasePart = Character.HumanoidRootPart
 	local Humanoid: Humanoid = Character.Humanoid
 
-	-- Check if we can air dash (just wall jumped and in air)
-	if not self.JustWallJumped then
+	-- Check if we can air dash (just wall jumped and in air, and haven't used it yet)
+	if not self.JustWallJumped or self.AirDashUsed then
 		return
 	end
 
@@ -243,8 +297,22 @@ function Sliding:TryAirDash()
 	local Library = require(ReplicatedStorage.Modules.Library)
 	Library.PlayAnimation(Character, ReplicatedStorage.Assets.Animations.Dashes.Forward)
 
-	-- Reset the wall jump flag so we can only dash once per wall jump
-	self.JustWallJumped = false
+	-- Mark air dash as used so we can only dash once per wall jump
+	self.AirDashUsed = true
+
+	-- Set air dash flag to prevent landing animation
+	Client.AirDashing = true
+	Client.AirDashLanding = true
+
+	-- Clear the air dash landing flag after a short delay
+	-- This prevents the landing animation from playing
+	task.delay(0.5, function()
+		Client.AirDashing = false
+		-- Keep AirDashLanding flag for a bit longer to ensure landing animation doesn't play
+		task.delay(0.3, function()
+			Client.AirDashLanding = false
+		end)
+	end)
 
 	---- print("Air dashing in camera direction:", dashDirection)
 end

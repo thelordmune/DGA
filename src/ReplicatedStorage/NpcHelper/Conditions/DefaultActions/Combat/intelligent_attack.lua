@@ -13,7 +13,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local CombatProperties = require(ReplicatedStorage.Modules.CombatProperties)
-local Library = require(ReplicatedStorage.Modules.Library)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 local PlayerStateDetector = require(script.Parent.player_state_detector)
 
 -- Get Server from main VM (Actors have separate module caches, so use _G)
@@ -96,36 +96,14 @@ local function getAvailableSkills(npc, mainConfig)
     table.insert(availableSkills, "Critical")
     
     -- Weapon-specific skills
-    if weapon == "Spear" then
-        table.insert(availableSkills, "Needle Thrust")
-        table.insert(availableSkills, "Grand Cleave")
-    elseif weapon == "Guns" then
-        table.insert(availableSkills, "Shell Piercer")
-        table.insert(availableSkills, "Strategist Combination")
-    elseif weapon == "Fist" then
+    if weapon == "Fist" then
         table.insert(availableSkills, "Downslam Kick")
         table.insert(availableSkills, "Axe Kick")
         -- Pincer Impact removed - too complex for NPCs
     end
-    
-    -- Alchemy skills
-    if alchemy then
-        -- Basic alchemy (all types)
-        table.insert(availableSkills, "Construct")
-        table.insert(availableSkills, "Deconstruct")
-        table.insert(availableSkills, "AlchemicAssault")
-        table.insert(availableSkills, "Stone Lance")
-        table.insert(availableSkills, "Sky Arc")
 
-        -- Type-specific alchemy
-        if alchemy == "Stone" then
-            table.insert(availableSkills, "Cascade")
-            table.insert(availableSkills, "Rock Skewer")
-        elseif alchemy == "Flame" then
-            table.insert(availableSkills, "Cinder")
-            table.insert(availableSkills, "Firestorm")
-        end
-    end
+    -- Weapon skills (Spear, Guns) removed - keeping only Fist combat
+    -- Alchemy skills removed - Hunter x Hunter Nen system will replace this
 
     return availableSkills
 end
@@ -271,7 +249,7 @@ return function(actor: Actor, mainConfig: table)
 
         -- Immediately counter with Critical or best skill
         local Combat = Server.Modules.Combat
-        if not Library.CheckCooldown(npc, "Critical") then
+        if not Server.Library.CheckCooldown(npc, "Critical") then
             Combat.Critical(npc)
             ---- print("[Intelligent Attack] Counter-attacking with Critical after parry!")
             return true
@@ -334,9 +312,8 @@ return function(actor: Actor, mainConfig: table)
     local success = false
 
     if bestSkill == "M1" then
-        -- Check if NPC is already in an M1 animation (prevent spam)
-        local actions = npc:FindFirstChild("Actions")
-        if actions and Library.StateCount(actions) then
+        -- Check if NPC is already in an M1 animation (prevent spam) using ECS StateManager
+        if StateManager.StateCount(npc, "Actions") then
             -- NPC is already performing an action, don't spam M1
             return false
         end

@@ -40,14 +40,14 @@ function InventoryManager:Initialize()
 		---- print("[Inventory] Disabled default Roblox backpack")
 	end)
 
-	-- Clean up old UI if it exists (for respawns)
+	-- Show existing UI if it exists (for respawns), otherwise create new
 	if self.inventoryGui and self.inventoryGui.Parent then
-		self.inventoryGui:Destroy()
-		self.inventoryGui = nil
+		self.inventoryGui.Enabled = true
+		---- print("[Inventory] Showing existing UI")
+	else
+		-- Create the inventory UI only if it doesn't exist
+		self:CreateUI()
 	end
-
-	-- Create the inventory UI
-	self:CreateUI()
 
 	-- Set up keybind (only once)
 	if not self.keybindSetup then
@@ -116,6 +116,16 @@ function InventoryManager:Hide()
 end
 
 function InventoryManager:Destroy()
+	-- Hide the UI instead of destroying it
+	if self.inventoryGui then
+		self.inventoryGui.Enabled = false
+	end
+
+	-- DON'T cleanup scope or destroy GUI - keep it for reuse on respawn
+end
+
+-- Full cleanup for when player leaves (not used on death)
+function InventoryManager:FullDestroy()
 	if self.scope then
 		self.scope:doCleanup()
 	end

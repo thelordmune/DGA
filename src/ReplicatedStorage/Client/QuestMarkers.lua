@@ -197,14 +197,19 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 
 	---- --print(`[QuestMarkers]   ✅ Created MarkerIcon component`)
 
-	-- Update marker position and visibility every frame
+	-- PERFORMANCE: Update marker position every 3 frames instead of every frame
+	-- Markers don't need 60fps precision - 20fps is visually smooth enough
 	local frameCount = 0
 	local updateConnection = RunService.RenderStepped:Connect(function()
 		frameCount += 1
 
+		-- PERFORMANCE: Only update every 3 frames (20fps instead of 60fps)
+		if frameCount % 3 ~= 0 then
+			return
+		end
+
 		-- Check if target still exists
 		if not target or not target.Parent or not targetRoot.Parent then
-			---- --print(`[QuestMarkers]   ⚠️ Target {target.Name} no longer exists, cleaning up marker`)
 			markerScopes[markerKey]:doCleanup()
 			markerScopes[markerKey] = nil
 			return
@@ -222,11 +227,6 @@ local function createNPCMarker(target: Model | BasePart, markerType: string, que
 		showArrow:set(not onScreen)
 		if rotation then
 			arrowRotation:set(rotation)
-		end
-
-		-- Debug every 60 frames (once per second at 60fps)
-		if frameCount % 60 == 0 then
-			---- --print(`[QuestMarkers]   🔄 Update: dist={math.floor(dist)}, screenPos={screenPos}, onScreen={onScreen}, visible={dist < 500}`)
 		end
 	end)
 
@@ -545,8 +545,16 @@ function QuestMarkers.CreateWaypoint(part: Model | BasePart, label: string?, con
 		Parent = screenGui,
 	})
 
-	-- Update marker position and visibility every frame
+	-- PERFORMANCE: Update marker position every 3 frames instead of every frame
+	local waypointFrameCount = 0
 	local updateConnection = RunService.RenderStepped:Connect(function()
+		waypointFrameCount += 1
+
+		-- PERFORMANCE: Only update every 3 frames (20fps instead of 60fps)
+		if waypointFrameCount % 3 ~= 0 then
+			return
+		end
+
 		-- Check if target still exists
 		if not part or not part.Parent or not targetRoot.Parent then
 			markerScopes[markerKey]:doCleanup()

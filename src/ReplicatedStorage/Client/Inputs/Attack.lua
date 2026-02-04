@@ -1,3 +1,5 @@
+local InputBuffer = require(script.Parent.Parent.InputBuffer)
+
 local InputModule = {}
 InputModule.__index = InputModule
 local self = setmetatable({}, InputModule)
@@ -5,43 +7,87 @@ local self = setmetatable({}, InputModule)
 self.Clicks = 0
 self.LastInput = os.clock()
 self.MouseInputCD = false
+self.AttackHeld = false -- Track if attack button is being held
 
-InputModule.InputBegan = function(_, Client)
+-- Attack Type enum for optimized packet serialization (string -> uint8)
+local AttackTypeEnum = {
+	Normal = 0,
+	Running = 1,
+	None = 2,
+}
+
+-- Helper to check if attack can be performed
+local function canAttack(Client)
+	-- Check stuns
+	if Client.Library.StateCount(Client.Character, "Stuns") then
+		return false
+	end
+
+	-- Check for blocking actions (exclude Running/Sprinting as those shouldn't block attacks)
+	local actionStates = Client.Library.GetAllStates(Client.Character, "Actions") or {}
+	for _, action in ipairs(actionStates) do
+		if action ~= "Running" and action ~= "Sprinting" and action ~= "Dodging" and action ~= "DodgeRecovery" then
+			return false
+		end
+	end
+
+	return true
+end
+
+-- Helper to perform the actual attack
+local function performAttack(Client)
 	if table.find(Client.CurrentInput, "Block") then
 		Client.Packets.Parry.send()
+		return
 	end
-	
+
+	if Client.RunAtk and not Client.Library.CheckCooldown(Client.Character, "RunningAttack") then
+		-- Running attack (after 1.5s of running)
+		Client.Packets.Attack.send({Type = AttackTypeEnum.Running, Held = true, Air = Client.InAir})
+	else
+		-- Stop running if currently running (any M1 while running stops the run)
+		-- Use _Running flag for reliable check (bypasses ECS timing issues)
+		if Client._Running then
+			Client.Modules['Movement'].Run(false)
+		end
+		Client.Packets.Attack.send({Type = AttackTypeEnum.Normal, Held = true, Air = Client.InAir})
+	end
+end
+
+InputModule.InputBegan = function(_, Client)
+	self.AttackHeld = true
+
 	local Time = os.clock()
-	
+
 	if self.Clicks >= 8 then
 		self.MouseInputCD = true
 		task.delay(.1,function()
 			self.MouseInputCD = false
 		end)
 	end
-	
+
 	if Time - self.LastInput >= .1 then
 		self.Clicks = 0
 		self.LastInput = os.clock()
 	end
-	
+
 	if self.MouseInputCD then return end
-	
-	if Client.Library.StateCount(Client.Actions) then
-		Client.Packets.Attack.send({Type = "None", Held = true})
-	elseif Client.RunAtk and not Client.Library.CheckCooldown(Client.Character, "RunningAttack") then
-		Client.Packets.Attack.send({Type = "Running", Held = true})
+
+	-- Check if we can attack now
+	if canAttack(Client) then
+		-- Can attack immediately
+		performAttack(Client)
 	else
-		-- If running attack is on cooldown, stop running and do normal M1
-		if Client.RunAtk and Client.Library.CheckCooldown(Client.Character, "RunningAttack") then
-			Client.Modules['Movement'].Run(false)
-		end
-		Client.Packets.Attack.send({Type = "Normal", Held = true, State = Client.InAir})
+		-- Buffer the attack - will execute when free
+		InputBuffer.Buffer(InputBuffer.InputType.Attack, Client)
 	end
 end
 
 InputModule.InputEnded = function(_, Client)
-	Client.Packets.Attack.send({Type = "None", Held = false})
+	self.AttackHeld = false
+	-- Release buffered attack if any
+	InputBuffer.Release(InputBuffer.InputType.Attack)
+	Client.Packets.Attack.send({Type = AttackTypeEnum.None, Held = false, Air = false})
 end
 
 InputModule.InputChanged = function()

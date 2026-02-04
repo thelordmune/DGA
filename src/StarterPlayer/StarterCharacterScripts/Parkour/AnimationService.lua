@@ -19,10 +19,10 @@ function AnimationService.new(Controller)
 	return self
 end
 
-function AnimationService:Play(Name, Speed)
+function AnimationService:Play(Name, Speed, FadeTime)
 	local Animation: AnimationTrack = self.Animations[Name]
 	Animation.Priority = Enum.AnimationPriority.Action4
-	Animation:Play()
+	Animation:Play(FadeTime or 0.1)
 	if Speed then
 		Animation:AdjustSpeed(Speed)
 	end

@@ -9,7 +9,7 @@
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Library = require(ReplicatedStorage.Modules.Library)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 local PlayerStateDetector = require(script.Parent.player_state_detector)
 
 return function(actor: Actor, mainConfig: table)
@@ -51,9 +51,8 @@ return function(actor: Actor, mainConfig: table)
         mainConfig.States.HitsTaken = 0
     end
 
-    -- Check if NPC is being stunned (getting hit)
-    local stuns = npc:FindFirstChild("Stuns")
-    if stuns and Library.StateCount(stuns) then
+    -- Check if NPC is being stunned (getting hit) using ECS StateManager
+    if StateManager.StateCount(npc, "Stuns") then
         mainConfig.States.HitsTaken = mainConfig.States.HitsTaken + 1
         mainConfig.States.LastHitTime = os.clock()
     end

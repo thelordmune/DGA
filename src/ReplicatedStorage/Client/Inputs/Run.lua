@@ -4,52 +4,78 @@ local self = setmetatable({}, InputModule)
 
 self.LastInput = os.clock()
 self.ShiftHeld = false -- Track if shift key is being held
-self.BufferedSprintAttempt = nil -- Track buffered sprint attempt
+self.BufferConnection = nil -- Track buffer heartbeat connection
 
--- Input buffer window (seconds) - allows shift to be pressed slightly before other keys are released
-local SPRINT_BUFFER_WINDOW = math.huge
+-- Input buffer window (seconds) - sprint uses longer buffer since it's a hold action
+local SPRINT_BUFFER_WINDOW = 0.5 -- 500ms buffer window (matches InputBuffer)
 
 InputModule.InputBegan = function(_, Client)
 	self.ShiftHeld = true
 
 	-- Check if sprint is locked (from CancelSprint packet)
 	if Client.SprintLocked then
-		print("[Run Input] 🔒 Sprint is locked - ignoring shift press until released first")
 		return
 	end
 
-	-- Try to start sprinting immediately
-	local canSprint = not Client.Library.StateCount(Client.Stuns) and not Client.Library.StateCount(Client.Actions)
+	-- Helper to check for blocking actions (excludes Running, Sprinting, Dodging, DodgeRecovery)
+	local function hasBlockingActions()
+		local actionStates = Client.Library.GetAllStates(Client.Character, "Actions") or {}
+		for _, action in ipairs(actionStates) do
+			if action ~= "Running" and action ~= "Sprinting" and action ~= "Dodging" and action ~= "DodgeRecovery" then
+				return true
+			end
+		end
+		return false
+	end
 
-	if canSprint then
+	-- Helper to check if can sprint
+	local function canSprint()
+		return not Client.Library.StateCount(Client.Character, "Stuns")
+			and not hasBlockingActions()
+			and not Client.Dodging
+			and not Client.Sliding
+			and not Client.WallRunning
+			and not Client.LedgeClimbing
+	end
+
+	-- Try to start sprinting immediately
+	if canSprint() then
 		-- Can sprint immediately
 		Client.Modules["Movement"].Run(true)
 		self.LastInput = os.clock()
 	else
-		-- Buffer the sprint attempt - will try again shortly
-		print("[Run Input] 🔄 Sprint buffered - waiting for states to clear")
-		self.BufferedSprintAttempt = os.clock()
+		-- Buffer the sprint attempt - will try again while shift is held
+		local bufferStart = os.clock()
+		local sprintActivated = false -- Deduplication flag
 
-		-- Check every frame for a short window to see if we can start sprinting
-		local checkConnection
-		checkConnection = game:GetService("RunService").Heartbeat:Connect(function()
-			local timeSinceBuffer = os.clock() - self.BufferedSprintAttempt
+		-- Clean up any existing buffer connection
+		if self.BufferConnection then
+			self.BufferConnection:Disconnect()
+			self.BufferConnection = nil
+		end
+
+		-- Check every frame while shift is held to see if we can start sprinting
+		self.BufferConnection = game:GetService("RunService").Heartbeat:Connect(function()
+			local timeSinceBuffer = os.clock() - bufferStart
 
 			-- If buffer window expired or shift was released, stop checking
 			if timeSinceBuffer > SPRINT_BUFFER_WINDOW or not self.ShiftHeld then
-				checkConnection:Disconnect()
-				self.BufferedSprintAttempt = nil
+				if self.BufferConnection then
+					self.BufferConnection:Disconnect()
+					self.BufferConnection = nil
+				end
 				return
 			end
 
 			-- Check if we can sprint now
-			local nowCanSprint = not Client.Library.StateCount(Client.Stuns) and not Client.Library.StateCount(Client.Actions)
-			if nowCanSprint and self.ShiftHeld then
-				print("[Run Input] ✅ Buffered sprint activated!")
+			if canSprint() and self.ShiftHeld and not sprintActivated then
+				sprintActivated = true -- Prevent duplicate activation
 				Client.Modules["Movement"].Run(true)
 				self.LastInput = os.clock()
-				self.BufferedSprintAttempt = nil
-				checkConnection:Disconnect()
+				if self.BufferConnection then
+					self.BufferConnection:Disconnect()
+					self.BufferConnection = nil
+				end
 			end
 		end)
 	end

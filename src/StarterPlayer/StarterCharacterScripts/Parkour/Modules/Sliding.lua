@@ -44,7 +44,10 @@ function Sliding.new(Parkour)
 end
 
 function Sliding:Start()
+	print("[Sliding] Start() called")
+
 	if self.Parent.Busy then
+		print("[Sliding] Blocked - Parent busy")
 		return
 	end
 
@@ -53,8 +56,11 @@ function Sliding:Start()
 	local Humanoid: Humanoid = Character.Humanoid
 
 	if Humanoid.FloorMaterial == Enum.Material.Air then
+		print("[Sliding] Blocked - In air")
 		return
 	end
+
+	print("[Sliding] Starting slide...")
 	
 	local Height = Vector3.yAxis * (RootPart.Size.Y * 0.5 + Character['Right Leg'].Size.Y)
 	local groundDetection = Raycast({
@@ -74,24 +80,27 @@ function Sliding:Start()
 
 	local LV = Instance.new('LinearVelocity')
 	LV.Attachment0 = Attachment
-	LV.MaxForce = math.huge
+	LV.MaxForce = 5000 -- Moderate force - enough to slide but not fling
 	LV.VectorVelocity = Velocity
 	LV.RelativeTo = Enum.ActuatorRelativeTo.World
 	LV.Parent = RootPart
 	self.Cleaner:AddTask(LV)
 
-	-- Use AlignOrientation instead of BodyGyro
+	-- AlignOrientation is only used on slopes/stairs to tilt the character
+	-- On flat ground, the sliding animation handles orientation
 	local AO = Instance.new('AlignOrientation')
 	AO.Attachment0 = Attachment
 	AO.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	AO.MaxTorque = 10000
-	AO.Responsiveness = 200
-	AO.CFrame = RootPart.CFrame
+	AO.MaxTorque = 0 -- Start disabled, only enable on slopes/stairs
+	AO.Responsiveness = 30 -- Smooth transitions
+	AO.CFrame = RootPart.CFrame - RootPart.CFrame.Position -- Match current rotation
 	AO.Parent = RootPart
 	self.Cleaner:AddTask(AO)
 
 	local SlideElapsed = 0
-	local slopeTime = 0
+
+	-- For stair smoothing - only initialize when actually on stairs
+	local smoothedY = nil
 
 	self.Parent.Busy = true
 	self.Sliding = true
@@ -112,34 +121,112 @@ function Sliding:Start()
 				Params = self.Parent.Params
 			})
 
-			local lookVector = (groundDetection and groundDetection.Normal or Vector3.yAxis):Cross(RootPart.CFrame.RightVector)
+			local lookVector
 			local slopeVelocity = Vector3.zero
+			local isOnSlope = false
+			local isOnStairs = false
 
 			if not groundDetection then
-				-- In air - reduce slide time
+				-- In air - use current look direction and reduce slide time
+				lookVector = RootPart.CFrame.LookVector
 				SlideElapsed += dt * 2
 			else
-				-- On ground
-				slopeVelocity = (groundDetection.Normal - Vector3.yAxis) * workspace.Gravity
+				-- On ground - calculate slope angle and direction
+				local surfaceNormal = groundDetection.Normal
+				local slopeAngle = math.acos(surfaceNormal:Dot(Vector3.yAxis))
+				isOnSlope = slopeAngle > math.rad(5) -- More than 5 degrees is considered a slope
 
-				if slopeVelocity.Y ~= 0 then
-					-- On slope - don't count toward slide end
-					SlideElapsed = 0
-					slopeTime = math.min(slopeTime + dt * 2, 5)
+				-- Check for stairs by raycasting ahead to detect height drops
+				if not isOnSlope then
+					local forwardDirection = RootPart.CFrame.LookVector
+					local checkDistance = 4 -- Check 4 studs ahead
+
+					-- Raycast down ahead to find the ground in front
+					local forwardGroundDetection = Raycast({
+						Start = RootPart.Position + (forwardDirection * checkDistance),
+						Direction = Vector3.new(0, -10, 0),
+						Params = self.Parent.Params
+					})
+
+					-- If there's a height difference ahead (going down), we're on stairs
+					if forwardGroundDetection then
+						local heightDifference = RootPart.Position.Y - forwardGroundDetection.Position.Y
+
+						-- If ground ahead is lower by at least 0.5 studs, treat as stairs/slope
+						if heightDifference > 0.5 then
+							isOnStairs = true
+						end
+					end
+				end
+
+				if isOnSlope or isOnStairs then
+					-- Get the downward slope direction (where gravity pulls us)
+					local gravityVector = Vector3.new(0, -1, 0)
+
+					if isOnStairs then
+						-- For stairs, use horizontal forward direction only (no downward tilt)
+						local flatForward = (RootPart.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+						lookVector = flatForward
+
+						-- Initialize smoothedY when first hitting stairs
+						if smoothedY == nil then
+							smoothedY = RootPart.Position.Y
+						end
+
+						-- Smooth the Y position to glide over stairs instead of bumping
+						-- Target is just the ground position (no offset to avoid lifting)
+						local targetY = groundDetection.Position.Y + Height.Y
+						smoothedY = smoothedY + (targetY - smoothedY) * math.min(dt * 5, 1) -- Gentler interpolation
+
+						-- Only apply if we're going DOWN stairs (not up)
+						if targetY < RootPart.Position.Y then
+							local currentPos = RootPart.Position
+							RootPart.CFrame = CFrame.new(currentPos.X, smoothedY, currentPos.Z) * (RootPart.CFrame - RootPart.CFrame.Position)
+						end
+					else
+						-- For slopes, use proper surface projection
+						local projectedDown = gravityVector - (surfaceNormal * gravityVector:Dot(surfaceNormal))
+						lookVector = projectedDown.Unit
+						smoothedY = nil -- Reset stair smoothing
+					end
+
+					-- Calculate slope velocity boost - small constant boost, not accumulated
+					local slopeBoost = 5 -- Small constant boost on slopes/stairs
+					if isOnSlope then
+						slopeBoost = math.sin(slopeAngle) * 10 -- Max 10 extra velocity based on steepness
+					end
+					slopeVelocity = lookVector * slopeBoost
+
+					-- Still count time on slopes/stairs, but slower (extends slide by 50%)
+					SlideElapsed += dt * 0.5
+
+					-- Disable AlignOrientation - let animation handle it
+					AO.MaxTorque = 0
 				else
-					-- On flat ground
+					-- On flat ground - slide in the direction perpendicular to slope normal
+					lookVector = surfaceNormal:Cross(RootPart.CFrame.RightVector)
 					SlideElapsed += dt
-					slopeTime = 0
+					smoothedY = nil -- Reset stair smoothing
+
+					-- Disable AlignOrientation on flat ground - let animation handle it
+					AO.MaxTorque = 0
 				end
 			end
 
 			local groundTime = math.clamp((self.SlidingDuration - SlideElapsed)/self.SlidingDuration, 0, 1)
 
-			-- Update orientation to face slide direction
-			AO.CFrame = CFrame.new(Vector3.zero, lookVector)
+			-- Calculate and apply velocity - ALWAYS decay over time
+			-- Base velocity decays with groundTime, slope/stairs just add a small constant boost
+			local baseVelocity = lookVector * self.InitialVelocity * groundTime
 
-			-- Calculate and apply velocity
-			Velocity = (lookVector * self.InitialVelocity * groundTime) + (slopeVelocity * slopeTime)
+			if isOnSlope or isOnStairs then
+				-- On slope/stairs: add small constant slope boost to decaying base velocity
+				Velocity = baseVelocity + slopeVelocity
+			else
+				-- On flat ground: just use decaying base velocity
+				Velocity = baseVelocity
+			end
+
 			LV.VectorVelocity = Velocity
 		end)
 	)
@@ -210,6 +297,9 @@ function Sliding:SlideJump()
 	BodyVel.MaxForce = Vector3.new(50000, 50000, 50000)
 	BodyVel.Velocity = initialVelocity
 	BodyVel.Parent = RootPart
+
+	-- Add to Cleaner for cleanup on interrupt (e.g., getting stunned during leap)
+	self.Cleaner:AddTask(BodyVel)
 
 	-- Manually simulate gravity for smooth arc
 	local startTime = os.clock()

@@ -16,6 +16,7 @@ local Players = game:GetService("Players")
 
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+local EntityCleanup = require(ReplicatedStorage.Modules.ECS.entity_cleanup)
 local OccupationData = require(ReplicatedStorage.Modules.OccupationData)
 local Jecs = require(ReplicatedStorage.Modules.Imports.jecs)
 
@@ -41,14 +42,23 @@ local function getPlayerFromCharacter(character: Model): Player?
     return Players:GetPlayerFromCharacter(character)
 end
 
--- Check if NPC was recently hit by checking Damage_Log or health change
+-- OPTIMIZED: Check DamageHistory ECS component first, then fallback
 local function checkForDamage(char: Model, entity: number): (boolean, Model?)
-    -- Check for Damage_Log (created by damage system)
+    -- Check ECS DamageHistory component first (preferred)
+    local damageHistory = world:get(entity, comps.DamageHistory)
+    if damageHistory and damageHistory.lastDamageTime > 0 then
+        local now = os.clock()
+        -- Check if damage was recent (within 2 seconds for flee trigger)
+        if now - damageHistory.lastDamageTime < 2 then
+            return true, damageHistory.lastAttacker
+        end
+    end
+
+    -- Fallback: Check for legacy Damage_Log folder
     local damageLog = char:FindFirstChild("Damage_Log")
     if damageLog then
         local children = damageLog:GetChildren()
         if #children > 0 then
-            -- Get most recent attacker
             local recentEntry = children[#children]
             if recentEntry:IsA("ObjectValue") and recentEntry.Value then
                 return true, recentEntry.Value
@@ -88,22 +98,21 @@ local function updateFlee(dt: number)
         if flee.isFleeing then
             -- Check if flee duration is over
             if now >= flee.fleeEndTime then
-                -- Stop fleeing
+                -- Stop fleeing (in-place mutation)
                 flee.isFleeing = false
                 flee.fleeTarget = nil
                 flee.fleeEndTime = 0
 
-                -- Resume normal state
+                -- Resume normal state (in-place mutation)
                 proximity.isWanderPaused = false
 
-                world:set(entity, comps.NPCFlee, flee)
-                world:set(entity, comps.NPCProximity, proximity)
+                -- Components are mutated in-place, no world:set needed
 
-                -- Stop movement briefly
-                world:set(entity, comps.Locomotion, {
-                    dir = Vector3.zero,
-                    speed = 0
-                })
+                -- Stop movement briefly (in-place mutation with change detection)
+                if loco.speed ~= 0 or loco.dir.Magnitude > 0.001 then
+                    loco.dir = Vector3.zero
+                    loco.speed = 0
+                end
             else
                 -- Continue fleeing
                 if flee.fleeTarget then
@@ -125,18 +134,18 @@ local function updateFlee(dt: number)
                         local config = world:get(entity, comps.NPCConfig)
                         local runSpeed = config and config.runSpeed or 18
 
-                        -- Update locomotion to flee
-                        world:set(entity, comps.Locomotion, {
-                            dir = fleeDir,
-                            speed = runSpeed
-                        })
+                        -- Update locomotion with change detection (in-place mutation)
+                        local dirChanged = (loco.dir - fleeDir).Magnitude > 0.001
+                        local speedChanged = math.abs(loco.speed - runSpeed) > 0.1
+                        if dirChanged or speedChanged then
+                            loco.dir = fleeDir
+                            loco.speed = runSpeed
+                        end
 
-                        -- Update transform to face away
+                        -- Update transform to face away (in-place mutation)
                         local newCFrame = CFrame.lookAt(npcPos, npcPos + fleeDir)
-                        world:set(entity, comps.Transform, {
-                            new = newCFrame,
-                            old = transform.new
-                        })
+                        transform.old = transform.new
+                        transform.new = newCFrame
                     end
                 end
             end
@@ -167,34 +176,41 @@ local function updateFlee(dt: number)
                 relationships[attackerId] = math.max(0, currentRel - OccupationData.RELATIONSHIP_LOSS_PER_HIT)
                 relationship.relationships = relationships
 
-                world:set(entity, comps.NPCRelationship, relationship)
+                -- relationship is mutated in-place, no world:set needed
 
                 -- Check if should flee
                 if hitCounts[attackerId] >= OccupationData.HITS_TO_FLEE then
-                    -- Start fleeing
+                    -- Start fleeing (in-place mutation)
                     flee.isFleeing = true
                     flee.fleeTarget = attacker
                     flee.fleeEndTime = now + OccupationData.FLEE_DURATION
 
-                    -- Pause wandering
+                    -- Pause wandering (in-place mutation)
                     proximity.isWanderPaused = true
                     proximity.nearbyPlayer = nil
 
-                    world:set(entity, comps.NPCFlee, flee)
-                    world:set(entity, comps.NPCProximity, proximity)
+                    -- Components are mutated in-place, no world:set needed
 
                     -- Clear head tracking
                     char:SetAttribute("TrackPlayer", false)
 
-                    -- Reset hit count after fleeing starts
+                    -- Reset hit count after fleeing starts (in-place mutation)
                     hitCounts[attackerId] = 0
                     relationship.hitCounts = hitCounts
-                    world:set(entity, comps.NPCRelationship, relationship)
+                    -- relationship is mutated in-place, no world:set needed
                 end
             end
         end
     end
 end
+
+-- Cleanup when entity is removed (prevents memory leak from lastHealthValues table)
+local function cleanup(entity: number)
+    lastHealthValues[entity] = nil
+end
+
+-- Register cleanup callback for centralized entity cleanup
+EntityCleanup.register("npc_wanderer_flee", cleanup)
 
 return {
     run = function(world: Jecs.World, dt: number)

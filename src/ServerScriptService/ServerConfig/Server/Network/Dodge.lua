@@ -10,31 +10,58 @@ local Visuals    = require(Replicated.Modules.Visuals);
 local world      = require(Replicated.Modules.ECS.jecs_world);
 local comps      = require(Replicated.Modules.ECS.jecs_components);
 local ref        = require(Replicated.Modules.ECS.jecs_ref);
+local StateManager = require(Replicated.Modules.ECS.StateManager);
+
+-- Direction enum decoder: uint8 -> string
+local EnumToDirection = {
+    [0] = "Forward",
+    [1] = "Back",
+    [2] = "Left",
+    [3] = "Right",
+}
 
 NetworkModule.EndPoint = function(Player, Data)
+    -- Data is now a uint8 (direction enum), decode it to string
+    local Direction = EnumToDirection[Data] or "Forward"
+
     local Character = Player.Character
     if not Character then return end
 
-    -- PREVENT OVERLAPPING ACTIONS: Cannot dash while performing any action
-    if Character:FindFirstChild("Actions") and Library.StateCount(Character.Actions) then
-       -- print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while performing action`)
-        return
+    -- PREVENT OVERLAPPING ACTIONS: Cannot dash while performing certain actions
+    -- Allow dashing during recovery states
+    local allStates = StateManager.GetAllStates(Character, "Actions")
+    local allowedForDash = {
+        "DodgeRecovery", "ComboRecovery", "BlockRecovery", "ParryRecovery",
+        "Running", "Equipped",
+    }
+    for _, state in ipairs(allStates) do
+        local isAllowed = false
+        for _, allowed in ipairs(allowedForDash) do
+            if state == allowed or string.find(state, allowed) then
+                isAllowed = true
+                break
+            end
+        end
+        if not isAllowed then
+            -- print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while performing action: {state}`)
+            return
+        end
     end
 
     -- Prevent dashing during M1 stun (true stun system)
-    if Character:FindFirstChild("Stuns") and Library.StateCheck(Character.Stuns, "M1Stun") then
+    if StateManager.StateCheck(Character, "Stuns", "M1Stun") then
        -- print(`[DODGE BLOCKED] {Character.Name} - Cannot dash during M1Stun`)
         return
     end
 
     -- Prevent dashing while guardbroken
-    if Character:FindFirstChild("Stuns") and Library.StateCheck(Character.Stuns, "GuardbreakStun") then
+    if StateManager.StateCheck(Character, "Stuns", "GuardbreakStun") then
        -- print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while guardbroken`)
         return
     end
 
     -- Prevent dashing during any stun
-    if Character:FindFirstChild("Stuns") and Library.StateCount(Character.Stuns) then
+    if StateManager.StateCount(Character, "Stuns") then
        -- print(`[DODGE BLOCKED] {Character.Name} - Cannot dash while stunned`)
         return
     end
@@ -66,29 +93,39 @@ NetworkModule.EndPoint = function(Player, Data)
         Library.SetCooldown(Character, "Dodge", 2)
     end
 
-    -- Set Dashing component to true AND add Dashing state to Stuns to prevent all actions
+    -- Add Dashing ECS component for systems that check it
     local playerEntity = ref.get("player", Player)
     if playerEntity then
-        world:set(playerEntity, comps.Dashing, true)
+        world:add(playerEntity, comps.Dashing)
 
         -- Clear dashing state after dash duration (0.35s)
         task.delay(0.35, function()
             if playerEntity and world:contains(playerEntity) then
-                world:set(playerEntity, comps.Dashing, false)
+                world:remove(playerEntity, comps.Dashing)
             end
         end)
     end
 
-    -- Add Dashing state to Stuns to prevent all actions during dash
-    Library.TimedState(Character.Stuns, "Dashing", 0.35)
+    -- Add Dashing state to Actions (not Stuns - dashing is an action, not a stun)
+    StateManager.TimedState(Character, "Actions", "Dashing", 0.35)
+
+    -- Add recovery endlag after dodge completes (prevents instant action after dodge)
+    task.delay(0.35, function()
+        if Character then
+            StateManager.TimedState(Character, "Actions", "DodgeRecovery", 0.15)
+        end
+    end)
 
     -- Always process VFX if we got here
     local Entity = Server.Modules["Entities"].Get(Character);
     if Entity and Entity.Character then
-        if Entity.Character:FindFirstChild("IFrames") then
-            Library.TimedState(Entity.Character.IFrames, "Dodge", .3);
-        end
-        Visuals.Ranged(Character.HumanoidRootPart.Position,300, {Module = "Base", Function = "DashFX", Arguments = {Character,Data.Direction}})
+        StateManager.TimedState(Entity.Character, "IFrames", "Dodge", 0.3)
+
+        -- Add PerfectDodgeWindow - allows counter hit if player attacks during this window
+        -- This gives 0.5s after dodge to land a counter attack on an enemy in recovery
+        StateManager.TimedState(Entity.Character, "Frames", "PerfectDodgeWindow", 0.5)
+
+        Visuals.Ranged(Character.HumanoidRootPart.Position,300, {Module = "Base", Function = "DashFX", Arguments = {Character, Direction}})
     end
 end
 

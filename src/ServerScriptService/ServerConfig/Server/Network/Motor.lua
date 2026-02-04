@@ -7,6 +7,7 @@ local HttpService = game:GetService("HttpService")
 -- ECS imports
 local world = require(Replicated.Modules.ECS.jecs_world)
 local comps = require(Replicated.Modules.ECS.jecs_components)
+local StateManager = require(Replicated.Modules.ECS.StateManager)
 
 local NetworkModule = {}
 local Server = require(script.Parent.Parent)
@@ -40,7 +41,7 @@ NetworkModule.EndPoint = function(Player, Data)
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Misc.Alchemy
 
-	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then
+	if StateManager.StateCount(Character, "Actions") or StateManager.StateCount(Character, "Stuns") then
 		return
 	end
 
@@ -65,10 +66,10 @@ NetworkModule.EndPoint = function(Player, Data)
 			Alchemy.Looped = false
 
 			-- Set character states
-			Server.Library.TimedState(Character.Actions, "Motor", Alchemy.Length)
-			Server.Library.TimedState(Character.Stuns, "NoRotate", Alchemy.Length)
-			Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Alchemy.Length)
-			Server.Library.TimedState(Character.Speeds, "Jump-50", Alchemy.Length)
+			StateManager.TimedState(Character, "Actions", "Motor", Alchemy.Length)
+			StateManager.TimedState(Character, "Stuns", "NoRotate", Alchemy.Length)
+			StateManager.TimedState(Character, "Speeds", "AlcSpeed-0", Alchemy.Length)
+			StateManager.TimedState(Character, "Speeds", "Jump-50", Alchemy.Length)
 
 			local kfConn
 			kfConn = Alchemy.KeyframeReached:Connect(function(key)

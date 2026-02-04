@@ -1,17 +1,18 @@
 --[[
-	Object Interaction Module
+    Object Interaction Module
 
-	Detects proximity to interactable objects and shows E prompt.
-	Checks workspace for objects with Interactable attribute.
+    Detects proximity to interactable objects and shows E prompt.
+    Uses CollectionService to efficiently find objects tagged with "Interactable".
 ]]
 
 local ObjectInteraction = {}
 local CSystem = require(script.Parent)
 
-local TweenService = CSystem.Service.TweenService
-local RunService = CSystem.Service.RunService
+-- local TweenService = CSystem.Service.TweenService
+-- local RunService = CSystem.Service.RunService
 local ReplicatedStorage = CSystem.Service.ReplicatedStorage
 local Players = CSystem.Service.Players
+local CollectionService = CSystem.Service.CollectionService
 
 local Fusion = require(ReplicatedStorage.Modules.Fusion)
 local scoped = Fusion.scoped
@@ -21,6 +22,7 @@ local player = Players.LocalPlayer
 -- Settings
 local DETECTION_RANGE = 10
 local CHECK_INTERVAL = 0.5
+local INTERACTABLE_TAG = "Interactable"
 
 -- State tracking
 local currentNearbyObject = nil
@@ -29,240 +31,220 @@ local promptScope = nil
 local promptStarted = nil
 local promptFadeIn = nil
 local promptTextStart = nil
-local lastCheckTime = 0
+-- local lastCheckTime = 0
 local character = nil
 
--- Create the prompt UI on a SurfaceGui on the object
+-- ⚡ PERFORMANCE OPTIMIZATION: Store task thread for cleanup
+local proximityThread = nil
+
 local function createPromptUI(obj, promptText)
-	-- Clean up old scope if it exists
-	if promptScope then
-		promptScope:doCleanup()
-	end
+    if promptScope then
+        promptScope:doCleanup()
+        promptScope = nil
+    end
 
-	-- Find the primary part (for models) or use the object itself (for parts)
-	local primaryPart = obj:IsA("Model") and obj.PrimaryPart or obj
-	if not primaryPart then
-		warn("[ObjectInteraction] No PrimaryPart found for:", obj.Name, "IsModel:", obj:IsA("Model"))
-		return
-	end
+    local primaryPart = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart")) or obj
 
-	-- Find or create a SurfaceGui
-	local surfaceGui = primaryPart:FindFirstChild("PromptSurfaceGui")
-	if not surfaceGui then
-		surfaceGui = Instance.new("SurfaceGui")
-		surfaceGui.Name = "PromptSurfaceGui"
-		surfaceGui.Face = Enum.NormalId.Top
-		surfaceGui.Parent = primaryPart
-		surfaceGui.AlwaysOnTop = true
-		surfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-		surfaceGui.PixelsPerStud = 50
-	end
+    if not primaryPart then
+        return
+    end
 
-	-- Create Fusion scope with Prompt component
-	promptScope = scoped(Fusion, {
-		Prompt = require(ReplicatedStorage.Client.Components.Prompt),
-	})
+    -- Find or create a SurfaceGui
+    local surfaceGui = primaryPart:FindFirstChild("PromptSurfaceGui")
+    if not surfaceGui then
+        surfaceGui = Instance.new("SurfaceGui")
+        surfaceGui.Name = "PromptSurfaceGui"
+        surfaceGui.Face = Enum.NormalId.Top
+        surfaceGui.Parent = primaryPart
+        surfaceGui.AlwaysOnTop = true
+        surfaceGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+        surfaceGui.PixelsPerStud = 50
+    end
 
-	-- Create reactive values for animation states
-	promptStarted = promptScope:Value(false)
-	promptFadeIn = promptScope:Value(false)
-	promptTextStart = promptScope:Value(false)
+    -- Create Fusion scope with Prompt component
+    promptScope = scoped(Fusion, {
+        Prompt = require(ReplicatedStorage.Client.Components.Prompt),
+    })
 
-	-- Create the Prompt component with object name
-	promptScope:Prompt({
-		begin = promptStarted,
-		fadein = promptFadeIn,
-		textstart = promptTextStart,
-		npcName = promptText or obj.Name,
-		Parent = surfaceGui,
-	})
+    -- Create reactive values (these need to be passed to Prompt, which will use :set() on them)
+    promptStarted = promptScope:Value(false)
+    promptFadeIn = promptScope:Value(false)
+    promptTextStart = promptScope:Value(false)
+
+    -- Create the prompt component with correct prop names (lowercase to match Prompt.lua expectations)
+    promptScope.Prompt(promptScope, {
+        Parent = surfaceGui,
+        begin = promptStarted,      -- Prompt.lua line 182: local started = props.begin
+        fadein = promptFadeIn,      -- Prompt.lua line 183: local fadein = props.fadein
+        textstart = promptTextStart, -- Prompt.lua line 184: local textstart = props.textstart
+        npcName = promptText or "Interact",
+    })
 end
 
--- Show the prompt UI with animation
 local function showPromptUI()
-	if promptStarted then
-		promptStarted:set(true)
-	end
+    if promptStarted then
+        promptStarted:set(true)
+        -- Note: fadein and textstart are driven by Computed in Prompt.lua based on 'begin' value
+    end
 end
 
--- Hide the prompt UI with animation
 local function hidePromptUI()
-	if promptStarted then
-		promptStarted:set(false)
-	end
+    if promptStarted then
+        promptStarted:set(false)
+        -- Note: fadein and textstart are driven by Computed in Prompt.lua based on 'begin' value
+    end
 end
 
--- Add highlight to object
 local function addHighlight(obj)
-	-- Remove existing highlight if any
-	if currentHighlight then
-		currentHighlight:Destroy()
-	end
+    if currentHighlight then
+        currentHighlight:Destroy()
+    end
 
-	-- Create new highlight
-	local highlight = Instance.new("Highlight")
-	highlight.Name = "InteractHighlight"
-	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
-	highlight.FillTransparency = 1
-	highlight.OutlineTransparency = 1
-	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-	highlight.Parent = obj
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "InteractionHighlight"
+    highlight.Adornee = obj
+    highlight.FillColor = Color3.fromRGB(100, 200, 255)
+    highlight.OutlineColor = Color3.fromRGB(50, 150, 255)
+    highlight.FillTransparency = 0.7
+    highlight.OutlineTransparency = 0.3
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = obj
 
-	-- Fade in the outline
-	local tween = TweenService:Create(
-		highlight,
-		TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.Out),
-		{ OutlineTransparency = 0 }
-	)
-	tween:Play()
-
-	currentHighlight = highlight
+    currentHighlight = highlight
 end
 
--- Remove highlight from object
 local function removeHighlight()
-	if not currentHighlight then return end
-
-	-- Fade out the outline
-	local tween = TweenService:Create(
-		currentHighlight,
-		TweenInfo.new(0.5, Enum.EasingStyle.Circular, Enum.EasingDirection.Out),
-		{ OutlineTransparency = 1 }
-	)
-	tween:Play()
-	tween.Completed:Connect(function()
-		if currentHighlight then
-			currentHighlight:Destroy()
-			currentHighlight = nil
-		end
-	end)
+    if currentHighlight then
+        currentHighlight:Destroy()
+        currentHighlight = nil
+    end
 end
 
--- Find all interactable objects in workspace recursively
-local function findInteractableObjects()
-	local interactables = {}
+local function findClosestInteractable()
+    if not character or not character.PrimaryPart then
+        return nil
+    end
 
-	local function searchFolder(folder)
-		for _, obj in ipairs(folder:GetChildren()) do
-			if obj:GetAttribute("Interactable") == true then
-				table.insert(interactables, obj)
-			end
-			-- Search children if it's a folder/model
-			if obj:IsA("Folder") or obj:IsA("Model") then
-				searchFolder(obj)
-			end
-		end
-	end
+    local root = character.PrimaryPart
+    if not root then
+        return nil
+    end
 
-	searchFolder(workspace)
-	return interactables
+    local playerPos = root.Position
+    local closestObject = nil
+    local closestDistanceSq = DETECTION_RANGE * DETECTION_RANGE
+
+    -- Use CollectionService to get only tagged interactable objects (much faster)
+    for _, obj in CollectionService:GetTagged(INTERACTABLE_TAG) do
+        local objPos
+        if obj:IsA("Model") then
+            local primaryPart = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart")
+            if primaryPart then
+                objPos = primaryPart.Position
+            end
+        elseif obj:IsA("BasePart") then
+            objPos = obj.Position
+        end
+
+        if objPos then
+            local offset = playerPos - objPos
+            local distanceSq = offset.X * offset.X + offset.Y * offset.Y + offset.Z * offset.Z
+            if distanceSq <= closestDistanceSq then
+                closestObject = obj
+                closestDistanceSq = distanceSq
+            end
+        end
+    end
+
+    return closestObject
 end
 
--- Find closest interactable object
-local function findClosestObject()
-	if not character then return nil end
-
-	local rootPart = character:FindFirstChild("HumanoidRootPart")
-	if not rootPart then return nil end
-
-	local closestObject = nil
-	local closestDistance = DETECTION_RANGE
-
-	-- Get all interactable objects
-	local interactables = findInteractableObjects()
-
-	for _, obj in ipairs(interactables) do
-		-- Get the position of the object
-		local objPosition
-		if obj:IsA("Model") then
-			local primaryPart = obj.PrimaryPart
-			if primaryPart then
-				objPosition = primaryPart.Position
-			end
-		elseif obj:IsA("BasePart") then
-			objPosition = obj.Position
-		end
-
-		if objPosition then
-			local distance = (rootPart.Position - objPosition).Magnitude
-			if distance < closestDistance then
-				closestDistance = distance
-				closestObject = obj
-			end
-		end
-	end
-
-	return closestObject
-end
-
--- Update proximity detection
 local function updateProximity()
-	local closestObject = findClosestObject()
+    local closestObject = findClosestInteractable()
 
-	if closestObject ~= currentNearbyObject then
-		-- Clean up previous object
-		if currentNearbyObject then
-			removeHighlight()
-			hidePromptUI()
-			if character then
-				character:SetAttribute("NearbyObject", nil)
-				character:SetAttribute("CanInteract", false)
-			end
-		end
+    if closestObject ~= currentNearbyObject then
+        -- Clean up previous object
+        if currentNearbyObject then
+            removeHighlight()
+            hidePromptUI()
+            if character then
+                character:SetAttribute("NearbyObject", nil)
+                character:SetAttribute("CanInteract", false)
+            end
+        end
 
-		-- Set up new object
-		currentNearbyObject = closestObject
-		if closestObject then
-			-- Get interactable data from attributes
-			local promptText = closestObject:GetAttribute("PromptText") or "Interact"
-			local objectId = closestObject:GetAttribute("ObjectId") or closestObject.Name
+        -- Set up new object
+        currentNearbyObject = closestObject
+        if closestObject then
+            -- Get interactable data from attributes
+            local promptText = closestObject:GetAttribute("PromptText") or "Interact"
+            local objectId = closestObject:GetAttribute("ObjectId") or closestObject.Name
 
-			createPromptUI(closestObject, promptText)
-			showPromptUI()
-			addHighlight(closestObject)
-			if character then
-				character:SetAttribute("NearbyObject", objectId)
-				character:SetAttribute("CanInteract", true)
-			end
-		end
-	end
+            createPromptUI(closestObject, promptText)
+            showPromptUI()
+            addHighlight(closestObject)
+            if character then
+                character:SetAttribute("NearbyObject", objectId)
+                character:SetAttribute("CanInteract", true)
+            end
+        end
+    end
+end
+
+local function cleanup()
+    -- ⚡ PERFORMANCE OPTIMIZATION: Cancel proximity thread
+    if proximityThread then
+        task.cancel(proximityThread)
+        proximityThread = nil
+        print("[ObjectInteraction] 🧹 Cancelled proximity thread")
+    end
+
+    if currentHighlight then
+        currentHighlight:Destroy()
+        currentHighlight = nil
+    end
+    if promptScope then
+        promptScope:doCleanup()
+        promptScope = nil
+        promptStarted = nil
+        promptFadeIn = nil
+        promptTextStart = nil
+    end
+    currentNearbyObject = nil
+
+    if character then
+        character:SetAttribute("NearbyObject", nil)
+        character:SetAttribute("CanInteract", false)
+    end
+
+    print("[ObjectInteraction] 🧹 Cleanup complete")
 end
 
 -- Initialize
 task.spawn(function()
-	repeat task.wait() until game:IsLoaded()
+    repeat task.wait() until game:IsLoaded()
 
-	character = player.Character or player.CharacterAdded:Wait()
+    character = player.Character or player.CharacterAdded:Wait()
 
-	-- Update character reference when respawning
-	player.CharacterAdded:Connect(function(newCharacter)
-		character = newCharacter
-		-- Clean up any existing effects
-		if currentHighlight then
-			currentHighlight:Destroy()
-			currentHighlight = nil
-		end
-		if promptScope then
-			promptScope:doCleanup()
-			promptScope = nil
-			promptStarted = nil
-			promptFadeIn = nil
-			promptTextStart = nil
-		end
-		currentNearbyObject = nil
-	end)
+    -- Update character reference when respawning
+    player.CharacterAdded:Connect(function(newCharacter)
+        character = newCharacter
+        cleanup()
+    end)
 
-	-- Make hidePromptUI accessible globally for input handler
-	_G.ObjectInteraction_HidePrompt = hidePromptUI
+    -- ⚡ Store the proximity thread for cleanup
+    proximityThread = task.spawn(function()
+        while true do
+            task.wait(CHECK_INTERVAL)
+            updateProximity()
+        end
+    end)
 
-	-- Main proximity checking loop
-	RunService.Heartbeat:Connect(function()
-		local currentTime = tick()
-		if currentTime - lastCheckTime >= CHECK_INTERVAL then
-			lastCheckTime = currentTime
-			updateProximity()
-		end
-	end)
+    _G.ObjectInteraction_Cleanup = cleanup
+    _G.ObjectInteraction_HidePrompt = hidePromptUI
+
+    task.wait(1)
+    updateProximity()
 end)
 
 return ObjectInteraction

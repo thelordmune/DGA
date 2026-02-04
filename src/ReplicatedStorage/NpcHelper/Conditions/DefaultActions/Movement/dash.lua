@@ -1,10 +1,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local TweenService = game:GetService("TweenService")
-local Library = require(ReplicatedStorage.Modules.Library)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
-local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
+local RefManager = require(ReplicatedStorage.Modules.ECS.jecs_ref_manager)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 
 -- Get Server from main VM
 local function getServer()
@@ -36,11 +36,8 @@ return function(actor: Actor, mainConfig: table, direction: string)
 		return false
 	end
 
-	-- Check if NPC is in Actions or Stuns state (e.g., during Strategist Combination)
-	local actions = npc:FindFirstChild("Actions")
-	local stuns = npc:FindFirstChild("Stuns")
-
-	if (actions and Library.StateCount(actions)) or (stuns and Library.StateCount(stuns)) then
+	-- Check if NPC is in Actions or Stuns state (e.g., during Strategist Combination) using ECS StateManager
+	if StateManager.StateCount(npc, "Actions") or StateManager.StateCount(npc, "Stuns") then
 		-- NPC is performing an action or stunned, cannot dash
 		return false
 	end
@@ -78,13 +75,10 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	mainConfig.Movement.IsDashing = true
 	mainConfig.Movement.DashDirection = dashVector
 
-	-- Set Dashing component to true for ECS by finding the entity with this NPC's Character component
-	for entity in world:query(comps.Character) do
-		local character = world:get(entity, comps.Character)
-		if character == npc then
-			world:set(entity, comps.Dashing, true)
-			break
-		end
+	-- OPTIMIZATION: Use RefManager for O(1) entity lookup instead of O(n) query iteration
+	local entity = RefManager.getEntityFromModel(npc)
+	if entity then
+		world:add(entity, comps.Dashing)
 	end
 
 	-- Play dash animation (same as player dash system)
@@ -102,9 +96,9 @@ return function(actor: Actor, mainConfig: table, direction: string)
 
 	local dashAnim = dashAnimations:FindFirstChild(animationName)
 	if dashAnim then
-		Library.StopMovementAnimations(npc)
-		-- Library.PlayAnimation already plays the animation, so we don't need to call :Play() again
-		local dashTrack = Library.PlayAnimation(npc, dashAnim, 0.05) -- Fast transition for responsive dash
+		Server.Library.StopMovementAnimations(npc)
+		-- Server.Library.PlayAnimation already plays the animation, so we don't need to call :Play() again
+		local dashTrack = Server.Library.PlayAnimation(npc, dashAnim, 0.05) -- Fast transition for responsive dash
 		if dashTrack then
 			dashTrack.Priority = Enum.AnimationPriority.Action
 			---- print("[NPC Dash] Playing dash animation:", animationName, "for", npc.Name)
@@ -158,13 +152,10 @@ return function(actor: Actor, mainConfig: table, direction: string)
 			mainConfig.Movement.DashDirection = nil
 		end
 
-		-- Clear Dashing component by finding the entity again
-		for entity in world:query(comps.Character) do
-			local character = world:get(entity, comps.Character)
-			if character == npc then
-				world:set(entity, comps.Dashing, false)
-				break
-			end
+		-- OPTIMIZATION: Use RefManager for O(1) entity lookup
+		local cleanupEntity = RefManager.getEntityFromModel(npc)
+		if cleanupEntity then
+			world:remove(cleanupEntity, comps.Dashing)
 		end
 	end)
 
@@ -176,9 +167,7 @@ return function(actor: Actor, mainConfig: table, direction: string)
 	})
 
 	-- Add IFrames during dash
-	if npc:FindFirstChild("IFrames") then
-		Library.TimedState(npc.IFrames, "Dodge", 0.3)
-	end
+	StateManager.TimedState(npc, "IFrames", "Dodge", 0.3)
 
 	-- Track last dash time
 	mainConfig.States.LastDash = os.clock()

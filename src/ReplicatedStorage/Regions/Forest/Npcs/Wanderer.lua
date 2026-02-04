@@ -1,35 +1,32 @@
 local NPC_CONTENTS, NPC_SHARED = script.Parent.Parent.NpcContents, script.Parent.Parent.NpcShared
 
 -- Function to find wanderer spawn points in workspace
+-- NOTE: This is called at module load time - workspace.Wanderers might not exist yet!
+-- The actual spawn locations are fetched dynamically in spawn_entity.lua
 local function getWandererSpawns()
     local spawns = {}
     local wanderersFolder = workspace:FindFirstChild("Wanderers")
 
     if wanderersFolder then
-        ---- --print("Found Wanderers folder with", #wanderersFolder:GetChildren(), "spawn points")
         for _, part in pairs(wanderersFolder:GetChildren()) do
             if part:IsA("BasePart") then
                 table.insert(spawns, part.Position)
-                -- ---- --print("Added wanderer spawn at:", part.Position)
             end
         end
-    else
-        warn("Wanderers folder not found in workspace")
-        -- Fallback spawns for testing
-        spawns = {
-            Vector3.new(0, 5, 0),
-            Vector3.new(10, 5, 10),
-            Vector3.new(-10, 5, -10)
-        }
-        ---- --print("Using fallback spawns:", #spawns)
+    end
+
+    -- If no spawns found at load time, that's OK - spawn_entity.lua will fetch them dynamically
+    if #spawns == 0 then
+        print("[Wanderer] No spawns found at module load time - spawn_entity will fetch dynamically from workspace.Wanderers")
     end
 
     return spawns
 end
 
--- Get spawns and ensure we have at least 1, but cap at 20
+-- Get spawns - may be empty at load time, spawn_entity.lua handles dynamic fetching
 local wandererSpawns = getWandererSpawns()
-local wandererCount = math.clamp(#wandererSpawns, 1, 20) -- Between 1-20 wanderers max
+-- Default to 10 wanderers if no spawns found yet - spawn_entity will use workspace.Wanderers
+local wandererCount = #wandererSpawns > 0 and math.clamp(#wandererSpawns, 1, 20) or 10
 
 --print("[Wanderer] 🚶 Loading Wanderer configuration")
 --print("[Wanderer] Spawn count:", wandererCount)
@@ -109,12 +106,9 @@ local WandererData = {
 		},
 
 			 Appearance = {
-				Enabled = true,
-				Hair = NPC_CONTENTS.Hair.General.GenerateHair,
-				Face = NPC_CONTENTS.Face.General.GenerateFace,
-				Shirt = NPC_CONTENTS.Shirt.General.GenerateShirt,
-				Pants = NPC_CONTENTS.Pants.General.GeneratePants,
-				SkinColor = NPC_CONTENTS.SkinColor.General.GenerateSkinColor,
+				-- DISABLED: Wanderer appearance is handled by mobs.luau applyWandererAppearance()
+				-- which uses CustomizationData and stores attributes for the relationship system
+				Enabled = false,
 			 },
 
 	

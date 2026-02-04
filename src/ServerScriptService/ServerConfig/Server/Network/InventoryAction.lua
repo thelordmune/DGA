@@ -18,12 +18,20 @@ local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 
 local self = setmetatable({}, NetworkModule)
 
+-- InventoryAction enum decoder: uint8 -> string
+local EnumToAction = {
+	[0] = "MoveToHotbar",
+	[1] = "SwapWithHotbar",
+	[2] = "UnequipFromHotbar",
+	[3] = "AssignToHotbar",
+}
+
 -- Constants for slot ranges
 local HOTBAR_SLOTS = {min = 1, max = 7}
 local INVENTORY_SLOTS = {min = 8, max = 50}
 
 NetworkModule.EndPoint = function(Player, Data)
-	if not Data or not Data.action then
+	if not Data or Data.action == nil then
 		warn("[InventoryAction] Invalid data received from", Player.Name)
 		return
 	end
@@ -34,7 +42,12 @@ NetworkModule.EndPoint = function(Player, Data)
 		return
 	end
 
-	local action = Data.action
+	-- Decode uint8 action to string
+	local action = EnumToAction[Data.action]
+	if not action then
+		warn("[InventoryAction] Unknown action enum:", Data.action)
+		return
+	end
 
 	if action == "MoveToHotbar" then
 		-- Move an inventory item to a hotbar slot

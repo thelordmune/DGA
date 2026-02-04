@@ -162,7 +162,6 @@ return function(scope, props: {
 	if npcModel then
 		-- Deep clone the NPC model
 		local clonedNPC = npcModel:Clone()
-		print("[VPNoti] Cloned NPC:", clonedNPC.Name)
 
 		-- Create WorldModel for proper viewport rendering
 		local worldModel = Instance.new("WorldModel")
@@ -189,15 +188,7 @@ return function(scope, props: {
 			-- Position camera to look at the NPC's upper body/head
 			-- Camera is in front of NPC, looking back at it
 			camera.CFrame = CFrame.new(0, headHeight, 4) * CFrame.Angles(0, math.rad(180), 0)
-
-			print("[VPNoti] ✅ NPC positioned in WorldModel")
-			print("[VPNoti] Camera CFrame:", camera.CFrame)
-			print("[VPNoti] Head height:", headHeight)
-		else
-			warn("[VPNoti] ⚠️ No HumanoidRootPart found in NPC!")
 		end
-	else
-		warn("[VPNoti] ⚠️ No NPC model provided to VPNoti component!")
 	end
 
 	-- Render text with TextPlus when visible
@@ -215,18 +206,20 @@ return function(scope, props: {
 				end
 
 				if not textFrame:IsDescendantOf(game) then
-					warn("[VPNoti] TextFrame not in DataModel")
 					return
 				end
 
 				RunService.Heartbeat:Wait()
 
+				-- PERFORMANCE: Cache children array once
+				local children = textFrame:GetChildren()
+
 				-- Disperse old text if it exists and is different
-				if previousText ~= "" and previousText ~= currentText and #textFrame:GetChildren() > 0 then
+				if previousText ~= "" and previousText ~= currentText and #children > 0 then
 					disperseAnimation(textFrame, 0.008)
 				else
 					-- Just clear if no previous text or same text
-					for _, child in textFrame:GetChildren() do
+					for _, child in children do
 						child:Destroy()
 					end
 				end

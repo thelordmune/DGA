@@ -19,6 +19,7 @@ local RunService = game:GetService("RunService")
 
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+local tags = require(ReplicatedStorage.Modules.ECS.jecs_tags)
 
 -- Track health connections per entity
 local healthConnections = {}
@@ -33,8 +34,8 @@ local SYNC_HZ = 5
 local SYNC_TICK = 1 / SYNC_HZ
 local syncAcc = 0
 
--- OPTIMIZATION: Cached query
-local healthQuery = world:query(comps.Health):with(comps.ComponentsReady):cached()
+-- OPTIMIZATION: Cached query (excludes dead entities)
+local healthQuery = world:query(comps.Health):with(comps.ComponentsReady):without(tags.Dead):cached()
 
 -- Setup connections for new entities (runs every frame to detect new entities)
 local function setupHealthConnections()
@@ -68,6 +69,19 @@ local function setupHealthConnections()
             continue
         end
 
+        -- IMMEDIATE CLEANUP: Check if character changed (respawn scenario)
+        -- If we have connections but they're for a different character/humanoid, clean up NOW
+        if healthConnections[entity] then
+            local existingConns = healthConnections[entity]
+            -- Check if the stored humanoid reference is different (character changed)
+            if existingConns.humanoidRef and existingConns.humanoidRef ~= humanoid then
+                -- Character changed - cleanup old connections IMMEDIATELY
+                if existingConns.healthChanged then existingConns.healthChanged:Disconnect() end
+                if existingConns.maxHealthChanged then existingConns.maxHealthChanged:Disconnect() end
+                healthConnections[entity] = nil
+            end
+        end
+
         -- Set up health changed listener if not already set up
         if not healthConnections[entity] then
             local healthChangedConnection = humanoid.HealthChanged:Connect(function(newHealth)
@@ -77,9 +91,9 @@ local function setupHealthConnections()
 
                 -- Only update if there's a difference (avoid infinite loops)
                 if math.abs(currentHealth.current - newHealth) > 0.1 then
-                    -- Update health component to match humanoid
+                    -- Update health component to match humanoid (in-place mutation, no world:set needed)
                     currentHealth.current = math.max(0, math.min(newHealth, currentHealth.max))
-                    world:set(entity, comps.Health, currentHealth)
+                    -- PERFORMANCE: Component is mutated in-place, world:set() is unnecessary
 
                     if DEBUG then
                        -- print(`[HealthSync] Event-based sync: entity {entity} health: {currentHealth.current}/{currentHealth.max}`)
@@ -92,18 +106,15 @@ local function setupHealthConnections()
                 local currentHealth = world:get(entity, comps.Health)
                 if not currentHealth then return end
 
+                -- In-place mutation, no world:set needed
                 currentHealth.max = humanoid.MaxHealth
-                world:set(entity, comps.Health, currentHealth)
-
-                if DEBUG then
-                   -- print(`[HealthSync] Synced entity {entity} max health: {currentHealth.max}`)
-                end
             end)
 
-            -- Store both connections
+            -- Store both connections and humanoid reference for respawn detection
             healthConnections[entity] = {
                 healthChanged = healthChangedConnection,
-                maxHealthChanged = maxHealthConnection
+                maxHealthChanged = maxHealthConnection,
+                humanoidRef = humanoid
             }
         end
     end
@@ -123,14 +134,10 @@ local function periodicHealthSync()
             continue
         end
 
-        -- Sync if there's a difference
+        -- Sync if there's a difference (in-place mutation, no world:set needed)
         if math.abs(health.current - humanoid.Health) > 0.1 then
             health.current = math.max(0, math.min(humanoid.Health, health.max))
-            world:set(entity, comps.Health, health)
-
-            if DEBUG then
-               -- print(`[HealthSync] Periodic sync: entity {entity} health: {health.current}/{health.max}`)
-            end
+            -- PERFORMANCE: Component is mutated in-place, world:set() is unnecessary
         end
     end
 end
@@ -164,7 +171,15 @@ end
 -- Clean up connections when entities are removed
 local function cleanup()
     for entity, connections in pairs(healthConnections) do
-        if not world:contains(entity) then
+        -- Check both entity AND character validity
+        -- JECS reuses entity IDs, so we must also verify the character still exists
+        local character = nil
+        if world:contains(entity) then
+            character = world:get(entity, comps.Character)
+        end
+
+        -- Clean up if entity gone OR character gone/destroyed
+        if not world:contains(entity) or not character or not character.Parent then
             if type(connections) == "table" then
                 if connections.healthChanged then
                     connections.healthChanged:Disconnect()

@@ -30,6 +30,7 @@ local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local RefManager = require(ReplicatedStorage.Modules.ECS.jecs_ref_manager)
 local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
+local EntityCleanup = require(ReplicatedStorage.Modules.ECS.entity_cleanup)
 
 -- Constants
 local GRAB_DISTANCE = 3 -- Distance in studs to hold the target
@@ -49,15 +50,10 @@ local function createGrabWeld(grabber: Model, target: Model, distance: number)
 		return nil
 	end
 
-	-- Set network ownership of target to server so we have full control
-	local targetParts = target:GetDescendants()
-	for _, part in targetParts do
-		if part:IsA("BasePart") then
-			pcall(function()
-				part:SetNetworkOwner(nil) -- nil = server ownership
-			end)
-		end
-	end
+	-- OPTIMIZED: Set network ownership only on root part (propagates to assembly)
+	pcall(function()
+		targetRoot:SetNetworkOwner(nil) -- nil = server ownership
+	end)
 
 	-- Create attachment on grabber (in front at specified distance)
 	local grabberAttachment = Instance.new("Attachment")
@@ -71,10 +67,19 @@ local function createGrabWeld(grabber: Model, target: Model, distance: number)
 	targetAttachment.Position = Vector3.new(0, 0, 0)
 	targetAttachment.Parent = targetRoot
 
-	-- Disable collisions on target so they don't collide with grabber/others
-	for _, part in targetParts do
-		if part:IsA("BasePart") then
+	-- OPTIMIZED: Disable collisions using PartsList component if available, else fallback
+	local targetEntity = RefManager.entity.find(target)
+	local partsList = targetEntity and world:get(targetEntity, comps.PartsList)
+	if partsList and partsList.baseParts then
+		for _, part in partsList.baseParts do
 			part.CanCollide = false
+		end
+	else
+		-- Fallback: iterate descendants (only if PartsList not available)
+		for _, part in target:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
 		end
 	end
 
@@ -155,26 +160,29 @@ local function removeGrabWeld(grabber: Model, target: Model)
 			targetHumanoid.AutoRotate = true
 		end
 
-		-- Re-enable collisions on target
-		local targetParts = target:GetDescendants()
-		for _, part in targetParts do
-			if part:IsA("BasePart") then
+		-- OPTIMIZED: Re-enable collisions using PartsList if available
+		local targetEntity = RefManager.entity.find(target)
+		local partsList = targetEntity and world:get(targetEntity, comps.PartsList)
+		if partsList and partsList.baseParts then
+			for _, part in partsList.baseParts do
 				part.CanCollide = true
+			end
+		else
+			-- Fallback: iterate descendants
+			for _, part in target:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.CanCollide = true
+				end
 			end
 		end
 
-		-- Restore network ownership to the target player (if it's a player)
+		-- OPTIMIZED: Restore network ownership only on root part (propagates to assembly)
 		local Players = game:GetService("Players")
 		local targetPlayer = Players:GetPlayerFromCharacter(target)
-		if targetPlayer then
-			local targetParts = target:GetDescendants()
-			for _, part in targetParts do
-				if part:IsA("BasePart") then
-					pcall(function()
-						part:SetNetworkOwner(targetPlayer)
-					end)
-				end
-			end
+		if targetPlayer and targetRoot then
+			pcall(function()
+				targetRoot:SetNetworkOwner(targetPlayer)
+			end)
 		end
 
 		-- Remove Grabbed state
@@ -287,6 +295,18 @@ local function updateGrabs(_dt: number)
 		end
 	end
 end
+
+-- Cleanup when entity is removed (prevents memory leak from activeWelds table)
+-- Note: activeWelds is keyed by character Model, so we need to find the character first
+local function cleanup(entity: number)
+	local character = world:get(entity, comps.Character)
+	if character and activeWelds[character] then
+		removeGrabWeld(character, activeWelds[character].target)
+	end
+end
+
+-- Register cleanup callback for centralized entity cleanup
+EntityCleanup.register("grab_server", cleanup)
 
 return {
 	run = function(_, dt: number)

@@ -177,33 +177,37 @@ end
 local loadedCharacters = {}
 
 Appearance.Load = function(Player : Player)
-   -- --print("[Appearance] 🎨 Load called for player:", Player.Name)
+    print("[Appearance] 🎨 Load called for player:", Player.Name)
 
     -- Ensure clothing assets are preloaded before applying appearance
     if not clothingAssetsPreloaded then
-       -- --print("[Appearance] ⏳ Waiting for clothing assets to preload...")
+        print("[Appearance] ⏳ Waiting for clothing assets to preload...")
         preloadClothingAssets()
     end
 
     local PlayerClass = Server.Modules["Players"].Get(Player);
     if not PlayerClass or not PlayerClass.Character or not PlayerClass.Data then
-        --warn("[Appearance] ⚠️ Missing PlayerClass, Character, or Data for:", Player.Name)
+        warn("[Appearance] ⚠️ Missing PlayerClass, Character, or Data for:", Player.Name)
+        warn("[Appearance]   PlayerClass:", PlayerClass)
+        warn("[Appearance]   Character:", PlayerClass and PlayerClass.Character)
+        warn("[Appearance]   Data:", PlayerClass and PlayerClass.Data)
         return
     end
 
     local character = PlayerClass.Character
+    print("[Appearance] Character found:", character.Name, "Parent:", character.Parent:GetFullName())
 
     -- Prevent duplicate calls for the same character instance
     if loadedCharacters[character] then
-        --warn("[Appearance] ⚠️ Appearance already loaded for this character, skipping duplicate call")
+        warn("[Appearance] ⚠️ Appearance already loaded for this character, skipping duplicate call")
         return
     end
 
     local humanoid = character:WaitForChild("Humanoid")
     local playerData = PlayerClass.Data
 
-   -- --print("[Appearance] Character found:", character.Name)
-   -- --print("[Appearance] FirstJoin:", playerData.FirstJoin)
+    print("[Appearance] FirstJoin:", playerData.FirstJoin)
+    print("[Appearance] Outfit:", playerData.Customization and playerData.Customization.Outfit)
 
     -- Mark this character as loaded BEFORE doing any work
     loadedCharacters[character] = true
@@ -217,9 +221,10 @@ Appearance.Load = function(Player : Player)
     end)
 
     -- DELETE ALL existing Shirt and Pants instances to prevent conflicts
+    print("[Appearance] Checking for existing Shirt/Pants to delete...")
     for _, child in character:GetChildren() do
         if child:IsA("Shirt") or child:IsA("Pants") then
-           -- --print("[Appearance] 🗑️ Deleting existing", child.ClassName, "with template:", child:IsA("Shirt") and child.ShirtTemplate or child.PantsTemplate)
+            print("[Appearance] 🗑️ Deleting existing", child.ClassName, "with template:", child:IsA("Shirt") and child.ShirtTemplate or child.PantsTemplate)
             child:Destroy()
         end
     end
@@ -236,7 +241,7 @@ Appearance.Load = function(Player : Player)
     pants.Name = "Pants"
     pants.Parent = character
 
-   -- --print("[Appearance] ✅ Created fresh Shirt and Pants instances")
+    print("[Appearance] ✅ Created fresh Shirt and Pants instances")
 
     if playerData.FirstJoin == true then
         local raceSpinner = racespin()

@@ -1,48 +1,30 @@
-local Server = require(game:GetService("ServerScriptService").ServerConfig.Server)
-
-local Library = Server.Library -- Replace StateManager with Library
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 
 return function(actor: Actor, mainConfig: table)
 	local npc = actor:FindFirstChildOfClass("Model")
-	if not npc then 
+	if not npc then
 		return false
 	end
 
 	local humanoid = npc:FindFirstChild("Humanoid")
-	if not humanoid then 
-		return false 
+	if not humanoid then
+		return false
 	end
-
-	-- local humanoidRootPart = npc:FindFirstChild("HumanoidRootPart")
-	-- if not humanoidRootPart then
-	-- 	return false
-	-- end
 
 	local lastCheck = mainConfig.States.LastStateCheck or 0
 	if os.clock() - lastCheck < 0.15 then
 		return true
 	end
 
-	local npcStates = mainConfig.getState(npc)
-	if not npcStates then
-		return false
-	end
-
 	mainConfig.States.LastStateCheck = os.clock()
-	-- if humanoidRootPart and not humanoidRootPart.Anchored and humanoidRootPart:GetNetworkOwner() ~= nil then
-	-- 	if not Library.StateCheck(npcStates, "Stunned") and humanoidRootPart:CanSetNetworkOwnership() then
-	-- 		humanoidRootPart:SetNetworkOwner(nil)
-	-- 	end
-	-- end
 
-
-
-	-- Update auto-rotate check to use Library
+	-- Update auto-rotate check using ECS StateManager
 	humanoid.AutoRotate = not (
 		npc:FindFirstChild("ragdoll")
-			or Library.StateCheck(npcStates, "Stunned")
-			or Library.StateCheck(npcStates, "Unconscious") 
-			or Library.StateCheck(npcStates, "NoRotation") 
+			or StateManager.StateCheck(npc, "Stuns", "Stunned")
+			or StateManager.StateCheck(npc, "Stuns", "Unconscious")
+			or StateManager.StateCheck(npc, "Stuns", "NoRotation")
 			or npc:FindFirstChild("CantMove") or
 			humanoid:GetState() == Enum.HumanoidStateType.Dead
 	)
@@ -50,9 +32,9 @@ return function(actor: Actor, mainConfig: table)
 	local actions = {
 		{
 			condition = function()
-				return Library.StateCheck(npcStates, "LockedMovement") 
-					or Library.StateCheck(npcStates, "Unconscious") 
-					or Library.StateCheck(npcStates, "Knocked")
+				return StateManager.StateCheck(npc, "Stuns", "LockedMovement")
+					or StateManager.StateCheck(npc, "Stuns", "Unconscious")
+					or StateManager.StateCheck(npc, "Stuns", "Knocked")
 			end,
 			action = function()
 				humanoid.WalkSpeed = 0
@@ -61,7 +43,7 @@ return function(actor: Actor, mainConfig: table)
 		},
 		{
 			condition = function()
-				return Library.StateCheck(npcStates, "Stunned")
+				return StateManager.StateCheck(npc, "Stuns", "Stunned")
 			end,
 			action = function()
 				humanoid.WalkSpeed = 3
@@ -79,20 +61,17 @@ return function(actor: Actor, mainConfig: table)
 		},
 		{
 			condition = function()
-				-- For value-based states, we need to implement custom handling
-				-- This is a placeholder - you'll need to implement proper value checking
-				return Library.StateCheck(npcStates, "ToSpeed") or Library.StateCheck(npcStates, "NoJump")
+				return StateManager.StateCheck(npc, "Stuns", "ToSpeed") or StateManager.StateCheck(npc, "Stuns", "NoJump")
 			end,
 			action = function()
-				-- This needs custom implementation for value-based states
-				humanoid.WalkSpeed = Library.StateCheck(npcStates, "ToSpeed") and mainConfig.HumanoidDefaults.WalkSpeed or humanoid.WalkSpeed
-				humanoid.JumpPower = Library.StateCheck(npcStates, "NoJump") and 0 or humanoid.JumpPower
+				humanoid.WalkSpeed = StateManager.StateCheck(npc, "Stuns", "ToSpeed") and mainConfig.HumanoidDefaults.WalkSpeed or humanoid.WalkSpeed
+				humanoid.JumpPower = StateManager.StateCheck(npc, "Stuns", "NoJump") and 0 or humanoid.JumpPower
 			end
 		},
 		{
 			condition = function()
-				-- Sprinting check using Library
-				return Library.StateCheck(npcStates, "Sprinting") or mainConfig.Run.IsRunning
+				-- Sprinting check using ECS StateManager
+				return StateManager.StateCheck(npc, "Stuns", "Sprinting") or mainConfig.Run.IsRunning
 			end,
 			action = function()
 				humanoid.WalkSpeed = mainConfig.HumanoidDefaults.RunSpeed

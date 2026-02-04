@@ -66,10 +66,15 @@ local function Marker(scope, props)
 		return UDim2.fromOffset(40 + x, 25 + y) -- 40, 25 is center of icon
 	end)
 
-	-- Create continuous rotation animation for grid
+	-- Create continuous rotation animation for grid (only when visible)
 	table.insert(
 		scope,
 		RunService.Heartbeat:Connect(function(dt)
+			-- PERFORMANCE: Skip rotation when marker is not visible
+			if not peek(props.Visible) then
+				return
+			end
+
 			local r = peek(gridRotation) + (1.2 * (dt * 60))
 			if r > 390 then
 				r = 0
@@ -78,11 +83,16 @@ local function Marker(scope, props)
 		end)
 	)
 
-	-- Create pulsing animation for glow and vignette
+	-- Create pulsing animation for glow and vignette (only when visible)
 	table.insert(
 		scope,
 		task.spawn(function()
 			while task.wait(0.25) do
+				-- PERFORMANCE: Skip pulsing when marker is not visible
+				if not peek(props.Visible) then
+					continue
+				end
+
 				turn:set(peek(turn) + 1)
 				pulse:set(peek(turn) % 2 == 0 and 1.1 or 1)
 				vignetteSize:set(peek(turn) % 2 == 0 and UDim2.fromScale(1.5, 1.5) or UDim2.fromScale(1.1, 1.1))

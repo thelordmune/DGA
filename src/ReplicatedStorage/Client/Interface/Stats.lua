@@ -7,60 +7,70 @@ local Character = plr.Character or plr.CharacterAdded
 
 local UI = Client.UI or plr.PlayerGui.ScreenGui;
 
--- Fusion-based Health Component
-local HealthComponent = require(Replicated.Client.Components.Health)
-local healthComponentData = nil
+-- Fusion-based PlayerBars Component (replaces old Health component)
+local PlayerBarsComponent = require(Replicated.Client.Components.PlayerBars)
+local playerBarsData = nil
+
+-- Nen Indicator Component (replaces NenWheel)
+local NenIndicatorComponent = require(Replicated.Client.Components.NenIndicator)
+local nenIndicatorData = nil
 
 -- Track Fusion scopes for cleanup on death
 local activeScopes = {}
 
 -- UI Reuse: Store persistent UI components that survive respawns
-local persistentHealthUI = nil -- Stores the reusable Health UI
 local persistentHotbarScope = nil -- Stores the reusable Hotbar scope
 
--- Expose healthComponentData for DirectionalCasting to access
-Controller.healthComponentData = healthComponentData
+-- Expose playerBarsData for external systems to access
+Controller.playerBarsData = playerBarsData
+Controller.nenIndicatorData = nenIndicatorData
 
--- Cleanup function to destroy all UI scopes (called on death)
--- NOTE: We preserve persistentHealthUI for reuse on respawn to reduce memory churn
+-- Cleanup function called on death - HIDES UI instead of destroying
+-- CRITICAL: Don't destroy UI - just hide it to avoid recreation overhead
 Controller.CleanupUI = function()
-	print("[Stats] 🧹 Cleaning up UI components (preserving reusable Health UI)...")
-
-	-- DON'T clean up health component - we want to reuse it
-	-- Just reset the reference so Check() knows to reuse persistentHealthUI
-	healthComponentData = nil
-	Controller.healthComponentData = nil
-	-- persistentHealthUI is intentionally preserved for reuse
-
-	-- Clean up all tracked scopes (Hotbar, Party, etc.)
-	for i, scopeData in ipairs(activeScopes) do
-		if scopeData.scope then
-			scopeData.scope:doCleanup()
-			print(`[Stats] ✅ Cleaned up scope: {scopeData.name}`)
-		end
+	-- Hide the main UI instead of destroying it
+	if UI then
+		UI.Enabled = false
 	end
-	table.clear(activeScopes)
 
-	print("[Stats] ✅ UI cleanup complete (Health UI preserved for reuse)")
+	-- Reset state values but keep the UI intact
+	if playerBarsData then
+		-- Reset state values to defaults
+		if playerBarsData.healthValue then
+			playerBarsData.healthValue:set(100)
+		end
+		if playerBarsData.staminaValue then
+			playerBarsData.staminaValue:set(100)
+		end
+		if playerBarsData.moneyValue then
+			playerBarsData.moneyValue:set(0)
+		end
+		-- Call reset function if available
+		if playerBarsData.reset then
+			playerBarsData.reset()
+		end
+		-- DON'T destroy - we reuse it
+	end
+
+	-- DON'T clean up hotbar scope - just hide it
+	-- The hotbar will be shown again on respawn
+
+	-- DON'T clean up tracked scopes - they'll be reused
+	-- Just reset their state if needed
 end
 
 -- Full cleanup function for when player leaves or UI needs complete reset
 Controller.FullCleanupUI = function()
-	print("[Stats] 🧹 Full UI cleanup (destroying all components)...")
-
-	-- Clean up health component completely
-	if persistentHealthUI and persistentHealthUI.scope then
-		persistentHealthUI.scope:doCleanup()
-		print("[Stats] ✅ Health component scope fully cleaned up")
+	-- Clean up player bars component completely
+	if playerBarsData and playerBarsData.scope then
+		playerBarsData.scope:doCleanup()
 	end
-	persistentHealthUI = nil
-	healthComponentData = nil
-	Controller.healthComponentData = nil
+	playerBarsData = nil
+	Controller.playerBarsData = nil
 
 	-- Clean up persistent hotbar scope
 	if persistentHotbarScope then
 		persistentHotbarScope:doCleanup()
-		print("[Stats] ✅ Hotbar scope fully cleaned up")
 	end
 	persistentHotbarScope = nil
 
@@ -68,23 +78,25 @@ Controller.FullCleanupUI = function()
 	for i, scopeData in ipairs(activeScopes) do
 		if scopeData.scope then
 			scopeData.scope:doCleanup()
-			print(`[Stats] ✅ Cleaned up scope: {scopeData.name}`)
 		end
 	end
 	table.clear(activeScopes)
-
-	print("[Stats] ✅ Full UI cleanup complete")
 end
 
 Controller.Check = function()
+	-- Create UI only if it doesn't exist at all
 	if not UI or not UI:FindFirstChild("Stats") then
        local ui = Replicated.Assets.GUI.ScreenGui:Clone()
 	   ui.Parent = plr.PlayerGui
 	   UI = ui -- Update the UI reference
-	   -- Reset health component data when UI is recreated
-	   healthComponentData = nil
-	   persistentHealthUI = nil -- Also reset persistent UI when base UI is recreated
+	   -- Reset player bars data when UI is recreated
+	   playerBarsData = nil
     end
+
+	-- Show the UI (it may have been hidden on death)
+	if UI then
+		UI.Enabled = true
+	end
 
     -- Hide the old health bar container
     if UI and UI:FindFirstChild("Stats") then
@@ -96,31 +108,40 @@ Controller.Check = function()
             end
         end
 
-        -- UI REUSE: Check if we can reuse existing Health component
-        if persistentHealthUI and persistentHealthUI.frame and persistentHealthUI.frame.Parent then
-            -- Reuse existing UI - just reset values to defaults
-            healthComponentData = persistentHealthUI
-            Controller.healthComponentData = healthComponentData
+        -- REUSE PlayerBars component to avoid recreation overhead
+        -- Only create new if it doesn't exist or frame was destroyed
+        if playerBarsData and playerBarsData.frame and playerBarsData.frame.Parent then
+            -- REUSE: Reset state values instead of recreating
+            if playerBarsData.healthValue then
+                playerBarsData.healthValue:set(100)
+            end
+            if playerBarsData.staminaValue then
+                playerBarsData.staminaValue:set(100)
+            end
+            if playerBarsData.moneyValue then
+                playerBarsData.moneyValue:set(0)
+            end
+            -- Call reset function if available
+            if playerBarsData.reset then
+                playerBarsData.reset()
+            end
+            -- Don't recreate - reuse existing component
+        else
+            -- Only create new if doesn't exist or frame was destroyed
+            if playerBarsData and playerBarsData.scope then
+                playerBarsData.scope:doCleanup()
+            end
+            playerBarsData = PlayerBarsComponent(statsFrame)
+            Controller.playerBarsData = playerBarsData -- Update the exposed reference
+        end
 
-            -- Reset health to 100% on respawn
-            if healthComponentData.healthValue then
-                healthComponentData.healthValue:set(100)
+        -- Initialize NenIndicator if not already created
+        if not nenIndicatorData or not nenIndicatorData.billboardGui then
+            if nenIndicatorData and nenIndicatorData.cleanup then
+                nenIndicatorData.cleanup()
             end
-            if healthComponentData.adrenalineValue then
-                healthComponentData.adrenalineValue:set(0)
-            end
-            -- print("[Stats] ♻️ Reused existing Health component")
-        elseif not healthComponentData or not healthComponentData.frame or not healthComponentData.frame.Parent then
-            -- CLEANUP OLD HEALTH COMPONENT FIRST to prevent memory leak
-            if healthComponentData and healthComponentData.scope then
-                healthComponentData.scope:doCleanup()
-               -- print("[Stats] 🧹 Cleaned up old Health component before creating new one")
-            end
-
-            healthComponentData = HealthComponent(statsFrame)
-            persistentHealthUI = healthComponentData -- Store for reuse
-            Controller.healthComponentData = healthComponentData -- Update the exposed reference
-           -- print("[Stats] ✅ New Health component initialized (will be reused on respawn)")
+            nenIndicatorData = NenIndicatorComponent()
+            Controller.nenIndicatorData = nenIndicatorData
         end
     end
 end
@@ -134,13 +155,15 @@ Controller.Health = function(Value, MaxValue)
         end
     end
 
-    -- Update the health value for the Fusion component
-    if healthComponentData and healthComponentData.healthValue then
+    -- Update the health value for the PlayerBars component
+    if playerBarsData and playerBarsData.healthValue then
         local healthPercent = math.clamp((Value / MaxValue) * 100, 0, 100)
-        healthComponentData.healthValue:set(healthPercent)
-       -- print(`[Stats] Health updated: {healthPercent}%`)
+        playerBarsData.healthValue:set(healthPercent)
+        if playerBarsData.maxHealthValue then
+            playerBarsData.maxHealthValue:set(MaxValue)
+        end
     else
-        warn("[Stats] Health component not initialized yet")
+        warn("[Stats] PlayerBars component not initialized yet")
     end
 end
 
@@ -151,25 +174,7 @@ Controller.Energy = function(Value, MaxValue)
     }):Play()
 end
 
-Controller.LoadAlchemyMoves = function()
-    local currentAlchemy = Client.Alchemy
-    local Skills = require(game.ReplicatedStorage.Modules.Shared.Skills)
-
-    if not Skills[currentAlchemy] then
-        warn("Alchemy type not found:", currentAlchemy)
-        return
-    end
-
-    -- Update hotbar to show directional casting info
-    local alchemyInfo = Skills[currentAlchemy]
-
-    -- Update hotbar slots to show casting controls
-    Controller.UpdateHotbarSlot(8, "Cast (Z)")      -- Z key starts/stops casting
-    Controller.UpdateHotbarSlot(9, "Modifier (X)")  -- X key enters modifier mode
-    Controller.UpdateHotbarSlot(10, alchemyInfo.Type .. " Alchemy") -- Show alchemy type
-
-    -- ---- print("📋 Loaded", alchemyInfo.Type, "alchemy - Use Z to cast, X for modifiers")
-end
+-- Alchemy system removed - Hunter x Hunter Nen system will replace this
 
 Controller.LoadWeaponSkills = function()
     -- Check if we're still in loading screen
@@ -213,53 +218,72 @@ Controller.LoadWeaponSkills = function()
         return
     end
 
-    local pent = ref.get("local_player")  -- No second parameter needed for local_player
+    -- Use the same method as InventoryHandler to get the entity
+    -- This ensures we're looking at the same entity that has the inventory data
+    local localPlayer = Players.LocalPlayer
+    local pent = ref.get("player", localPlayer)
+
+    if not pent then
+        -- Fallback to local_player
+        pent = ref.get("local_player")
+    end
 
     if not pent then
         warn("[LoadWeaponSkills] Player entity not found")
         return
     end
 
-    ---- print("[LoadWeaponSkills] Loading weapon skills for player entity:", pent)
+    print("[LoadWeaponSkills] Loading weapon skills for player entity:", pent)
 
     -- Check if player has Hotbar and Inventory components
-    -- Throw errors instead of returning so retry logic knows it failed
     if not world:has(pent, comps.Hotbar) then
-        error("[LoadWeaponSkills] Player entity has no Hotbar component yet")
+        warn("[LoadWeaponSkills] Player entity has no Hotbar component yet")
+        return
     end
 
     if not world:has(pent, comps.Inventory) then
-        error("[LoadWeaponSkills] Player entity has no Inventory component yet")
+        warn("[LoadWeaponSkills] Player entity has no Inventory component yet")
+        return
     end
 
     local hotbar = world:get(pent, comps.Hotbar)
     local inventory = world:get(pent, comps.Inventory)
 
-    ---- print("[LoadWeaponSkills] 📋 Hotbar slots:", hotbar.slots)
-    ---- print("[LoadWeaponSkills] 📦 Inventory items count:", inventory.items and #inventory.items or 0)
+    print("[LoadWeaponSkills] 📋 Hotbar slots:", hotbar.slots)
+    print("[LoadWeaponSkills] 📦 Inventory items:")
+    local itemCount = 0
+    for slot, item in pairs(inventory.items) do
+        itemCount = itemCount + 1
+        print("  Slot", slot, ":", item.name, "(type:", item.typ, ")")
+    end
+    print("[LoadWeaponSkills] Total items:", itemCount)
 
     -- Get weapon skills from hotbar slots 1-7
     local skillsLoaded = 0
     for slotNumber = 1, 7 do
         local success3, item = pcall(InventoryManager.getHotbarItem, pent, slotNumber)
+        print("[LoadWeaponSkills] Checking slot", slotNumber, "- success:", success3, "item:", item and item.name or "nil")
         if success3 and item then
-            ---- print("[LoadWeaponSkills] Slot", slotNumber, "- Item:", item.name, "Type:", item.typ)
+            print("[LoadWeaponSkills] Slot", slotNumber, "- Item:", item.name, "Type:", item.typ)
             if item.typ == "skill" then
                 Controller.UpdateHotbarSlot(slotNumber, item.name)
                 skillsLoaded = skillsLoaded + 1
             end
         else
-            ---- print("[LoadWeaponSkills] Slot", slotNumber, "- Empty or error:", success3 and "empty" or item)
+            print("[LoadWeaponSkills] Slot", slotNumber, "- Empty or error:", success3 and "empty" or tostring(item))
             Controller.UpdateHotbarSlot(slotNumber, "") -- Clear slot if no skill
         end
     end
 
-    ---- print("[LoadWeaponSkills] ✅ Loaded", skillsLoaded, "weapon skills")
+    print("[LoadWeaponSkills] ✅ Loaded", skillsLoaded, "weapon skills")
 end
 
 Controller.UpdateHotbarSlot = function(slotNumber, itemName)
+    print("[UpdateHotbarSlot] Updating slot", slotNumber, "with:", itemName)
+
     -- Check if UI and Hotbar exist before trying to access them
     if not UI or not UI:FindFirstChild("Hotbar") then
+        warn("[UpdateHotbarSlot] UI or Hotbar not found!")
         return -- UI not ready yet, skip update
     end
 
@@ -270,7 +294,12 @@ Controller.UpdateHotbarSlot = function(slotNumber, itemName)
         local textLabel = hotbar:FindFirstChild("Text")
         if textLabel then
             textLabel.Text = itemName or ""
+            print("[UpdateHotbarSlot] ✅ Set slot", slotNumber, "text to:", itemName)
+        else
+            warn("[UpdateHotbarSlot] No Text child in", hotbarName)
         end
+    else
+        warn("[UpdateHotbarSlot] Hotbar element not found:", hotbarName)
     end
 end
 
@@ -303,7 +332,6 @@ Controller.InitializeHotbar = function(character, entity)
 		if activeScopes[i].name == "Hotbar" then
 			if activeScopes[i].scope then
 				activeScopes[i].scope:doCleanup()
-				print("[Stats] 🧹 Cleaned up old Hotbar scope before creating new one")
 			end
 			table.remove(activeScopes, i)
 		end
@@ -351,7 +379,6 @@ local Children, scoped, peek, out, OnEvent, Value, Tween =
 		if activeScopes[i].name == "Party" then
 			if activeScopes[i].scope then
 				activeScopes[i].scope:doCleanup()
-				print("[Stats] 🧹 Cleaned up old Party scope before creating new one")
 			end
 			table.remove(activeScopes, i)
 		end
@@ -463,23 +490,79 @@ Bridges.UpdateHotbar:Connect(function()
     Controller.LoadWeaponSkills()
 end)
 
--- Set up BridgeNet2 listener for adrenaline updates
-Bridges.UpdateAdrenaline:Connect(function(data)
-    -- Don't update during loading screen or if UI isn't ready
+-- Note: Stamina updates are now handled client-side by the stamina_system
+-- No need for network updates - the client ECS system updates the UI directly
+
+-- Set up BridgeNet2 listener for Nen notifications
+Bridges.NenNotification:Connect(function(data)
+    -- Don't show during loading screen
     if _G.LoadingScreenActive then
         return
     end
 
-    -- Update adrenaline value for the Fusion component
-    if healthComponentData and healthComponentData.adrenalineValue then
-        healthComponentData.adrenalineValue:set(data.adrenaline)
+    -- Show notification
+    local NotificationManager = require(Replicated.Client.NotificationManager)
+    NotificationManager.ShowNen(data.abilityName, data.message)
+end)
+
+-- Set up BridgeNet2 listener for Nen exhaustion (stamina depleted)
+Bridges.NenExhausted:Connect(function(data)
+    -- Don't show during loading screen
+    if _G.LoadingScreenActive then
+        return
     end
+
+    -- Show exhaustion message with shake effect
+    if Controller.nenIndicatorData and Controller.nenIndicatorData.showExhausted then
+        Controller.nenIndicatorData.showExhausted()
+    end
+
+    -- Reset NenBasics state
+    local NenBasics = require(Replicated.Client.Inputs.NenBasics)
+    if NenBasics.ResetState then
+        NenBasics.ResetState()
+    end
+end)
+
+-- Set up BridgeNet2 listener for stamina drain rate updates from server
+Bridges.NenStaminaDrain:Connect(function(data)
+    -- Don't update during loading screen
+    if _G.LoadingScreenActive then
+        return
+    end
+
+    -- Update local stamina drain rate in ECS
+    local ref = require(Replicated.Modules.ECS.jecs_ref)
+    local world = require(Replicated.Modules.ECS.jecs_world)
+    local comps = require(Replicated.Modules.ECS.jecs_components)
+
+    local entity = ref.get("local_player")
+    if not entity then
+        warn("[Stats] Could not find local player entity for stamina drain update")
+        return
+    end
+
+    local stamina = world:get(entity, comps.Stamina)
+    if not stamina then
+        -- Initialize if not exists
+        stamina = {
+            current = 100,
+            max = 100,
+            regenRate = 2,
+            drainRate = 0,
+        }
+    end
+
+    stamina.drainRate = data.drainRate or 0
+    world:set(entity, comps.Stamina, stamina)
+
+    print(`[Stats] Updated stamina drain rate to {stamina.drainRate}% per second for ability {data.abilityName}`)
 end)
 
 -- Money update function
 Controller.Money = function(Value)
-    if healthComponentData and healthComponentData.moneyValue then
-        healthComponentData.moneyValue:set(Value or 0)
+    if playerBarsData and playerBarsData.moneyValue then
+        playerBarsData.moneyValue:set(Value or 0)
     end
 end
 
@@ -490,9 +573,25 @@ Bridges.UpdateMoney:Connect(function(data)
         return
     end
 
-    -- Update money value for the Fusion component
-    if healthComponentData and healthComponentData.moneyValue then
-        healthComponentData.moneyValue:set(data.money or 0)
+    -- Update money value for the PlayerBars component
+    if playerBarsData and playerBarsData.moneyValue then
+        playerBarsData.moneyValue:set(data.money or 0)
+    end
+end)
+
+-- Set up ByteNet listener for posture sync from server
+-- This updates the Parry bar in PlayerBars to show current posture
+Client.Packets.PostureSync.listen(function(data)
+    -- Don't update during loading screen or if UI isn't ready
+    if _G.LoadingScreenActive then
+        return
+    end
+
+    -- Update the parry (posture) bar in PlayerBars
+    if playerBarsData and playerBarsData.parryValue then
+        -- data.Current is 0-100 posture value, data.Max is max posture
+        local posturePercent = math.clamp((data.Current / data.Max) * 100, 0, 100)
+        playerBarsData.parryValue:set(posturePercent)
     end
 end)
 

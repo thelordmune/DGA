@@ -12,6 +12,7 @@ local Debris = Utilities.Debris
 local EmitModule = require(game.ReplicatedStorage.Modules.Utils.EmitModule)
 local VFXCleanup = require(Replicated.Modules.Utils.VFXCleanup)
 local RunService = game:GetService("RunService")
+local Global = require(Replicated.Modules.Shared.Global)
 
 -- Variables
 local Player = Players.LocalPlayer
@@ -2333,4 +2334,115 @@ function Weapons.Hellraiser(Character: Model, Frame: string)
 		})
 	end
 end
+
+-- Scythe Critical Flash VFX
+-- Creates a rapid color correction flash effect at frame 25 of scythe crit
+-- Nen color helper functions for Scythe crit effects
+local WHITE_THRESHOLD = 0.9
+
+local function isWhiteColor(color: Color3): boolean
+	return color.R >= WHITE_THRESHOLD and color.G >= WHITE_THRESHOLD and color.B >= WHITE_THRESHOLD
+end
+
+local function getColorVariation(baseColor: Color3): Color3
+	local variationAmount = math.random() * 0.3 - 0.15 -- -0.15 to +0.15
+	local h, s, v = baseColor:ToHSV()
+	local newV = math.clamp(v + variationAmount, 0.2, 1.0)
+	local newS = math.clamp(s + (variationAmount * 0.5), 0.1, 1.0)
+	return Color3.fromHSV(h, newS, newV)
+end
+
+local function getPlayerNenColor(character: Model): Color3?
+	local player = game.Players:GetPlayerFromCharacter(character)
+	if not player then return nil end
+
+	-- Get Nen data from player's replicated data
+	local nenData = Global.GetData(player, "Nen")
+	if not nenData then return nil end
+
+	-- Check if player has Nen unlocked
+	if not nenData.Unlocked then return nil end
+
+	-- Get custom color (stored as {R, G, B} table)
+	local colorData = nenData.Color
+	if colorData and colorData.R and colorData.G and colorData.B then
+		return Color3.fromRGB(colorData.R, colorData.G, colorData.B)
+	end
+
+	return nil
+end
+
+-- Apply Nen color to white particles/beams/trails on a character's weapon
+function Weapons.ApplyNenColorToWeaponEffects(Character: Model)
+	local nenColor = getPlayerNenColor(Character)
+	if not nenColor then return end
+
+	for _, descendant in Character:GetDescendants() do
+		if descendant:GetAttribute("Weapon") then
+			for _, effect in descendant:GetDescendants() do
+				if effect:IsA("ParticleEmitter") then
+					local colorSeq = effect.Color
+					local keypoints = colorSeq.Keypoints
+					local hasWhite = false
+					for _, kp in keypoints do
+						if isWhiteColor(kp.Value) then
+							hasWhite = true
+							break
+						end
+					end
+					if hasWhite then
+						local targetColor = getColorVariation(nenColor)
+						local newKeypoints = {}
+						for _, kp in keypoints do
+							if isWhiteColor(kp.Value) then
+								table.insert(newKeypoints, ColorSequenceKeypoint.new(kp.Time, targetColor))
+							else
+								table.insert(newKeypoints, kp)
+							end
+						end
+						effect.Color = ColorSequence.new(newKeypoints)
+					end
+				elseif effect:IsA("Beam") or effect:IsA("Trail") then
+					local colorSeq = effect.Color
+					local keypoints = colorSeq.Keypoints
+					local hasWhite = false
+					for _, kp in keypoints do
+						if isWhiteColor(kp.Value) then
+							hasWhite = true
+							break
+						end
+					end
+					if hasWhite then
+						local targetColor = getColorVariation(nenColor)
+						local newKeypoints = {}
+						for _, kp in keypoints do
+							if isWhiteColor(kp.Value) then
+								table.insert(newKeypoints, ColorSequenceKeypoint.new(kp.Time, targetColor))
+							else
+								table.insert(newKeypoints, kp)
+							end
+						end
+						effect.Color = ColorSequence.new(newKeypoints)
+					end
+				end
+			end
+		end
+	end
+end
+
+function Weapons.ScytheCritFlash(Character: Model)
+	-- Apply Nen color to weapon effects if player has Nen unlocked
+	Weapons.ApplyNenColorToWeaponEffects(Character)
+
+	-- Camera shake on impact
+	CamShake({
+		Location = Character.PrimaryPart and Character.PrimaryPart.Position or Character:GetPivot().Position,
+		Magnitude = 8,
+		Damp = 0.003,
+		Frequency = 25,
+		Influence = Vector3.new(1, 1.2, 1),
+		Falloff = 100,
+	})
+end
+
 return Weapons

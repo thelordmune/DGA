@@ -3,6 +3,7 @@ local Replicated = game:GetService("ReplicatedStorage")
 local Library = require(Replicated.Modules.Library)
 local Skills = require(ServerStorage.Stats._Skills)
 local RunService = game:GetService("RunService")
+local StateManager = require(Replicated.Modules.ECS.StateManager)
 
 local Global = require(Replicated.Modules.Shared.Global)
 return function(Player, Data, Server)
@@ -36,7 +37,7 @@ return function(Player, Data, Server)
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
 
-	if Server.Library.StateCount(Character.Actions) or Server.Library.StateCount(Character.Stuns) then
+	if StateManager.StateCount(Character, "Actions") or StateManager.StateCount(Character, "Stuns") then
 		return
 	end
 
@@ -51,9 +52,9 @@ return function(Player, Data, Server)
 		-- Move:Play()
 		local animlength = Move.Length
 
-		Server.Library.TimedState(Character.Actions, script.Name, Move.Length)
-		Server.Library.TimedState(Character.Speeds, "AlcSpeed-0", Move.Length)
-		Server.Library.TimedState(Character.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
+		StateManager.TimedState(Character, "Actions", script.Name, Move.Length)
+		StateManager.TimedState(Character, "Speeds", "AlcSpeed-0", Move.Length)
+		StateManager.TimedState(Character, "Speeds", "Jump-50", Move.Length) -- Prevent jumping during move
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do

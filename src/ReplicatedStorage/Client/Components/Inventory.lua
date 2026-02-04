@@ -9,6 +9,14 @@ local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local InventoryState = require(ReplicatedStorage.Client.InventoryState)
 local Packets = require(ReplicatedStorage.Modules.Packets)
 
+-- InventoryAction enum for optimized packet serialization (string -> uint8)
+local InventoryActionEnum = {
+	MoveToHotbar = 0,
+	SwapWithHotbar = 1,
+	UnequipFromHotbar = 2,
+	AssignToHotbar = 3,
+}
+
 -- Rarity color gradients (lighter to darker)
 local RARITY_GRADIENTS = {
 	common = {
@@ -421,12 +429,12 @@ local function InventoryUI(scope, props)
 	-- Update inventory items from ECS
 	local function updateInventoryDisplay()
 		if not entity then
-			warn("[Inventory] No entity provided to updateInventoryDisplay")
+			-- Silently return if no entity (will be updated when entity is available)
 			return
 		end
 
 		if not world:has(entity, comps.Inventory) then
-			warn("[Inventory] Entity does not have Inventory component")
+			-- Silently return if component not synced yet (will be updated on first sync)
 			return
 		end
 
@@ -453,8 +461,10 @@ local function InventoryUI(scope, props)
 		inventoryItems:set(items)
 	end
 
-	-- Initial update
-	updateInventoryDisplay()
+	-- Initial update (only if component exists, otherwise wait for first sync)
+	if entity and world:has(entity, comps.Inventory) then
+		updateInventoryDisplay()
+	end
 
 	-- Listen for inventory changes
 	local inventoryUpdateConnection = nil
@@ -480,7 +490,7 @@ local function InventoryUI(scope, props)
 
 		-- Send the action to server
 		Packets.InventoryAction.send({
-			action = "MoveToHotbar",
+			action = InventoryActionEnum.MoveToHotbar,
 			inventorySlot = selectedSlot,
 			hotbarSlot = hotbarSlot,
 		})
@@ -655,7 +665,7 @@ local function InventoryUI(scope, props)
 
 			-- Send the action to server
 			Packets.InventoryAction.send({
-				action = "MoveToHotbar",
+				action = InventoryActionEnum.MoveToHotbar,
 				inventorySlot = selectedSlot,
 				hotbarSlot = i,
 			})
@@ -718,7 +728,7 @@ local function InventoryUI(scope, props)
 
 		-- Send unequip action to server
 		Packets.InventoryAction.send({
-			action = "UnequipFromHotbar",
+			action = InventoryActionEnum.UnequipFromHotbar,
 			hotbarSlot = currentEquippedHotbarSlot,
 		})
 
@@ -875,6 +885,28 @@ local function InventoryUI(scope, props)
 	-- Store all deselect functions globally
 	local deselectFunctions = {}
 
+	-- MEMORY FIX: Track icon connections and threads for cleanup
+	local iconConnections = {}
+	local iconThreads = {}
+
+	local function cleanupIconResources()
+		-- Cancel all running threads
+		for _, thread in ipairs(iconThreads) do
+			if coroutine.status(thread) ~= "dead" then
+				task.cancel(thread)
+			end
+		end
+		table.clear(iconThreads)
+
+		-- Disconnect all connections
+		for _, connection in ipairs(iconConnections) do
+			if connection.Connected then
+				connection:Disconnect()
+			end
+		end
+		table.clear(iconConnections)
+	end
+
 	-- Observer to trigger animation when started becomes true
 	scope:Observer(started):onChange(function()
 		local isStarted = scope.peek(started)
@@ -888,6 +920,9 @@ local function InventoryUI(scope, props)
 			hoverDescX:set(-0.5)
 			hoverDescHeight:set(0)
 			hoverDescTransparency:set(1)
+
+			-- MEMORY FIX: Cleanup connections and threads BEFORE destroying icons
+			cleanupIconResources()
 
 			-- Clear all icons when closing
 			for _, child in ipairs(iconFolder:GetChildren()) do
@@ -982,7 +1017,8 @@ local function InventoryUI(scope, props)
 			local floatThread = nil
 			local gradientThread = nil
 
-			icon.MouseEnter:Connect(function()
+			-- MEMORY FIX: Track connections for cleanup
+			local enterConn = icon.MouseEnter:Connect(function()
 				if isSelected then return end
 				isHovering = true
 				hoverScale:set(1.15) -- Scale up on hover
@@ -999,9 +1035,11 @@ local function InventoryUI(scope, props)
 						task.wait(1/60) -- 60 FPS for smooth spring updates
 					end
 				end)
+				table.insert(iconThreads, floatThread)
 			end)
+			table.insert(iconConnections, enterConn)
 
-			icon.MouseLeave:Connect(function()
+			local leaveConn = icon.MouseLeave:Connect(function()
 				if isSelected then return end
 				isHovering = false
 				if floatThread then
@@ -1011,6 +1049,7 @@ local function InventoryUI(scope, props)
 				floatOffsetX:set(0)
 				floatOffsetY:set(0)
 			end)
+			table.insert(iconConnections, leaveConn)
 
 			local itemNameLabel = scope:New("TextLabel")({
 				Name = "ItemName",
@@ -1102,8 +1141,8 @@ local function InventoryUI(scope, props)
 			-- Store the deselect function globally
 			deselectFunctions[icon] = deselectIcon
 
-			-- Click to select
-			icon.MouseButton1Click:Connect(function()
+			-- MEMORY FIX: Track click connection
+			local clickConn = icon.MouseButton1Click:Connect(function()
 				-- Unselect previous item
 				local prevSelected = scope.peek(selectedItem)
 				if prevSelected and prevSelected ~= icon then
@@ -1230,6 +1269,12 @@ local function InventoryUI(scope, props)
 					hoverDescTransparency:set(1)
 				end
 			end)
+			table.insert(iconConnections, clickConn)
+
+			-- MEMORY FIX: Track hoverDescFloatConnection thread when created
+			if hoverDescFloatConnection then
+				table.insert(iconThreads, hoverDescFloatConnection)
+			end
 
 			-- Search filtering observer
 			scope:Observer(searchQuery):onChange(function()
@@ -1271,7 +1316,8 @@ local function InventoryUI(scope, props)
 				local positionInRow = i - rowStart
 				local delay = positionInRow * 0.08 -- Wave delay
 
-				task.delay(delay, function()
+				-- MEMORY FIX: Track the delay thread for cleanup
+				local delayThread = task.delay(delay, function()
 					-- Trigger spring animation for icon
 					iconData.transparencyValue:set(0)
 					iconData.scaleValue:set(1)
@@ -1283,7 +1329,7 @@ local function InventoryUI(scope, props)
 					-- Add rainbow animation for priceless items
 					if iconData.isPriceless then
 						task.wait(0.5) -- Wait for text animation to complete
-						task.spawn(function()
+						local rainbowThread = task.spawn(function()
 							local hue = 0
 							while iconData.label and iconData.label.Parent do
 								hue = (hue + 0.01) % 1
@@ -1302,8 +1348,10 @@ local function InventoryUI(scope, props)
 								task.wait(1/30) -- 30 FPS for rainbow animation
 							end
 						end)
+						table.insert(iconThreads, rainbowThread)
 					end
 				end)
+				table.insert(iconThreads, delayThread)
 			end
 
 			-- Wait before starting next row

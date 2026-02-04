@@ -3,6 +3,7 @@ local Replicated = game:GetService("ReplicatedStorage")
 local Visuals = require(Replicated.Modules.Visuals)
 local Utilities = require(Replicated.Modules.Utilities)
 local RunService = game:GetService("RunService")
+local StateManager = require(Replicated.Modules.ECS.StateManager)
 local Debris = Utilities.Debris
 local NetworkModule = {}
 local Client = require(script.Parent.Parent)
@@ -13,6 +14,30 @@ local self = setmetatable({}, NetworkModule)
 type Entity = {
 	Name: string,
 	Character: Model,
+}
+
+-- BvelSimple Effect enum: uint8 -> function name
+local BvelSimpleEffectNames = {
+	[0] = "M1Bvel",
+	[1] = "M2Bvel",
+	[2] = "JumpBvel",
+	[3] = "LungeBvel",
+	[4] = "DashForward",
+	[5] = "DashBack",
+	[6] = "DashLeft",
+	[7] = "DashRight",
+}
+
+-- BvelRemove Effect enum: uint8 -> what to remove
+local BvelRemoveEffectNames = {
+	[0] = "All",          -- RemoveBvel (removes all)
+	[1] = "M1",           -- RemoveM1Bvel
+	[2] = "M2",           -- RemoveM2Bvel
+	[3] = "Knockback",    -- RemoveKnockbackBvel
+	[4] = "Dash",         -- RemoveDashBvel
+	[5] = "Pincer",       -- RemovePincerForwardVelocity
+	[6] = "Lunge",        -- RemoveLungeBvel
+	[7] = "IS",           -- RemoveISVelocity
 }
 
 NetworkModule.EndPoint = function(Player, Data)
@@ -113,6 +138,17 @@ end
 NetworkModule["BFKnockback"] = function(Character, direction, horizontalPower, upwardPower)
 	local rootPart = Character.PrimaryPart
 	if not rootPart then return end
+
+	-- Cancel all client actions when knockback is received (for local player)
+	if Character == Client.Character and Client.ClearClientActions then
+		Client.ClearClientActions()
+	end
+
+	-- Remove any existing dash velocity
+	local dashVelocity = rootPart:FindFirstChild("Dodge")
+	if dashVelocity then
+		dashVelocity:Destroy()
+	end
 
 	-- Create attachment
 	local attachment = rootPart:FindFirstChild("BFKnockbackAttachment")
@@ -636,6 +672,11 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 	local root = Character.HumanoidRootPart
 	local eroot = Targ.HumanoidRootPart
 
+	-- Cancel all client actions when knockback is received (for local player)
+	if Targ == Client.Character and Client.ClearClientActions then
+		Client.ClearClientActions()
+	end
+
 	-- Disable AutoRotate for the target
 	local targetHumanoid = Targ:FindFirstChild("Humanoid")
 	if targetHumanoid then
@@ -716,9 +757,8 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		end
 		-- Re-enable AutoRotate after knockback ends (will be managed by stun state handler)
 		if targetHumanoid then
-			-- Check if there are still stun states active
-			local stuns = Targ:FindFirstChild("Stuns")
-			if not stuns or not require(game.ReplicatedStorage.Modules.Library).StateCount(stuns) then
+			-- Check if there are still stun states active using ECS StateManager
+			if not StateManager.StateCount(Targ, "Stuns") then
 				targetHumanoid.AutoRotate = true
 			end
 		end
@@ -1135,14 +1175,8 @@ NetworkModule["ParryShakeInvoker"] = function(Character)
 
 	-- Slight screen shake for the person who got parried
 	local Base = require(Replicated.Effects.Base)
-	Base.Shake("Once", {
-		3,  -- magnitude
-		10, -- roughness
-		0,  -- fadeInTime
-		0.3, -- fadeOutTime
-		Vector3.new(0.3, 0.3, 0.3), -- posInfluence
-		Vector3.new(1, 1, 1) -- rotInfluence
-	})
+	-- New API: Base.Shake(magnitude: number, frequency: number?, location: Vector3?)
+	Base.Shake(3, 10, Character and Character:FindFirstChild("HumanoidRootPart") and Character.HumanoidRootPart.Position or nil)
 end
 
 -- Parry screen shake for target (person who parried)
@@ -1151,14 +1185,169 @@ NetworkModule["ParryShakeTarget"] = function(Character)
 
 	-- Slight screen shake for the person who successfully parried
 	local Base = require(Replicated.Effects.Base)
-	Base.Shake("Once", {
-		2,  -- magnitude (slightly less than invoker)
-		8,  -- roughness
-		0,  -- fadeInTime
-		0.25, -- fadeOutTime
-		Vector3.new(0.2, 0.2, 0.2), -- posInfluence
-		Vector3.new(0.8, 0.8, 0.8) -- rotInfluence
-	})
+	-- New API: Base.Shake(magnitude: number, frequency: number?, location: Vector3?)
+	Base.Shake(2, 8, Character and Character:FindFirstChild("HumanoidRootPart") and Character.HumanoidRootPart.Position or nil)
 end
+
+-- ============================================
+-- SPECIALIZED PACKET ENDPOINTS (Optimized)
+-- ============================================
+
+-- BvelSimple: Character + Effect uint8 (M1, M2, Jump, Lunge, Dash directions)
+NetworkModule.EndPointSimple = function(Player, Data)
+	if not Data or not Data.Character then
+		warn("[BvelSimple] EndPoint called with invalid data")
+		return
+	end
+
+	local effectName = BvelSimpleEffectNames[Data.Effect]
+	if not effectName then
+		warn("[BvelSimple] Unknown effect:", Data.Effect)
+		return
+	end
+
+	local func = NetworkModule[effectName]
+	if func then
+		func(Data.Character)
+	else
+		warn("[BvelSimple] No function found for effect:", effectName)
+	end
+end
+
+-- BvelKnockback: Character + Direction vec3 + HorizontalPower + UpwardPower
+NetworkModule.EndPointKnockback = function(Player, Data)
+	if not Data or not Data.Character then
+		warn("[BvelKnockback] EndPoint called with invalid data")
+		return
+	end
+
+	-- Call BFKnockback with the typed parameters
+	NetworkModule["BFKnockback"](Data.Character, Data.Direction, Data.HorizontalPower, Data.UpwardPower)
+end
+
+-- BvelRemove: Character + Effect uint8 (what to remove)
+NetworkModule.EndPointRemove = function(Player, Data)
+	if not Data or not Data.Character then
+		warn("[BvelRemove] EndPoint called with invalid data")
+		return
+	end
+
+	local effectType = BvelRemoveEffectNames[Data.Effect]
+	if not effectType then
+		warn("[BvelRemove] Unknown effect type:", Data.Effect)
+		return
+	end
+
+	local Character = Data.Character
+	local rootPart = Character:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return end
+
+	if effectType == "All" then
+		-- Remove all body movers (RemoveBvel)
+		NetworkModule["RemoveBvel"](Character)
+	elseif effectType == "Pincer" then
+		-- Remove Pincer velocity specifically
+		NetworkModule["RemovePincerForwardVelocity"](Character)
+	elseif effectType == "IS" then
+		-- Remove Inverse Slide velocity
+		NetworkModule["RemoveISVelocity"](Character, {})
+	else
+		-- For specific types, remove by name pattern
+		for _, v in pairs(Character:GetDescendants()) do
+			if v:IsA("LinearVelocity") or v:IsA("BodyVelocity") then
+				if effectType == "M1" and v.Name:find("M1") then
+					v:Destroy()
+				elseif effectType == "M2" and v.Name:find("M2") then
+					v:Destroy()
+				elseif effectType == "Knockback" and v.Name:find("Knockback") then
+					v:Destroy()
+				elseif effectType == "Dash" and v.Name:find("Dash") then
+					v:Destroy()
+				elseif effectType == "Lunge" and v.Name:find("Lunge") then
+					v:Destroy()
+				end
+			end
+		end
+	end
+end
+
+-- BvelVelocity: Character + Velocity vec3 + optional Duration
+NetworkModule.EndPointVelocity = function(Player, Data)
+	if not Data or not Data.Character then
+		warn("[BvelVelocity] EndPoint called with invalid data")
+		return
+	end
+
+	local Character = Data.Character
+	local rootPart = Character:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return end
+
+	local attachment = rootPart:FindFirstChild("RootAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "RootAttachment"
+		attachment.Parent = rootPart
+	end
+
+	-- Create LinearVelocity with the specified velocity
+	local lv = Instance.new("LinearVelocity")
+	lv.Name = "BvelVelocity"
+	lv.MaxForce = 200000
+	lv.VectorVelocity = Data.Velocity
+	lv.Attachment0 = attachment
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	lv.Parent = rootPart
+
+	local duration = Data.Duration or 0.5
+
+	-- Tween out the velocity
+	TweenService:Create(
+		lv,
+		TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ VectorVelocity = Vector3.new(0, 0, 0) }
+	):Play()
+
+	Debris:AddItem(lv, duration)
+end
+
+-- ============================================
+-- REGISTER SPECIALIZED PACKET LISTENERS
+-- ============================================
+-- These are registered here since the Events/init.lua only auto-registers
+-- packets matching the module name (Bvel). The specialized packets need
+-- manual registration to their respective endpoint functions.
+
+local function registerSpecializedListeners()
+	-- BvelSimple: Character + Effect uint8
+	if Client.Packets.BvelSimple then
+		Client.Packets.BvelSimple.listen(function(Data)
+			NetworkModule.EndPointSimple(nil, Data)
+		end)
+	end
+
+	-- BvelKnockback: Character + Direction + HorizontalPower + UpwardPower
+	if Client.Packets.BvelKnockback then
+		Client.Packets.BvelKnockback.listen(function(Data)
+			NetworkModule.EndPointKnockback(nil, Data)
+		end)
+	end
+
+	-- BvelRemove: Character + Effect uint8
+	if Client.Packets.BvelRemove then
+		Client.Packets.BvelRemove.listen(function(Data)
+			NetworkModule.EndPointRemove(nil, Data)
+		end)
+	end
+
+	-- BvelVelocity: Character + Velocity + optional Duration
+	if Client.Packets.BvelVelocity then
+		Client.Packets.BvelVelocity.listen(function(Data)
+			NetworkModule.EndPointVelocity(nil, Data)
+		end)
+	end
+end
+
+-- Register on module load
+registerSpecializedListeners()
 
 return NetworkModule

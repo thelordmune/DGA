@@ -16,7 +16,15 @@ return function(actor: Actor, mainConfig: table)
 	-- ---- print("NPC Name:", mainConfig.Name or "Unknown")
 	-- ---- print("Spawn Locations:", mainConfig.Spawning and #mainConfig.Spawning.Locations or "No locations")
 
-	-- More thorough check for existing NPC
+	-- CRITICAL: Check if this actor has already spawned an NPC
+	-- Chrono moves NPC models to its camera folder for bandwidth optimization,
+	-- so we can't rely on actor:FindFirstChildWhichIsA("Model") alone
+	-- Use an attribute to track whether we've spawned
+	if actor:GetAttribute("HasSpawnedNPC") then
+		return false
+	end
+
+	-- Also check for model directly under actor (for non-Chrono NPCs)
 	if actor:FindFirstChildWhichIsA("Model") then
 		return false
 	end
@@ -45,33 +53,57 @@ return function(actor: Actor, mainConfig: table)
 	mainConfig.cleanup()
 
 	local spawnLocations = {}
-	for _, location in mainConfig.Spawning.Locations do
-		table.insert(spawnLocations, location)
+	if mainConfig.Spawning and mainConfig.Spawning.Locations then
+		for _, location in mainConfig.Spawning.Locations do
+			table.insert(spawnLocations, location)
+		end
 	end
 
-	-- ---- print("Spawn locations for", npcName .. ":", #spawnLocations, "locations")
-	-- for i, loc in pairs(spawnLocations) do
-	-- 	-- ---- print("- Spawn", i .. ":", loc)
-	-- end
-
-	-- DEBUG: Check DataModel BEFORE cloning
-	--warn(`[spawn_entity] 🔍 BEFORE CLONE - DataModel children:`)
-	for i, child in dataModel:GetChildren() do
-		--warn(`[spawn_entity]   - {child.Name} ({child.ClassName})`)
+	-- Special handling for Wanderers - dynamically fetch from workspace.Wanderers if empty
+	-- Use case-insensitive check since NPC name might be "Wanderer", "wanderer", etc.
+	local isWanderer = npcName:lower():find("wanderer") ~= nil
+	if #spawnLocations == 0 and isWanderer then
+		local wanderersFolder = workspace:FindFirstChild("Wanderers")
+		if wanderersFolder then
+			print(`[spawn_entity] Dynamically fetching spawn locations from workspace.Wanderers for {npcName}`)
+			for _, part in pairs(wanderersFolder:GetChildren()) do
+				if part:IsA("BasePart") then
+					table.insert(spawnLocations, part.Position)
+				end
+			end
+			-- Update mainConfig so future spawns don't need to re-fetch
+			if #spawnLocations > 0 then
+				mainConfig.Spawning.Locations = spawnLocations
+				print(`[spawn_entity] Found {#spawnLocations} spawn locations for {npcName}`)
+			end
+		else
+			warn(`[spawn_entity] workspace.Wanderers folder not found for {npcName}!`)
+		end
 	end
-	local dataModelRoot = dataModel:FindFirstChild("HumanoidRootPart")
-	--warn(`[spawn_entity] DataModel has HumanoidRootPart: {dataModelRoot ~= nil}`)
+
+	-- Guard: No spawn locations defined
+	if #spawnLocations == 0 then
+		warn(`[spawn_entity] No spawn locations defined for {npcName} in region {regionName}`)
+		return false
+	end
 
 	local npcModel = dataModel:Clone()
 	npcModel.Name = actor.Parent:GetAttribute("SetName") .. tostring(math.random(1, 1000))
 
-	-- DEBUG: Check cloned model IMMEDIATELY after cloning
-	--warn(`[spawn_entity] 🔍 AFTER CLONE - npcModel children:`)
-	for i, child in npcModel:GetChildren() do
-		--warn(`[spawn_entity]   - {child.Name} ({child.ClassName})`)
+	local hrp = npcModel:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		npcModel.PrimaryPart = hrp
 	end
-	local clonedRoot = npcModel:FindFirstChild("HumanoidRootPart")
-	--warn(`[spawn_entity] Cloned model has HumanoidRootPart: {clonedRoot ~= nil}`)
+
+	local clonedHumanoid = npcModel:FindFirstChild("Humanoid")
+	if clonedHumanoid then
+		clonedHumanoid.RequiresNeck = false
+		clonedHumanoid.BreakJointsOnDeath = false
+		if clonedHumanoid.Health <= 1 or clonedHumanoid.MaxHealth <= 0 then
+			clonedHumanoid.MaxHealth = 100
+			clonedHumanoid.Health = 100
+		end
+	end
 
 	-- Set weapon based on NPC configuration
 	local randomWeapon = "Fist" -- Default to Fist
@@ -120,7 +152,8 @@ return function(actor: Actor, mainConfig: table)
 	end
 
 	-- Special handling for wanderers - use assigned spawn from regions
-	if npcName == "Wanderer" then
+	-- Reuse the isWanderer check from above
+	if isWanderer then
 		-- Check if this wanderer has an assigned spawn from regions
 		local assignedSpawnIndex = actor.Parent:GetAttribute("AssignedSpawn")
 		if assignedSpawnIndex and assignedSpawnIndex <= #spawnLocations then
@@ -168,8 +201,14 @@ return function(actor: Actor, mainConfig: table)
 
 	mainConfig.Spawning.SpawnedAt = spawn_
 
-	-- Position NPC far below the map initially so it's not visible while appearance loads
-	local hiddenPosition = spawn_ + Vector3.new(0, -500, 0)
+	-- CRITICAL: Store the intended spawn position as an attribute so mobs.luau can use it
+	-- for ECS components (NPCWander.center, Transform, etc.) instead of the hidden Y position
+	npcModel:SetAttribute("IntendedSpawnPosition", spawn_)
+
+	-- Position NPC far ABOVE the map initially so it's not visible while appearance loads
+	-- IMPORTANT: Using Y=10000 instead of Y=-500 because Roblox's FallenPartsDestroyHeight
+	-- defaults to -500, which was causing body parts to be destroyed after ~4 seconds
+	local hiddenPosition = spawn_ + Vector3.new(0, 10000, 0)
 	if npcModel.PrimaryPart then
 		npcModel:SetPrimaryPartCFrame(CFrame.new(hiddenPosition) * CFrame.Angles(0, math.rad(90), 0))
 	end
@@ -212,6 +251,10 @@ return function(actor: Actor, mainConfig: table)
 
 	npcModel.Parent = actor
 	--warn(`[spawn_entity] 🔍 After parenting to actor - HumanoidRootPart exists: {npcModel:FindFirstChild("HumanoidRootPart") ~= nil}`)
+
+	-- CRITICAL: Mark that this actor has spawned its NPC
+	-- This prevents re-spawning when Chrono moves the model to its camera folder
+	actor:SetAttribute("HasSpawnedNPC", true)
 
 	-- Store AncestryChanged connection to prevent memory leak
 	table.insert(
@@ -308,6 +351,9 @@ return function(actor: Actor, mainConfig: table)
 				end
 			end
 
+			-- CRITICAL: Clear the HasSpawnedNPC attribute so this actor can respawn
+			actor:SetAttribute("HasSpawnedNPC", nil)
+
 			-- CRITICAL: Delete ECS entity BEFORE destroying model to prevent memory leak
 			if npcModel then
 				local RefManager = require(game.ReplicatedStorage.Modules.ECS.jecs_ref_manager)
@@ -323,7 +369,7 @@ return function(actor: Actor, mainConfig: table)
 				npcModel = nil
 			end
 
-			local _ = npcModel ~= nil and mainConfig.getState(npcModel):Destroy()
+			-- State cleanup is now handled by ECS - no StringValue to destroy
 
 			mainConfig.Spawning.LastSpawned = os.clock()
 
@@ -352,12 +398,29 @@ return function(actor: Actor, mainConfig: table)
 		-- 	end)
 		-- )
 
+		-- IMPORTANT: Capture model reference and position BEFORE Chrono might move it
+		-- mainConfig.getNpc() returns nil after Chrono moves the model to its camera folder
+		local capturedNpcModel = npcModel
+		local capturedSpawnPosition = spawn_
+
 		table.insert(
 			mainConfig.SpawnConnections,
 			humanoid.Died:Connect(function()
-				local diedAt: CFrame = mainConfig.getNpcCFrame()
+				-- Log death for debugging - helps trace why NPCs are dying
+				warn(`[spawn_entity] ⚠️ NPC Died: {capturedNpcModel and capturedNpcModel.Name or "unknown"}`)
+				warn(`[spawn_entity]   Humanoid Health: {humanoid and humanoid.Health or "N/A"}`)
+				warn(`[spawn_entity]   Humanoid MaxHealth: {humanoid and humanoid.MaxHealth or "N/A"}`)
 
-				mainConfig.getState(npcModel):Destroy()
+				-- Use captured spawn position instead of trying to get CFrame from moved model
+				local diedAt: CFrame = CFrame.new(capturedSpawnPosition)
+				if capturedNpcModel and capturedNpcModel.PrimaryPart then
+					pcall(function()
+						diedAt = capturedNpcModel:GetPivot()
+					end)
+				end
+
+				-- State cleanup is now handled by ECS - no StringValue to destroy
+				-- The character model destruction handles all cleanup
 
 				task.wait(mainConfig.Spawning.DespawnTime)
 
@@ -369,7 +432,13 @@ return function(actor: Actor, mainConfig: table)
 
 	---- print("Setting up NPC:", npcModel.Name, "Type:", npcName, "Weapon:", randomWeapon, "ShouldEquip:", shouldEquip)
 
-	-- Setup NPC based on type
+	-- CRITICAL: Add animation script IMMEDIATELY before Chrono clones the model
+	-- This ensures the clone sent to clients has the animation script
+	local AnimateScript = game.ReplicatedStorage.NpcHelper.Animations:Clone()
+	AnimateScript.Parent = npcModel
+	AnimateScript.Enabled = true
+
+	-- Setup NPC weapons (delayed for visual reasons, but animation is already added)
 	task.delay(2, function()
 		-- Equip weapons if configured to do so
 		if shouldEquip and randomWeapon ~= "Fist" then
@@ -380,12 +449,6 @@ return function(actor: Actor, mainConfig: table)
 		else
 			---- print("Skipping weapon equip for NPC:", npcModel.Name)
 		end
-
-		task.wait(1)
-
-		local AnimateScript = game.ReplicatedStorage.NpcHelper.Animations:Clone()
-		AnimateScript.Parent = npcModel
-		AnimateScript.Enabled = true
 	end)
 
 	return true

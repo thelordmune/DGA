@@ -24,8 +24,9 @@ local Players = game:GetService("Players")
 
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+local EntityCleanup = require(ReplicatedStorage.Modules.ECS.entity_cleanup)
 local LimbManager = require(ReplicatedStorage.Modules.Utils.LimbManager)
-local Library = require(ReplicatedStorage.Modules.Library)
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 local Global = require(ReplicatedStorage.Modules.Shared.Global)
 local Visuals = require(ReplicatedStorage.Modules.Visuals)
 
@@ -35,6 +36,9 @@ local BLEED_TICK_RATE = 1 -- seconds between bleed ticks
 -- Track last bleed tick per entity
 local lastBleedTick: {[number]: number} = {}
 
+-- PERFORMANCE: Cache query for reuse
+local limbLossQuery = world:query(comps.LimbState, comps.Character):cached()
+
 local function limbLoss(_world, dt: number)
     -- Only run on server
     if RunService:IsClient() then
@@ -43,8 +47,8 @@ local function limbLoss(_world, dt: number)
 
     local currentTime = os.clock()
 
-    -- Query all entities with LimbState and Character components
-    for entity, limbState, character in world:query(comps.LimbState, comps.Character) do
+    -- Query all entities with LimbState and Character components (using cached query)
+    for entity, limbState, character in limbLossQuery do
         local model = character
         if not model or not model.Parent then continue end
 
@@ -54,26 +58,19 @@ local function limbLoss(_world, dt: number)
         -- Count missing limbs
         local missingArms, missingLegs = LimbManager.CountMissingLimbs(limbState)
 
-        -- Apply walk speed debuff for missing legs using Speeds folder
+        -- Apply walk speed debuff for missing legs using ECS StateManager
         if missingLegs > 0 then
             local speedMultiplier = LimbManager.Debuffs.leg.walkSpeedMultiplier ^ missingLegs
-            local speeds = model:FindFirstChild("Speeds")
-            if speeds then
-                -- Use Library.TimedState to manage the speed modifier
-                -- Set a long duration since this is permanent until healed
-                local limbSpeedState = speeds:FindFirstChild("LimbSpeedDebuff")
-                if not limbSpeedState then
-                    Library.TimedState(speeds, "LimbSpeedDebuff", 999999)
-                end
-                -- Store the multiplier as an attribute for the speed system to read
-                model:SetAttribute("LimbSpeedMultiplier", speedMultiplier)
+            -- Use StateManager.TimedState to manage the speed modifier
+            -- Set a long duration since this is permanent until healed
+            if not StateManager.StateCheck(model, "Speeds", "LimbSpeedDebuff") then
+                StateManager.TimedState(model, "Speeds", "LimbSpeedDebuff", 999999)
             end
+            -- Store the multiplier as an attribute for the speed system to read
+            model:SetAttribute("LimbSpeedMultiplier", speedMultiplier)
         else
             -- Remove speed debuff if legs are restored
-            local speeds = model:FindFirstChild("Speeds")
-            if speeds then
-                Library.RemoveState(speeds, "LimbSpeedDebuff")
-            end
+            StateManager.RemoveState(model, "Speeds", "LimbSpeedDebuff")
             model:SetAttribute("LimbSpeedMultiplier", nil)
         end
 
@@ -101,11 +98,11 @@ local function limbLoss(_world, dt: number)
                 local bleedDamage = LimbManager.Debuffs.bleeding.damagePerSecond * limbState.bleedingStacks
                 humanoid.Health = humanoid.Health - bleedDamage
 
-                -- Update ECS Health component if it exists
+                -- Update ECS Health component if it exists (in-place mutation)
                 local health = world:get(entity, comps.Health)
                 if health then
                     health.current = humanoid.Health
-                    world:set(entity, comps.Health, health)
+                    -- PERFORMANCE: Component is mutated in-place, world:set() is unnecessary
                 end
             end
         else
@@ -156,10 +153,7 @@ local function restoreAllLimbs(entity: number): boolean
     character:SetAttribute("LimbSpeedMultiplier", nil)
 
     -- Remove speed debuff state
-    local speeds = character:FindFirstChild("Speeds")
-    if speeds then
-        Library.RemoveState(speeds, "LimbSpeedDebuff")
-    end
+    StateManager.RemoveState(character, "Speeds", "LimbSpeedDebuff")
 
     -- Remove bleeding visual effect
     Visuals.Ranged(character.HumanoidRootPart.Position, 300, {
@@ -238,6 +232,9 @@ end
 local function cleanup(entity: number)
     lastBleedTick[entity] = nil
 end
+
+-- Register cleanup callback for centralized entity cleanup
+EntityCleanup.register("limb_loss", cleanup)
 
 -- Export module with helper functions
 local LimbLossModule = {

@@ -26,6 +26,7 @@ local RunService = game:GetService("RunService")
 
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+local EntityCleanup = require(ReplicatedStorage.Modules.ECS.entity_cleanup)
 
 -- Health regeneration rates (HP per second)
 local HEALTH_REGEN_OUT_OF_COMBAT = 2
@@ -38,22 +39,32 @@ local BLOCKBAR_REGEN_RATE = 20
 local healthAccumulators = {}
 local blockBarAccumulators = {}
 
+-- OPTIMIZED: Query with Health component directly to avoid world:get() calls
+-- :without(comps.Dead) excludes dead entities at archetype level (no regen for dead)
+local healthRegenQuery = world:query(comps.Health, comps.Character):with(comps.ComponentsReady):without(comps.Dead):cached()
+
+-- Cleanup when entity is removed (prevents memory leak from accumulator tables)
+local function cleanup(entity: number)
+	healthAccumulators[entity] = nil
+	blockBarAccumulators[entity] = nil
+end
+
+-- Register cleanup callback for centralized entity cleanup
+EntityCleanup.register("health_regen", cleanup)
+
 local function regen_system(_world, dt: number)
 	-- Only run on server
 	if RunService:IsClient() then
 		return
 	end
 
-	-- Query all entities that are fully initialized
-	for entity in world:query(comps.ComponentsReady) do
-		
-		local health = world:get(entity, comps.Health)
+	-- NOTE: Cleanup is now handled by EntityCleanup.cleanup() called from mobs.luau/playerloader.luau
+	-- This removes the unreliable world:exists() check that had JECS entity ID reuse issues
 
-        if health and health.current >= health.max then
-            return 
-        end
+	-- OPTIMIZED: Query includes Health and Character directly (avoids world:get calls)
+	for entity, health, character in healthRegenQuery do
 
-		if health and health.current < health.max then
+		if health.current < health.max then
 			-- Check if entity is in combat
 			local inCombat = world:get(entity, comps.InCombat)
 			local isInCombat = inCombat and inCombat.value or false
@@ -77,15 +88,11 @@ local function regen_system(_world, dt: number)
 				local wholeHealth = math.floor(healthAccumulators[entity])
 				healthAccumulators[entity] = healthAccumulators[entity] - wholeHealth
 
-				-- Add health (clamped to max)
+				-- Add health (clamped to max) - in-place mutation
 				local newHealth = math.min(health.current + wholeHealth, health.max)
 				health.current = newHealth
 
-				-- Update the component
-				world:set(entity, comps.Health, health)
-
 				-- Update character's Humanoid if it exists
-				local character = world:get(entity, comps.Character)
 				if character and character:FindFirstChild("Humanoid") then
 					local humanoid = character.Humanoid :: Humanoid
 					humanoid.Health = newHealth
@@ -115,12 +122,9 @@ local function regen_system(_world, dt: number)
 					local wholeBlockBar = math.floor(blockBarAccumulators[entity])
 					blockBarAccumulators[entity] = blockBarAccumulators[entity] - wholeBlockBar
 
-					-- Remove BlockBar (clamped to 0)
+					-- Remove BlockBar (clamped to 0) - in-place mutation
 					local newValue = math.max(0, blockBar.Value - wholeBlockBar)
 					blockBar.Value = newValue
-
-					-- Update the component
-					world:set(entity, comps.BlockBar, blockBar)
 
 					-- If fully regenerated, disable BBRegen
 					if newValue <= 0 then

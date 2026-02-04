@@ -8,12 +8,13 @@ local Library = require(Replicated.Modules.Library)
 local Visuals = require(Replicated.Modules.Visuals)
 local Packets = require(Replicated.Modules.Packets)
 local Server = require(ServerScriptService.ServerConfig.Server)
+local StateManager = require(Replicated.Modules.ECS.StateManager)
 
 local Table = {
 
 	["Fist"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 26 / 60, 23 / 60, 26 / 60, 28 / 60, 25 / 60 },  -- Increased for slower combat
+		["Endlag"] = { 26 / 60, 23 / 60, 26 / 60, 35 / 60, 25 / 60 },  -- Final hit (4) endlag reduced for faster recovery
 		["HitTimes"] = { 21.7 / 60, 21.7 / 60, 24.3 / 60, 26.9 / 60, 20.9 / 60 },  -- Adjusted for 1.15x speed
 		["SoundTimes"] = {},
 		["Speed"] = 0.85,  -- Reduced from 1 to 0.85 for slower attacks
@@ -89,20 +90,20 @@ local Table = {
 
 				Server.Modules.Combat.Trail(Character, true)
 
-				Entity["M2Connection"] = Character.Stuns.Changed:Once(function()
-					Entity["M2Connection"] = nil
+				local m2StunDisconnect = StateManager.OnStunAddedOnce(Character, function(_stunName)
+					m2StunDisconnect = nil
 					Cancel = true
 
 					if Player then
 						Packets.Bvel.sendTo({ Character = Character, Name = "RemoveBvel" }, Player)
 					end
 
-					if Library.StateCheck(Character.Actions, "M2") then
-						Library.RemoveState(Character.Actions, "M2")
+					if StateManager.StateCheck(Character, "Actions", "M2") then
+						StateManager.RemoveState(Character, "Actions", "M2")
 					end
 
-					if Library.StateCheck(Character.Speeds, "M2SpeedSet8") then
-						Library.RemoveState(Character.Speeds, "M2SpeedSet8")
+					if StateManager.StateCheck(Character, "Speeds", "M2SpeedSet8") then
+						StateManager.RemoveState(Character, "Speeds", "M2SpeedSet8")
 					end
 
 					Library.SetCooldown(Character, "Critical", 5)
@@ -118,8 +119,8 @@ local Table = {
 					Packets.Bvel.sendTo({ Character = Character, Name = "FistBvel" }, Player)
 				end
 
-				Library.TimedState(Character.Speeds, "M2SpeedSet8", 71 / 60)
-				Library.TimedState(Character.Actions, "M2", 98 / 60)
+				StateManager.TimedState(Character, "Speeds", "M2SpeedSet8", 71 / 60)
+				StateManager.TimedState(Character, "Actions", "M2", 98 / 60)
 
 				if Cancel then
 					return
@@ -152,7 +153,7 @@ local Table = {
 
 				Library.SetCooldown(Character, "Critical", 5)
 
-				Library.TimedState(Character.Speeds, "M2SpeedSet6", 27 / 60) -- Changed from 0 to 6 for faster combat
+				StateManager.TimedState(Character, "Speeds", "M2SpeedSet6", 27 / 60) -- Changed from 0 to 6 for faster combat
 
 				if Player then
 					Visuals.FireClient(Player, { Module = "Misc", Function = "CameraShake", Arguments = { "Small" } })
@@ -169,8 +170,7 @@ local Table = {
 					return
 				end
 
-				Entity["M2Connection"]:Disconnect()
-				Entity["M2Connection"] = nil
+				if m2StunDisconnect then m2StunDisconnect() end
 			end,
 		},
 
@@ -205,7 +205,7 @@ local Table = {
 
 	["Spear"] = {
 		["MaxCombo"] = 5,
-		["Endlag"] = { 30 / 60, 26 / 60, 30 / 60, 32 / 60, 28 / 60, 24/60 }, -- Increased for slower combat
+		["Endlag"] = { 30 / 60, 26 / 60, 30 / 60, 32 / 60, 38 / 60, 24/60 }, -- Final hit (5) endlag reduced for faster recovery
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60, 25/60 },
 		["SoundTimes"] = {},
 		["Speed"] = 0.85,  -- Reduced for slower attacks
@@ -285,20 +285,20 @@ local Table = {
 
 				Server.Modules.Combat.Trail(Character, true)
 
-				Entity["M2Connection"] = Character.Stuns.Changed:Once(function()
-					Entity["M2Connection"] = nil
+				local m2StunDisconnect = StateManager.OnStunAddedOnce(Character, function(_stunName)
+					m2StunDisconnect = nil
 					Cancel = true
 
 					if Player then
 						Packets.Bvel.sendTo({ Character = Character, Name = "RemoveBvel" }, Player)
 					end
 
-					if Library.StateCheck(Character.Actions, "M2") then
-						Library.RemoveState(Character.Actions, "M2")
+					if StateManager.StateCheck(Character, "Actions", "M2") then
+						StateManager.RemoveState(Character, "Actions", "M2")
 					end
 
-					if Library.StateCheck(Character.Speeds, "M2SpeedSet8") then
-						Library.RemoveState(Character.Speeds, "M2SpeedSet8")
+					if StateManager.StateCheck(Character, "Speeds", "M2SpeedSet8") then
+						StateManager.RemoveState(Character, "Speeds", "M2SpeedSet8")
 					end
 
 					Library.SetCooldown(Character, "Critical", 5)
@@ -314,8 +314,8 @@ local Table = {
 					Packets.Bvel.sendTo({ Character = Character, Name = "FistBvel" }, Player)
 				end
 
-				Library.TimedState(Character.Speeds, "M2SpeedSet8", 71 / 60)
-				Library.TimedState(Character.Actions, "M2", 98 / 60)
+				StateManager.TimedState(Character, "Speeds", "M2SpeedSet8", 71 / 60)
+				StateManager.TimedState(Character, "Actions", "M2", 98 / 60)
 
 				if Cancel then
 					return
@@ -348,7 +348,7 @@ local Table = {
 
 				Library.SetCooldown(Character, "Critical", 5)
 
-				Library.TimedState(Character.Speeds, "M2SpeedSet6", 27 / 60) -- Changed from 0 to 6 for faster combat
+				StateManager.TimedState(Character, "Speeds", "M2SpeedSet6", 27 / 60) -- Changed from 0 to 6 for faster combat
 
 				if Player then
 					Visuals.FireClient(Player, { Module = "Misc", Function = "CameraShake", Arguments = { "Small" } })
@@ -365,8 +365,7 @@ local Table = {
 					return
 				end
 
-				Entity["M2Connection"]:Disconnect()
-				Entity["M2Connection"] = nil
+				if m2StunDisconnect then m2StunDisconnect() end
 			end,
 		},
 
@@ -401,7 +400,7 @@ local Table = {
 
 	["Augment"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 23 / 60, 23 / 60, 23 / 60, 26 / 60 }, -- Reduced by ~20% for faster combat
+		["Endlag"] = { 23 / 60, 23 / 60, 23 / 60, 35 / 60 }, -- Final hit (4) endlag reduced for faster recovery
 		["HitTimes"] = { 24 / 60, 24 / 60, 24 / 60, 24 / 60 },
 		["SoundTimes"] = {},
 		["Hitboxes"] = {
@@ -476,20 +475,20 @@ local Table = {
 
 				Server.Modules.Combat.Trail(Character, true)
 
-				Entity["M2Connection"] = Character.Stuns.Changed:Once(function()
-					Entity["M2Connection"] = nil
+				local m2StunDisconnect = StateManager.OnStunAddedOnce(Character, function(_stunName)
+					m2StunDisconnect = nil
 					Cancel = true
 
 					if Player then
 						Packets.Bvel.sendTo({ Character = Character, Name = "RemoveBvel" }, Player)
 					end
 
-					if Library.StateCheck(Character.Actions, "M2") then
-						Library.RemoveState(Character.Actions, "M2")
+					if StateManager.StateCheck(Character, "Actions", "M2") then
+						StateManager.RemoveState(Character, "Actions", "M2")
 					end
 
-					if Library.StateCheck(Character.Speeds, "M2SpeedSet8") then
-						Library.RemoveState(Character.Speeds, "M2SpeedSet8")
+					if StateManager.StateCheck(Character, "Speeds", "M2SpeedSet8") then
+						StateManager.RemoveState(Character, "Speeds", "M2SpeedSet8")
 					end
 
 					Library.SetCooldown(Character, "Critical", 5)
@@ -505,8 +504,8 @@ local Table = {
 					Packets.Bvel.sendTo({ Character = Character, Name = "FistBvel" }, Player)
 				end
 
-				Library.TimedState(Character.Speeds, "M2SpeedSet8", 71 / 60)
-				Library.TimedState(Character.Actions, "M2", 98 / 60)
+				StateManager.TimedState(Character, "Speeds", "M2SpeedSet8", 71 / 60)
+				StateManager.TimedState(Character, "Actions", "M2", 98 / 60)
 
 				if Cancel then
 					return
@@ -539,7 +538,7 @@ local Table = {
 
 				Library.SetCooldown(Character, "Critical", 5)
 
-				Library.TimedState(Character.Speeds, "M2SpeedSet6", 27 / 60) -- Changed from 0 to 6 for faster combat
+				StateManager.TimedState(Character, "Speeds", "M2SpeedSet6", 27 / 60) -- Changed from 0 to 6 for faster combat
 
 				if Player then
 					Visuals.FireClient(Player, { Module = "Misc", Function = "CameraShake", Arguments = { "Small" } })
@@ -556,8 +555,7 @@ local Table = {
 					return
 				end
 
-				Entity["M2Connection"]:Disconnect()
-				Entity["M2Connection"] = nil
+				if m2StunDisconnect then m2StunDisconnect() end
 			end,
 		},
 
@@ -582,7 +580,7 @@ local Table = {
 
 	["Flame"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 26 / 60, 22 / 60, 26 / 60, 28 / 60, 24 / 60 }, -- Reduced by ~20% for faster combat
+		["Endlag"] = { 26 / 60, 22 / 60, 26 / 60, 35 / 60, 24 / 60 }, -- Final hit (4) endlag reduced for faster recovery
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60 },
 		["SoundTimes"] = {},
 		["Hitboxes"] = {
@@ -660,7 +658,7 @@ local Table = {
 	},
 	["Stone"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 30 / 60, 26 / 60, 30 / 60, 32 / 60, 28 / 60 }, -- Increased for slower combat
+		["Endlag"] = { 30 / 60, 26 / 60, 30 / 60, 38 / 60, 28 / 60 }, -- Final hit (4) endlag reduced for faster recovery
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60 },
 		["SoundTimes"] = {},
 		["Speed"] = 0.85,  -- Reduced for slower attacks
@@ -747,7 +745,7 @@ local Table = {
 
 	["Guns"] = {
 		["MaxCombo"] = 3,
-		["Endlag"] = { 24 / 60, 28 / 60, 32 / 60, 36 / 60, 32 / 60 },  -- Increased for slower combat
+		["Endlag"] = { 24 / 60, 28 / 60, 35 / 60, 36 / 60, 32 / 60 },  -- Final hit (3) endlag reduced for faster recovery
 		["HitTimes"] = { 16 / 60, 18 / 60, 22 / 60, 28 / 60, 32 / 60 },  -- Adjusted for 1.0x speed
 		["SoundTimes"] = {},
 		["Exception"] = true,
@@ -823,6 +821,104 @@ local Table = {
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
 			Stun = 0.7,
 		},
+	},
+
+	["Scythe"] = {
+		["MaxCombo"] = 5,
+		-- Endlag = end frame + linger time (2 frames extra linger at end)
+		-- m1 1: ends f21 + 2 linger = 23, m1 2: ends f18 + 2 = 20, m1 3: ends f19 + 2 = 21
+		-- m1 4: ends f24 + 2 = 26, m1 5: endlag reduced for faster recovery
+		["Endlag"] = { 23 / 60, 20 / 60, 21 / 60, 26 / 60, 38 / 60 },
+		-- HitTimes = start frame (when hitbox begins)
+		-- m1 1: f18, m1 2: f15, m1 3: f16, m1 4: f21, m1 5: f20
+		["HitTimes"] = { 18 / 60, 15 / 60, 16 / 60, 21 / 60, 20 / 60 },
+		["SoundTimes"] = {},
+		["Speed"] = 1,  -- Normal speed, timing is controlled by frame data
+		["Hitboxes"] = {
+			[1] = {
+				-- m1 1: f18-f21 (3 frames) + 2 linger = 5 frames duration
+				["HitboxSize"] = Vector3.new(8, 9, 12),  -- Wide arc hitbox
+				["HitboxOffset"] = CFrame.new(0, 0, -5),
+				["HitboxDuration"] = 5 / 60,  -- Duration hitbox is active
+			},
+			[2] = {
+				-- m1 2: f15-f18 (3 frames) + 2 linger = 5 frames duration
+				["HitboxSize"] = Vector3.new(8, 9, 12),
+				["HitboxOffset"] = CFrame.new(0, 0, -5),
+				["HitboxDuration"] = 5 / 60,
+			},
+			[3] = {
+				-- m1 3: f16-f19 (3 frames) + 2 linger = 5 frames duration
+				["HitboxSize"] = Vector3.new(8, 9, 12),
+				["HitboxOffset"] = CFrame.new(0, 0, -5),
+				["HitboxDuration"] = 5 / 60,
+			},
+			[4] = {
+				-- m1 4: f21-f24 (3 frames) + 2 linger = 5 frames duration
+				["HitboxSize"] = Vector3.new(8, 9, 12),
+				["HitboxOffset"] = CFrame.new(0, 0, -5),
+				["HitboxDuration"] = 5 / 60,
+			},
+			[5] = {
+				-- m1 5: f20-f24 (4 frames) + 2 linger = 6 frames duration
+				["HitboxSize"] = Vector3.new(9, 10, 14),  -- Final hit has larger hitbox
+				["HitboxOffset"] = CFrame.new(0, 0, -5),
+				["HitboxDuration"] = 6 / 60,
+			},
+		},
+
+		["M1Table"] = {
+			Damage = 8,  -- Higher damage per hit due to slower speed
+			PostureDamage = 25,
+			LightKnockback = true,
+			M1 = true,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.8,
+		},
+
+		["Critical"] = {
+			["DamageTable"] = {
+				BlockBreak = true,
+				Damage = 14,
+				PostureDamage = 35,
+				Knockback = true,
+				M2 = true,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.9,
+			},
+			["HitTable"] = {},
+			["WaitTime"] = 46 / 60,  -- Frame 46 is when hitbox activates
+			["Endlag"] = 54 / 60,  -- Animation ends at frame 54
+			["Velocity"] = false,  -- No velocity, character is locked
+		},
+		["SpecialCrit"] = true,  -- Triggers SpecialCritScythe VFX function
+
+		["LastTable"] = {
+			Damage = 12,
+			PostureDamage = 30,
+			LightKnockback = true,
+			M1 = true,
+		},
+
+		["RunningAttack"] = {
+			Linger = 2 / 60,
+			StartVelocity = 0 / 60,
+			EndVelocity = 22 / 60,  -- Slightly slower forward movement
+			TweenTime = 18 / 60,
+			DelayToTween = 12 / 60,
+			HitTime = 55 / 60,
+			Endlag = 62 / 60,
+		},
+		["RATable"] = {
+			Damage = 18,
+			PostureDamage = 30,
+			Knockback = true,
+			FX = Replicated.Assets.VFX.Blood.Attachment,
+			Stun = 0.8,
+		},
+
+		["Slashes"] = true,
+		["Trail"] = true,
 	},
 }
 

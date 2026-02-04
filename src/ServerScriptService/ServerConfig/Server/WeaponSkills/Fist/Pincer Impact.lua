@@ -4,9 +4,16 @@ local Library = require(Replicated.Modules.Library)
 local Skills = require(ServerStorage.Stats._Skills)
 local RunService = game:GetService("RunService")
 local SFX = Replicated:WaitForChild("Assets").SFX
+local StateManager = require(Replicated.Modules.ECS.StateManager)
 
 local Global = require(Replicated.Modules.Shared.Global)
 local Ragdoll = require(Replicated.Modules.Utils.Ragdoll)
+
+-- BvelRemove Effect enum for optimized packet (matches client-side decoder)
+local BvelRemoveEffect = {
+	All = 0,        -- Remove all body movers
+	Pincer = 5,     -- Remove Pincer velocity specifically
+}
 return function(Player, Data, Server)
     local Char = Player.Character
 
@@ -38,7 +45,12 @@ return function(Player, Data, Server)
 	local PlayerObject = Server.Modules["Players"].Get(Player)
 	local Animation = Replicated.Assets.Animations.Skills.Weapons[Weapon][script.Name]
 
-	if Server.Library.StateCount(Char.Actions) or Server.Library.StateCount(Char.Stuns) then
+	-- Use ActionPriority to check if HyperArmorSkill can start
+	-- PincerImpact is a hyper armor skill (priority 5), can cancel almost everything
+	if not Server.Library.CanStartAction(Char, "PincerImpact") then
+		return
+	end
+	if StateManager.StateCount(Char, "Stuns") then
 		return
 	end
 
@@ -46,12 +58,16 @@ return function(Player, Data, Server)
 	local canUseSkill = isNPC or (PlayerObject and PlayerObject.Keys)
 
 	if canUseSkill and not Server.Library.CheckCooldown(Char, script.Name) then
+		-- Start HyperArmorSkill action with priority system (priority 5, hard to cancel)
+		Server.Library.StartAction(Char, "PincerImpact")
+
 		-- Stop ALL animations first (including dash) to prevent animation root motion from interfering
 		Server.Library.StopAllAnims(Char)
 
 		-- Remove any existing body movers FIRST and wait for it to complete
 		if not isNPC then
-			Server.Packets.Bvel.sendTo({Character = Char, Name = "RemoveBvel"}, Player)
+			-- Optimized: Use BvelRemove packet (2 bytes vs ~20+ bytes)
+			Server.Packets.BvelRemove.sendTo({Character = Char, Effect = BvelRemoveEffect.All}, Player)
 			task.wait(0.1) -- Increased delay to ensure animations stop and RemoveBvel completes
 		end
 
@@ -61,9 +77,9 @@ return function(Player, Data, Server)
 		-- Move:Play()
 		local animlength = Move.Length
 
-		Server.Library.TimedState(Char.Actions, script.Name, Move.Length)
-		Server.Library.TimedState(Char.Speeds, "AlcSpeed-0", Move.Length)
-		Server.Library.TimedState(Char.Speeds, "Jump-50", Move.Length) -- Prevent jumping during move
+		StateManager.TimedState(Char, "Actions", script.Name, Move.Length)
+		StateManager.TimedState(Char, "Speeds", "AlcSpeed-0", Move.Length)
+		StateManager.TimedState(Char, "Speeds", "Jump-50", Move.Length) -- Prevent jumping during move
 
 		-- Initialize hyperarmor tracking for this move
 		Char:SetAttribute("HyperarmorDamage", 0)
@@ -126,17 +142,23 @@ return function(Player, Data, Server)
 
 				-- Also remove on clients
 				if isNPC then
-					Server.Packets.Bvel.sendToAll({
+					-- Optimized: Use BvelRemove packet with Pincer effect (2 bytes vs ~30+ bytes)
+					Server.Packets.BvelRemove.sendToAll({
 						Character = Char,
-						Name = "RemovePincerForwardVelocity",
-						Targ = Char
+						Effect = BvelRemoveEffect.Pincer
 					})
 				end
 			end
 		end
 
-		-- Call cleanup when move ends
-		task.delay(Move.Length, cleanup)
+		-- Call cleanup when move ends, then add recovery endlag
+		task.delay(Move.Length, function()
+			cleanup()
+			-- Add recovery endlag after skill completes (0.25s for heavy skill)
+			if Char then
+				StateManager.TimedState(Char, "Actions", "PincerRecovery", 0.25)
+			end
+		end)
 
 		local hittimes = {}
 		for i, fraction in Skills[Weapon][script.Name].HitTime do
@@ -165,8 +187,8 @@ return function(Player, Data, Server)
 					Function = "DropKick",
 					Arguments = { Char, "Start" },
 				})
-            Server.Library.RemoveState(Char.Speeds, "AlcSpeed-0")
-            Server.Library.TimedState(Char.Speeds, "AlcSpeed-6", Move.Length - hittimes[1])
+            StateManager.RemoveState(Char, "Speeds", "AlcSpeed-0")
+            StateManager.TimedState(Char, "Speeds", "AlcSpeed-6", Move.Length - hittimes[1])
         end)
 
         -- ---- print(tostring(hittimes[3]-hittimes[2]) .. "this is the ptbvel 1 duration")
@@ -246,39 +268,11 @@ return function(Player, Data, Server)
 		end
 
         task.delay(hittimes[4], function()
-			-- Check adrenaline requirement for BF variant
-			local canUseBF = false
-			if pressedM1 and not isNPC then
-				-- Get player's adrenaline level
-				local ReplicatedStorage = game:GetService("ReplicatedStorage")
-				local ref = require(ReplicatedStorage.Modules.ECS.ref)
-				local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
-				local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
+			-- BF variant is now available if player hits M1 timing (no adrenaline requirement)
+			local canUseBF = pressedM1
 
-				local playerEntity = ref.find(Char)
-				if playerEntity then
-					local adrenalineData = world:get(playerEntity, comps.Adrenaline)
-					if adrenalineData and adrenalineData.value >= 20 then
-						-- High adrenaline (67-100) required for BF variant
-						canUseBF = true
-						print(`[PINCER IMPACT] ✅ BF variant allowed - Adrenaline: {math.floor(adrenalineData.value)}%`)
-					else
-						print(`[PINCER IMPACT] ❌ BF variant blocked - Adrenaline too low: {adrenalineData and math.floor(adrenalineData.value) or 0}% (need 67%+)`)
-					end
-				end
-			elseif pressedM1 and isNPC then
-				-- NPCs can always use BF variant if they hit the timing
-				canUseBF = true
-			end
-
-			-- Send "BF" variant if M1 was pressed AND adrenaline is high enough, otherwise "None"
+			-- Send "BF" variant if M1 was pressed, otherwise "None"
 			local variant = canUseBF and "BF" or "None"
-
-			if canUseBF then
-				-- ---- print(`[PINCER IMPACT] 💥 Sending DKImpact with variant: {variant} (RED - Player hit the timing!)`)
-			else
-				-- ---- print(`[PINCER IMPACT] 💨 Sending DKImpact with variant: {variant} (BLUE - Player missed the timing)`)
-			end
 
 			-- Create hitbox at impact
 			local Hitbox = Server.Modules.Hitbox
@@ -307,8 +301,8 @@ return function(Player, Data, Server)
 
 						-- Only apply additional stun for BF variant (non-BF uses damage table stun which is 0)
 						if canUseBF then
-							Server.Library.TimedState(Target.Actions, "PincerImpactStun", damageTable.Stun)
-							Server.Library.TimedState(Target.Stuns, "NoAttack", damageTable.Stun)
+							StateManager.TimedState(Target, "Actions", "PincerImpactStun", damageTable.Stun)
+							StateManager.TimedState(Target, "Stuns", "NoAttack", damageTable.Stun)
 						end
 					end
 				end
@@ -343,7 +337,7 @@ return function(Player, Data, Server)
 					attackerGyro.Parent = Char.HumanoidRootPart
 
 					-- Add NoRotate stun during freeze
-					Server.Library.TimedState(Char.Stuns, "NoRotate", 1)
+					StateManager.TimedState(Char, "Stuns", "NoRotate", 1)
 
 					-- Pause attacker's animation by setting speed to 0
 					Move:AdjustSpeed(0)

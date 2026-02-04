@@ -28,6 +28,7 @@ local world = require(Replicated.Modules.ECS.jecs_world)
 local ref = require(Replicated.Modules.ECS.jecs_ref)
 local comps = require(Replicated.Modules.ECS.jecs_components)
 local RunService = game:GetService("RunService")
+local StateManager = require(Replicated.Modules.ECS.StateManager)
 
 local TInfo = TweenInfo.new(0.35, Enum.EasingStyle.Circular, Enum.EasingDirection.Out, 0)
 
@@ -35,6 +36,16 @@ local TInfo = TweenInfo.new(0.35, Enum.EasingStyle.Circular, Enum.EasingDirectio
 local originalTrailWidths = {}
 
 local Base = {}
+
+-- Safe delayed destroy helper - checks if instance exists before destroying
+-- Prevents errors when VFX is cancelled early by ActionCancellation
+local function safeDelayedDestroy(instance, delay)
+	task.delay(delay, function()
+		if instance and instance.Parent then
+			instance:Destroy()
+		end
+	end)
+end
 
 function Base.Emit(ToEmit)
 	if ToEmit:IsA("ParticleEmitter") then
@@ -76,9 +87,7 @@ function Base.Slashes(Character: Model, Weapon: string, Combo: number)
 		elseif Combo == 4 then
 			eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2.5) * CFrame.Angles(math.rad(180), 0, 0))
 			EmitModule.emit(eff["4"])
-			task.delay(3, function()
-				eff:Destroy()
-			end)
+			safeDelayedDestroy(eff, 3)
 		end
 	else
 		local Slash: BasePart = Replicated.Assets.VFX[Weapon .. "Slashes"][Combo]:Clone()
@@ -229,7 +238,7 @@ function Base.ClashFOV()
 	TweenService:Create(Camera, TweenInfo.new(0.2, Enum.EasingStyle.Sine), { FieldOfView = 35 }):Play()
 
 	task.spawn(function()
-		while Library.StateCheck(Player.Character.Actions, "Clash") do
+		while Player.Character and StateManager.StateCheck(Player.Character, "Actions", "Clash") do
 			task.wait()
 			Misc.CameraShake("SmallSmall")
 		end
@@ -1079,9 +1088,14 @@ end
 function Base.Shake(magnitude: number, frequency: number?, location: Vector3?)
 	-- New camera shake system using CamShake from Utils
 	-- More impactful and lively shakes with higher default values
+
+	-- Convert magnitude to number if it's a string (network serialization can cause this)
+	local mag = tonumber(magnitude) or 0
+	local freq = tonumber(frequency) or 25
+
 	CamShake({
-		Magnitude = magnitude * 1.5, -- Increased for more impact
-		Frequency = frequency or 25, -- Higher frequency for more lively shakes
+		Magnitude = mag * 1.5, -- Increased for more impact
+		Frequency = freq, -- Higher frequency for more lively shakes
 		Damp = 0.005, -- Slower dampening for longer lasting shakes
 		Influence = Vector3.new(1.2, 1.2, 0.8), -- More influence on X and Y axes
 		Location = location or workspace.CurrentCamera.CFrame.Position,
@@ -1091,9 +1105,14 @@ end
 
 function Base.SpecialShake(magnitude: number, frequency: number?, location: Vector3?)
 	-- Special camera shake for intense moments (even more impactful)
+
+	-- Convert magnitude to number if it's a string (network serialization can cause this)
+	local mag = tonumber(magnitude) or 0
+	local freq = tonumber(frequency) or 30
+
 	CamShake({
-		Magnitude = magnitude * 2, -- Double magnitude for special shakes
-		Frequency = frequency or 30, -- Even higher frequency
+		Magnitude = mag * 2, -- Double magnitude for special shakes
+		Frequency = freq, -- Even higher frequency
 		Damp = 0.004, -- Even slower dampening
 		Influence = Vector3.new(1.5, 1.5, 1), -- Maximum influence
 		Location = location or workspace.CurrentCamera.CFrame.Position,
@@ -1193,9 +1212,7 @@ function Base.Deconstruct(Character: Model)
 		Falloff = 65,
 	})
 
-	task.delay(3, function()
-		eff:Destroy()
-	end)
+	safeDelayedDestroy(eff, 3)
 end
 function Base.AlchemicAssault(Character: Model, Type: string)
 	if Type == "Jump" then
@@ -1682,9 +1699,7 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 				v:Emit(v:GetAttribute("EmitCount"))
 			end
 		end
-		task.delay(3, function()
-			eff:Destroy()
-		end)
+		safeDelayedDestroy(eff, 3)
 	end
 	if Combo == 2 then
 		local eff = Replicated.Assets.VFX.Shot:Clone()
@@ -1712,9 +1727,7 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 				v:Emit(v:GetAttribute("EmitCount"))
 			end
 		end
-		task.delay(3, function()
-			eff:Destroy()
-		end)
+		safeDelayedDestroy(eff, 3)
 	end
 	if Combo == 3 then
 		local eff = Replicated.Assets.VFX.Combined:Clone()
@@ -1728,9 +1741,7 @@ function Base.Shot(Character: Model, Combo: number, LeftGun: MeshPart, RightGun:
 				v:Emit(v:GetAttribute("EmitCount"))
 			end
 		end
-		task.delay(3, function()
-			eff:Destroy()
-		end)
+		safeDelayedDestroy(eff, 3)
 
 		meshfunction(eff.CFrame, workspace.World.Visuals)
 	end
@@ -5038,6 +5049,1134 @@ function Base.StopTruthRoomSounds()
 		_G.TruthThemeSound:Destroy()
 		_G.TruthThemeSound = nil
 	end
+end
+
+-- Scythe Critical VFX
+-- This is called at WaitTime (frame 46) - VFX happens earlier
+-- Timeline:
+--   Now (frame 46): Color correction flash, sounds, Nen type text
+--   Hitbox: frame 46-54
+function Base.SpecialCritScythe(Character: Model)
+	local Lighting = game:GetService("Lighting")
+	local TextPlus = require(Replicated.Modules.Utils.Text)
+	local Global = require(Replicated.Modules.Shared.Global)
+
+	-- Constants for white color detection
+	local WHITE_THRESHOLD = 0.95 -- How close to white a color must be (0-1)
+
+	-- Check if a color is white or nearly white
+	local function isWhiteColor(color: Color3): boolean
+		local r, g, b = color.R, color.G, color.B
+		return r >= WHITE_THRESHOLD and g >= WHITE_THRESHOLD and b >= WHITE_THRESHOLD
+	end
+
+	-- Ensure Nen color is always bright and vibrant (no dark or desaturated colors)
+	-- Enforces minimum saturation and brightness for visibility
+	local function ensureBrightColor(color: Color3): Color3
+		local h, s, v = color:ToHSV()
+		-- Enforce minimum saturation (at least 0.5 for vibrant colors)
+		-- Enforce minimum brightness (at least 0.7 for visibility)
+		local newS = math.max(s, 0.5)
+		local newV = math.max(v, 0.7)
+		return Color3.fromHSV(h, newS, newV)
+	end
+
+	-- Generate a color variation (lighter or darker) of the base color
+	-- Keeps colors bright - only varies within the bright range
+	local function getColorVariation(baseColor: Color3): Color3
+		local variationAmount = (math.random() * 0.2 - 0.1) -- -0.1 to +0.1 (smaller range)
+		local h, s, v = baseColor:ToHSV()
+		-- Keep brightness high (0.7 to 1.0) and saturation strong (0.4 to 1.0)
+		local newV = math.clamp(v + variationAmount, 0.7, 1.0)
+		local newS = math.clamp(s + (variationAmount * 0.3), 0.4, 1.0)
+		return Color3.fromHSV(h, newS, newV)
+	end
+
+	-- Apply Nen color to a ParticleEmitter if it has white color
+	local function applyNenColorToParticle(particle: ParticleEmitter, nenColor: Color3)
+		local colorSeq = particle.Color
+		local keypoints = colorSeq.Keypoints
+
+		local hasWhite = false
+		for _, kp in keypoints do
+			if isWhiteColor(kp.Value) then
+				hasWhite = true
+				break
+			end
+		end
+
+		if hasWhite then
+			local targetColor = getColorVariation(nenColor)
+			local newKeypoints = {}
+			for _, kp in keypoints do
+				if isWhiteColor(kp.Value) then
+					table.insert(newKeypoints, ColorSequenceKeypoint.new(kp.Time, targetColor))
+				else
+					table.insert(newKeypoints, kp)
+				end
+			end
+			particle.Color = ColorSequence.new(newKeypoints)
+		end
+	end
+
+	-- Apply Nen color to a Beam if it has white color
+	local function applyNenColorToBeam(beam: Beam, nenColor: Color3)
+		local colorSeq = beam.Color
+		local keypoints = colorSeq.Keypoints
+
+		local hasWhite = false
+		for _, kp in keypoints do
+			if isWhiteColor(kp.Value) then
+				hasWhite = true
+				break
+			end
+		end
+
+		if hasWhite then
+			local targetColor = getColorVariation(nenColor)
+			local newKeypoints = {}
+			for _, kp in keypoints do
+				if isWhiteColor(kp.Value) then
+					table.insert(newKeypoints, ColorSequenceKeypoint.new(kp.Time, targetColor))
+				else
+					table.insert(newKeypoints, kp)
+				end
+			end
+			beam.Color = ColorSequence.new(newKeypoints)
+		end
+	end
+
+	-- Apply Nen color to a Trail if it has white color
+	local function applyNenColorToTrail(trail: Trail, nenColor: Color3)
+		local colorSeq = trail.Color
+		local keypoints = colorSeq.Keypoints
+
+		local hasWhite = false
+		for _, kp in keypoints do
+			if isWhiteColor(kp.Value) then
+				hasWhite = true
+				break
+			end
+		end
+
+		if hasWhite then
+			local targetColor = getColorVariation(nenColor)
+			local newKeypoints = {}
+			for _, kp in keypoints do
+				if isWhiteColor(kp.Value) then
+					table.insert(newKeypoints, ColorSequenceKeypoint.new(kp.Time, targetColor))
+				else
+					table.insert(newKeypoints, kp)
+				end
+			end
+			trail.Color = ColorSequence.new(newKeypoints)
+		end
+	end
+
+	-- Apply Nen color to all applicable effects in an instance tree
+	local function applyNenColorToEffects(instance: Instance, nenColor: Color3)
+		for _, descendant in instance:GetDescendants() do
+			if descendant:IsA("ParticleEmitter") then
+				applyNenColorToParticle(descendant, nenColor)
+			elseif descendant:IsA("Beam") then
+				applyNenColorToBeam(descendant, nenColor)
+			elseif descendant:IsA("Trail") then
+				applyNenColorToTrail(descendant, nenColor)
+			end
+		end
+
+		-- Also check the instance itself
+		if instance:IsA("ParticleEmitter") then
+			applyNenColorToParticle(instance, nenColor)
+		elseif instance:IsA("Beam") then
+			applyNenColorToBeam(instance, nenColor)
+		elseif instance:IsA("Trail") then
+			applyNenColorToTrail(instance, nenColor)
+		end
+	end
+
+	-- Get Scythe VFX folder
+	local scytheVFX = VFX:FindFirstChild("Scythe")
+	if not scytheVFX then return end
+
+	-- Get root part for sound parenting
+	local rootPart = Character:FindFirstChild("HumanoidRootPart") or Character.PrimaryPart
+
+	-- Get player from character early - try multiple methods for reliability
+	local playerFromChar = Players:GetPlayerFromCharacter(Character)
+	if not playerFromChar then
+		-- Fallback: check if this is local player's character
+		local localPlayer = Players.LocalPlayer
+		if localPlayer and localPlayer.Character == Character then
+			playerFromChar = localPlayer
+		end
+	end
+
+	-- Get player's Nen data early (for VFX colors and text)
+	local nenType = "Enhance"
+	local nenColor = Color3.fromRGB(100, 200, 255) -- Default light blue for Nen effects
+	local hasCustomNenColor = true -- Always apply color to Nen effects
+	if playerFromChar then
+		local nenData = Global.GetData(playerFromChar, "Nen")
+		if nenData then
+			if nenData.Type then
+				nenType = nenData.Type
+			end
+			if nenData.Color then
+				local r, g, b = nenData.Color.R, nenData.Color.G, nenData.Color.B
+				-- Only use custom color if it's NOT white (255, 255, 255)
+				-- Otherwise use the default light blue
+				if not (r >= 250 and g >= 250 and b >= 250) then
+					-- Get color and ensure it's bright/vibrant (no dark colors allowed)
+					local rawColor = Color3.fromRGB(r, g, b)
+					nenColor = ensureBrightColor(rawColor)
+				end
+			end
+		end
+	end
+
+	-- Play ScytheCrit sounds (1, 2, 3) immediately at animation start
+	-- ScytheCrit folder is under SFX > Nen > ScytheCrit
+	local nenSfxFolder = SFX:FindFirstChild("Nen")
+	local scytheCritFolder = nenSfxFolder and nenSfxFolder:FindFirstChild("ScytheCrit")
+	if scytheCritFolder and rootPart then
+		-- Play all 3 sounds in a separate thread so they don't block VFX
+		task.spawn(function()
+			for i = 1, 2 do
+				local sound = scytheCritFolder:FindFirstChild(tostring(i))
+				if sound and sound:IsA("Sound") then
+					local soundClone = sound:Clone()
+					soundClone.Parent = rootPart
+					soundClone:Play()
+					soundClone.Ended:Once(function()
+						soundClone:Destroy()
+					end)
+				end
+				if i < 2 then
+					task.wait(0.05)
+				end
+			end
+		end)
+	end
+
+	-- Clone Crit model to character's root part
+	local critModel = scytheVFX:FindFirstChild("Crit")
+	local critClone = nil
+	local warnPart = nil
+	local wwwwModel = nil
+
+	if critModel then
+		critClone = critModel:Clone()
+		local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+		if humanoidRootPart then
+			critClone:PivotTo(humanoidRootPart.CFrame)
+			critClone.Parent = humanoidRootPart
+		end
+		-- Find warn part and wwww model for later emission
+		warnPart = critClone:FindFirstChild("warn", true)
+		wwwwModel = critClone:FindFirstChild("wwww", true)
+
+		-- Apply custom Nen color to ALL crit VFX (white effects get tinted)
+		-- This includes warn, wwww, and any other effects in the crit model
+		if hasCustomNenColor then
+			applyNenColorToEffects(critClone, nenColor)
+			-- Also specifically apply to warn and wwww if found
+			if warnPart then
+				applyNenColorToEffects(warnPart, nenColor)
+			end
+			if wwwwModel then
+				applyNenColorToEffects(wwwwModel, nenColor)
+			end
+		end
+	end
+
+	-- Emit warn part immediately (color already applied above)
+	if warnPart then
+		EmitModule.emit(warnPart)
+	end
+
+	-- Emit Bling attachment first
+	for _, descendant in Character:GetDescendants() do
+		if descendant.Name == "Bling" and descendant:IsA("Attachment") then
+			for _, particle in descendant:GetChildren() do
+				if particle:IsA("ParticleEmitter") then
+					particle:Emit(particle:GetAttribute("EmitCount") or 1)
+				end
+			end
+			break
+		end
+	end
+
+	-- Emit ALL effects on weapon parts (parts with "Weapon" attribute) and enable them for 10 seconds
+	-- Weapon parts are direct children of Character with "Weapon" attribute set
+	-- Skip effects under "Bling" attachment - those should only emit, not stay enabled
+	-- Apply custom Nen color to white effects (with slight variations)
+	local weaponEffects = {}
+	for _, weaponPart in Character:GetChildren() do
+		if weaponPart:GetAttribute("Weapon") then
+			for _, effect in weaponPart:GetDescendants() do
+				-- Check if this effect is under a Bling attachment
+				local isUnderBling = false
+				local parent = effect.Parent
+				while parent and parent ~= weaponPart do
+					if parent.Name == "Bling" then
+						isUnderBling = true
+						break
+					end
+					parent = parent.Parent
+				end
+
+				if effect:IsA("ParticleEmitter") then
+					-- Apply custom Nen color to white particles
+					if hasCustomNenColor then
+						applyNenColorToParticle(effect, nenColor)
+					end
+					effect:Emit(effect:GetAttribute("EmitCount") or 1)
+					-- Only enable if not under Bling
+					if not isUnderBling then
+						effect.Enabled = true
+						table.insert(weaponEffects, effect)
+					end
+				elseif effect:IsA("Trail") then
+					-- Apply custom Nen color to white trails
+					if hasCustomNenColor then
+						applyNenColorToTrail(effect, nenColor)
+					end
+					-- Only enable if not under Bling
+					if not isUnderBling then
+						effect.Enabled = true
+						table.insert(weaponEffects, effect)
+					end
+				elseif effect:IsA("Beam") then
+					-- Apply custom Nen color to white beams
+					if hasCustomNenColor then
+						applyNenColorToBeam(effect, nenColor)
+					end
+					-- Only enable if not under Bling
+					if not isUnderBling then
+						effect.Enabled = true
+						table.insert(weaponEffects, effect)
+					end
+				end
+			end
+		end
+	end
+
+	-- Emit wwww model immediately (no delay)
+	if wwwwModel then
+		EmitModule.emit(wwwwModel)
+	end
+
+	-- local effect = RockMod.New("Path", Character.HumanoidRootPart.CFrame, {})
+
+	-- 	if effect then
+	-- 		effect:Debris("Normal", {
+	-- 			Size = { 0.4, 1.2 },
+	-- 			UpForce = { 0.3, 0.6 },
+	-- 			RotationalForce = { 8, 20 },
+	-- 			Spread = { 5, 5 },
+	-- 			PartCount = 6,
+	-- 			Radius = 5,
+	-- 			LifeTime = 3.5,
+	-- 			LifeCycle = {
+	-- 				Entrance = {
+	-- 					Type = "SizeUp",
+	-- 					Speed = 0.25,
+	-- 					Division = 3,
+	-- 					EasingStyle = Enum.EasingStyle.Quad,
+	-- 					EasingDirection = Enum.EasingDirection.Out,
+	-- 				},
+	-- 				Exit = {
+	-- 					Type = "SizeDown",
+	-- 					Speed = 0.3,
+	-- 					Division = 2,
+	-- 					EasingStyle = Enum.EasingStyle.Sine,
+	-- 					EasingDirection = Enum.EasingDirection.In,
+	-- 				},
+	-- 			},
+	-- 		})
+	-- 	end
+
+
+	-- Play Nen type sound
+	if nenSfxFolder and rootPart then
+		local soundName = nenType
+		local nenTypeSound = nenSfxFolder:FindFirstChild(soundName)
+		if nenTypeSound and nenTypeSound:IsA("Sound") then
+			local typeSoundClone = nenTypeSound:Clone()
+			typeSoundClone.Parent = rootPart
+			typeSoundClone:Play()
+			typeSoundClone.Ended:Once(function()
+				typeSoundClone:Destroy()
+			end)
+		end
+	end
+
+	-- Color correction flash effect with sound timing
+	local impactScythe = scytheVFX:FindFirstChild("ImpactScythe")
+	if impactScythe then
+		local colorCorrections = {}
+		for _, child in pairs(impactScythe:GetChildren()) do
+			if child:IsA("ColorCorrectionEffect") then
+				local clone = child:Clone()
+				clone.Parent = Lighting
+				table.insert(colorCorrections, clone)
+			end
+		end
+
+		-- Sort by name to ensure numbered order (cc, cc2, cc3, cc4)
+		table.sort(colorCorrections, function(a, b)
+			return a.Name < b.Name
+		end)
+
+		-- Loop through 2 complete playthroughs
+		task.spawn(function()
+			for i = 1, 2 do
+				for _, cc in ipairs(colorCorrections) do
+					cc.Enabled = true
+					task.wait(0.002)
+					cc.Enabled = false
+				end
+			end
+			-- Delete all clones
+			for _, cc in ipairs(colorCorrections) do
+				cc:Destroy()
+			end
+		end)
+	end
+
+	-- Camera shake - FIRM like Rapid Thrust (increased magnitude)
+	CamShake({
+		Location = Character.PrimaryPart and Character.PrimaryPart.Position or Character:GetPivot().Position,
+		Magnitude = 10,
+		Damp = 0.00005,
+		Frequency = 13,
+		Influence = Vector3.new(0.5, 1, 0.5),
+		Falloff = 65,
+	})
+
+	-- Create aggressive Nen type text using TextPlus (positioned at character's feet/Load VFX area)
+	local hrp = Character:FindFirstChild("HumanoidRootPart")
+	-- if hrp then
+	-- 	-- Create a part at the feet to anchor the billboard
+	-- 	local footAnchor = Instance.new("Part")
+	-- 	footAnchor.Name = "NenTextAnchor"
+	-- 	footAnchor.Anchored = true
+	-- 	footAnchor.CanCollide = false
+	-- 	footAnchor.Transparency = 1
+	-- 	footAnchor.Size = Vector3.new(1, 1, 1)
+	-- 	footAnchor.CFrame = hrp.CFrame * CFrame.new(0, -hrp.Size.Y / 2 - 1, 0)
+	-- 	footAnchor.Parent = workspace.World.Visuals
+
+	-- 	-- Create BillboardGui at feet (Load VFX position)
+	-- 	local billboardGui = Instance.new("BillboardGui")
+	-- 	billboardGui.Name = "NenCritText"
+	-- 	billboardGui.Adornee = footAnchor
+	-- 	billboardGui.Size = UDim2.fromOffset(800, 200) -- Larger size to prevent cropping
+	-- 	billboardGui.StudsOffset = Vector3.new(0, 1, 0) -- Slightly above ground
+	-- 	billboardGui.AlwaysOnTop = true
+	-- 	billboardGui.MaxDistance = 100
+	-- 	billboardGui.Parent = Players.LocalPlayer and Players.LocalPlayer:FindFirstChild("PlayerGui")
+
+	-- 	-- Create text container frame for TextPlus
+	-- 	local textFrame = Instance.new("Frame")
+	-- 	textFrame.Name = "TextFrame"
+	-- 	textFrame.BackgroundTransparency = 1
+	-- 	textFrame.Size = UDim2.fromScale(1, 1)
+	-- 	textFrame.Position = UDim2.fromScale(0.5, 0.5)
+	-- 	textFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	-- 	textFrame.Parent = billboardGui
+
+	-- 	-- Create text using TextPlus with Jura font, black stroke
+	-- 	TextPlus.Create(textFrame, nenType:upper(), {
+	-- 		Size = 52,
+	-- 		Color = nenColor,
+	-- 		Font = Font.new("rbxasset://fonts/families/Jura.json", Enum.FontWeight.Bold, Enum.FontStyle.Italic),
+	-- 		StrokeSize = 3,
+	-- 		StrokeColor = Color3.new(0, 0, 0),
+	-- 		StrokeTransparency = 0,
+	-- 		XAlignment = "Center",
+	-- 		YAlignment = "Center",
+	-- 		CharacterSpacing = 1.2, -- Slightly wider spacing
+	-- 	})
+
+	-- 	-- Animate: start transparent, fade in, then enlarge and fade out
+	-- 	task.spawn(function()
+	-- 		-- Set initial transparency (fade in effect)
+	-- 		for _, child in textFrame:GetDescendants() do
+	-- 			if child:IsA("TextLabel") then
+	-- 				child.TextTransparency = 1
+	-- 				local stroke = child:FindFirstChildOfClass("UIStroke")
+	-- 				if stroke then
+	-- 					stroke.Transparency = 1
+	-- 				end
+	-- 			end
+	-- 		end
+
+	-- 		-- Fade in
+	-- 		local fadeInTime = 0.2
+	-- 		local startTime = tick()
+	-- 		while tick() - startTime < fadeInTime do
+	-- 			local alpha = (tick() - startTime) / fadeInTime
+	-- 			for _, child in textFrame:GetDescendants() do
+	-- 				if child:IsA("TextLabel") then
+	-- 					child.TextTransparency = 1 - alpha
+	-- 					local stroke = child:FindFirstChildOfClass("UIStroke")
+	-- 					if stroke then
+	-- 						stroke.Transparency = 1 - alpha
+	-- 					end
+	-- 				end
+	-- 			end
+	-- 			task.wait()
+	-- 		end
+
+	-- 		-- Ensure fully visible
+	-- 		for _, child in textFrame:GetDescendants() do
+	-- 			if child:IsA("TextLabel") then
+	-- 				child.TextTransparency = 0
+	-- 				local stroke = child:FindFirstChildOfClass("UIStroke")
+	-- 				if stroke then
+	-- 					stroke.Transparency = 0
+	-- 				end
+	-- 			end
+	-- 		end
+
+	-- 		-- Hold briefly
+	-- 		task.wait(0.3)
+
+	-- 		-- Enlarge and fade out
+	-- 		local fadeOutTime = 0.25
+	-- 		startTime = tick()
+	-- 		while tick() - startTime < fadeOutTime do
+	-- 			local alpha = (tick() - startTime) / fadeOutTime
+	-- 			for _, child in textFrame:GetDescendants() do
+	-- 				if child:IsA("TextLabel") then
+	-- 					child.TextTransparency = alpha
+	-- 					child.TextSize = 52 * (1 + alpha * 0.8) -- Enlarge to 1.8x
+	-- 					local stroke = child:FindFirstChildOfClass("UIStroke")
+	-- 					if stroke then
+	-- 						stroke.Transparency = alpha
+	-- 					end
+	-- 				end
+	-- 			end
+	-- 			task.wait()
+	-- 		end
+
+	-- 		-- Cleanup
+	-- 		if billboardGui.Parent then
+	-- 			billboardGui:Destroy()
+	-- 		end
+	-- 		if footAnchor.Parent then
+	-- 			footAnchor:Destroy()
+	-- 		end
+	-- 	end)
+	-- end
+
+	-- RockMod Forward effect - straight forward debris path with lots of rocks
+	print("[ScytheCrit] Starting RockMod Forward effect, hrp:", hrp)
+	if hrp then
+		-- Raycast down to get ground normal
+		local rayParams = RaycastParams.new()
+		rayParams.FilterType = Enum.RaycastFilterType.Exclude
+		rayParams.FilterDescendantsInstances = {Character, workspace.World.Live}
+
+		local groundRay = workspace:Raycast(hrp.Position, Vector3.new(0, -10, 0), rayParams)
+		print("[ScytheCrit] Ground raycast result:", groundRay and "HIT" or "MISS", groundRay and groundRay.Instance or "nil")
+		if groundRay then
+			-- Get character's facing direction (flatten to XZ plane)
+			local lookVector = -hrp.CFrame.LookVector
+			local flatLookVector = Vector3.new(lookVector.X, 0, lookVector.Z).Unit
+
+			-- Position at character's feet
+			local startCFrame = CFrame.new(groundRay.Position)
+
+			print("[ScytheCrit] Creating RockMod.New Forward at", groundRay.Position, "direction:", flatLookVector)
+			local _forwardEffect = RockMod.New("Forward", startCFrame, {
+				Normal = groundRay.Normal,
+				Direction = flatLookVector, -- Use character's actual facing direction (forward)
+				Length = 30, -- Long path going straight forward
+				StepSize = 1.2, -- More debris (smaller step = more rocks)
+				BaseSize = 1.8, -- Size of debris
+				ScaleFactor = 1.065, -- Rocks grow slightly larger as they go
+				Distance = {2, 5}, -- Spread from center line
+				Rotation = {-25, 25},
+				PartLifeTime = 1.8,
+				LifeCycle = {
+					Entrance = {
+						Type = "SizeUp",
+						Speed = 0.15,
+						EasingStyle = Enum.EasingStyle.Circular,
+						EasingDirection = Enum.EasingDirection.Out,
+					},
+					Exit = {
+						Type = "SizeDown",
+						Speed = 0.25,
+						EasingStyle = Enum.EasingStyle.Quad,
+						EasingDirection = Enum.EasingDirection.In,
+					},
+				},
+			})
+			print("[ScytheCrit] RockMod.New returned:", _forwardEffect)
+		else
+			print("[ScytheCrit] Ground raycast MISSED - no RockMod effect created")
+		end
+	else
+		print("[ScytheCrit] No HumanoidRootPart found!")
+	end
+
+	-- Cleanup: disable weapon effects after 10 seconds
+	task.delay(10, function()
+		for _, effect in weaponEffects do
+			if effect and effect.Parent then
+				effect.Enabled = false
+			end
+		end
+	end)
+
+	-- Cleanup crit model after effect
+	task.delay(2, function()
+		if critClone and critClone.Parent then
+			critClone:Destroy()
+		end
+	end)
+end
+
+--[[
+	ScytheCritLoad - Ground charging VFX for Scythe critical attack
+	Called when crit animation STARTS (not at frame 46)
+
+	Timeline (at 60fps):
+	- Frame 0: Position at character's feet, enable particles (normal TimeScale = 1)
+	- Frame 40: TimeScale set to 0 (freeze effect)
+	- Frame 46: TimeScale set back to 1, then Enabled = false
+]]
+function Base.ScytheCritLoad(Character: Model)
+	print("[ScytheCritLoad] Function called for:", Character and Character.Name or "nil")
+
+	local Global = require(Replicated.Modules.Shared.Global)
+
+	-- Get Scythe VFX folder
+	local scytheVFX = VFX:FindFirstChild("Scythe")
+	if not scytheVFX then
+		warn("[ScytheCritLoad] Scythe VFX folder not found!")
+		return
+	end
+
+	-- Get the Load model
+	local loadModel = scytheVFX:FindFirstChild("Load")
+	if not loadModel then
+		warn("[ScytheCritLoad] Load model not found in Scythe VFX folder!")
+		return
+	end
+
+	-- Get character's root part for positioning
+	local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+	if not humanoidRootPart then
+		warn("[ScytheCritLoad] HumanoidRootPart not found!")
+		return
+	end
+
+	print("[ScytheCritLoad] All checks passed, creating VFX")
+
+	-- Constants for white color detection
+	local WHITE_THRESHOLD = 0.95
+
+	local function isWhiteColor(color: Color3): boolean
+		return color.R >= WHITE_THRESHOLD and color.G >= WHITE_THRESHOLD and color.B >= WHITE_THRESHOLD
+	end
+
+	local function ensureBrightColor(color: Color3): Color3
+		local h, s, v = color:ToHSV()
+		local newS = math.max(s, 0.5)
+		local newV = math.max(v, 0.7)
+		return Color3.fromHSV(h, newS, newV)
+	end
+
+	local function getColorVariation(baseColor: Color3): Color3
+		local variationAmount = (math.random() * 0.2 - 0.1)
+		local h, s, v = baseColor:ToHSV()
+		local newV = math.clamp(v + variationAmount, 0.7, 1.0)
+		local newS = math.clamp(s + (variationAmount * 0.3), 0.4, 1.0)
+		return Color3.fromHSV(h, newS, newV)
+	end
+
+	-- Apply Nen color to a ParticleEmitter
+	local function applyNenColorToParticle(particle: ParticleEmitter, nenColor: Color3)
+		local colorSeq = particle.Color
+		local keypoints = colorSeq.Keypoints
+
+		local hasWhite = false
+		for _, kp in keypoints do
+			if isWhiteColor(kp.Value) then
+				hasWhite = true
+				break
+			end
+		end
+
+		if hasWhite then
+			local targetColor = getColorVariation(nenColor)
+			local newKeypoints = {}
+			for _, kp in keypoints do
+				if isWhiteColor(kp.Value) then
+					table.insert(newKeypoints, ColorSequenceKeypoint.new(kp.Time, targetColor))
+				else
+					table.insert(newKeypoints, kp)
+				end
+			end
+			particle.Color = ColorSequence.new(newKeypoints)
+		end
+	end
+
+	-- Get player's Nen color
+	local nenColor = Color3.fromRGB(100, 200, 255) -- Default light blue
+	local playerFromChar = Players:GetPlayerFromCharacter(Character)
+	if not playerFromChar then
+		local localPlayer = Players.LocalPlayer
+		if localPlayer and localPlayer.Character == Character then
+			playerFromChar = localPlayer
+		end
+	end
+
+	if playerFromChar then
+		local nenData = Global.GetData(playerFromChar, "Nen")
+		if nenData and nenData.Color then
+			local r, g, b = nenData.Color.R, nenData.Color.G, nenData.Color.B
+			if not (r >= 250 and g >= 250 and b >= 250) then
+				nenColor = ensureBrightColor(Color3.fromRGB(r, g, b))
+			end
+		end
+	end
+
+	-- Clone the Load model
+	local loadClone = loadModel:Clone()
+
+	-- Position at character's feet (ground level)
+	local footOffset = Vector3.new(0, -humanoidRootPart.Size.Y / 2 - 1.5, 0)
+	local footCFrame = humanoidRootPart.CFrame * CFrame.new(footOffset)
+	loadClone:PivotTo(footCFrame)
+	loadClone.Parent = workspace.World.Visuals
+
+	print("[ScytheCritLoad] VFX cloned and parented to workspace.World.Visuals")
+
+	-- Collect all particle emitters and apply Nen color
+	local particles = {}
+
+	-- Check all descendants
+	for _, descendant in loadClone:GetDescendants() do
+		if descendant:IsA("ParticleEmitter") then
+			-- Apply Nen color
+			applyNenColorToParticle(descendant, nenColor)
+			-- Enable the particle
+			descendant.Enabled = true
+			-- Also emit in case Rate is 0
+			local emitCount = descendant:GetAttribute("EmitCount") or 50
+			descendant:Emit(emitCount)
+			table.insert(particles, descendant)
+		end
+	end
+
+	-- Also check direct children if loadClone is a BasePart
+	if loadClone:IsA("BasePart") then
+		for _, child in loadClone:GetChildren() do
+			if child:IsA("ParticleEmitter") then
+				applyNenColorToParticle(child, nenColor)
+				child.Enabled = true
+				local emitCount = child:GetAttribute("EmitCount") or 50
+				child:Emit(emitCount)
+				table.insert(particles, child)
+			end
+		end
+	end
+
+	print("[ScytheCritLoad] Found and enabled", #particles, "particle emitters")
+
+	local hrp = Character:FindFirstChild("HumanoidRootPart")
+	local nenType = "Enhance"
+	if hrp then
+		-- Create a part at the feet to anchor the billboard
+		local footAnchor = Instance.new("Part")
+		footAnchor.Name = "NenTextAnchor"
+		footAnchor.Anchored = true
+		footAnchor.CanCollide = false
+		footAnchor.Transparency = 1
+		footAnchor.Size = Vector3.new(1, 1, 1)
+		footAnchor.CFrame = hrp.CFrame * CFrame.new(0, -hrp.Size.Y / 2 - 1, 0)
+		footAnchor.Parent = workspace.World.Visuals
+
+		-- Create BillboardGui at feet (Load VFX position)
+		local billboardGui = Instance.new("BillboardGui")
+		billboardGui.Name = "NenCritText"
+		billboardGui.Adornee = footAnchor
+		billboardGui.Size = UDim2.fromOffset(800, 200) -- Larger size to prevent cropping
+		billboardGui.StudsOffset = Vector3.new(0, 1, 0) -- Slightly above ground
+		billboardGui.AlwaysOnTop = true
+		billboardGui.MaxDistance = 100
+		billboardGui.Parent = Players.LocalPlayer and Players.LocalPlayer:FindFirstChild("PlayerGui")
+
+		-- Create text container frame
+		local textFrame = Instance.new("Frame")
+		textFrame.Name = "TextFrame"
+		textFrame.BackgroundTransparency = 1
+		textFrame.Size = UDim2.fromScale(.5, .5)
+		textFrame.Position = UDim2.fromScale(1, 0.5)
+		textFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+		textFrame.ClipsDescendants = false
+		textFrame.Parent = billboardGui
+
+		-- Create text using TextPlus with Jura font, black stroke
+		local TextPlus = require(Replicated.Modules.Utils.Text)
+		TextPlus.Create(textFrame, nenType:upper(), {
+			Size = 52,
+			Color = nenColor,
+			Font = Font.new("rbxasset://fonts/families/Jura.json", Enum.FontWeight.Bold, Enum.FontStyle.Italic),
+			StrokeSize = 3,
+			StrokeColor = Color3.new(0, 0, 0),
+			StrokeTransparency = 0,
+			XAlignment = "Center",
+			YAlignment = "Center",
+			CharacterSpacing = 1.2, -- Slightly wider spacing
+		})
+
+		-- Animate: start transparent, fade in, then enlarge and fade out
+		task.spawn(function()
+			-- Set initial transparency (fade in effect)
+			for _, child in textFrame:GetDescendants() do
+				if child:IsA("TextLabel") then
+					child.TextTransparency = 1
+					local stroke = child:FindFirstChildOfClass("UIStroke")
+					if stroke then
+						stroke.Transparency = 1
+					end
+				end
+			end
+
+			-- Fade in
+			local fadeInTime = 0.2
+			local startTime = tick()
+			while tick() - startTime < fadeInTime do
+				local alpha = (tick() - startTime) / fadeInTime
+				for _, child in textFrame:GetDescendants() do
+					if child:IsA("TextLabel") then
+						child.TextTransparency = 1 - alpha
+						local stroke = child:FindFirstChildOfClass("UIStroke")
+						if stroke then
+							stroke.Transparency = 1 - alpha
+						end
+					end
+				end
+				task.wait()
+			end
+
+			-- Ensure fully visible
+			for _, child in textFrame:GetDescendants() do
+				if child:IsA("TextLabel") then
+					child.TextTransparency = 0
+					local stroke = child:FindFirstChildOfClass("UIStroke")
+					if stroke then
+						stroke.Transparency = 0
+					end
+				end
+			end
+
+			-- Hold briefly
+			task.wait(0.3)
+
+			-- Enlarge and fade out
+			local fadeOutTime = 0.25
+			startTime = tick()
+			while tick() - startTime < fadeOutTime do
+				local alpha = (tick() - startTime) / fadeOutTime
+				for _, child in textFrame:GetDescendants() do
+					if child:IsA("TextLabel") then
+						child.TextTransparency = alpha
+						child.TextSize = 52 * (1 + alpha * 0.8) -- Enlarge to 1.8x
+						local stroke = child:FindFirstChildOfClass("UIStroke")
+						if stroke then
+							stroke.Transparency = alpha
+						end
+					end
+				end
+				task.wait()
+			end
+
+			-- Cleanup
+			if billboardGui.Parent then
+				billboardGui:Destroy()
+			end
+			if footAnchor.Parent then
+				footAnchor:Destroy()
+			end
+		end)
+	end
+
+	-- Timeline (at 60fps):
+	-- Frame 0-39: Normal TimeScale (1), particles enabled
+	-- Frame 40: TimeScale instantly set to 0 (freeze)
+	-- Frame 46: TimeScale set back to 1, then disable particles
+
+	local frame40Time = 40 / 60  -- 0.667 seconds
+	local frame46Time = 46 / 60  -- 0.767 seconds
+
+	-- At frame 40: Set TimeScale to 0 (instant freeze)
+	task.delay(frame40Time, function()
+		if not loadClone or not loadClone.Parent then return end
+
+		for _, particle in particles do
+			if particle and particle.Parent then
+				particle.TimeScale = 0
+			end
+		end
+	end)
+
+	-- At frame 46: Set TimeScale back to 1, then disable
+	task.delay(frame46Time, function()
+		if not loadClone or not loadClone.Parent then return end
+
+		for _, particle in particles do
+			if particle and particle.Parent then
+				particle.TimeScale = 1
+				particle.Enabled = false
+			end
+		end
+	end)
+
+	-- Cleanup after effect completes
+	task.delay(3, function()
+		if loadClone and loadClone.Parent then
+			loadClone:Destroy()
+		end
+	end)
+end
+
+--[[
+	PostureBreak - Visual effect when posture is broken (guard break)
+	Red crack effect with screen shake and highlight
+]]
+function Base.PostureBreak(Target: Model, Invoker: Model?)
+	if not Target or not Target:FindFirstChild("HumanoidRootPart") then
+		return
+	end
+
+	local hrp = Target.HumanoidRootPart
+
+	-- Use existing Guardbreak VFX if available, otherwise create custom effect
+	local guardbreakVFX = Replicated.Assets.VFX:FindFirstChild("Guardbreak")
+	if guardbreakVFX then
+		local eff = guardbreakVFX:Clone()
+		eff.CFrame = hrp.CFrame
+		eff.Parent = workspace.World.Visuals
+
+		for _, v in eff:GetDescendants() do
+			if v:IsA("ParticleEmitter") then
+				v:Emit(v:GetAttribute("EmitCount") or 15)
+			end
+		end
+
+		Debris:AddItem(eff, 4.5)
+	end
+
+	-- Add red crack highlight effect (posture broken indication)
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "PostureBreakHighlight"
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.FillColor = Color3.fromRGB(255, 50, 50)
+	highlight.FillTransparency = 0.3
+	highlight.OutlineTransparency = 0
+	highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+	highlight.Parent = Target
+
+	-- Flash and fade highlight
+	local highlightTInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	task.delay(0.15, function()
+		local hTween = TweenService:Create(highlight, highlightTInfo, {
+			OutlineTransparency = 1,
+			FillTransparency = 1,
+		})
+		hTween:Play()
+		hTween.Completed:Connect(function()
+			highlight:Destroy()
+		end)
+	end)
+
+	-- Strong screen shake for local player
+	if Player and Player.Character == Target then
+		CamShake:ShakeOnce({
+			Magnitude = 15,
+			Damp = 0.0001,
+			Frequency = 20,
+			Influence = Vector3.new(0.6, 1, 0.6),
+			Falloff = 50,
+		})
+	else
+		-- Smaller shake for witnessing posture break
+		CamShake:ShakeOnce({
+			Magnitude = 5,
+			Damp = 0.0001,
+			Frequency = 15,
+			Influence = Vector3.new(0.3, 0.5, 0.3),
+			Falloff = 40,
+		})
+	end
+
+	-- Play sound effect
+	local breakSound = SFX:FindFirstChild("GuardBreak") or SFX:FindFirstChild("Impact")
+	if breakSound then
+		local sound = breakSound:Clone()
+		sound.Parent = hrp
+		sound:Play()
+		Debris:AddItem(sound, 3)
+	end
+end
+
+--[[
+	CounterHit - Visual effect when interrupting an enemy's attack
+	Yellow flash with "COUNTER" text popup
+]]
+function Base.CounterHit(Target: Model, Invoker: Model?)
+	if not Target or not Target:FindFirstChild("HumanoidRootPart") then
+		return
+	end
+
+	local hrp = Target.HumanoidRootPart
+	local head = Target:FindFirstChild("Head")
+
+	-- Yellow highlight flash
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "CounterHitHighlight"
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.FillColor = Color3.fromRGB(255, 220, 50)
+	highlight.FillTransparency = 0.4
+	highlight.OutlineTransparency = 0
+	highlight.OutlineColor = Color3.fromRGB(255, 200, 0)
+	highlight.Parent = Target
+
+	-- Flash and fade highlight quickly
+	local highlightTInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	task.delay(0.1, function()
+		local hTween = TweenService:Create(highlight, highlightTInfo, {
+			OutlineTransparency = 1,
+			FillTransparency = 1,
+		})
+		hTween:Play()
+		hTween.Completed:Connect(function()
+			highlight:Destroy()
+		end)
+	end)
+
+	-- Create "COUNTER" text billboard
+	if head then
+		local billboardGui = Instance.new("BillboardGui")
+		billboardGui.Name = "CounterHitText"
+		billboardGui.Adornee = head
+		billboardGui.Size = UDim2.fromOffset(200, 50)
+		billboardGui.StudsOffset = Vector3.new(0, 3.5, 0)
+		billboardGui.AlwaysOnTop = true
+		billboardGui.MaxDistance = 80
+		billboardGui.Parent = Player and Player:FindFirstChild("PlayerGui")
+
+		local textLabel = Instance.new("TextLabel")
+		textLabel.Name = "CounterText"
+		textLabel.BackgroundTransparency = 1
+		textLabel.Size = UDim2.fromScale(1, 1)
+		textLabel.Position = UDim2.fromScale(0.5, 0.5)
+		textLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+		textLabel.Font = Enum.Font.GothamBold
+		textLabel.Text = "COUNTER"
+		textLabel.TextColor3 = Color3.fromRGB(255, 220, 50)
+		textLabel.TextStrokeColor3 = Color3.fromRGB(100, 80, 0)
+		textLabel.TextStrokeTransparency = 0
+		textLabel.TextSize = 0 -- Start at 0 for punch-in
+		textLabel.TextTransparency = 0
+		textLabel.Parent = billboardGui
+
+		-- Punch-in animation
+		local punchInInfo = TweenInfo.new(0.08, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		local punchInTween = TweenService:Create(textLabel, punchInInfo, {
+			TextSize = 32
+		})
+		punchInTween:Play()
+
+		-- Float up and fade out
+		task.delay(0.3, function()
+			if not billboardGui.Parent then return end
+
+			local fadeInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			local fadeTween = TweenService:Create(textLabel, fadeInfo, {
+				TextTransparency = 1,
+				TextStrokeTransparency = 1,
+			})
+			local moveTween = TweenService:Create(billboardGui, fadeInfo, {
+				StudsOffset = Vector3.new(0, 5, 0)
+			})
+			fadeTween:Play()
+			moveTween:Play()
+
+			fadeTween.Completed:Connect(function()
+				billboardGui:Destroy()
+			end)
+		end)
+	end
+
+	-- Small screen shake for impact feel
+	CamShake:ShakeOnce({
+		Magnitude = 4,
+		Damp = 0.0001,
+		Frequency = 18,
+		Influence = Vector3.new(0.4, 0.6, 0.4),
+		Falloff = 35,
+	})
+
+	-- Play counter hit sound
+	local hitSound = SFX:FindFirstChild("CounterHit") or SFX:FindFirstChild("CriticalHit") or SFX:FindFirstChild("Hit")
+	if hitSound then
+		local sound = hitSound:Clone()
+		sound.Parent = hrp
+		sound.PlaybackSpeed = 1.2 -- Slightly higher pitch for counter
+		sound:Play()
+		Debris:AddItem(sound, 2)
+	end
+end
+
+--[[
+	ArmorAbsorb - Visual effect when CounterArmor absorbs a hit
+	White/blue flash to indicate armor absorbed the stun
+]]
+function Base.ArmorAbsorb(Target: Model)
+	if not Target or not Target:FindFirstChild("HumanoidRootPart") then
+		return
+	end
+
+	-- White/blue highlight flash to indicate armor
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "ArmorAbsorbHighlight"
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.FillColor = Color3.fromRGB(200, 220, 255)
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0
+	highlight.OutlineColor = Color3.fromRGB(150, 200, 255)
+	highlight.Parent = Target
+
+	-- Quick flash and fade
+	local highlightTInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	task.delay(0.05, function()
+		local hTween = TweenService:Create(highlight, highlightTInfo, {
+			OutlineTransparency = 1,
+			FillTransparency = 1,
+		})
+		hTween:Play()
+		hTween.Completed:Connect(function()
+			highlight:Destroy()
+		end)
+	end)
+
+	-- Subtle screen shake
+	CamShake:ShakeOnce({
+		Magnitude = 2,
+		Damp = 0.0001,
+		Frequency = 15,
+		Influence = Vector3.new(0.3, 0.4, 0.3),
+		Falloff = 30,
+	})
 end
 
 return Base

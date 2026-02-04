@@ -1,4 +1,7 @@
 -- NPC Continuous Attack System - for aggressive NPCs to attack repeatedly
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
+
 return function(actor: Actor, mainConfig: table)
     local npc = actor:FindFirstChildOfClass("Model")
     if not npc then 
@@ -65,12 +68,8 @@ return function(actor: Actor, mainConfig: table)
         end
     end
     
-    -- Clear any blocking states that might prevent attacking
-    local actions = npc:FindFirstChild("Actions")
-    if actions then
-        -- Clear any previous attacking states to prevent blocking
-        Server.Library.RemoveState(actions, "Attacking")
-    end
+    -- Clear any blocking states that might prevent attacking using ECS StateManager
+    StateManager.RemoveState(npc, "Actions", "Attacking")
 
     -- Use Combat.Light just like players do
     ---- print("NPC", npc.Name, "calling Combat.Light with entity:", Entity and "found" or "not found")

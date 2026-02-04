@@ -5,6 +5,7 @@ local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local Bridges = require(ReplicatedStorage.Modules.Bridges)
 local NotificationManager = require(ReplicatedStorage.Client.NotificationManager)
+local Players = game:GetService("Players")
 
 -- Deserialize inventory data
 -- Server sends items as an array (not sparse table) to avoid BridgeNet2 issues
@@ -46,25 +47,36 @@ end
 
 -- Handle inventory updates from server
 Bridges.Inventory:Connect(function(syncData)
+    print("[InventoryHandler] 📦 RECEIVED inventory sync from server!")
+    print("[InventoryHandler] Items count:", syncData and syncData.inventory and #syncData.inventory.items or "nil")
 
-    -- Wait a bit to ensure ECS is fully initialized
-    local maxAttempts = 10
+    -- Wait for the entity to be properly synced from server (not a client-created fallback)
+    -- This ensures we set inventory on the correct entity
+    local maxAttempts = 50  -- Increased to 5 seconds max wait
     local attempt = 0
     local pent = nil
+    local localPlayer = Players.LocalPlayer
 
     while attempt < maxAttempts do
-        pent = ref.get("local_player")  -- No second parameter needed for local_player
-        if pent then
-            ---- print("[InventoryHandler] Client: Local player entity found:", pent, "(attempt", attempt + 1, ")")
+        -- Check if we have a server-synced entity (via network_id or player ref)
+        -- Don't use ref.get("local_player") as it creates a fallback entity
+        -- First try to get from player refs (set by SetPlayerEntity sync)
+        pent = ref.get("player", localPlayer)
+
+        if pent and world:contains(pent) then
+            print("[InventoryHandler] Client: Server-synced entity found:", pent, "(attempt", attempt + 1, ")")
             break
         end
+
         attempt = attempt + 1
-        warn("[InventoryHandler] Client: No local player entity found, retrying... (attempt", attempt, "/", maxAttempts, ")")
+        if attempt % 10 == 0 then
+            warn("[InventoryHandler] Client: Waiting for server-synced entity... (attempt", attempt, "/", maxAttempts, ")")
+        end
         task.wait(0.1)
     end
 
     if not pent then
-        warn("[InventoryHandler] Client: FAILED to get local player entity after", maxAttempts, "attempts!")
+        warn("[InventoryHandler] Client: FAILED to get server-synced entity after", maxAttempts, "attempts!")
         warn("[InventoryHandler] Client: Inventory sync FAILED - player entity does not exist")
         return
     end
@@ -109,16 +121,58 @@ Bridges.Inventory:Connect(function(syncData)
             end
         end
     else
+        -- BUGFIX: First sync - skip notifications but ALSO populate previousInventory
+        -- This prevents the second sync (backup sync) from triggering notifications
         ---- print("[InventoryHandler] First sync - skipping notifications for initial inventory")
         isFirstSync = false
+
+        -- Populate previousInventory so second sync doesn't treat items as new
+        for _, item in ipairs(syncData.inventory.items) do
+            local slot = item.slot
+            previousInventory[slot] = {
+                name = item.name,
+                typ = item.typ,
+                quantity = item.quantity
+            }
+        end
     end
 
     -- Update inventory component
     local inventory = deserializeInventory(syncData.inventory)
+    print("[InventoryHandler] Setting inventory on entity:", pent)
+    print("[InventoryHandler] Inventory items count:", #syncData.inventory.items)
+    for _, item in ipairs(syncData.inventory.items) do
+        print("  Slot", item.slot, ":", item.name, "(type:", item.typ, ")")
+    end
+
+    -- CRITICAL: Check if entity exists in client world before setting components
+    -- Server entity IDs don't automatically exist in client's jecs world
+    local entityExists = world:contains(pent)
+    print("[InventoryHandler] Entity", pent, "exists in client world:", entityExists)
+
+    if not entityExists then
+        -- Entity doesn't exist - we need to create it or use a different approach
+        warn("[InventoryHandler] ⚠️ Entity", pent, "does not exist in client world! Creating it...")
+        -- The entity ID from server needs to exist in client world
+        -- This might happen if jecs_world isn't properly syncing entity IDs
+    end
+
     world:set(pent, comps.Inventory, inventory)
+    print("[InventoryHandler] ✅ Set Inventory component on entity:", pent)
+
+    -- Verify it was actually set
+    local hasInv = world:has(pent, comps.Inventory)
+    print("[InventoryHandler] Verification - entity has Inventory:", hasInv)
 
     -- Update hotbar component
+    print("[InventoryHandler] Setting hotbar on entity:", pent)
+    print("[InventoryHandler] Hotbar slots:", syncData.hotbar.slots)
     world:set(pent, comps.Hotbar, syncData.hotbar)
+    print("[InventoryHandler] ✅ Set Hotbar component on entity:", pent)
+
+    -- Verify it was actually set
+    local hasHotbar = world:has(pent, comps.Hotbar)
+    print("[InventoryHandler] Verification - entity has Hotbar:", hasHotbar)
 
     -- Show notifications for new items
     ---- print("[InventoryHandler] Total new items to notify:", #newItems)

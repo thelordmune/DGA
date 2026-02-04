@@ -9,9 +9,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 
+-- PERFORMANCE: Cache query at module level to avoid recreating every frame
+local questQuery = world:query(comps.ActiveQuest, comps.QuestData):cached()
+
 local function questsystem()
 	-- Check active quests for progression
-	for entity in world:query(comps.ActiveQuest, comps.QuestData):iter() do
+	for entity in questQuery do
 		local activeQuest = world:get(entity, comps.ActiveQuest)
 
 		-- Auto-complete quest after 10 seconds for testing (sets QuestItemCollected, not CompletedQuest)

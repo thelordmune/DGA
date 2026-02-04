@@ -72,8 +72,11 @@ return function(scope, props: {
 			if cooldownLabel then cooldownLabel.Text = "" end
 			if augmentsLabel then augmentsLabel.Text = "" end
 			disconnect()
-			if tsk then tsk = nil end
-			-- tsk = nil
+			-- Cancel the spawned thread to prevent memory leak
+			if tsk then
+				task.cancel(tsk)
+				tsk = nil
+			end
 		end
 	end)
 

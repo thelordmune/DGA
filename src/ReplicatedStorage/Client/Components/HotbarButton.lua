@@ -39,9 +39,20 @@ return function(scope, props: {
 	local unlocking = scope:Value(false)
 	local flash = scope:Value(false)
 
-	-- Update cooldown every frame using Library (old cooldown system)
-	local cooldownConnection = RunService.RenderStepped:Connect(function()
+	-- OPTIMIZED: Throttle cooldown updates to 10 Hz instead of every frame
+	local COOLDOWN_UPDATE_INTERVAL = 0.1 -- 10 Hz
+	local cooldownUpdateAcc = 0
+
+	-- Update cooldown at throttled rate using Library (old cooldown system)
+	local cooldownConnection = RunService.RenderStepped:Connect(function(dt)
 		if not character then return end
+
+		-- OPTIMIZED: Throttle updates to 10 Hz
+		cooldownUpdateAcc = cooldownUpdateAcc + dt
+		if cooldownUpdateAcc < COOLDOWN_UPDATE_INTERVAL then
+			return
+		end
+		cooldownUpdateAcc = 0
 
 		-- Get the current item name (handle both Computed and string values)
 		local currentItemName = itemName
@@ -178,6 +189,38 @@ return function(scope, props: {
 		end,
 
 		[Children] = {
+			-- Skill/Item icon display
+			scope:New "ImageLabel" {
+				Name = "SkillIcon",
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.fromScale(0.7, 0.7),
+				ZIndex = 99,
+				Image = scope:Computed(function(use)
+					if typeof(itemIcon) == "table" and itemIcon.get then
+						return use(itemIcon) or "rbxassetid://71291612556381"
+					else
+						return itemIcon or "rbxassetid://71291612556381"
+					end
+				end),
+				ImageTransparency = scope:Computed(function(use)
+					-- Hide icon when there's no item
+					local currentIcon
+					if typeof(itemIcon) == "table" and itemIcon.get then
+						currentIcon = use(itemIcon)
+					else
+						currentIcon = itemIcon
+					end
+					-- Hide if it's the default/empty icon
+					if not currentIcon or currentIcon == "" or currentIcon == "rbxassetid://71291612556381" then
+						return 1
+					end
+					return 0
+				end),
+			},
+
 			-- Key indicator
 			scope:New "ImageLabel" {
 				Name = "KeyIndicator",
