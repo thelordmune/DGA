@@ -1,0 +1,14 @@
+title = "luausignal"
+gitRepoUrl = "https://github.com/ffrostfall/luausignal/"
+
+changelog = true
+
+[docusaurus]
+projectName = "luausignal"
+tagline = "Tested, fast, typed signals for Luau."
+
+[footer]
+style = "dark"
+
+[home]
+enabled = false
