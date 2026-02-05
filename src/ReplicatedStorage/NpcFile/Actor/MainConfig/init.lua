@@ -83,6 +83,9 @@ type MovementConfig = {
 	},
 }
 
+-- Cache the NPC model reference so it persists after Chrono moves it to NpcRegistryCamera
+local cachedNpcModel = nil
+
 local MainConfig = {
 	States = {},
 	Storage = {},
@@ -449,7 +452,17 @@ function MainConfig.performAction(action, ...)
 end
 
 function MainConfig.getNpc()
-	return script.Parent:FindFirstChildOfClass("Model")
+	-- Return cached model if available (persists after Chrono moves it)
+	if cachedNpcModel and cachedNpcModel.Parent then
+		return cachedNpcModel
+	end
+
+	-- First time lookup - cache the reference
+	local model = script.Parent:FindFirstChildOfClass("Model")
+	if model then
+		cachedNpcModel = model
+	end
+	return model
 end
 function MainConfig.hasState(player: Model | Player, state: string, value: any)
 	local stateValue = MainConfig.getState(player)
@@ -735,6 +748,9 @@ function MainConfig.cleanup(boolean: boolean)
 		MainConfig.AppearanceSignal:Destroy()
 		MainConfig.AppearanceSignal = nil
 	end
+
+	-- Clear cached NPC model reference
+	cachedNpcModel = nil
 end
 
 return MainConfig

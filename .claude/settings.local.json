@@ -16,7 +16,9 @@
       "Bash(cmd /c dir /s /b \"c:\\\\Users\\\\uuath\\\\OneDrive\\\\Documents\\\\GitHub\\\\ironveil\\\\src\\\\ReplicatedStorage\\\\Assets\\\\Models\")",
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nUpdate Discord webhook to use secrets\n\nTest commit to verify GitHub Actions workflow\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [],
     "ask": []

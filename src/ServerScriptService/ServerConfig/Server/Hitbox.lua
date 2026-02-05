@@ -3,6 +3,9 @@ local Server = require(script.Parent)
 Hitbox.__index = Hitbox
 local self = setmetatable({}, Hitbox)
 
+-- Get reference to Chrono's NpcRegistryCamera (server-side NPCs)
+local NpcRegistryCamera = workspace:FindFirstChild("NpcRegistryCamera")
+
 -- Modified to check for entities, walls, and destructible objects
 function CheckValidTarget(TargetPart, Entity)
 	local Valid = false
@@ -12,7 +15,10 @@ function CheckValidTarget(TargetPart, Entity)
 		-- Check for regular entities
 		if TargetPart.Parent:FindFirstChild("Humanoid") then
 			local TargetCharacter = TargetPart.Parent
-			if TargetCharacter:IsDescendantOf(workspace.World.Live) and TargetCharacter ~= Entity then
+			-- Check both workspace.World.Live AND NpcRegistryCamera (Chrono NPCs)
+			local isInLive = TargetCharacter:IsDescendantOf(workspace.World.Live)
+			local isInChrono = NpcRegistryCamera and TargetCharacter:IsDescendantOf(NpcRegistryCamera)
+			if (isInLive or isInChrono) and TargetCharacter ~= Entity then
 				Valid = true
 			end
 
@@ -70,11 +76,21 @@ Hitbox.SpatialQuery = function(Entity: Model, BoxSize: Vector3, BoxCFrame: CFram
 		shouldVisualize = HitboxDebugModule.IsEnabled(Player)
 	end
 
-	-- First check for entities (characters/NPCs)
+	-- First check for entities (characters/NPCs) in workspace.World.Live
 	local EntityParams = OverlapParams.new()
 	EntityParams.FilterDescendantsInstances = { workspace.World.Live }
 	EntityParams.FilterType = Enum.RaycastFilterType.Include
 	EntityParams.CollisionGroup = "Default"
+
+	-- Also check Chrono's NpcRegistryCamera for server-side NPCs
+	-- Refresh reference in case it was created after module loaded
+	NpcRegistryCamera = workspace:FindFirstChild("NpcRegistryCamera")
+	local ChronoParams = OverlapParams.new()
+	if NpcRegistryCamera then
+		ChronoParams.FilterDescendantsInstances = { NpcRegistryCamera }
+		ChronoParams.FilterType = Enum.RaycastFilterType.Include
+		ChronoParams.CollisionGroup = "Default"
+	end
 
 	-- Then check for walls (in Transmutables folder)
 	local WallParams = OverlapParams.new()
@@ -89,6 +105,14 @@ Hitbox.SpatialQuery = function(Entity: Model, BoxSize: Vector3, BoxCFrame: CFram
 	-- Combine results from all queries
 	local HitParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, EntityParams)
 	local WallParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, WallParams)
+
+	-- Also query Chrono NPCs
+	if NpcRegistryCamera then
+		local ChronoParts = workspace:GetPartBoundsInBox(BoxCFrame, BoxSize, ChronoParams)
+		for _, part in ipairs(ChronoParts) do
+			table.insert(HitParts, part)
+		end
+	end
 
 	-- Merge wall parts into hit parts
 	for _, part in ipairs(WallParts) do

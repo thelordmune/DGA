@@ -147,8 +147,9 @@ function NpcBrain.init()
 	local npcName = script.Parent.Parent.Name
 
 	-- Check if this NPC is controlled by ECS (combat NPCs)
+	-- Use MainConfig.getNpc() which caches the reference (persists after Chrono moves the model)
 	local ECSBridge = require(ReplicatedStorage.NpcHelper.ECSBridge)
-	local npcModel = script.Parent:FindFirstChildOfClass("Model")
+	local npcModel = MainConfig.getNpc()
 	local isECSControlled = ECSBridge.isCombatNPC(npcModel)
 
 	if isECSControlled then
@@ -164,7 +165,8 @@ function NpcBrain.init()
 	end)
 
 	RunService.Heartbeat:Connect(function(deltaTime: number)
-		local npc = script.Parent:FindFirstChildOfClass("Model")
+		-- Use MainConfig.getNpc() which caches the reference (persists after Chrono moves the model)
+		local npc = MainConfig.getNpc()
 
 		local currentTime = os.clock()
 		local waitTime = calculateWaitTime(npc)

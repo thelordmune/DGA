@@ -245,14 +245,94 @@ for __ = 1, #EffectModules do
 	end
 end
 
+-- Get the client's own NpcRegistryCamera (tagged with ClientOwned attribute)
+local cachedClientCamera = nil
+local function getClientNpcCamera()
+    if cachedClientCamera and cachedClientCamera.Parent then
+        return cachedClientCamera
+    end
+    for _, child in workspace:GetChildren() do
+        if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
+            cachedClientCamera = child
+            return child
+        end
+    end
+    return nil
+end
+
+-- Resolve Chrono marker tables (sent by server Visuals.lua) to client clone models
+-- Markers are tables with {_chronoMarker = true, _chronoId = number, _name = string}
+local function resolveChronoMarker(arg)
+    if type(arg) == "table" and arg._chronoMarker then
+        local clientCamera = getClientNpcCamera()
+        if not clientCamera then return nil end
+
+        -- Client clones are named tostring(id) inside the client camera
+        local clone = clientCamera:FindFirstChild(tostring(arg._chronoId))
+        if clone and clone:IsA("Model") then
+            return clone
+        end
+
+        -- Recursive search as fallback
+        clone = clientCamera:FindFirstChild(tostring(arg._chronoId), true)
+        if clone and clone:IsA("Model") then
+            return clone
+        end
+
+        -- Fallback: try by original model name
+        if arg._name then
+            local byName = clientCamera:FindFirstChild(arg._name, true)
+            if byName and byName:IsA("Model") then
+                return byName
+            end
+        end
+
+        return nil
+    end
+
+    -- Also handle Instance refs that ended up in server's NpcRegistryCamera
+    if typeof(arg) == "Instance" and arg:IsA("Model") and not Players:GetPlayerFromCharacter(arg) then
+        local parent = arg.Parent
+        while parent do
+            if parent.Name == "NpcRegistryCamera" then
+                local clientCamera = getClientNpcCamera()
+                if not clientCamera then return arg end
+
+                local chronoId = arg:GetAttribute("ChronoId") or arg:GetAttribute("NPC_ID")
+                if chronoId then
+                    local clone = clientCamera:FindFirstChild(tostring(chronoId), true)
+                    if clone and clone:IsA("Model") then
+                        return clone
+                    end
+                end
+
+                if arg.Name then
+                    local byName = clientCamera:FindFirstChild(arg.Name, true)
+                    if byName and byName:IsA("Model") then
+                        return byName
+                    end
+                end
+                return arg
+            end
+            parent = parent.Parent
+        end
+    end
+
+    return arg
+end
+
 Client.Packets.Visuals.listen(function(Packet)
-    -- Process all VFX packets - no duplicate prevention needed with reliable networking
-   ---- --print("Visual packet received:", Packet.Module, Packet.Function)
     if Client.Environment[Packet.Module] and Client.Environment[Packet.Module][Packet.Function] then
-        Client.Environment[Packet.Module][Packet.Function](unpack(Packet.Arguments))
+        -- Resolve any Chrono NPC markers/references in arguments to client clones
+        local resolvedArgs = Packet.Arguments
+        if resolvedArgs then
+            for i, arg in resolvedArgs do
+                resolvedArgs[i] = resolveChronoMarker(arg)
+            end
+        end
+        Client.Environment[Packet.Module][Packet.Function](unpack(resolvedArgs))
     else
-       -- warn(`[Visuals] Module: {Packet.Module}, Function: {Packet.Function} Does Not Exist`)
-       -- warn(`[Visuals] Available modules:`, Client.Environment)
+       warn(`[Visuals] Module: {Packet.Module}, Function: {Packet.Function} Does Not Exist`)
     end
 end)
 

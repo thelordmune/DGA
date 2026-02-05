@@ -11,6 +11,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local InsertService = game:GetService("InsertService")
 local CollectionService = game:GetService("CollectionService")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+-- Server module for Entity system (required for Combat.Light to work with NPCs)
+local Server = require(ServerScriptService.ServerConfig.Server)
 
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
@@ -368,15 +372,31 @@ local function isCombatNPC(npcModel: Model): boolean
 
 	-- OPTIMIZATION: Don't wait for Actor parent - just check immediately
 	-- If Actor doesn't exist yet, the NPC will be reinitialized when it's fully loaded
+	-- NOTE: NpcFile can be either an Actor or a Configuration named "Actor"
 	local actor = npcModel.Parent
-	if not actor or not actor:IsA("Actor") then
-		---- print(`[Mobs] {npcModel.Name} - No Actor parent found, assuming DIALOGUE NPC (safer default)`)
-		return false -- Default to dialogue NPC if no Actor (safer for dummies/static NPCs)
+	if not actor then
+		return false
 	end
 
+	-- Accept both Actor instances and Configuration instances (NpcFile template uses Configuration)
+	local isValidContainer = actor:IsA("Actor") or (actor:IsA("Configuration") and actor.Name == "Actor")
+	if not isValidContainer then
+		return false -- Default to dialogue NPC if no valid container
+	end
+
+	-- Data folder can be:
+	-- 1. Direct child of actor (old structure)
+	-- 2. Inside the NpcFile parent folder (new structure from regions/init.luau)
 	local dataFolder = actor:FindFirstChild("Data")
 	if not dataFolder then
-		---- print(`[Mobs] {npcModel.Name} - No Data folder found, assuming DIALOGUE NPC (safer default)`)
+		-- Check parent (NpcFile folder) for Data folder
+		local npcFile = actor.Parent
+		if npcFile then
+			dataFolder = npcFile:FindFirstChild("Data")
+		end
+	end
+
+	if not dataFolder then
 		return false -- Default to dialogue NPC if no Data folder
 	end
 
@@ -384,11 +404,8 @@ local function isCombatNPC(npcModel: Model): boolean
 	local combatFolder = dataFolder:FindFirstChild("Combat")
 	if combatFolder then
 		local lightValue = combatFolder:FindFirstChild("Light")
-		if lightValue then
-			---- print(`[Mobs] {npcModel.Name} - Combat.Light = {lightValue.Value}`)
-			if lightValue.Value == true then
-				return true
-			end
+		if lightValue and lightValue.Value == true then
+			return true
 		end
 	end
 
@@ -396,11 +413,8 @@ local function isCombatNPC(npcModel: Model): boolean
 	local weaponsFolder = dataFolder:FindFirstChild("Weapons")
 	if weaponsFolder then
 		local enabledValue = weaponsFolder:FindFirstChild("Enabled")
-		if enabledValue then
-			---- print(`[Mobs] {npcModel.Name} - Weapons.Enabled = {enabledValue.Value}`)
-			if enabledValue.Value == true then
-				return true
-			end
+		if enabledValue and enabledValue.Value == true then
+			return true
 		end
 	end
 
@@ -408,15 +422,11 @@ local function isCombatNPC(npcModel: Model): boolean
 	local enemyDetectionFolder = dataFolder:FindFirstChild("EnemyDetection")
 	if enemyDetectionFolder then
 		local captureDistValue = enemyDetectionFolder:FindFirstChild("CaptureDistance")
-		if captureDistValue then
-			---- print(`[Mobs] {npcModel.Name} - EnemyDetection.CaptureDistance = {captureDistValue.Value}`)
-			if captureDistValue.Value > 0 then
-				return true
-			end
+		if captureDistValue and captureDistValue.Value > 0 then
+			return true
 		end
 	end
 
-	---- print(`[Mobs] {npcModel.Name} - No combat indicators found, defaulting to DIALOGUE NPC`)
 	return false
 end
 
@@ -817,6 +827,33 @@ local function initializeNPCEntity(npcModel: Model): number
 					pauseEndTime = 0,
 					moveEndTime = 0,
 				})
+			end
+
+			-- IMPORTANT: Initialize entity with Server.Modules.Entities BEFORE Chrono registration
+			-- Chrono moves the model to NpcRegistryCamera, but Combat.Light needs the entity
+			-- to be in Server.Entities (keyed by model reference)
+			-- This must happen BEFORE Chrono moves the model out of workspace.World.Live
+			if not Server.Modules.Entities.Get(npcModel) then
+				Server.Modules.Entities.Init(npcModel)
+				print(`[Mobs] ✅ Initialized Server.Entities for combat NPC: {npcModel.Name}`)
+			end
+
+			-- Register combat NPC with Chrono for optimized replication
+			-- Same as wanderers: server model hidden, client gets clones
+			-- automaticUpdate = true means Chrono will automatically sync position changes
+			local NpcRegistry = getChronoNpcRegistry()
+			if NpcRegistry then
+				local chronoId = NpcRegistry.Register(
+					npcModel,      -- The NPC model
+					"DEFAULT",     -- NPC type (uses DEFAULT tick rate - 30Hz for combat)
+					nil,           -- npcModelType (nil = use model directly)
+					true,          -- automaticUpdate = true (auto-sync position)
+					nil            -- initData (none needed for combat NPCs)
+				)
+				if chronoId then
+					chronoNpcIds[npcModel] = chronoId
+					npcModel:SetAttribute("ChronoId", chronoId)
+				end
 			end
 		elseif isWanderer then
 			-- Wanderer-specific AI components (simpler than combat NPCs)

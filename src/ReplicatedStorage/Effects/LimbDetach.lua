@@ -9,6 +9,56 @@ local TextPlus = require(Replicated.Modules.Utils.Text)
 
 local LimbDetach = {}
 
+-- Check if a model is inside any NpcRegistryCamera
+local function isInNpcRegistryCamera(inst)
+	local parent = inst.Parent
+	while parent do
+		if parent.Name == "NpcRegistryCamera" then
+			return true
+		end
+		parent = parent.Parent
+	end
+	return false
+end
+
+-- Resolve Chrono NPC server model references to client clones
+local function resolveChronoModel(model: Model?): Model?
+	if not model then return nil end
+
+	if Players:GetPlayerFromCharacter(model) then
+		return model
+	end
+
+	if not isInNpcRegistryCamera(model) then
+		return model
+	end
+
+	local clientCamera = nil
+	for _, child in workspace:GetChildren() do
+		if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
+			clientCamera = child
+			break
+		end
+	end
+
+	local chronoId = model:GetAttribute("ChronoId")
+	if chronoId and clientCamera then
+		local clientClone = clientCamera:FindFirstChild(tostring(chronoId), true)
+		if clientClone and clientClone:IsA("Model") then
+			return clientClone
+		end
+	end
+
+	if clientCamera and model.Name then
+		local byName = clientCamera:FindFirstChild(model.Name, true)
+		if byName and byName:IsA("Model") then
+			return byName
+		end
+	end
+
+	return model
+end
+
 -- Warning messages that cycle through (with placeholder for limb name)
 local WARNING_MESSAGES = {
 	"SEEK A DOCTOR",
@@ -35,8 +85,10 @@ local LimbParts = {
 }
 
 function LimbDetach.SeverLimb(character: Model, limbName: string, attacker: Model)
+    character = resolveChronoModel(character) :: Model
+    attacker = resolveChronoModel(attacker) :: Model
     local limbPartName = LimbParts[limbName]
-    if not limbPartName then return end
+    if not limbPartName or not character then return end
 
     local limb = character:FindFirstChild(limbPartName)
     if not limb then return end

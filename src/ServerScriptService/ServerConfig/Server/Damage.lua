@@ -23,6 +23,39 @@ local StunSignals = require(Replicated.Modules.Signals.StunSignals)
 local StunRegistry = require(Replicated.Modules.ECS.StunRegistry)
 local ActionCancellation = require(Replicated.Modules.ECS.ActionCancellation)
 local StateManager = require(Replicated.Modules.ECS.StateManager)
+local Players = game:GetService("Players")
+
+-- Helper to set combat animation attribute for Chrono NPC replication
+-- Same as Combat.lua - replicates animations to client clones
+local NPC_MODEL_CACHE = Replicated:FindFirstChild("NPC_MODEL_CACHE")
+
+local function setNPCCombatAnim(character: Model, weapon: string, animType: string, animName: string, speed: number?)
+	-- Only set attribute for NPCs (not players) that have a ChronoId
+	if Players:GetPlayerFromCharacter(character) then
+		return -- Skip players
+	end
+
+	local chronoId = character:GetAttribute("ChronoId")
+	if not chronoId then
+		return -- Not a Chrono NPC
+	end
+
+	local animSpeed = speed or 1
+	local timestamp = os.clock()
+	local animData = `{weapon}|{animType}|{animName}|{animSpeed}|{timestamp}`
+
+	character:SetAttribute("NPCCombatAnim", animData)
+
+	if not NPC_MODEL_CACHE then
+		NPC_MODEL_CACHE = Replicated:FindFirstChild("NPC_MODEL_CACHE")
+	end
+	if NPC_MODEL_CACHE then
+		local cacheModel = NPC_MODEL_CACHE:FindFirstChild(tostring(chronoId))
+		if cacheModel then
+			cacheModel:SetAttribute("NPCCombatAnim", animData)
+		end
+	end
+end
 
 -- BvelRemove Effect enum for optimized packet (matches client-side decoder)
 local BvelRemoveEffect = {
@@ -249,13 +282,13 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 					-- Apply stun using new priority system
 					if not Table.NoStunAnim then
-						Library.PlayAnimation(
-							Target,
-							Replicated.Assets.Animations.Hit:GetChildren()[Random.new():NextInteger(
-								1,
-								#Replicated.Assets.Animations.Hit:GetChildren()
-							)]
-						)
+						local hitAnims = Replicated.Assets.Animations.Hit:GetChildren()
+						local hitAnimIndex = Random.new():NextInteger(1, #hitAnims)
+						local hitAnim = hitAnims[hitAnimIndex]
+						Library.PlayAnimation(Target, hitAnim)
+
+						-- Replicate hit stun animation to clients for Chrono NPCs
+						setNPCCombatAnim(Target, "Hit", "Stun", hitAnim.Name, 1)
 					end
 
 					local stunDuration = Table.Stun
@@ -332,13 +365,13 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		-- Normal stun (no hyperarmor) - use new priority system
 		if not Table.NoStunAnim then
-			Library.PlayAnimation(
-				Target,
-				Replicated.Assets.Animations.Hit:GetChildren()[Random.new():NextInteger(
-					1,
-					#Replicated.Assets.Animations.Hit:GetChildren()
-				)]
-			)
+			local hitAnims = Replicated.Assets.Animations.Hit:GetChildren()
+			local hitAnimIndex = Random.new():NextInteger(1, #hitAnims)
+			local hitAnim = hitAnims[hitAnimIndex]
+			Library.PlayAnimation(Target, hitAnim)
+
+			-- Replicate hit stun animation to clients for Chrono NPCs
+			setNPCCombatAnim(Target, "Hit", "Stun", hitAnim.Name, 1)
 		end
 
 		-- NPCs and players get the same stun duration now

@@ -10,6 +10,38 @@ local Players = game:GetService("Players")
 
 Customs.__index = Customs
 
+-- Helper to set combat animation attribute for Chrono NPC replication
+-- Same as Combat.lua - replicates animations to client clones
+local NPC_MODEL_CACHE = ReplicatedStorage:FindFirstChild("NPC_MODEL_CACHE")
+
+local function setNPCCombatAnim(character: Model, weapon: string, animType: string, animName: string, speed: number?)
+	-- Only set attribute for NPCs (not players) that have a ChronoId
+	if Players:GetPlayerFromCharacter(character) then
+		return -- Skip players
+	end
+
+	local chronoId = character:GetAttribute("ChronoId")
+	if not chronoId then
+		return -- Not a Chrono NPC
+	end
+
+	local animSpeed = speed or 1
+	local timestamp = os.clock()
+	local animData = `{weapon}|{animType}|{animName}|{animSpeed}|{timestamp}`
+
+	character:SetAttribute("NPCCombatAnim", animData)
+
+	if not NPC_MODEL_CACHE then
+		NPC_MODEL_CACHE = ReplicatedStorage:FindFirstChild("NPC_MODEL_CACHE")
+	end
+	if NPC_MODEL_CACHE then
+		local cacheModel = NPC_MODEL_CACHE:FindFirstChild(tostring(chronoId))
+		if cacheModel then
+			cacheModel:SetAttribute("NPCCombatAnim", animData)
+		end
+	end
+end
+
 -- Flame alchemy weapon removed - Hunter x Hunter Nen system will replace this
 
 -- ECS-based combat state helpers (same as Combat.lua)
@@ -115,6 +147,9 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
         SwingAnimation:Play(0.1)
 		SwingAnimation:AdjustSpeed(Stats["Speed"])
         SwingAnimation.Priority = Enum.AnimationPriority.Action2
+
+        -- Replicate animation to clients for Chrono NPCs
+        setNPCCombatAnim(Character, Weapon, "Swings", tostring(Combo), Stats["Speed"])
 
         local Sound = Server.Library.PlaySound(
             Character,

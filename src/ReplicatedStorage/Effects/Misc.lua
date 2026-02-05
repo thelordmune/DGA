@@ -17,7 +17,68 @@ local TweenService = game:GetService("TweenService")
 
 local Misc = {}
 
+-- Check if a model is inside any NpcRegistryCamera
+local function isInNpcRegistryCamera(inst)
+	if typeof(inst) ~= "Instance" then return false end
+	local parent = inst.Parent
+	while parent do
+		if parent.Name == "NpcRegistryCamera" then
+			return true
+		end
+		parent = parent.Parent
+	end
+	return false
+end
+
+-- Resolve Chrono NPC server model references to client clones
+local function resolveChronoModel(model: Model?): Model?
+	if not model or typeof(model) ~= "Instance" then return model end
+
+	-- Player characters are never Chrono NPCs
+	if model:IsA("Model") and Players:GetPlayerFromCharacter(model) then
+		return model
+	end
+
+	if not model:IsA("Model") then return model end
+
+	-- If the model is NOT inside a NpcRegistryCamera, it's a normal model (use as-is)
+	if not isInNpcRegistryCamera(model) then
+		return model
+	end
+
+	-- Model is inside a NpcRegistryCamera - find the client's own camera (tagged ClientOwned)
+	local clientCamera = nil
+	for _, child in workspace:GetChildren() do
+		if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
+			clientCamera = child
+			break
+		end
+	end
+
+	-- Try ChronoId attribute
+	local chronoId = model:GetAttribute("ChronoId")
+	if chronoId and clientCamera then
+		local clientClone = clientCamera:FindFirstChild(tostring(chronoId), true)
+		if clientClone and clientClone:IsA("Model") then
+			return clientClone
+		end
+	end
+
+	-- Try by name
+	if clientCamera and model.Name then
+		local byName = clientCamera:FindFirstChild(model.Name, true)
+		if byName and byName:IsA("Model") then
+			return byName
+		end
+	end
+
+	return model
+end
+
 function Misc.DoEffect(Character: Model, FX: Part?)
+	Character = resolveChronoModel(Character)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+
 	local Effect = FX:Clone()
 
 	if Effect:IsA("Part") then
@@ -76,6 +137,9 @@ function Misc.Emit(Object: Part?, Descendants: boolean)
 end
 
 function Misc.EnableStatus(Character: Model, FXName: string, FXDuration: number)
+	Character = resolveChronoModel(Character)
+	if not Character then return end
+
 	local humanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
 	if not humanoidRootPart then
 		return
@@ -121,6 +185,7 @@ end
 
 -- Hyperarmor visual indicator system
 function Misc.StartHyperarmor(Character: Model)
+	Character = resolveChronoModel(Character)
 	if not Character or not Character:FindFirstChild("HumanoidRootPart") then
 		return
 	end
@@ -145,6 +210,7 @@ function Misc.StartHyperarmor(Character: Model)
 end
 
 function Misc.UpdateHyperarmor(Character: Model, damagePercent: number)
+	Character = resolveChronoModel(Character)
 	if not Character then
 		return
 	end
@@ -171,6 +237,7 @@ function Misc.UpdateHyperarmor(Character: Model, damagePercent: number)
 end
 
 function Misc.RemoveHyperarmor(Character: Model)
+	Character = resolveChronoModel(Character)
 	if not Character then
 		return
 	end
@@ -207,6 +274,8 @@ function Misc.WallConstruct(position: Vector3, wallWidth: number, wallHeight: nu
 end
 
 function Misc.DeconBolt(Character: Model, Position: Vector3 | Vector2)
+	Character = resolveChronoModel(Character)
+	if not Character then return end
 	local hrp = Character:FindFirstChild("HumanoidRootPart")
 	task.spawn(function()
 		for _ = 1, 2 do
@@ -228,6 +297,8 @@ function Misc.DeconBolt(Character: Model, Position: Vector3 | Vector2)
 end
 
 function Misc.Teleport(Character: Model)
+	Character = resolveChronoModel(Character)
+	if not Character then return end
 	local root = Character:FindFirstChild("HumanoidRootPart")
 
 	local conjure = Replicated.Assets.VFX.TP.conjure:Clone()

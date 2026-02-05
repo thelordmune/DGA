@@ -31,6 +31,83 @@ local WandererNPC = comps.WandererNPC
 -- OPTIMIZATION: Cache state components for direct access
 local StateStuns = comps.StateStuns
 local StateActions = comps.StateActions
+local StateSpeeds = comps.StateSpeeds
+
+-- Speed state priorities (same as walkspeed_controller.lua)
+-- When multiple speed states are active, only the highest priority one applies
+local SPEED_PRIORITY = {
+    -- Stun slowdowns (highest priority - always apply these debuffs)
+    DamageStunSpeed = 100,
+    BlockBreakSpeed = 100,
+    ParryStunSpeed = 100,
+    KnockbackSpeed = 100,
+
+    -- Skill locks (zero movement during skill execution)
+    AlcSpeed = 80,
+
+    -- Combat speeds (attack slowdown during swings)
+    M1Speed = 50,
+    M2Speed = 50,
+    RunningAttack = 50,
+
+    -- Defensive speeds
+    BlockSpeed = 40,
+
+    -- Movement speeds (lowest priority - can be overridden by combat)
+    RunSpeedSet = 30,
+    FlashSpeedSet = 30,
+}
+
+-- Convert state name to number (e.g., "M1Speed13" -> 13, "RunSpeedSet24" -> 24)
+local function ConvertToNumber(str: string): number
+    local num = string.match(str, "%-?%d+$") -- Match digits at end (including negative)
+    return num and tonumber(num) or 0
+end
+
+-- Get the priority for a speed state
+local function GetSpeedPriority(stateName: string): number
+    for prefix, priority in pairs(SPEED_PRIORITY) do
+        if string.match(stateName, "^" .. prefix) then
+            return priority
+        end
+    end
+    return 0 -- Unknown states have lowest priority
+end
+
+-- Apply speed modifiers from StateSpeeds component
+local function ApplySpeedModifiers(entity: number, baseSpeed: number): number
+    if not world:has(entity, StateSpeeds) then
+        return baseSpeed
+    end
+
+    local speedStates = world:get(entity, StateSpeeds)
+    if not speedStates or #speedStates == 0 then
+        return baseSpeed
+    end
+
+    -- Find highest priority speed modifier
+    local highestPriority = -1
+    local bestSpeedModifier = nil
+
+    for _, state in ipairs(speedStates) do
+        if string.match(state, "Speed") then
+            local num = ConvertToNumber(state)
+            local priority = GetSpeedPriority(state)
+
+            if priority > highestPriority then
+                highestPriority = priority
+                bestSpeedModifier = num
+            end
+        end
+    end
+
+    -- Apply the highest priority speed modifier
+    if bestSpeedModifier ~= nil then
+        return math.max(0, bestSpeedModifier)
+    end
+
+    return baseSpeed
+end
 
 -- Query combat NPCs
 local moving_mobs = world
@@ -97,13 +174,32 @@ local function mobMoveStep(_dt: number)
 
         -- OPTIMIZATION: Check stuns using direct ECS component access instead of StateManager
         -- This avoids entity lookup overhead (70 NPCs × 15 Hz = 1050 lookups/sec saved!)
-        local hasStuns = false
+        local hasMovementLockingStun = false
         if world:has(e, StateStuns) then
             local stuns = world:get(e, StateStuns)
-            hasStuns = stuns and #stuns > 0
+            if stuns and #stuns > 0 then
+                -- Check for movement-locking stuns (same as player walkspeed_controller)
+                local movementLockingStuns = {
+                    "BlockBreakStun", "PostureBreakStun", "KnockbackStun", "WallbangStun",
+                    "Ragdolled", "GrabVictim", "Grabbed", "ParryStun", "ParryKnockback", "DamageStun"
+                }
+                for _, stun in ipairs(stuns) do
+                    for _, lockingStun in ipairs(movementLockingStuns) do
+                        if stun == lockingStun then
+                            hasMovementLockingStun = true
+                            break
+                        end
+                    end
+                    if hasMovementLockingStun then break end
+                end
+            end
         end
 
-        if hasStuns then
+        -- Stop movement if stunned (set walkspeed to 0 or very slow)
+        if hasMovementLockingStun then
+            humanoid:Move(VECTOR3_ZERO)
+            humanoid.WalkSpeed = 3 -- Heavily restricted movement during stun
+            lastMovementState[char] = { dir = VECTOR3_ZERO, speed = 3 }
             continue
         end
 
@@ -150,7 +246,9 @@ local function mobMoveStep(_dt: number)
             dirX = dirX * invMag
             dirZ = dirZ * invMag
             newMoveDir = Vector3.new(dirX, 0, dirZ)
-            newSpeed = speed
+
+            -- Apply speed modifiers from StateSpeeds (e.g., M1Speed13 during attacks)
+            newSpeed = ApplySpeedModifiers(e, speed)
 
             -- Check if movement changed significantly
             if not lastState then
@@ -218,13 +316,30 @@ local function mobMoveStep(_dt: number)
         end
 
         -- Check stuns for wanderers too
-        local hasStuns = false
+        local hasMovementLockingStun = false
         if world:has(e, StateStuns) then
             local stuns = world:get(e, StateStuns)
-            hasStuns = stuns and #stuns > 0
+            if stuns and #stuns > 0 then
+                local movementLockingStuns = {
+                    "BlockBreakStun", "PostureBreakStun", "KnockbackStun", "WallbangStun",
+                    "Ragdolled", "GrabVictim", "Grabbed", "ParryStun", "ParryKnockback", "DamageStun"
+                }
+                for _, stun in ipairs(stuns) do
+                    for _, lockingStun in ipairs(movementLockingStuns) do
+                        if stun == lockingStun then
+                            hasMovementLockingStun = true
+                            break
+                        end
+                    end
+                    if hasMovementLockingStun then break end
+                end
+            end
         end
 
-        if hasStuns then
+        if hasMovementLockingStun then
+            humanoid:Move(VECTOR3_ZERO)
+            humanoid.WalkSpeed = 3
+            lastMovementState[char] = { dir = VECTOR3_ZERO, speed = 3 }
             continue
         end
 
@@ -245,7 +360,9 @@ local function mobMoveStep(_dt: number)
             dirX = dirX * invMag
             dirZ = dirZ * invMag
             newMoveDir = Vector3.new(dirX, 0, dirZ)
-            newSpeed = speed
+
+            -- Apply speed modifiers from StateSpeeds
+            newSpeed = ApplySpeedModifiers(e, speed)
 
             if not lastState then
                 shouldUpdateMovement = true

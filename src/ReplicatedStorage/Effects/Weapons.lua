@@ -32,6 +32,55 @@ local TInfo = TweenInfo.new(0.35, Enum.EasingStyle.Circular, Enum.EasingDirectio
 
 local Weapons = {}
 
+-- Check if a model is inside any NpcRegistryCamera
+local function isInNpcRegistryCamera(inst)
+	if typeof(inst) ~= "Instance" then return false end
+	local parent = inst.Parent
+	while parent do
+		if parent.Name == "NpcRegistryCamera" then
+			return true
+		end
+		parent = parent.Parent
+	end
+	return false
+end
+
+-- Resolve Chrono NPC server model references to client clones
+local function resolveChronoModel(model: Model?): Model?
+	if not model or typeof(model) ~= "Instance" then return model end
+	if model:IsA("Model") and Players:GetPlayerFromCharacter(model) then return model end
+	if not model:IsA("Model") then return model end
+
+	if not isInNpcRegistryCamera(model) then
+		return model
+	end
+
+	local clientCamera = nil
+	for _, child in workspace:GetChildren() do
+		if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
+			clientCamera = child
+			break
+		end
+	end
+
+	local chronoId = model:GetAttribute("ChronoId")
+	if chronoId and clientCamera then
+		local clientClone = clientCamera:FindFirstChild(tostring(chronoId), true)
+		if clientClone and clientClone:IsA("Model") then
+			return clientClone
+		end
+	end
+
+	if clientCamera and model.Name then
+		local byName = clientCamera:FindFirstChild(model.Name, true)
+		if byName and byName:IsA("Model") then
+			return byName
+		end
+	end
+
+	return model
+end
+
 function Weapons.SpecialShake(magnitude: number, frequency: number?, location: Vector3?)
 	-- Special camera shake for intense moments (even more impactful)
 	CamShake({
@@ -45,6 +94,8 @@ function Weapons.SpecialShake(magnitude: number, frequency: number?, location: V
 end
 
 function Weapons.GrandCleave(Character: Model, Frame: string, duration: number?)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
 	if Frame == "Slash1" then
 		local eff = VFX.Cleave.slash:Clone()
 		eff.Parent = workspace.World.Visuals
@@ -903,6 +954,8 @@ local function jumpdkmesh(CF: CFrame, Parent: Instance)
 	end
 end
 function Weapons.DropKick(Character: Model, Frame: string)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
 	if Frame == "StepL" then
 		local eff = VFX.DropKick.step:Clone()
 		eff.Parent = workspace.World.Visuals
@@ -1702,6 +1755,8 @@ local ActiveDKImpactParticles = {}
 local ActiveCameraEffects = {}
 
 function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: boolean)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
 	local color = Variant == "BF" and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(97, 174, 239)
 
 	-- Use Blackflash effect for BF variant, otherwise use lasthit
@@ -1899,6 +1954,8 @@ function Weapons.DKImpact(Character: Model, Variant: string, FreezeParticles: bo
 end
 
 function Weapons.DKImpactResume(Character: Model)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character then return end
 	-- Resume particles by tweening timescale back to 1
 	local particles = ActiveDKImpactParticles[Character]
 	if particles then
@@ -1951,8 +2008,9 @@ function Weapons.DKImpactResume(Character: Model)
 end
 
 function Weapons.InputWindowHighlight(Character: Model, Action: string)
+	Character = resolveChronoModel(Character) :: Model
 	-- Only apply to local player's character
-	if Character ~= Player.Character then
+	if not Character or Character ~= Player.Character then
 		return
 	end
 
@@ -1991,9 +2049,11 @@ end
 
 -- Apply ragdoll and knockback effect (client-side visual)
 function Weapons.BFKnockback(Target: Model, AttackerPosition: Vector3)
+	Target = resolveChronoModel(Target) :: Model
 	-- This is the client-side visual effect
 	-- The actual ragdoll state is managed by the server via CollectionService tags
 
+	if not Target then return end
 	local humanoid = Target:FindFirstChild("Humanoid")
 	local rootPart = Target:FindFirstChild("HumanoidRootPart")
 
@@ -2033,6 +2093,8 @@ function Weapons.BFKnockback(Target: Model, AttackerPosition: Vector3)
 end
 
 function Weapons.WhirlWind(Character: Model, Frame: string)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
 	local Weapon: BasePart = Character:FindFirstChild("Handle")
 	print("fired" .. Frame)
 	if Frame == "Start" then
@@ -2107,6 +2169,8 @@ function Weapons.WhirlWind(Character: Model, Frame: string)
 end
 
 function Weapons.RapidThrust(Character: Model, Frame: string)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
 	local eff = Replicated.Assets.VFX.RT:Clone()
 	eff.Parent = workspace.World.Visuals
 	eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, -.5, -2) * CFrame.Angles(math.rad(180),0,math.rad(90)))
@@ -2144,6 +2208,8 @@ CamShake({
 end
 local Effects = Replicated.Assets.VFX.CT
 function Weapons.ChargedThrust(Character: Model, Frame: string)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
 	local Weapon: BasePart = Character:FindFirstChild("Handle")
 	
 
@@ -2236,6 +2302,8 @@ function Weapons.ChargedThrust(Character: Model, Frame: string)
 end
 
 function Weapons.Tapdance(Character: Model, Frame: string)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
 	local eff = Replicated.Assets.VFX.Tapdance:Clone()
 	eff.Parent = workspace.World.Visuals
 	eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0,-3.5))
@@ -2296,6 +2364,8 @@ function Weapons.Tapdance(Character: Model, Frame: string)
 end
 
 function Weapons.Hellraiser(Character: Model, Frame: string)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
 	local eff = Replicated.Assets.VFX.Hellraiser:Clone()
 	eff.Parent = workspace.World.Visuals
 	eff:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 0,-3.5))
@@ -2374,6 +2444,8 @@ end
 
 -- Apply Nen color to white particles/beams/trails on a character's weapon
 function Weapons.ApplyNenColorToWeaponEffects(Character: Model)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character then return end
 	local nenColor = getPlayerNenColor(Character)
 	if not nenColor then return end
 
@@ -2431,6 +2503,8 @@ function Weapons.ApplyNenColorToWeaponEffects(Character: Model)
 end
 
 function Weapons.ScytheCritFlash(Character: Model)
+	Character = resolveChronoModel(Character) :: Model
+	if not Character then return end
 	-- Apply Nen color to weapon effects if player has Nen unlocked
 	Weapons.ApplyNenColorToWeaponEffects(Character)
 

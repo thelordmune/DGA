@@ -2,12 +2,59 @@ local Combat = {}; local Server = require(script.Parent);
 local WeaponStats = require(Server.Service.ServerStorage:WaitForChild("Stats")._Weapons)
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local Voxbreaker = require(ReplicatedStorage.Modules.Voxel)
 local world = require(ReplicatedStorage.Modules.ECS.jecs_world)
 local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local RefManager = require(ReplicatedStorage.Modules.ECS.jecs_ref_manager)
 local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
+
+-- Helper to set combat animation attribute for Chrono NPC replication
+-- Format: "Weapon|AnimType|AnimName|Speed|Timestamp"
+-- Client NpcAnimator.lua listens for this attribute to play animations on the clone
+--
+-- IMPORTANT: Chrono clones NPCs - the server model and client clone are separate instances.
+-- We must set the attribute on the NPC_MODEL_CACHE model (in ReplicatedStorage) for it to replicate.
+local NPC_MODEL_CACHE = ReplicatedStorage:FindFirstChild("NPC_MODEL_CACHE")
+
+local function setNPCCombatAnim(character: Model, weapon: string, animType: string, animName: string, speed: number?)
+	-- Only set attribute for NPCs (not players) that have a ChronoId
+	if Players:GetPlayerFromCharacter(character) then
+		return -- Skip players, their animations replicate normally
+	end
+
+	local chronoId = character:GetAttribute("ChronoId")
+	if not chronoId then
+		print(`[Combat] setNPCCombatAnim: {character.Name} has no ChronoId, skipping`)
+		return -- Not a Chrono NPC
+	end
+
+	-- Format: "Weapon|AnimType|AnimName|Speed|Timestamp"
+	local animSpeed = speed or 1
+	local timestamp = os.clock()
+	local animData = `{weapon}|{animType}|{animName}|{animSpeed}|{timestamp}`
+
+	-- Set on server model (for server-side reference)
+	character:SetAttribute("NPCCombatAnim", animData)
+
+	-- CRITICAL: Also set on the NPC_MODEL_CACHE model for client replication
+	-- The cache model is in ReplicatedStorage and its attributes replicate to clients
+	if not NPC_MODEL_CACHE then
+		NPC_MODEL_CACHE = ReplicatedStorage:FindFirstChild("NPC_MODEL_CACHE")
+	end
+	if NPC_MODEL_CACHE then
+		local cacheModel = NPC_MODEL_CACHE:FindFirstChild(tostring(chronoId))
+		if cacheModel then
+			cacheModel:SetAttribute("NPCCombatAnim", animData)
+			print(`[Combat] ✅ Set NPCCombatAnim on cache model {chronoId}: {animData}`)
+		else
+			print(`[Combat] ⚠️ Cache model not found for ChronoId {chronoId}`)
+		end
+	else
+		print(`[Combat] ⚠️ NPC_MODEL_CACHE folder not found`)
+	end
+end
 
 -- ============================================
 -- ECS COMBAT STATE HELPERS
@@ -94,9 +141,14 @@ Combat.__index = Combat;
 local self = setmetatable({}, Combat)
 
 Combat.Light = function(Character: Model)
+	print(`[Combat.Light] Called for {Character.Name}`)
 	local Hitbox = Server.Modules.Hitbox
 	local Entity = Server.Modules["Entities"].Get(Character)
-	if not Entity then return end
+	if not Entity then
+		print(`[Combat.Light] ❌ No Entity for {Character.Name}`)
+		return
+	end
+	print(`[Combat.Light] Entity found, Weapon: {Entity.Weapon or "nil"}, ChronoId: {Character:GetAttribute("ChronoId") or "nil"}`)
 
 	local Player : Player;
 	if Entity.Player then Player = Entity.Player end;
@@ -188,9 +240,13 @@ Combat.Light = function(Character: Model)
 		SwingAnimation.Priority = Enum.AnimationPriority.Action2
 
 		-- Apply animation speed if specified in weapon stats (slower = more readable combat)
+		local animSpeed = Stats["Speed"] or 1
 		if Stats["Speed"] then
 			SwingAnimation:AdjustSpeed(Stats["Speed"])
 		end
+
+		-- Replicate animation to clients for Chrono NPCs
+		setNPCCombatAnim(Character, Weapon, "Swings", tostring(Combo), animSpeed)
 
 		local Sound = Server.Library.PlaySound(Character,Server.Service.ReplicatedStorage.Assets.SFX.Weapons[Weapon].Swings[Random.new():NextInteger(1,#Server.Service.ReplicatedStorage.Assets.SFX.Weapons[Weapon].Swings:GetChildren())])
 
@@ -382,6 +438,9 @@ Combat.Critical = function(Character: Model)
 		local SwingAnimation = Character.Humanoid.Animator:LoadAnimation(Swings:FindFirstChild("Critical"))
 		SwingAnimation:Play(0.1) -- Smooth fade transition
 		SwingAnimation.Priority = Enum.AnimationPriority.Action2
+
+		-- Replicate animation to clients for Chrono NPCs
+		setNPCCombatAnim(Character, Weapon, "Critical", "Critical", 1)
 
 		--local Sound = Server.Library.PlaySound(Character,Server.Service.ReplicatedStorage.Assets.SFX.Weapons[Weapon].Swings[Random.new():NextInteger(1,#Server.Service.ReplicatedStorage.Assets.SFX.Weapons[Weapon].Swings:GetChildren())])
 
@@ -624,6 +683,9 @@ Combat.RunningAttack = function(Character)
 
 		local SwingAnimation = Character.Humanoid.Animator:LoadAnimation(Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon]["Running Attack"])
 		SwingAnimation:Play(0.1)
+
+		-- Replicate animation to clients for Chrono NPCs
+		setNPCCombatAnim(Character, Weapon, "RunningAttack", "Running Attack", 1)
 
 		-- Send Bvel to the player (they have network ownership of their character)
 		if Player then
@@ -932,6 +994,9 @@ Combat.AttemptParry = function(Character: Model)
     local ParryAnimation = Server.Library.PlayAnimation(Character, Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Parry)
     ParryAnimation.Priority = Enum.AnimationPriority.Action2
 
+    -- Replicate animation to clients for Chrono NPCs
+    setNPCCombatAnim(Character, Weapon, "Parry", "Parry", 1)
+
     -- Add parry frames - increased from 0.3s to 0.5s to make parrying easier
     StateManager.TimedState(Character, "Frames", "Parry", 0.5)
 
@@ -969,6 +1034,9 @@ Combat.StartBlock = function(Character: Model)
 
     local BlockAnimation = Server.Library.PlayAnimation(Character, Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Block)
     BlockAnimation.Priority = Enum.AnimationPriority.Action2
+
+    -- Replicate animation to clients for Chrono NPCs
+    setNPCCombatAnim(Character, Weapon, "Block", "Block", 1)
 end
 
 Combat.EndBlock = function(Character: Model)

@@ -37,6 +37,73 @@ local originalTrailWidths = {}
 
 local Base = {}
 
+-- ============================================
+-- CHRONO NPC MODEL RESOLUTION
+-- Resolves server-side model references to client clones for VFX
+-- ============================================
+local NPC_MODEL_CACHE = Replicated:FindFirstChild("NPC_MODEL_CACHE")
+
+-- Check if a model is inside any NpcRegistryCamera
+local function isInNpcRegistryCamera(inst)
+	if typeof(inst) ~= "Instance" then return false end
+	local parent = inst.Parent
+	while parent do
+		if parent.Name == "NpcRegistryCamera" then
+			return true
+		end
+		parent = parent.Parent
+	end
+	return false
+end
+
+-- Helper to get client clone for a Chrono NPC
+-- Server sends model references from its NpcRegistryCamera
+-- The client has its own NpcRegistryCamera with clones - we need to resolve to those
+local function resolveChronoModel(model: Model?): Model
+	if not model or typeof(model) ~= "Instance" then return model end
+
+	-- Player characters are never Chrono NPCs
+	if model:IsA("Model") and Players:GetPlayerFromCharacter(model) then
+		return model
+	end
+
+	-- Only resolve Model instances
+	if not model:IsA("Model") then return model end
+
+	-- If the model is NOT inside a NpcRegistryCamera, it's a normal model
+	if not isInNpcRegistryCamera(model) then
+		return model
+	end
+
+	-- Model is inside a NpcRegistryCamera - find the client's own camera (tagged ClientOwned)
+	local clientCamera = nil
+	for _, child in workspace:GetChildren() do
+		if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
+			clientCamera = child
+			break
+		end
+	end
+
+	-- Try ChronoId attribute
+	local chronoId = model:GetAttribute("ChronoId")
+	if chronoId and clientCamera then
+		local clientClone = clientCamera:FindFirstChild(tostring(chronoId), true)
+		if clientClone and clientClone:IsA("Model") then
+			return clientClone
+		end
+	end
+
+	-- Fallback: try by name
+	if clientCamera and model.Name then
+		local byName = clientCamera:FindFirstChild(model.Name, true)
+		if byName and byName:IsA("Model") then
+			return byName
+		end
+	end
+
+	return model
+end
+
 -- Safe delayed destroy helper - checks if instance exists before destroying
 -- Prevents errors when VFX is cancelled early by ActionCancellation
 local function safeDelayedDestroy(instance, delay)
@@ -72,6 +139,10 @@ function Base.Emit(ToEmit)
 end
 
 function Base.Slashes(Character: Model, Weapon: string, Combo: number)
+	-- Resolve Chrono NPC models to client clones
+	Character = resolveChronoModel(Character)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+
 	if Weapon == "Fist" then
 		local eff = Replicated.Assets.VFX.M1:Clone()
 		eff.Parent = workspace.World.Visuals
@@ -127,6 +198,10 @@ function Base.Slashes(Character: Model, Weapon: string, Combo: number)
 end
 
 function Base.PerfectDodge(Character: Model)
+	-- Resolve Chrono NPC models to client clones
+	Character = resolveChronoModel(Character)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+
 	for i, v in pairs(Replicated.Assets.VFX.PerfectDodge2:GetChildren()) do
 		local Clone = v:Clone()
 		Clone:Emit(Clone:GetAttribute("EmitCount"))
@@ -137,6 +212,10 @@ function Base.PerfectDodge(Character: Model)
 end
 
 function Base.Block(Character: Model)
+	-- Resolve Chrono NPC models to client clones
+	Character = resolveChronoModel(Character)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+
 	local BlockAttachment = VFX.Blocked.Attachment:Clone()
 	BlockAttachment.Parent = Character.HumanoidRootPart
 
@@ -144,6 +223,10 @@ function Base.Block(Character: Model)
 end
 
 function Base.CriticalIndicator(Character: Model)
+	-- Resolve Chrono NPC models to client clones
+	Character = resolveChronoModel(Character)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+
 	local crit = Replicated.Assets.VFX.CritFX:Clone()
 	crit.Parent = Character.HumanoidRootPart
 	crit.CFrame = Character.HumanoidRootPart.CFrame
@@ -185,6 +268,11 @@ function Base.CriticalIndicator(Character: Model)
 end
 
 function Base.Clash(Character: Model, Enemy: Model)
+	-- Resolve Chrono NPC models to client clones
+	Character = resolveChronoModel(Character)
+	Enemy = resolveChronoModel(Enemy)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+
 	local ClashVFX = Replicated.Assets.VFX.ClashMain:Clone()
 	ClashVFX:PivotTo(Character.HumanoidRootPart.CFrame * CFrame.new(0, 9.5, -3.03))
 	ClashVFX.Parent = workspace.World.Visuals
@@ -220,7 +308,7 @@ function Base.Clash(Character: Model, Enemy: Model)
 		end)
 	end
 
-	if Enemy then
+	if Enemy and Enemy:FindFirstChild("HumanoidRootPart") then
 		local Drag = Replicated.Assets.VFX.ClashKnockbackVFX.Drag:Clone()
 		Drag.Parent = Enemy.HumanoidRootPart
 
@@ -250,7 +338,12 @@ function Base.ClashFOV()
 end
 
 function Base.Parry(Character: Model, Target, Distance)
-	print(`[PARRY VFX DEBUG] Called for {Character.Name} (parrier) vs {Target.Name} (parried)`)
+	-- Resolve Chrono NPC models to client clones
+	Character = resolveChronoModel(Character)
+	Target = resolveChronoModel(Target)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+
+	print(`[PARRY VFX DEBUG] Called for {Character.Name} (parrier) vs {Target and Target.Name or "nil"} (parried)`)
 	local Parry = VFX.Parry.Attachment:Clone()
 	Parry.CFrame = Parry.CFrame
 	Parry.Parent = Character.HumanoidRootPart
@@ -1264,6 +1357,10 @@ function Base.Wallbang(Position: Vector3)
 end
 
 function Base.HandEffect(Character: Instance, Weapon: string, Combo: number)
+	-- Resolve Chrono NPC models to client clones
+	Character = resolveChronoModel(Character :: Model)
+	if not Character then return end
+
 	local effect = Replicated.Assets.VFX.HandEffect:Clone()
 	local effect2 = Replicated.Assets.VFX.HandEffect:Clone()
 	if Combo == 1 then
@@ -1434,6 +1531,10 @@ function Base.InCombat(Plr: Player, value: boolean)
 end
 
 function Base.Guardbreak(Character: Model)
+	-- Resolve Chrono NPC models to client clones
+	Character = resolveChronoModel(Character)
+	if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+
 	local eff = Replicated.Assets.VFX.Guardbreak:Clone()
 	eff.CFrame = Character.HumanoidRootPart.CFrame
 	eff.Parent = workspace.World.Visuals
@@ -5953,6 +6054,9 @@ end
 	Red crack effect with screen shake and highlight
 ]]
 function Base.PostureBreak(Target: Model, Invoker: Model?)
+	-- Resolve Chrono NPC models to client clones
+	Target = resolveChronoModel(Target)
+	Invoker = resolveChronoModel(Invoker)
 	if not Target or not Target:FindFirstChild("HumanoidRootPart") then
 		return
 	end
