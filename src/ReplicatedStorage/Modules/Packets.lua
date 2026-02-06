@@ -279,6 +279,12 @@ return ByteNet.defineNamespace("Networking", function()
 			})
 		});
 
+		-- KnockbackFollowUp: Client -> Server (player presses M2 during knockback window)
+		KnockbackFollowUp = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.nothing;
+		});
+
 		-- ============================================
 		-- ECS STATE SYNC PACKETS
 		-- Server -> Client: Replicate ECS state changes

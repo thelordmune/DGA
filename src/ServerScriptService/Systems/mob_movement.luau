@@ -199,8 +199,14 @@ local function mobMoveStep(_dt: number)
         if hasMovementLockingStun then
             humanoid:Move(VECTOR3_ZERO)
             humanoid.WalkSpeed = 3 -- Heavily restricted movement during stun
+            humanoid.AutoRotate = false -- Lock rotation during knockback (match player behavior)
             lastMovementState[char] = { dir = VECTOR3_ZERO, speed = 3 }
             continue
+        end
+
+        -- Restore AutoRotate when not stunned
+        if humanoid.AutoRotate == false then
+            humanoid.AutoRotate = true
         end
 
         -- OPTIMIZATION: Check actions using direct ECS component access

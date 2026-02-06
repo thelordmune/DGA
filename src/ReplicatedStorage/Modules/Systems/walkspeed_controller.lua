@@ -112,6 +112,7 @@ local function walkspeed_controller()
 		"BlockBreakStun",      -- Guard broken - can't move
 		"PostureBreakStun",    -- Posture broken - can't move
 		"KnockbackStun",       -- Being knocked back - can't move
+		"KnockbackRecovery",   -- Post-knockback recovery - restricted movement
 		"WallbangStun",        -- Stuck to wall - can't move
 		"Ragdolled",           -- Ragdolled - can't move
 		"GrabVictim",          -- Being grabbed - can't move

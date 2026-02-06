@@ -570,16 +570,28 @@ StunRegistry.Register("BlockBreakStun", {
 	noScaling = true, -- Guard break should not scale down
 })
 
--- Knockback stun (during knockback animation)
+-- Knockback stun (during knockback animation - 1.267s matches animation length)
 StunRegistry.Register("KnockbackStun", {
 	priority = 4,
-	duration = 0.65,
+	duration = 1.267,
 	canAct = false,
 	canMove = false,
 	canBlock = false,
 	canDodge = false,
 	canParry = false,
 	lockRotation = true,
+	noScaling = true, -- Prevent diminishing returns from shrinking the follow-up window
+})
+
+-- Knockback recovery endlag (brief window after knockback where target can only dodge)
+StunRegistry.Register("KnockbackRecovery", {
+	priority = 2,
+	duration = 0.4,
+	canAct = false,
+	canMove = true,
+	canBlock = false,
+	canDodge = true,
+	canParry = false,
 })
 
 -- Wallbang stun (stuck to wall)

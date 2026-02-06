@@ -102,12 +102,9 @@ Movement.Dodge = function()
 
     -- Save running state before dash so we can resume after
     local wasRunning = Client.Running
-    local wasRunAtk = Client.RunAtk  -- Preserve running attack state too
-
     -- Stop running state and animation if currently running
     if Client.Running then
         Client.Running = false
-        Client.RunAtk = false
         StateManager.RemoveState(Client.Character, "Speeds", "RunSpeedSet30")
         Client.Library.EndAction(Client.Character, "Sprinting")
         -- Stop run animation so dash animation plays cleanly
@@ -254,7 +251,6 @@ Movement.Dodge = function()
                 -- Resume running state
                 Client.Running = true
                 Client._Running = true
-                Client.RunAtk = wasRunAtk  -- Restore running attack state
                 StateManager.AddState(Client.Character, "Speeds", "RunSpeedSet30")
 
                 -- Restart run animation
@@ -328,22 +324,6 @@ Movement.Run = function(State)
 		StateManager.AddState(Client.Character, "Speeds", "RunSpeedSet30")
 		Client.Running = true;
 		Client._Running = true; -- Simple flag for Attack input check (bypasses ECS)
-		Client.RunAtk = false; -- Start as false, will be enabled after 1.5 seconds
-
-		-- Cancel any existing running attack delay
-		if Client["RunAtkDelay"] then
-			task.cancel(Client["RunAtkDelay"])
-			Client["RunAtkDelay"] = nil
-		end
-
-		-- Enable running attack after 1.5 seconds of continuous running
-		Client["RunAtkDelay"] = task.delay(1.5, function()
-			if Client.Running then
-				Client.RunAtk = true
-				print("[Movement.Run] ✅ Running attack enabled after 1.5 seconds")
-			end
-			Client["RunAtkDelay"] = nil
-		end)
 
 		if Equipped then
 			Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.WeaponRun);
@@ -377,15 +357,6 @@ Movement.Run = function(State)
 		StateManager.RemoveState(Client.Character, "Speeds", "RunSpeedSet30")
 
 		if Client.RunAnim then Client.RunAnim:Stop(); Client.RunAnim = nil end;
-
-		-- Cancel the running attack enable delay if it's still pending
-		if Client["RunAtkDelay"] then
-			task.cancel(Client["RunAtkDelay"])
-			Client["RunAtkDelay"] = nil
-		end
-
-		-- Disable running attack immediately when stopping
-		Client.RunAtk = false
 
 		for _, v : RBXScriptConnection in next, self.Connections do
 			v:Disconnect()

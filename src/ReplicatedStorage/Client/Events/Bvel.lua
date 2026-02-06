@@ -59,6 +59,21 @@ NetworkModule.EndPoint = function(Player, Data)
 	elseif Data.Name == "NPCDash" then
 		-- Pass both direction name and velocity vector
 		func(Data.Character, Data.Direction, Data.Velocity)
+	elseif Data.Name == "KnockbackBvelFromNPC" then
+		-- NPC attacker: velocity pre-computed by server, no NPC model ref needed
+		func(Data.Character, Data.Velocity)
+	elseif Data.Name == "KnockbackFollowUpHighlight" then
+		-- Highlight on knockback target + duration
+		func(Data.Character, Data.Targ, Data.duration)
+	elseif Data.Name == "KnockbackFollowUpBvel" then
+		-- Bezier chase toward target + duration
+		func(Data.Character, Data.Targ, Data.duration)
+	elseif Data.Name == "CriticalChargeStart" or Data.Name == "CriticalChargeRelease" then
+		-- Charged M2 VFX (Character only, no target)
+		func(Data.Character)
+	elseif Data.Name == "AerialAttackBvel" then
+		-- Aerial attack launch velocity (Character only)
+		func(Data.Character)
 	else
 		func(Data.Character, Data.Targ)
 	end
@@ -706,8 +721,9 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 	bodyGyro.CFrame = targetCFrame
 	bodyGyro.Parent = eroot
 
-	local maxPower = 80
-	local duration = 0.75 -- Match animation duration better
+	local maxPower = 60
+	local duration = 1.267 -- Match KnockbackStun animation length
+	local fullSpeedTime = 0.5 -- Full speed for first 0.5s (frame 30 at 60fps), then decelerate
 
 	-- Reset any existing velocity first
 	eroot.AssemblyLinearVelocity = Vector3.zero
@@ -715,13 +731,13 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 
 	local bv = Instance.new("BodyVelocity")
 	bv.MaxForce = Vector3.new(50000, 0, 50000)
-	bv.Velocity = direction * maxPower -- Start at max power instantly (no tween in)
+	bv.Velocity = direction * maxPower -- Start at max power instantly
 	bv.Parent = eroot
 
 	-- Set initial velocity instantly
 	eroot.AssemblyLinearVelocity = direction * maxPower
 
-	-- Use Heartbeat to smoothly tween OUT only (deceleration)
+	-- Two-phase velocity: full speed for 0.5s, then cubic ease-out deceleration
 	local startTime = os.clock()
 	local connection
 	connection = game:GetService("RunService").Heartbeat:Connect(function()
@@ -731,10 +747,16 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 			return
 		end
 
-		-- Calculate progress using EaseOut (deceleration only)
-		local progress = elapsed / duration
-		local easedProgress = 1 - (1 - progress) ^ 3 -- Cubic ease out
-		local currentPower = maxPower * (1 - easedProgress) -- Decrease from max to 0
+		local currentPower
+		if elapsed < fullSpeedTime then
+			-- Phase 1: Full speed for first 0.5 seconds
+			currentPower = maxPower
+		else
+			-- Phase 2: Gradually slow down from 0.5s to 1.267s
+			local slowdownProgress = (elapsed - fullSpeedTime) / (duration - fullSpeedTime)
+			local easedProgress = 1 - (1 - slowdownProgress) ^ 3 -- Cubic ease out
+			currentPower = maxPower * (1 - easedProgress)
+		end
 
 		if bv and bv.Parent then
 			bv.Velocity = direction * currentPower
@@ -759,6 +781,110 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		if targetHumanoid then
 			-- Check if there are still stun states active using ECS StateManager
 			if not StateManager.StateCount(Targ, "Stuns") then
+				targetHumanoid.AutoRotate = true
+			end
+		end
+	end)
+end
+
+-- Knockback from NPC: same as KnockbackBvel but uses pre-computed velocity from server
+-- (NPC model refs may not serialize via ByteNet.inst, so server sends direction directly)
+NetworkModule["KnockbackBvelFromNPC"] = function(Character: Model | Entity, Velocity: Vector3?)
+	local eroot = Character.HumanoidRootPart
+	if not eroot then return end
+
+	-- Cancel all client actions when knockback is received (for local player)
+	if Character == Client.Character and Client.ClearClientActions then
+		Client.ClearClientActions()
+	end
+
+	-- Disable AutoRotate for the target
+	local targetHumanoid = Character:FindFirstChild("Humanoid")
+	if targetHumanoid then
+		targetHumanoid.AutoRotate = false
+	end
+
+	-- Clean up any existing velocities and body movers to prevent flinging
+	for _, child in ipairs(eroot:GetChildren()) do
+		if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+			child:Destroy()
+		end
+	end
+
+	-- Use pre-computed velocity from server, or fall back to backward direction
+	local direction
+	local maxPower = 60
+	if Velocity and Velocity.Magnitude > 0 then
+		direction = Velocity.Unit
+		maxPower = Velocity.Magnitude
+	else
+		direction = -eroot.CFrame.LookVector
+		direction = Vector3.new(direction.X, 0, direction.Z).Unit
+	end
+
+	-- Face the attacker (opposite of knockback direction)
+	local lookDirection = -direction
+	local targetCFrame = CFrame.new(eroot.Position, eroot.Position + lookDirection)
+
+	local bodyGyro = Instance.new("BodyGyro")
+	bodyGyro.MaxTorque = Vector3.new(0, math.huge, 0)
+	bodyGyro.P = 10000
+	bodyGyro.D = 500
+	bodyGyro.CFrame = targetCFrame
+	bodyGyro.Parent = eroot
+
+	local duration = 1.267 -- Match KnockbackStun animation length
+	local fullSpeedTime = 0.5 -- Full speed for first 0.5s, then decelerate
+
+	eroot.AssemblyLinearVelocity = Vector3.zero
+	eroot.AssemblyAngularVelocity = Vector3.zero
+
+	local bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(50000, 0, 50000)
+	bv.Velocity = direction * maxPower
+	bv.Parent = eroot
+
+	eroot.AssemblyLinearVelocity = direction * maxPower
+
+	-- Two-phase velocity: full speed for 0.5s, then cubic ease-out deceleration
+	local startTime = os.clock()
+	local connection
+	connection = game:GetService("RunService").Heartbeat:Connect(function()
+		local elapsed = os.clock() - startTime
+		if elapsed >= duration then
+			connection:Disconnect()
+			return
+		end
+
+		local currentPower
+		if elapsed < fullSpeedTime then
+			currentPower = maxPower
+		else
+			local slowdownProgress = (elapsed - fullSpeedTime) / (duration - fullSpeedTime)
+			local easedProgress = 1 - (1 - slowdownProgress) ^ 3
+			currentPower = maxPower * (1 - easedProgress)
+		end
+
+		if bv and bv.Parent then
+			bv.Velocity = direction * currentPower
+			eroot.AssemblyLinearVelocity = direction * currentPower
+		else
+			connection:Disconnect()
+		end
+	end)
+
+	task.delay(duration, function()
+		if connection then
+			connection:Disconnect()
+		end
+		if bv and bv.Parent then
+			bv:Destroy()
+		end
+		if bodyGyro and bodyGyro.Parent then
+			bodyGyro:Destroy()
+		end
+		if targetHumanoid then
+			if not StateManager.StateCount(Character, "Stuns") then
 				targetHumanoid.AutoRotate = true
 			end
 		end
@@ -1187,6 +1313,284 @@ NetworkModule["ParryShakeTarget"] = function(Character)
 	local Base = require(Replicated.Effects.Base)
 	-- New API: Base.Shake(magnitude: number, frequency: number?, location: Vector3?)
 	Base.Shake(2, 8, Character and Character:FindFirstChild("HumanoidRootPart") and Character.HumanoidRootPart.Position or nil)
+end
+
+-- ============================================
+-- KNOCKBACK FOLLOW-UP HANDLERS
+-- ============================================
+
+-- Highlight on knockback target (visible only to the attacker)
+NetworkModule["KnockbackFollowUpHighlight"] = function(_Character: Model, Targ: Model, duration: number?)
+	if not Targ then return end
+
+	-- Resolve Chrono NPC target to client clone if needed
+	if typeof(Targ) ~= "Instance" then return end
+
+	-- Check if target is in server NpcRegistryCamera - find client clone instead
+	local resolvedTarget = Targ
+	if Targ.Parent and Targ.Parent.Name == "NpcRegistryCamera" and not Targ.Parent:GetAttribute("ClientOwned") then
+		local chronoId = Targ:GetAttribute("ChronoId")
+		if chronoId then
+			for _, child in ipairs(workspace:GetChildren()) do
+				if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
+					local clone = child:FindFirstChild(tostring(chronoId))
+					if clone then
+						resolvedTarget = clone
+					end
+					break
+				end
+			end
+		end
+	end
+
+	-- Remove any existing follow-up highlight
+	local existing = resolvedTarget:FindFirstChild("KnockbackFollowUpHighlight")
+	if existing then existing:Destroy() end
+
+	-- Create golden highlight on the target
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "KnockbackFollowUpHighlight"
+	highlight.FillColor = Color3.fromRGB(255, 200, 50) -- Golden
+	highlight.FillTransparency = 0.5
+	highlight.OutlineColor = Color3.fromRGB(255, 150, 0) -- Orange outline
+	highlight.OutlineTransparency = 0
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded -- Visible through walls
+	highlight.Parent = resolvedTarget
+
+	-- Remove after knockback duration
+	local highlightDuration = duration or 1.267
+	task.delay(highlightDuration, function()
+		if highlight and highlight.Parent then
+			highlight:Destroy()
+		end
+	end)
+end
+
+-- Bezier curve chase velocity for follow-up attack
+NetworkModule["KnockbackFollowUpBvel"] = function(Character: Model, Targ: Model, duration: number?)
+	if not Character or not Targ then return end
+	if typeof(Character) ~= "Instance" or typeof(Targ) ~= "Instance" then return end
+
+	local rootPart = Character:FindFirstChild("HumanoidRootPart")
+	if not rootPart then return end
+
+	-- Resolve Chrono NPC target to client clone if needed
+	local resolvedTarget = Targ
+	if Targ.Parent and Targ.Parent.Name == "NpcRegistryCamera" and not Targ.Parent:GetAttribute("ClientOwned") then
+		local chronoId = Targ:GetAttribute("ChronoId")
+		if chronoId then
+			for _, child in ipairs(workspace:GetChildren()) do
+				if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
+					local clone = child:FindFirstChild(tostring(chronoId))
+					if clone then
+						resolvedTarget = clone
+					end
+					break
+				end
+			end
+		end
+	end
+
+	local targetRoot = resolvedTarget:FindFirstChild("HumanoidRootPart")
+	if not targetRoot then return end
+
+	-- Clean up existing body movers
+	for _, child in ipairs(rootPart:GetChildren()) do
+		if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") or child:IsA("BodyPosition") or child:IsA("BodyGyro") then
+			child:Destroy()
+		end
+	end
+
+	local travelTime = duration or 0.5
+
+	-- Bezier curve setup: P0=start, P1=midpoint+arc, P2=target(live)
+	local startPos = rootPart.Position
+	local endPos = targetRoot.Position
+	local dist = (endPos - startPos).Magnitude
+	local midpoint = (startPos + endPos) / 2 + Vector3.new(0, math.clamp(dist * 0.3, 3, 12), 0)
+
+	local attachment = rootPart:FindFirstChild("RootAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "RootAttachment"
+		attachment.Parent = rootPart
+	end
+
+	local lv = Instance.new("LinearVelocity")
+	lv.Name = "KnockbackFollowUpVelocity"
+	lv.MaxForce = math.huge
+	lv.Attachment0 = attachment
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	lv.VectorVelocity = Vector3.zero
+	lv.Parent = rootPart
+
+	local startTime = os.clock()
+	local conn
+	conn = RunService.Heartbeat:Connect(function()
+		local elapsed = os.clock() - startTime
+		local t = math.clamp(elapsed / travelTime, 0, 1)
+
+		if t >= 1 then
+			if conn then conn:Disconnect() end
+			if lv and lv.Parent then lv:Destroy() end
+			return
+		end
+
+		-- Quadratic bezier derivative: B'(t) = 2(1-t)(P1-P0) + 2t(P2-P1)
+		local p0 = startPos
+		local p1 = midpoint
+		local p2 = targetRoot.Position -- Track target position live
+
+		local velocity = 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1)
+		velocity = velocity / travelTime
+
+		if lv and lv.Parent then
+			lv.VectorVelocity = velocity
+		else
+			if conn then conn:Disconnect() end
+		end
+	end)
+
+	-- Safety cleanup after travel time
+	task.delay(travelTime, function()
+		if conn then conn:Disconnect() end
+		if lv and lv.Parent then lv:Destroy() end
+	end)
+end
+
+-- ============================================
+-- CHARGED CRITICAL (M2) VFX
+-- ============================================
+
+NetworkModule["CriticalChargeStart"] = function(Character: Model)
+	if not Character or not Character.Parent then return end
+
+	-- Resolve Chrono NPC clones
+	if typeof(Character) ~= "Instance" then return end
+
+	-- Remove any existing charge highlight
+	local existing = Character:FindFirstChild("CriticalChargeHighlight")
+	if existing then existing:Destroy() end
+
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "CriticalChargeHighlight"
+	highlight.FillColor = Color3.fromRGB(255, 255, 255) -- Stage 1: White
+	highlight.FillTransparency = 0.7
+	highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+	highlight.OutlineTransparency = 0.3
+	highlight.Parent = Character
+
+	local startTime = os.clock()
+	local MAX_CHARGE = 1.0
+
+	-- Stage colors
+	local stage1Color = Color3.fromRGB(255, 255, 255) -- White
+	local stage2Color = Color3.fromRGB(255, 220, 50)  -- Yellow
+	local stage3Color = Color3.fromRGB(255, 50, 50)   -- Red
+
+	local conn
+	conn = game:GetService("RunService").Heartbeat:Connect(function()
+		if not highlight or not highlight.Parent then
+			if conn then conn:Disconnect() end
+			return
+		end
+
+		local elapsed = os.clock() - startTime
+		if elapsed >= MAX_CHARGE + 0.1 then
+			-- Auto-cleanup after max charge
+			if conn then conn:Disconnect() end
+			return
+		end
+
+		-- Tween between stages
+		local t = math.clamp(elapsed / MAX_CHARGE, 0, 1)
+		local fillColor, fillTransparency, outlineColor
+
+		if t < 0.33 then
+			-- Stage 1: White, subtle
+			local st = t / 0.33
+			fillColor = stage1Color
+			fillTransparency = 0.7 - (st * 0.1) -- 0.7 → 0.6
+			outlineColor = stage1Color
+		elseif t < 0.66 then
+			-- Stage 2: White → Yellow
+			local st = (t - 0.33) / 0.33
+			fillColor = stage1Color:Lerp(stage2Color, st)
+			fillTransparency = 0.6 - (st * 0.1) -- 0.6 → 0.5
+			outlineColor = stage1Color:Lerp(stage2Color, st)
+		else
+			-- Stage 3: Yellow → Red
+			local st = (t - 0.66) / 0.34
+			fillColor = stage2Color:Lerp(stage3Color, st)
+			fillTransparency = 0.5 - (st * 0.2) -- 0.5 → 0.3
+			outlineColor = stage2Color:Lerp(stage3Color, st)
+		end
+
+		highlight.FillColor = fillColor
+		highlight.FillTransparency = fillTransparency
+		highlight.OutlineColor = outlineColor
+
+		-- Pulsing outline
+		highlight.OutlineTransparency = 0.2 + math.sin(elapsed * 8) * 0.15
+	end)
+
+	-- Safety cleanup after max time
+	task.delay(MAX_CHARGE + 0.5, function()
+		if conn then conn:Disconnect() end
+		if highlight and highlight.Parent then highlight:Destroy() end
+	end)
+end
+
+NetworkModule["CriticalChargeRelease"] = function(Character: Model)
+	if not Character or not Character.Parent then return end
+	if typeof(Character) ~= "Instance" then return end
+
+	local highlight = Character:FindFirstChild("CriticalChargeHighlight")
+	if not highlight then return end
+
+	-- Brief flash then destroy
+	highlight.FillTransparency = 0
+	highlight.OutlineTransparency = 0
+	task.delay(0.1, function()
+		if highlight and highlight.Parent then
+			highlight:Destroy()
+		end
+	end)
+end
+
+-- ============================================
+-- AERIAL ATTACK VELOCITY
+-- ============================================
+
+NetworkModule["AerialAttackBvel"] = function(Character: Model)
+	if not Character or not Character.Parent then return end
+	if typeof(Character) ~= "Instance" then return end
+
+	local eroot = Character:FindFirstChild("HumanoidRootPart")
+	if not eroot then return end
+
+	local forward = eroot.CFrame.LookVector
+	local velocity = forward * 15 + Vector3.new(0, 20, 0)
+
+	local bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(50000, 50000, 50000)
+	bv.Velocity = velocity
+	bv.Parent = eroot
+
+	-- Tween out over 0.3s
+	local startTime = os.clock()
+	local duration = 0.3
+	local conn
+	conn = game:GetService("RunService").Heartbeat:Connect(function()
+		local elapsed = os.clock() - startTime
+		if elapsed >= duration then
+			if conn then conn:Disconnect() end
+			if bv and bv.Parent then bv:Destroy() end
+			return
+		end
+		local t = 1 - (elapsed / duration)
+		bv.Velocity = velocity * t
+	end)
 end
 
 -- ============================================

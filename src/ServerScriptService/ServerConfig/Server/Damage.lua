@@ -544,15 +544,16 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		local ParriedAnims = Replicated.Assets.Animations:FindFirstChild("Parried"):GetChildren()
 
-		local ParriedAnimation =
-			Library.PlayAnimation(Invoker, ParriedAnims[Random.new():NextInteger(1, #ParriedAnims)])
-
+		local invokerParryAnim = ParriedAnims[Random.new():NextInteger(1, #ParriedAnims)]
+		local ParriedAnimation = Library.PlayAnimation(Invoker, invokerParryAnim)
 		ParriedAnimation.Priority = Enum.AnimationPriority.Action2
+		-- Replicate parry animation to client clones for Chrono NPCs
+		setNPCCombatAnim(Invoker, "Parried", "Reaction", invokerParryAnim.Name, 1)
 
-		local ParriedAnimation2 =
-			Library.PlayAnimation(Target, ParriedAnims[Random.new():NextInteger(1, #ParriedAnims)])
-
+		local targetParryAnim = ParriedAnims[Random.new():NextInteger(1, #ParriedAnims)]
+		local ParriedAnimation2 = Library.PlayAnimation(Target, targetParryAnim)
 		ParriedAnimation2.Priority = Enum.AnimationPriority.Action3
+		setNPCCombatAnim(Target, "Parried", "Reaction", targetParryAnim.Name, 1)
 
 		Visuals.Ranged(
 			Target.HumanoidRootPart.Position,
@@ -874,9 +875,10 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	local function LightKnockback()
 		if TargetPlayer then
-			-- -- ---- print("light kb")
 			Server.Packets.Bvel.sendTo({ Character = Target, Name = "BaseBvel" }, TargetPlayer)
 		else
+			-- NPC: apply server-side light knockback directly
+			Server.Modules.ServerBvel.LightKnockback(Target)
 		end
 	end
 
@@ -984,7 +986,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			end
 		end)
 
-		Debris:AddItem(connection, 0.65) -- Match knockback duration
+		Debris:AddItem(connection, 1.267) -- Match knockback duration
 	end
 
 	local function Knockback()
@@ -1115,10 +1117,104 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			local Animation = Library.PlayAnimation(Target, Replicated.Assets.Animations.Misc.KnockbackStun)
 			Animation.Priority = Enum.AnimationPriority.Action3
 
-			-- Apply knockback stun using priority system - KnockbackStun has priority 4 with lockRotation
-			Library.ApplyStun(Target, "KnockbackStun", 0.65, Invoker)
+			-- Replicate knockback animation to client clones for Chrono NPCs
+			setNPCCombatAnim(Target, "Misc", "Stun", "KnockbackStun", 1)
 
-			Server.Packets.Bvel.sendToAll({ Character = Invoker, Name = "KnockbackBvel", Targ = Target })
+			-- Apply knockback stun using priority system - KnockbackStun has priority 4 with lockRotation
+			Library.ApplyStun(Target, "KnockbackStun", 1.267, Invoker)
+
+			-- Schedule endlag recovery after knockback ends (0.4s where target can only dodge)
+			task.delay(1.267, function()
+				if Target and Target.Parent then
+					Library.ApplyStun(Target, "KnockbackRecovery", 0.4, Invoker)
+				end
+			end)
+
+			-- Track who knocked this target back (for follow-up mechanic)
+			Target:SetAttribute("KnockbackAttacker", Invoker.Name)
+			Target:SetAttribute("KnockbackTime", os.clock())
+			if Player then
+				Target:SetAttribute("KnockbackAttackerUserId", Player.UserId)
+			else
+				Target:SetAttribute("KnockbackAttackerChronoId", Invoker:GetAttribute("ChronoId") or 0)
+			end
+
+			-- Replicate knockback attributes to NPC_MODEL_CACHE for Chrono NPC targets
+			-- (Camera children attributes don't replicate to clients)
+			local targetChronoId = Target:GetAttribute("ChronoId")
+			if targetChronoId then
+				if not NPC_MODEL_CACHE then
+					NPC_MODEL_CACHE = Replicated:FindFirstChild("NPC_MODEL_CACHE")
+				end
+				if NPC_MODEL_CACHE then
+					local cacheModel = NPC_MODEL_CACHE:FindFirstChild(tostring(targetChronoId))
+					if cacheModel then
+						cacheModel:SetAttribute("KnockbackAttacker", Invoker.Name)
+						cacheModel:SetAttribute("KnockbackTime", os.clock())
+						if Player then
+							cacheModel:SetAttribute("KnockbackAttackerUserId", Player.UserId)
+						else
+							cacheModel:SetAttribute("KnockbackAttackerChronoId", Invoker:GetAttribute("ChronoId") or 0)
+						end
+					end
+				end
+			end
+
+			-- Clear knockback tracking after stun + endlag expires
+			task.delay(1.267 + 0.4, function()
+				if Target and Target.Parent then
+					Target:SetAttribute("KnockbackAttacker", nil)
+					Target:SetAttribute("KnockbackTime", nil)
+					Target:SetAttribute("KnockbackAttackerUserId", nil)
+					Target:SetAttribute("KnockbackAttackerChronoId", nil)
+				end
+				-- Also clear from NPC_MODEL_CACHE
+				if targetChronoId then
+					if not NPC_MODEL_CACHE then
+						NPC_MODEL_CACHE = Replicated:FindFirstChild("NPC_MODEL_CACHE")
+					end
+					if NPC_MODEL_CACHE then
+						local cacheModel = NPC_MODEL_CACHE:FindFirstChild(tostring(targetChronoId))
+						if cacheModel then
+							cacheModel:SetAttribute("KnockbackAttacker", nil)
+							cacheModel:SetAttribute("KnockbackTime", nil)
+							cacheModel:SetAttribute("KnockbackAttackerUserId", nil)
+							cacheModel:SetAttribute("KnockbackAttackerChronoId", nil)
+						end
+					end
+				end
+			end)
+
+			if TargetPlayer then
+				-- Target is a player: send knockback to their client
+				if Player then
+					-- Player hitting Player: safe to send both model refs
+					Server.Packets.Bvel.sendToAll({ Character = Invoker, Name = "KnockbackBvel", Targ = Target })
+				else
+					-- NPC hitting Player: NPC model ref may not serialize, send pre-computed velocity
+					local dir = (Target.HumanoidRootPart.Position - Invoker.HumanoidRootPart.Position).Unit
+					dir = Vector3.new(dir.X, 0, dir.Z).Unit
+					Server.Packets.Bvel.sendTo({
+						Character = Target,
+						Name = "KnockbackBvelFromNPC",
+						Velocity = dir * 60,
+					}, TargetPlayer)
+				end
+			else
+				-- Target is an NPC: apply knockback server-side (Chrono picks up position changes)
+				Server.Modules.ServerBvel.Knockback(Target, Invoker)
+			end
+
+			-- Send highlight to the attacking player (shows follow-up opportunity)
+			if Player then
+				Server.Packets.Bvel.sendTo({
+					Character = Invoker,
+					Name = "KnockbackFollowUpHighlight",
+					Targ = Target,
+					duration = 1.267,
+				}, Player)
+			end
+
 			---- print("[Knockback] Sent KnockbackBvel packet")
 			handleWallbang()
 		end
@@ -1290,6 +1386,9 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		if TargetPlayer then
 			Server.Packets.Bvel.sendTo({ Character = Target, Name = "BaseBvel" }, TargetPlayer)
+		else
+			-- NPC: apply server-side light knockback directly
+			Server.Modules.ServerBvel.LightKnockback(Target)
 		end
 
 		Visuals.Ranged(

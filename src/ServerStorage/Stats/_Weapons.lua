@@ -177,7 +177,7 @@ local Table = {
 		["LastTable"] = {
 			Damage = 10,
 			PostureDamage = 20,
-			LightKnockback = true,
+			Knockback = true,
 			M1 = true,
 		},
 
@@ -372,7 +372,7 @@ local Table = {
 		["LastTable"] = {
 			Damage = 10,
 			PostureDamage = 20,
-			LightKnockback = true,
+			Knockback = true,
 			M1 = true,
 		},
 
@@ -562,7 +562,7 @@ local Table = {
 		["LastTable"] = {
 			Damage = 10,
 			PostureDamage = 20,
-			LightKnockback = true,
+			Knockback = true,
 			M1 = true,
 		},
 
@@ -633,7 +633,7 @@ local Table = {
 		["LastTable"] = {
 			Damage = 10,
 			PostureDamage = 20,
-			LightKnockback = true,
+			Knockback = true,
 			M1 = true,
 		},
 
@@ -717,7 +717,7 @@ local Table = {
 		["LastTable"] = {
 			Damage = 10,
 			PostureDamage = 20,
-			LightKnockback = true,
+			Knockback = true,
 			M1 = true,
 		},
 
@@ -784,7 +784,7 @@ local Table = {
 		["LastTable"] = {
 			Damage = 5,
 			PostureDamage = 30,
-			LightKnockback = true,
+			Knockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
 			Stun = 0.8,
@@ -896,7 +896,7 @@ local Table = {
 		["LastTable"] = {
 			Damage = 12,
 			PostureDamage = 30,
-			LightKnockback = true,
+			Knockback = true,
 			M1 = true,
 		},
 
@@ -915,6 +915,20 @@ local Table = {
 			Knockback = true,
 			FX = Replicated.Assets.VFX.Blood.Attachment,
 			Stun = 0.8,
+		},
+
+		["Aerial"] = {
+			["DamageTable"] = {
+				Damage = 12,
+				PostureDamage = 30,
+				Knockback = true,
+				M1 = true,
+				FX = Replicated.Assets.VFX.Blood.Attachment,
+				Stun = 0.8,
+			},
+			["PauseTime"] = 38 / 60,       -- Pause animation at frame 38 (before frame 44 attack frame)
+			["HitTimeAfterResume"] = 6 / 60, -- 6 frames after resume to hit (frame 44)
+			["Endlag"] = 20 / 60,           -- Recovery after landing hit
 		},
 
 		["Slashes"] = true,

@@ -19,7 +19,6 @@ StateConflicts.Speeds = {
 	CombatSpeed = {
 		"M1Speed13", "M1Speed8", "M1Speed12", "M1Speed16",
 		"AlcSpeed-0", "AlcSpeed-6", "AlcSpeed4",
-		"RunningAttack-12",
 	},
 
 	-- Movement speed modifiers (running, blocking)
@@ -64,7 +63,7 @@ StateConflicts.Stuns = {
 	-- Movement restriction stuns (mutual exclusion)
 	-- NOTE: "Dashing" removed - it's now in Actions.MovementActions
 	MovementRestriction = {
-		"KnockbackStun", "WallbangStun", "ParryKnockback",
+		"KnockbackStun", "KnockbackRecovery", "WallbangStun", "ParryKnockback",
 	},
 }
 

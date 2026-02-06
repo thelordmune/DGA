@@ -33,11 +33,7 @@ NetworkModule.EndPoint = function(Player, Data)
 		if Data.Held then
 			if AttackType == "None" then return end;
 
-			if AttackType == "Normal" then
-				Server.Modules.Combat["Light"](Character)
-			else
-				Server.Modules.Combat["RunningAttack"](Character)
-			end
+			Server.Modules.Combat["Light"](Character, Data.Air)
 		end
 	end
 end

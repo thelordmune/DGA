@@ -128,6 +128,26 @@ local function onCombatAnimChanged(model: Model, animData: string?)
 			warn(`[NpcAnimator] Hit animation not found: {animName}`)
 			return
 		end
+	elseif weapon == "Misc" then
+		-- Misc animations (KnockbackStun, etc.) are in Assets.Animations.Misc
+		local miscFolder = animationsFolder:FindFirstChild("Misc")
+		if miscFolder then
+			animInstance = miscFolder:FindFirstChild(animName)
+		end
+		if not animInstance then
+			warn(`[NpcAnimator] Misc animation not found: {animName}`)
+			return
+		end
+	elseif weapon == "Parried" then
+		-- Parried reaction animations are in Assets.Animations.Parried
+		local parriedFolder = animationsFolder:FindFirstChild("Parried")
+		if parriedFolder then
+			animInstance = parriedFolder:FindFirstChild(animName)
+		end
+		if not animInstance then
+			warn(`[NpcAnimator] Parried animation not found: {animName}`)
+			return
+		end
 	else
 		-- Weapon animations are in Assets.Animations.Weapons
 		local weaponsFolder = animationsFolder:FindFirstChild("Weapons")

@@ -86,6 +86,33 @@ local function executeBlock(character: Model): boolean
 end
 
 
+local function executeKnockbackFollowUp(character: Model): boolean
+	-- Check if this NPC has a knocked-back target it can follow up on
+	local searchLocations = { workspace.World.Live }
+	local npcCamera = workspace:FindFirstChild("NpcRegistryCamera")
+	if npcCamera then
+		table.insert(searchLocations, npcCamera)
+	end
+
+	for _, location in ipairs(searchLocations) do
+		for _, model in ipairs(location:GetChildren()) do
+			if model:IsA("Model") and model ~= character then
+				local attackerName = model:GetAttribute("KnockbackAttacker")
+				if attackerName == character.Name then
+					if StateManager.StateCheck(model, "Stuns", "KnockbackStun") then
+						-- Found a valid follow-up target
+						Combat.KnockbackFollowUp(character)
+						return true
+					end
+				end
+			end
+		end
+	end
+
+	return false
+end
+
+
 local function executeSkill(character: Model, skillName: string): boolean
 
 	local actor = character:FindFirstAncestorOfClass("Actor")
@@ -134,6 +161,15 @@ local function updateCombatExecution()
 			end
 
 			if now - combatState.lastActionTime < GLOBAL_ACTION_COOLDOWN then
+				continue
+			end
+
+			-- Priority: check for knockback follow-up opportunity before normal skills
+			if executeKnockbackFollowUp(character) then
+				combatState.lastActionTime = now
+				combatState.lastAttackTime = now
+				combatState.lastSkillUsed = "KnockbackFollowUp"
+				world:set(entity, comps.NPCCombatState, combatState)
 				continue
 			end
 

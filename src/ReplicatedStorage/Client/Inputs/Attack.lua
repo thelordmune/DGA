@@ -41,17 +41,12 @@ local function performAttack(Client)
 		return
 	end
 
-	if Client.RunAtk and not Client.Library.CheckCooldown(Client.Character, "RunningAttack") then
-		-- Running attack (after 1.5s of running)
-		Client.Packets.Attack.send({Type = AttackTypeEnum.Running, Held = true, Air = Client.InAir})
-	else
-		-- Stop running if currently running (any M1 while running stops the run)
-		-- Use _Running flag for reliable check (bypasses ECS timing issues)
-		if Client._Running then
-			Client.Modules['Movement'].Run(false)
-		end
-		Client.Packets.Attack.send({Type = AttackTypeEnum.Normal, Held = true, Air = Client.InAir})
+	-- Stop running if currently running (any M1 while running stops the run)
+	-- Use _Running flag for reliable check (bypasses ECS timing issues)
+	if Client._Running then
+		Client.Modules['Movement'].Run(false)
 	end
+	Client.Packets.Attack.send({Type = AttackTypeEnum.Normal, Held = true, Air = Client.InAir})
 end
 
 InputModule.InputBegan = function(_, Client)

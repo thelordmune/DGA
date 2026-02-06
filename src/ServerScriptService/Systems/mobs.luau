@@ -623,8 +623,11 @@ local function initializeNPCEntity(npcModel: Model): number
 		-- ECS AI Components (only for combat NPCs)
 		if isCombat then
 			local hrp = npcModel:FindFirstChild("HumanoidRootPart")
-			local spawnPos = hrp and hrp.Position or Vector3.new(0, 0, 0)
-			local spawnCF = hrp and hrp.CFrame or CFrame.new(0, 0, 0)
+			-- Use IntendedSpawnPosition attribute (set by spawn_entity.lua) instead of hrp.Position
+			-- At this point hrp is still at the hidden Y=10000 position while appearance loads
+			local intendedSpawnPos = npcModel:GetAttribute("IntendedSpawnPosition")
+			local spawnPos = intendedSpawnPos or (hrp and hrp.Position or Vector3.new(0, 0, 0))
+			local spawnCF = CFrame.new(spawnPos) * CFrame.Angles(0, math.rad(90), 0)
 
 			-- Helper for random ranges
 			local function randRange(min: number, max: number): number
@@ -836,6 +839,13 @@ local function initializeNPCEntity(npcModel: Model): number
 			if not Server.Modules.Entities.Get(npcModel) then
 				Server.Modules.Entities.Init(npcModel)
 				print(`[Mobs] ✅ Initialized Server.Entities for combat NPC: {npcModel.Name}`)
+			end
+
+			-- Move combat NPC to intended spawn position BEFORE Chrono registration
+			-- At this point the model is at Y=10000 (hidden while appearance loads)
+			-- Chrono captures the current position on Register(), so we must fix it first
+			if intendedSpawnPos and npcModel.PrimaryPart then
+				npcModel:PivotTo(CFrame.new(intendedSpawnPos) * CFrame.Angles(0, math.rad(90), 0))
 			end
 
 			-- Register combat NPC with Chrono for optimized replication
