@@ -179,8 +179,23 @@ function Misc.EnableStatus(Character: Model, FXName: string, FXDuration: number)
 	Debris:AddItem(FX, FXDuration + 0.25)
 end
 
+local CameraShakePresets = {
+	["Small"] = { Magnitude = 0.3, Damp = 0.01, Frequency = 20, Falloff = 50 },
+	["RightSmall"] = { Magnitude = 0.2, Damp = 0.015, Frequency = 18, Falloff = 50, Influence = Vector3.new(0.5, 1, 0) },
+	["Medium"] = { Magnitude = 0.6, Damp = 0.008, Frequency = 18, Falloff = 50 },
+	["Large"] = { Magnitude = 1.0, Damp = 0.006, Frequency = 16, Falloff = 60 },
+}
+
 function Misc.CameraShake(State)
-	camShake:Shake(CameraShaker.Presets[State])
+	local preset = CameraShakePresets[State]
+	if not preset then return end
+
+	local character = Player and Player.Character
+	if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+
+	local settings = table.clone(preset)
+	settings.Location = character.HumanoidRootPart.Position
+	CamShake(settings)
 end
 
 -- Hyperarmor visual indicator system

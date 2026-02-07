@@ -70,6 +70,11 @@ return function(actor: Actor, mainConfig: table)
         end
     end
 
+    -- Check if NPC is stunned (prevent attacking while being hit)
+    if StateManager.StateCount(npc, "Stuns") then
+        return false
+    end
+
     -- Check if NPC is already in an M1 animation (prevent spam) using ECS StateManager
     if StateManager.StateCount(npc, "Actions") then
         -- NPC is already performing an action, don't spam M1

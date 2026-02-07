@@ -423,6 +423,12 @@ ActionPriority.Register("Critical", {
 	cancelOnDamage = true,
 })
 
+ActionPriority.Register("KnockbackFollowUp", {
+	priority = 4, -- Higher than M1/M2 so it can cancel M1 endlag
+	cancelOnStun = true,
+	cancelOnDamage = true,
+})
+
 -- Priority 4: Skills
 ActionPriority.Register("Skill", {
 	priority = 4,

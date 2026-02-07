@@ -334,7 +334,7 @@ function Base.ClashFOV()
 
 	task.wait(0.2)
 
-	TweenService:Create(Camera, TweenInfo.new(0.2, Enum.EasingStyle.Sine), { FieldOfView = 70 }):Play()
+	TweenService:Create(Camera, TweenInfo.new(0.2, Enum.EasingStyle.Sine), { FieldOfView = 75 }):Play()
 end
 
 function Base.Parry(Character: Model, Target, Distance)
@@ -3944,6 +3944,97 @@ Base.StoneLanceCrater = function(targetPos)
 	end
 end
 
+-- Aerial Attack Landing Crater (Scythe slam)
+-- Creates a circular crater on ground impact from an aerial dive
+Base.AerialCrater = function(Character)
+	if not Character or not Character.Parent then return end
+	if typeof(Character) ~= "Instance" then return end
+
+	local hrp = Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	-- Camera shake (single hit, like Rapid Thrust)
+	CamShake({
+		Location = hrp.Position,
+		Magnitude = 5.5,
+		Damp = 0.00005,
+		Frequency = 18,
+		Influence = Vector3.new(0.45, 1, 0.45),
+		Falloff = 65,
+	})
+
+	local success, err = pcall(function()
+		-- Custom raycast params that exclude characters so crater rocks don't spawn on players/NPCs
+		local rayParams = RaycastParams.new()
+		rayParams.FilterType = Enum.RaycastFilterType.Exclude
+		local filterList = {Character, workspace.World.Live, workspace.World.Visuals}
+		if workspace:FindFirstChild("Entities") then
+			table.insert(filterList, workspace.Entities)
+		end
+		if workspace:FindFirstChild("NpcRegistryCamera") then
+			table.insert(filterList, workspace.NpcRegistryCamera)
+		end
+		rayParams.FilterDescendantsInstances = filterList
+
+		local groundRay = workspace:Raycast(hrp.Position, Vector3.new(0, -15, 0), rayParams)
+		if not groundRay then return end
+
+		local craterCFrame = CFrame.new(groundRay.Position)
+
+		-- Main crater ring
+		local effect = RockMod.New("Crater", craterCFrame, {
+			Normal = groundRay.Normal,
+			RaycastParams = rayParams,
+			Distance = { 4, 12 },
+			SizeMultiplier = 0.7,
+			PartCount = 18,
+			Layers = { 3, 4 },
+			ExitIterationDelay = { 0.5, 1 },
+			LifeCycle = {
+				Entrance = {
+					Type = "Elevate",
+					Speed = 0.2,
+					Division = 3,
+					EasingStyle = Enum.EasingStyle.Back,
+					EasingDirection = Enum.EasingDirection.Out,
+				},
+				Exit = {
+					Type = "SizeDown",
+					Speed = 0.4,
+					Division = 2,
+					EasingStyle = Enum.EasingStyle.Sine,
+					EasingDirection = Enum.EasingDirection.In,
+				},
+			},
+		})
+
+		if effect then
+			effect:Debris("Normal", {
+				Size = { 0.4, 1.2 },
+				UpForce = { 0.5, 1.0 },
+				RotationalForce = { 10, 30 },
+				Spread = { 5, 5 },
+				PartCount = 14,
+				Radius = 10,
+				LifeTime = 3,
+				LifeCycle = {
+					Entrance = {
+						Type = "SizeUp",
+						Speed = 0.2,
+						Division = 3,
+						EasingStyle = Enum.EasingStyle.Quad,
+						EasingDirection = Enum.EasingDirection.Out,
+					},
+				},
+			})
+		end
+	end)
+
+	if not success then
+		warn("[AerialCrater] Error creating crater:", err)
+	end
+end
+
 -- Ground Decay Effect (CXZ combination)
 -- Creates 3 delayed craters centered on the player
 -- First crater: big rocks, small diameter
@@ -6222,7 +6313,7 @@ function Base.CounterHit(Target: Model, Invoker: Model?)
 	end
 
 	-- Small screen shake for impact feel
-	CamShake:ShakeOnce({
+	CamShake({
 		Magnitude = 4,
 		Damp = 0.0001,
 		Frequency = 18,

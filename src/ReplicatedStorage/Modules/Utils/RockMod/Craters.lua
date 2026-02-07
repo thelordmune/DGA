@@ -137,7 +137,9 @@ function Craters.Crater(AnchorPoint, Settings, State)
 				local localOffset =
 					Vector3.new(math.cos(math.rad(angle)) * PartDistance, 0, math.sin(math.rad(angle)) * PartDistance)
 				local worldOffset = surfaceAlignedCFrame:VectorToWorldSpace(localOffset)
-				castCF = CFrame.new(MidPosition + worldOffset)
+				-- Raise cast origin above the surface so the downward raycast hits the ground
+				local raiseOffset = surfaceNormal * 5
+				castCF = CFrame.new(MidPosition + worldOffset + raiseOffset)
 				rayDirection = -surfaceNormal * Settings.RaycastLength
 			else
 				-- Original flat ground logic
@@ -151,7 +153,7 @@ function Craters.Crater(AnchorPoint, Settings, State)
 
 			angle += increments
 
-			local Result = Raycast(castCF.Position, rayDirection, State.effect_params, false)
+			local Result = Raycast(castCF.Position, rayDirection, Settings.RaycastParams or State.effect_params, false)
 			if not Result then
 				continue -- Skip this part instead of returning entirely
 			end

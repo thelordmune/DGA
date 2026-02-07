@@ -28,7 +28,17 @@ return function(actor: Actor, mainConfig: table)
     if distance > attackRange then
         return false
     end
-    
+
+    -- Check if NPC is stunned (prevent attacking while being hit)
+    if StateManager.StateCount(npc, "Stuns") then
+        return false
+    end
+
+    -- Check if NPC is already performing an action
+    if StateManager.StateCount(npc, "Actions") then
+        return false
+    end
+
     -- Only attack if aggressive
     if not (mainConfig.States and mainConfig.States.AggressiveMode) then
         return false
@@ -68,9 +78,6 @@ return function(actor: Actor, mainConfig: table)
         end
     end
     
-    -- Clear any blocking states that might prevent attacking using ECS StateManager
-    StateManager.RemoveState(npc, "Actions", "Attacking")
-
     -- Use Combat.Light just like players do
     ---- print("NPC", npc.Name, "calling Combat.Light with entity:", Entity and "found" or "not found")
     Server.Modules.Combat.Light(npc)

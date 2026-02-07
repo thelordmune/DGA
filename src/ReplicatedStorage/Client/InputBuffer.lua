@@ -54,7 +54,7 @@ local function canAttack(Client)
     -- Check for blocking actions (exclude Running/Sprinting as those shouldn't block attacks)
     local actionStates = Client.Library.GetAllStates(Client.Character, "Actions") or {}
     for _, action in ipairs(actionStates) do
-        if action ~= "Running" and action ~= "Sprinting" and action ~= "Dodging" and action ~= "DodgeRecovery" then
+        if action ~= "Running" and action ~= "Sprinting" and action ~= "Dodge" and action ~= "Dashing" and action ~= "Dodging" and action ~= "DodgeRecovery" then
             return false
         end
     end
@@ -93,7 +93,7 @@ local function canSprint(Client)
     -- Check for blocking actions
     local actionStates = Client.Library.GetAllStates(Client.Character, "Actions") or {}
     for _, action in ipairs(actionStates) do
-        if action ~= "Running" and action ~= "Sprinting" and action ~= "Dodging" and action ~= "DodgeRecovery" then
+        if action ~= "Running" and action ~= "Sprinting" and action ~= "Dodge" and action ~= "Dashing" and action ~= "Dodging" and action ~= "DodgeRecovery" then
             return false
         end
     end

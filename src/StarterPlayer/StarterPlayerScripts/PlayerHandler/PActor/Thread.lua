@@ -118,8 +118,8 @@ ClientThread.Spawn = function()
             if Humanoid:GetState() == Enum.HumanoidStateType.Dead then
                 Humanoid.CameraOffset = Vector3.zero
             elseif UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
-                -- Shift lock mode - MouseLockController handles smooth transitions
-                local offset = Root.CFrame:PointToObjectSpace(Character.Head.Position)
+                -- Shift lock mode - small vertical offset only; MouseLockController handles the rightward shift
+                local offset = Vector3.new(2, 0.5, 0)
                 -- Reset camera offset if it becomes invalid (fixes reset bug)
                 if Humanoid.CameraOffset.Magnitude > 50 or Humanoid.CameraOffset ~= Humanoid.CameraOffset then
                     Humanoid.CameraOffset = offset

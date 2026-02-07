@@ -42,9 +42,6 @@ Movement.Dodge = function()
 	if not Client.Character then return end
 	if not Client.Root or not Client.Humanoid then return end
 
-	-- ECS-based state checks (no more StringValue waiting)
-	-- StateManager handles entity lookup internally
-
 	-- Clean up any existing dodges first
 	for _, BodyMover in next, Client.Root:GetChildren() do
 		if BodyMover.Name == "Dodge" then BodyMover:Destroy() end
@@ -55,219 +52,215 @@ Movement.Dodge = function()
 		Client.DodgeCharges = 2
 	end
 
-	-- Check if we can dash
-	if Client.Dodging then
-		---- print("🚫 Dodge blocked: Already dodging")
-		return
-	end
+	if Client.Dodging then return end
 
-	-- Use ActionPriority to check if Dodge can start (cancels walking/sprinting)
-	if not Client.Library.CanStartAction(Client.Character, "Dodge") then
-		---- print("🚫 Dodge blocked: Higher priority action in progress")
-		return
-	end
+	if not Client.Library.CanStartAction(Client.Character, "Dodge") then return end
 
-	-- Stuns always block actions (use StateManager directly)
-	if StateManager.StateCount(Client.Character, "Stuns") then
-		---- print("🚫 Dodge blocked: Character is stunned")
-		return
-	end
+	if StateManager.StateCount(Client.Character, "Stuns") then return end
 
-	-- Prevent dashing during ragdoll
-	if Client.Character:FindFirstChild("Ragdoll") then
-		---- print("🚫 Dodge blocked: Character is ragdolled")
-		return
-	end
-
-	---- print(`[Dodge] Current charges: {Client.DodgeCharges}`)
+	if Client.Character:FindFirstChild("Ragdoll") then return end
 
 	-- Check cooldown only if out of charges
 	if Client.DodgeCharges <= 0 then
-		if Client.Library.CheckCooldown(Client.Character, "Dodge") then
-			---- print("🚫 Dodge blocked: On cooldown")
-			return
-		end
-		Client.DodgeCharges = 2  -- Reset charges
-		---- print("✅ Dodge charges reset to 2")
+		if Client.Library.CheckCooldown(Client.Character, "Dodge") then return end
+		Client.DodgeCharges = 2
 	end
 
 	Client.DodgeCharges = Client.DodgeCharges - 1
-	---- print(`✅ Dodge charge used, remaining: {Client.DodgeCharges}`)
 
-	-- Set cooldown when out of charges
 	if Client.DodgeCharges <= 0 then
 		Client.Library.SetCooldown(Client.Character, "Dodge", 2.5)
-		---- print("⏱️ Dodge cooldown set to 2.5 seconds")
 	end
 
-    -- Save running state before dash so we can resume after
-    local wasRunning = Client.Running
-    -- Stop running state and animation if currently running
-    if Client.Running then
-        Client.Running = false
-        StateManager.RemoveState(Client.Character, "Speeds", "RunSpeedSet30")
-        Client.Library.EndAction(Client.Character, "Sprinting")
-        -- Stop run animation so dash animation plays cleanly
-        if Client.RunAnim then
-            Client.RunAnim:Stop()
-        end
-    end
+	-- Save running state before dash so we can resume after
+	local wasRunning = Client.Running
+	if Client.Running then
+		Client.Running = false
+		StateManager.RemoveState(Client.Character, "Speeds", "RunSpeedSet30")
+		Client.Library.EndAction(Client.Character, "Sprinting")
+		if Client.RunAnim then
+			Client.RunAnim:Stop()
+		end
+	end
 
-    StateManager.AddState(Client.Character, "Status", "Dodging")
+	StateManager.AddState(Client.Character, "Status", "Dodging")
 
-    -- CONSISTENT DASH PARAMETERS (defined early so StartAction can use Duration)
-    local Speed = 135  -- Consistent speed
-    local Duration = 0.35  -- Actual dash duration
-    local TweenDuration = Duration  -- Match tween to velocity duration
+	local Speed = 45
+	local Duration = 0.4
 
-    -- Start Dodge action with priority system (priority 2, cancels walking/sprinting)
-    -- Duration must match actual dash duration to prevent getting stuck
-    Client.Library.StartAction(Client.Character, "Dodge", Duration)
+	Client.Library.StartAction(Client.Character, "Dodge", Duration)
 
-    local Direction = self.GetDirection(Client.Humanoid, Client.Root)
-    local Vector = self.Vectors[Direction]
+	local Direction = self.GetDirection(Client.Humanoid, Client.Root)
 
-    Client.Library.StopMovementAnimations(Client.Character)
-    Client.Library.StopAllAnims(Client.Character)
-    local Animation = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes[Direction])
+	Client.Library.StopMovementAnimations(Client.Character)
+	Client.Library.StopAllAnims(Client.Character)
+	local Animation = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Dashes[Direction])
 
-    -- Set dash animation to highest priority so it overrides everything
-    if Animation then
-        Animation.Priority = Enum.AnimationPriority.Action4
-    end
+	if Animation then
+		Animation.Priority = Enum.AnimationPriority.Action4
+	end
 
-    Client.Dodging = true
+	Client.Dodging = true
+	Client.DashDirection = Direction
 
-    local Velocity = Instance.new("LinearVelocity")
-    Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
-    Velocity.ForceLimitsEnabled = true
-    Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-    Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
-    Velocity.Attachment0 = Client.Root.RootAttachment
-    Velocity.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-    Velocity.VectorVelocity = Vector * Speed
-    Velocity.Name = "Dodge"
-    Velocity.Parent = Client.Root
+	-- World-space initial direction from character facing
+	local initialWorldDir = Client.Root.CFrame:VectorToWorldSpace(self.Vectors[Direction])
+	local direction = Vector3.new(initialWorldDir.X, 0, initialWorldDir.Z).Unit
 
-    Client.Packets.Dodge.send(self.DirectionToEnum[Direction])
+	local camera = workspace.CurrentCamera
 
-    -- Create smooth deceleration tween - gradually slow down instead of stopping abruptly
-    local SlowdownSpeed = Speed * 0.15  -- End at 15% of original speed for smooth transition
-    local DashTween = Client.Service["TweenService"]:Create(
-        Velocity,
-        TweenInfo.new(TweenDuration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-        {VectorVelocity = Vector * SlowdownSpeed}
-    )
-    DashTween:Play()
+	local Velocity = Instance.new("LinearVelocity")
+	Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
+	Velocity.ForceLimitsEnabled = true
+	Velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	Velocity.ForceLimitMode = Enum.ForceLimitMode.PerAxis
+	Velocity.Attachment0 = Client.Root.RootAttachment
+	Velocity.RelativeTo = Enum.ActuatorRelativeTo.World
+	Velocity.VectorVelocity = direction * Speed
+	Velocity.Name = "Dodge"
+	Velocity.Parent = Client.Root
 
-    -- Track tween completion connection for cleanup
-    local tweenConnection
+	local AlignOrient = Instance.new("AlignOrientation")
+	AlignOrient.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	AlignOrient.Attachment0 = Client.Root.RootAttachment
+	AlignOrient.RigidityEnabled = false
+	AlignOrient.Responsiveness = 30
+	AlignOrient.Enabled = false
+	AlignOrient.Name = "DodgeAlign"
+	AlignOrient.Parent = Client.Root
 
-    -- Function to cancel the dash (called when stunned/hit)
-    local dashCancelled = false
-    local function cancelDash()
-        if dashCancelled then return end
-        dashCancelled = true
+	Client.Packets.Dodge.send(self.DirectionToEnum[Direction])
 
-        -- Stop the velocity immediately
-        if Velocity and Velocity.Parent then
-            Velocity:Destroy()
-        end
+	local dashCancelled = false
 
-        -- Stop the dash animation
-        if Animation and Animation.IsPlaying then
-            Animation:Stop()
-        end
+	-- Cancel dash function (called by stun detection, M1, or M2 cancel)
+	local function cancelDash()
+		if dashCancelled then return end
+		dashCancelled = true
+	end
 
-        -- Clean up dash state (both flag AND ECS action)
-        Client.Dodging = false
-        StateManager.RemoveState(Client.Character, "Status", "Dodging")
-        Client.Library.EndAction(Client.Character, "Dodge")
-    end
+	-- Expose cancel function so Attack/Critical inputs can call it
+	Client.CancelDashFn = cancelDash
 
-    -- ECS-based stun detection (replaces StringValue.Changed listener)
-    local heartbeatConnection
+	-- Dash velocity loop in a spawned thread (like reference updateDashVelocity)
+	task.spawn(function()
+		local start = os.clock()
+		local dashDuration = Duration * 0.5
+		local decelerationDuration = Duration * 0.5
 
-    local function cleanupConnections()
-        if heartbeatConnection then
-            heartbeatConnection:Disconnect()
-            heartbeatConnection = nil
-        end
-        if tweenConnection then
-            tweenConnection:Disconnect()
-            tweenConnection = nil
-        end
-    end
+		while os.clock() - start <= Duration do
+			if dashCancelled then break end
 
-    -- Final cleanup - remove velocity completely after tween (tracked connection)
-    tweenConnection = DashTween.Completed:Connect(function()
-        if Velocity and Velocity.Parent then
-            Velocity:Destroy()
-        end
-        tweenConnection = nil
-    end)
+			-- Character validity check
+			if not Client.Character or not Client.Character.Parent then break end
 
-    -- ECS-based stun detection via Heartbeat polling
-    -- This replaces the old StringValue.Changed listener with direct ECS queries
-    heartbeatConnection = Client.Service.RunService.Heartbeat:Connect(function()
-        if dashCancelled then
-            cleanupConnections()
-            return
-        end
+			-- Stun detection
+			local allStuns = StateManager.GetAllStates(Client.Character, "Stuns")
+			for _, stunName in ipairs(allStuns) do
+				if stunName ~= "Dashing" then
+					dashCancelled = true
+					break
+				end
+			end
+			if dashCancelled then break end
 
-        -- Check if character was destroyed (prevents memory leak)
-        if not Client.Character or not Client.Character.Parent then
-            cancelDash()
-            cleanupConnections()
-            return
-        end
+			local elapsed = os.clock() - start
+			local decelerationFactor = math.max(0, (decelerationDuration - (elapsed - dashDuration)) / decelerationDuration)
+			local speed = Speed * decelerationFactor
 
-        -- Check ECS stun state directly via StateManager
-        local allStuns = StateManager.GetAllStates(Client.Character, "Stuns")
-        for _, stunName in ipairs(allStuns) do
-            if stunName ~= "Dashing" then
-                cancelDash()
-                cleanupConnections()
-                return
-            end
-        end
-    end)
+			-- Update direction from player input (allows steering mid-dash)
+			if Client.Humanoid.MoveDirection.Magnitude > 0 then
+				direction = Client.Humanoid.MoveDirection
+				AlignOrient.Enabled = false
+			else
+				-- No input: face camera forward and keep dashing that way
+				local camLook = camera.CFrame.LookVector
+				local pos = Vector3.new(camLook.X, 0, camLook.Z)
+				if pos.Magnitude > 0 then
+					pos = pos.Unit
+					AlignOrient.Enabled = true
+					AlignOrient.CFrame = CFrame.lookAt(Client.Root.Position, Client.Root.Position + pos)
+					direction = pos
+				end
+			end
 
-    Animation.Stopped:Once(function()
-        -- Velocity cleanup is handled by the tween completion
-        Client.Dodging = false
-        StateManager.RemoveState(Client.Character, "Status", "Dodging")
+			if direction.Magnitude > 0 then
+				Velocity.VectorVelocity = direction * speed
+			else
+				Velocity.VectorVelocity = Velocity.VectorVelocity.Unit * speed
+			end
 
-        -- End the Dodge action in ActionPriority system to allow other actions
-        Client.Library.EndAction(Client.Character, "Dodge")
+			task.wait()
+		end
 
-        -- Disconnect all listeners when dash ends normally
-        cleanupConnections()
+		-- Cleanup velocity and align
+		AlignOrient:Destroy()
+		Velocity:Destroy()
 
-        -- Resume running if player was running before dash and isn't stunned
-        if wasRunning and not dashCancelled then
-            -- Check that character is still valid and not stunned
-            if Client.Character and Client.Character.Parent and not StateManager.StateCount(Client.Character, "Stuns") then
-                -- Resume running state
-                Client.Running = true
-                Client._Running = true
-                StateManager.AddState(Client.Character, "Speeds", "RunSpeedSet30")
+		-- Clean up dash state
+		Client.Dodging = false
+		Client.DashDirection = nil
+		Client.CancelDashFn = nil
+		StateManager.RemoveState(Client.Character, "Status", "Dodging")
+		Client.Library.EndAction(Client.Character, "Dodge")
 
-                -- Restart run animation
-                local Equipped = Client.Character:GetAttribute("Equipped")
-                if Equipped then
-                    Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.WeaponRun)
-                else
-                    Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.Run)
-                end
+		-- Stop animation if still playing and was cancelled
+		if dashCancelled and Animation and Animation.IsPlaying then
+			Animation:Stop()
+		end
 
-                -- Set run animation priority
-                if Client.RunAnim then
-                    Client.RunAnim.Priority = Enum.AnimationPriority.Action
-                end
-            end
-        end
-    end)
+		-- Resume running if player was running before dash and isn't stunned
+		if wasRunning and not dashCancelled then
+			if Client.Character and Client.Character.Parent and not StateManager.StateCount(Client.Character, "Stuns") then
+				Client.Running = true
+				Client._Running = true
+				StateManager.AddState(Client.Character, "Speeds", "RunSpeedSet30")
+
+				local Equipped = Client.Character:GetAttribute("Equipped")
+				if Equipped then
+					Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.WeaponRun)
+				else
+					Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.Run)
+				end
+
+				if Client.RunAnim then
+					Client.RunAnim.Priority = Enum.AnimationPriority.Action
+				end
+			end
+		end
+	end)
+end
+
+-- Exposed cancel functions for input modules
+Movement.CancelDash = function()
+	if Client.CancelDashFn then
+		Client.CancelDashFn()
+	end
+end
+
+local ROLL_CANCEL_COOLDOWN = 3.5
+local lastRollCancelTime = 0
+
+Movement.CancelDashWithAnimation = function(cancelAnimName)
+	if not Client.CancelDashFn then return end
+
+	-- Enforce cooldown between roll cancels
+	if os.clock() - lastRollCancelTime < ROLL_CANCEL_COOLDOWN then return end
+	lastRollCancelTime = os.clock()
+
+	Client.CancelDashFn()
+
+	-- Play the cancel animation
+	local anim = Client.Service["ReplicatedStorage"].Assets.Animations.Dashes[cancelAnimName]
+	if anim then
+		Client.Library.PlayAnimation(Client.Character, anim)
+	end
+
+	-- Refund one dash charge (cancel doesn't consume a charge)
+	Client.DodgeCharges = math.min(2, (Client.DodgeCharges or 0) + 1)
+
+	-- Tell server about the cancel
+	Client.Packets.DodgeCancel.send()
 end
 
 

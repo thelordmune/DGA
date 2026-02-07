@@ -307,6 +307,16 @@ return function(actor: Actor, mainConfig: table)
         return false
     end
 
+    -- Check if NPC is stunned (prevent attacking while being hit)
+    if StateManager.StateCount(npc, "Stuns") then
+        return false
+    end
+
+    -- Check if NPC is already performing an action
+    if StateManager.StateCount(npc, "Actions") then
+        return false
+    end
+
     -- Only use this for guards
     local isGuard = npc.Name:find("Guard") ~= nil
     if not isGuard then

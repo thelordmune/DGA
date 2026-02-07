@@ -425,6 +425,8 @@ function CameraModule:OnCurrentCameraChanged()
 	local currentCamera = game.Workspace.CurrentCamera
 	if not currentCamera then return end
 
+	currentCamera.FieldOfView = 75
+
 	if self.cameraSubjectChangedConn then
 		self.cameraSubjectChangedConn:Disconnect()
 	end

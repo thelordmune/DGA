@@ -91,6 +91,7 @@ return ByteNet.defineNamespace("Networking", function()
 				HorizontalPower = ByteNet.optional(ByteNet.float32);
 				UpwardPower = ByteNet.optional(ByteNet.float32);
 				duration = ByteNet.optional(ByteNet.float32);
+				ChronoId = ByteNet.optional(ByteNet.uint16); -- For resolving Chrono NPC targets by ID instead of Instance ref
 			})
 		});
 

@@ -42,7 +42,7 @@ local ZERO_VECTOR3 = Vector3.new(0,0,0)
 
 local SEAT_OFFSET = Vector3.new(0,5,0)
 local VR_SEAT_OFFSET = Vector3.new(0,4,0)
-local HEAD_OFFSET = Vector3.new(0,1.5,0)
+local HEAD_OFFSET = Vector3.new(2,1.5,0)
 local R15_HEAD_OFFSET = Vector3.new(0, 1.5, 0)
 local R15_HEAD_OFFSET_NO_SCALING = Vector3.new(0, 2, 0)
 local HUMANOID_ROOT_PART_SIZE = Vector3.new(2, 2, 1)

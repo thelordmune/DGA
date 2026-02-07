@@ -26,7 +26,7 @@ local function canAttack(Client)
 	-- Check for blocking actions (exclude Running/Sprinting as those shouldn't block attacks)
 	local actionStates = Client.Library.GetAllStates(Client.Character, "Actions") or {}
 	for _, action in ipairs(actionStates) do
-		if action ~= "Running" and action ~= "Sprinting" and action ~= "Dodging" and action ~= "DodgeRecovery" then
+		if action ~= "Running" and action ~= "Sprinting" and action ~= "Dodge" and action ~= "Dashing" and action ~= "Dodging" and action ~= "DodgeRecovery" then
 			return false
 		end
 	end
@@ -39,6 +39,11 @@ local function performAttack(Client)
 	if table.find(Client.CurrentInput, "Block") then
 		Client.Packets.Parry.send()
 		return
+	end
+
+	-- M1 cancels dash (stops velocity + animation, then attacks)
+	if Client.Dodging then
+		Client.Modules['Movement'].CancelDash()
 	end
 
 	-- Stop running if currently running (any M1 while running stops the run)

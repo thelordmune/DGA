@@ -351,17 +351,24 @@ local function begin()
 			local args = {...}
 			for _, sysData in pairs(systems) do
 				if sysData.callback and sysData.id then
-					-- Wrap the callback in pcall, not the scheduler:run call
-					-- This ensures scheduler frame tracking completes even if system errors
-					local wrappedCallback = function(...)
-						local success, err = pcall(sysData.callback, ...)
-						if not success then
-							warn(`System {sysData.name} error: {err}`)
-						end
+					-- Skip if this system is already running (yielded from a previous frame)
+					-- Systems that call task.wait() etc. can still be mid-execution when
+					-- the next event fires, causing jabby's frame tracking to desync
+					if activeScheduler.processing_frame[sysData.id] then
+						continue
 					end
 
-					-- Use scheduler:run() to automatically track execution time for Jabby
-					activeScheduler:run(sysData.id, wrappedCallback, world, table.unpack(args))
+					activeScheduler:_mark_system_frame_start(sysData.id)
+
+					local success, err = pcall(sysData.callback, world, table.unpack(args))
+					if not success then
+						warn(`System {sysData.name} error: {err}`)
+					end
+
+					-- Only end frame if we still own it (wasn't cleared by a re-entrant call)
+					if activeScheduler.processing_frame[sysData.id] then
+						activeScheduler:_mark_system_frame_end(sysData.id)
+					end
 				end
 			end
 		end)

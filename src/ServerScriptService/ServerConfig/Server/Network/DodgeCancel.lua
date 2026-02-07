@@ -21,7 +21,9 @@ NetworkModule.EndPoint = function(Player, Data)
 		StateManager.RemoveState(Entity.Character, "IFrames", "Dodge")
 		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "RollCancel", Arguments = {Character}})
 
-		--> fire dash visual effects
+		-- Refund one dash charge (cancel doesn't consume a charge)
+		local charges = Character:GetAttribute("DodgeCharges") or 0
+		Character:SetAttribute("DodgeCharges", math.min(2, charges + 1))
 	end
 end
 

@@ -217,6 +217,16 @@ return function(actor: Actor, mainConfig: table)
         return false
     end
 
+    -- Check if NPC is stunned (prevent attacking while being hit)
+    if StateManager.StateCount(npc, "Stuns") then
+        return false
+    end
+
+    -- Check if NPC is already performing an action
+    if StateManager.StateCount(npc, "Actions") then
+        return false
+    end
+
     local target = mainConfig.getTarget()
     if not target then
         -- -- ---- print("intelligent_attack:", npc.Name, "- No target found")
@@ -224,7 +234,7 @@ return function(actor: Actor, mainConfig: table)
     end
 
     -- -- ---- print("intelligent_attack:", npc.Name, "has target:", target.Name)
-    
+
     -- Check if target is valid
     local targetHumanoid = target:FindFirstChild("Humanoid")
     if not targetHumanoid or targetHumanoid.Health <= 0 then

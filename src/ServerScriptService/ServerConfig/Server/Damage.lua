@@ -118,6 +118,28 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 	if Player then
 		InvokerWeapon = Player:GetAttribute("Weapon")
+
+		-- Set InCombat on the attacker
+		local pentity = ref.get("player", Player)
+		print(`[Damage] Attacker InCombat: Player={Player.Name}, entity={tostring(pentity)}`)
+		if pentity then
+			local currentInCombat = world:get(pentity, comps.InCombat)
+			print(`[Damage] Attacker prev InCombat: value={currentInCombat and tostring(currentInCombat.value) or "nil"}, dur={currentInCombat and tostring(currentInCombat.duration) or "nil"}`)
+			world:set(pentity, comps.InCombat, { value = true, duration = 40 })
+			local verify = world:get(pentity, comps.InCombat)
+			print(`[Damage] Attacker VERIFY after set: value={verify and tostring(verify.value) or "nil"}, dur={verify and tostring(verify.duration) or "nil"}, hasPlayer={world:get(pentity, comps.Player) ~= nil}`)
+
+			if not currentInCombat or not currentInCombat.value then
+				print(`[Damage] Firing InCombat=true to attacker {Player.Name}`)
+				Visuals.FireClient(Player, {
+					Module = "Base",
+					Function = "InCombat",
+					Arguments = { Player, true },
+				})
+			end
+		else
+			warn(`[Damage] NO ENTITY for attacker {Player.Name}! InCombat NOT set.`)
+		end
 	else
 		InvokerWeapon = Invoker:GetAttribute("Weapon")
 	end
@@ -125,21 +147,26 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	if TargetPlayer then
 		TargetWeapon = TargetPlayer:GetAttribute("Weapon")
 
-		-- Only set InCombat ECS component for players (not NPCs)
+		-- Set InCombat on the target
 		local tentity = ref.get("player", TargetPlayer)
-		if tentity then -- Check if entity exists before using it
+		print(`[Damage] Target InCombat: Player={TargetPlayer.Name}, entity={tostring(tentity)}`)
+		if tentity then
 			local currentInCombat = world:get(tentity, comps.InCombat)
-			-- Reset duration to 40 seconds every time player gets hit
+			print(`[Damage] Target prev InCombat: value={currentInCombat and tostring(currentInCombat.value) or "nil"}, dur={currentInCombat and tostring(currentInCombat.duration) or "nil"}`)
 			world:set(tentity, comps.InCombat, { value = true, duration = 40 })
+			local verify = world:get(tentity, comps.InCombat)
+			print(`[Damage] Target VERIFY after set: value={verify and tostring(verify.value) or "nil"}, dur={verify and tostring(verify.duration) or "nil"}, hasPlayer={world:get(tentity, comps.Player) ~= nil}`)
 
-			-- Only fire client event if this is the first time entering combat
 			if not currentInCombat or not currentInCombat.value then
+				print(`[Damage] Firing InCombat=true to target {TargetPlayer.Name}`)
 				Visuals.FireClient(TargetPlayer, {
 					Module = "Base",
 					Function = "InCombat",
 					Arguments = { TargetPlayer, true },
 				})
 			end
+		else
+			warn(`[Damage] NO ENTITY for target {TargetPlayer.Name}! InCombat NOT set.`)
 		end
 	else
 		TargetWeapon = Target:GetAttribute("Weapon")
@@ -1192,8 +1219,9 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					Server.Packets.Bvel.sendToAll({ Character = Invoker, Name = "KnockbackBvel", Targ = Target })
 				else
 					-- NPC hitting Player: NPC model ref may not serialize, send pre-computed velocity
-					local dir = (Target.HumanoidRootPart.Position - Invoker.HumanoidRootPart.Position).Unit
-					dir = Vector3.new(dir.X, 0, dir.Z).Unit
+					-- Knockback direction: opposite of target's facing direction (knocked backwards)
+					local targetLook = Target.HumanoidRootPart.CFrame.LookVector
+					local dir = -Vector3.new(targetLook.X, 0, targetLook.Z).Unit
 					Server.Packets.Bvel.sendTo({
 						Character = Target,
 						Name = "KnockbackBvelFromNPC",
@@ -1207,12 +1235,23 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 			-- Send highlight to the attacking player (shows follow-up opportunity)
 			if Player then
-				Server.Packets.Bvel.sendTo({
-					Character = Invoker,
-					Name = "KnockbackFollowUpHighlight",
-					Targ = Target,
-					duration = 1.267,
-				}, Player)
+				if targetChronoId then
+					-- Chrono NPC: send ChronoId so client can resolve to its local clone
+					Server.Packets.Bvel.sendTo({
+						Character = Invoker,
+						Name = "KnockbackFollowUpHighlight",
+						ChronoId = targetChronoId,
+						duration = 1.267,
+					}, Player)
+				else
+					-- Non-Chrono target (player): safe to send Instance ref
+					Server.Packets.Bvel.sendTo({
+						Character = Invoker,
+						Name = "KnockbackFollowUpHighlight",
+						Targ = Target,
+						duration = 1.267,
+					}, Player)
+				end
 			end
 
 			---- print("[Knockback] Sent KnockbackBvel packet")

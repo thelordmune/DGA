@@ -187,6 +187,7 @@ System.Settings = {
 	DefaultBinds = {
 		Attack   = Enum.UserInputType.MouseButton1;
 		Critical = Enum.KeyCode.R;
+		KnockbackFollowUp = Enum.UserInputType.MouseButton2;
 		Jump     = Enum.KeyCode.Space;
 		Block    = Enum.KeyCode.F;
 		Dodge    = Enum.KeyCode.Q;

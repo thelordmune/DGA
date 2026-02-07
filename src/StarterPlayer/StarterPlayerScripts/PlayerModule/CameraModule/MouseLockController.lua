@@ -12,7 +12,7 @@ local DEFAULT_MOUSE_LOCK_CURSOR = "rbxassetid://136407814892642"
 
 local CONTEXT_ACTION_NAME = "MouseLockSwitchAction"
 local MOUSELOCK_ACTION_PRIORITY = Enum.ContextActionPriority.Medium.Value
-local CAMERA_OFFSET_DEFAULT = Vector3.new(1.75,0,0)  
+local CAMERA_OFFSET_DEFAULT = Vector3.new(2.5,0,0)
 
 --[[ Services ]]--
 local PlayersService = game:GetService("Players")

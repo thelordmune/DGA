@@ -182,13 +182,16 @@ end
 
 -- Add a notification to the queue
 local function queueNotification(notifType, itemName)
+	-- Suppress notifications while loading screen is active
+	if _G.LoadingScreenActive then return end
+
 	table.insert(notificationQueue, {
 		type = notifType,
 		name = itemName
 	})
-	
+
 	---- print("[NotificationManager] Queued notification:", notifType, itemName, "Queue size:", #notificationQueue)
-	
+
 	-- Try to show it
 	showNextNotification()
 end

@@ -173,15 +173,16 @@ Combat.Light = function(Character: Model, Air: boolean?)
 		return
 	end
 
+	-- Check stuns — applies to BOTH players and NPCs
+	if StateManager.StateCount(Character, "Stuns") then
+		return
+	end
+
 	-- Check if M1 attack can cancel current action (priority-based)
 	local isNPC = Character:GetAttribute("IsNPC")
 	if not isNPC then
 		-- Use ActionPriority to check if M1 can start (cancels lower priority actions)
 		if not Server.Library.CanStartAction(Character, "M1Attack") then
-			return
-		end
-		-- Also check stuns (stuns always block actions)
-		if StateManager.StateCount(Character, "Stuns") then
 			return
 		end
 	end
@@ -237,7 +238,7 @@ Combat.Light = function(Character: Model, Air: boolean?)
 			-- This prevents immediately starting another M1 chain after the final hit
 			task.delay(Stats["Endlag"][Combo], function()
 				if Character then
-					StateManager.TimedState(Character, "Actions", "ComboRecovery", 0.4)
+					StateManager.TimedState(Character, "Actions", "ComboRecovery", 0.6)
 				end
 			end)
 		end
@@ -398,6 +399,9 @@ Combat.CriticalStart = function(Character: Model)
 	-- Already charging? Ignore duplicate start
 	if Character:GetAttribute("CriticalChargeStart") then return end
 
+	-- Clear stale early release flag from a previous failed attempt
+	Character:SetAttribute("CriticalEarlyRelease", nil)
+
 	if Player then
 		Server.Packets.CancelSprint.sendTo({}, Player)
 	end
@@ -469,6 +473,7 @@ Combat.CriticalStart = function(Character: Model)
 		end
 		Cancel = true
 		Character:SetAttribute("CriticalChargeStart", nil)
+		Character:SetAttribute("CriticalEarlyRelease", nil)
 		SwingAnimation:Stop(0.2)
 		if StateManager.StateCheck(Character, "Speeds", "M1Speed8") then
 			StateManager.RemoveState(Character, "Speeds", "M1Speed8")
@@ -476,6 +481,12 @@ Combat.CriticalStart = function(Character: Model)
 		if Stats["Trail"] then
 			Combat.Trail(Character, false)
 		end
+		-- Clear combat state refs so stale CriticalRelease calls don't find old animation
+		local cs = getCombatState(Character)
+		cs.criticalAnimation = nil
+		cs.criticalWeapon = nil
+		cs.criticalStunDisconnect = nil
+		setCombatState(Character, cs)
 		if Player then
 			Server.Packets.Bvel.sendTo({Character = Character, Name = "CriticalChargeRelease"}, Player)
 		end
@@ -485,6 +496,25 @@ Combat.CriticalStart = function(Character: Model)
 	task.wait(Stats["Critical"].WaitTime)
 
 	if Cancel then return end
+
+	-- Check if player already released during wind-up (quick tap)
+	if Character:GetAttribute("CriticalEarlyRelease") then
+		Character:SetAttribute("CriticalEarlyRelease", nil)
+		-- Clean up stun listener
+		if chargeStunDisconnect then
+			chargeStunDisconnect()
+			chargeStunDisconnect = nil
+		end
+		-- Don't pause — let animation continue, set charge start to NOW so release fires instantly
+		Character:SetAttribute("CriticalChargeStart", os.clock())
+		combatState = getCombatState(Character)
+		combatState.criticalAnimation = SwingAnimation
+		combatState.criticalWeapon = Weapon
+		setCombatState(Character, combatState)
+		-- Immediately release at stage 1
+		Combat.CriticalRelease(Character)
+		return
+	end
 
 	SwingAnimation:AdjustSpeed(0) -- Pause at attack frame
 
@@ -514,7 +544,12 @@ end
 -- CriticalRelease: Execute the charged M2 attack based on hold duration.
 Combat.CriticalRelease = function(Character: Model)
 	local chargeStart = Character:GetAttribute("CriticalChargeStart")
-	if not chargeStart then return end -- Wasn't charging
+	if not chargeStart then
+		-- Player released during wind-up (before charge started).
+		-- Flag so CriticalStart skips the charge phase and fires immediately.
+		Character:SetAttribute("CriticalEarlyRelease", true)
+		return
+	end
 
 	local Entity = Server.Modules["Entities"].Get(Character)
 	if not Entity then return end
@@ -606,8 +641,11 @@ Combat.CriticalRelease = function(Character: Model)
 		end
 	end
 
-	-- Hitbox check with damage multiplier
-	local HitTargets = Hitbox.SpatialQuery(Character, Stats["Hitboxes"][1]["HitboxSize"], Entity:GetCFrame() * Stats["Hitboxes"][1]["HitboxOffset"])
+	-- Hitbox check with damage multiplier (use CritHitbox if defined, else fall back to Hitboxes[1])
+	local critHB = Stats["Critical"]["CritHitbox"]
+	local hitboxSize = critHB and critHB["HitboxSize"] or Stats["Hitboxes"][1]["HitboxSize"]
+	local hitboxOffset = critHB and critHB["HitboxOffset"] or Stats["Hitboxes"][1]["HitboxOffset"]
+	local HitTargets = Hitbox.SpatialQuery(Character, hitboxSize, Entity:GetCFrame() * hitboxOffset)
 
 	for _, Target: Model in pairs(HitTargets) do
 		-- Apply damage with charge multiplier
@@ -728,6 +766,8 @@ Combat.Critical = function(Character: Model)
 end
 
 -- Aerial Attack: Jump + M1 with Scythe (or any weapon with Aerial stats)
+-- Launches upward+forward, animation plays through, hit on ground contact
+-- On landing: crater VFX + expanded hitbox
 Combat.AerialAttack = function(Character: Model)
 	local Hitbox = Server.Modules.Hitbox
 	local Entity = Server.Modules["Entities"].Get(Character)
@@ -755,13 +795,13 @@ Combat.AerialAttack = function(Character: Model)
 
 	Server.Library.StopAllAnims(Character)
 
-	-- Start aerial action with generous duration (ends on landing)
-	local maxAirTime = 3.0
+	-- Generous action duration — will be refreshed on landing
+	local maxAirTime = 2.0
 	Server.Library.StartAction(Character, "M1Attack", maxAirTime)
 	StateManager.TimedState(Character, "Actions", "AerialAttack", maxAirTime)
 	StateManager.AddState(Character, "Speeds", "M1Speed8")
 
-	-- Play aerial animation
+	-- Play aerial animation (plays straight through, no pause)
 	local SwingAnimation = Character.Humanoid.Animator:LoadAnimation(aerialAnim)
 	SwingAnimation:Play(0.1)
 	SwingAnimation.Priority = Enum.AnimationPriority.Action2
@@ -772,83 +812,81 @@ Combat.AerialAttack = function(Character: Model)
 		Combat.Trail(Character, true)
 	end
 
-	-- Apply upward + forward velocity
+	-- Apply smooth forward dive velocity
 	if Player then
 		Server.Packets.Bvel.sendTo({Character = Character, Name = "AerialAttackBvel"}, Player)
 	else
 		Server.Modules.ServerBvel.AerialAttackLaunch(Character)
 	end
 
-	-- Wait until pause frame
-	task.wait(aerialStats["PauseTime"])
-
-	-- Check if still in aerial state
-	if not StateManager.StateCheck(Character, "Actions", "AerialAttack") then
+	-- Stun cancellation listener
+	local Cancel = false
+	local stunDisconnect
+	stunDisconnect = StateManager.OnStunAdded(Character, function()
+		if stunDisconnect then stunDisconnect(); stunDisconnect = nil end
+		Cancel = true
+		SwingAnimation:Stop(0.2)
+		if StateManager.StateCheck(Character, "Speeds", "M1Speed8") then
+			StateManager.RemoveState(Character, "Speeds", "M1Speed8")
+		end
 		if Stats["Trail"] then Combat.Trail(Character, false) end
-		return
-	end
-
-	-- Pause animation mid-air
-	SwingAnimation:AdjustSpeed(0)
-
-	-- Monitor ground contact
-	local humanoid = Character:FindFirstChild("Humanoid")
-	local landed = false
-	local landConn
-	local landStart = os.clock()
-
-	landConn = game:GetService("RunService").Heartbeat:Connect(function()
-		if not Character.Parent or not humanoid then
-			if landConn then landConn:Disconnect() end
-			return
-		end
-
-		-- Check if grounded: FloorMaterial is not Air
-		if humanoid.FloorMaterial ~= Enum.Material.Air then
-			landed = true
-			if landConn then landConn:Disconnect() end
-			return
-		end
-
-		-- Timeout after max air time
-		if os.clock() - landStart > maxAirTime then
-			landed = true
-			if landConn then landConn:Disconnect() end
-		end
 	end)
 
-	-- Wait for landing
-	while not landed do
-		task.wait(0.05)
+	-- Wait for the Bvel arc to finish before checking ground contact
+	task.wait(0.45)
+	if Cancel then return end
+
+	-- Now poll for ground contact (character is descending)
+	local humanoid = Character:FindFirstChild("Humanoid")
+	local landed = false
+	local groundCheckStart = os.clock()
+
+	while not landed and not Cancel do
+		task.wait()
+		if Cancel then return end
+		if not Character or not Character.Parent then return end
+
+		if humanoid and humanoid.FloorMaterial ~= Enum.Material.Air then
+			landed = true
+		end
+
+		-- Safety timeout (1.5s after Bvel ends)
+		if os.clock() - groundCheckStart > 1.5 then
+			landed = true
+		end
 	end
 
-	-- Check if still in aerial state (may have been cancelled by stun)
-	if not StateManager.StateCheck(Character, "Actions", "AerialAttack") then
-		SwingAnimation:Stop(0.2)
-		if Stats["Trail"] then Combat.Trail(Character, false) end
-		return
-	end
+	if Cancel then return end
+	if stunDisconnect then stunDisconnect(); stunDisconnect = nil end
 
-	-- Resume animation on landing
-	SwingAnimation:AdjustSpeed(1)
+	-- LANDED — hitbox check immediately
+	local landingHitboxSize = aerialStats["LandingHitboxSize"] or Vector3.new(12, 8, 12)
+	local landingHitboxOffset = aerialStats["LandingHitboxOffset"] or CFrame.new(0, -2, -3)
 
-	-- Wait for hit frame after resume
-	task.wait(aerialStats["HitTimeAfterResume"])
-
-	-- Hitbox check
-	local HitTargets = Hitbox.SpatialQuery(Character, Stats["Hitboxes"][1]["HitboxSize"], Entity:GetCFrame() * Stats["Hitboxes"][1]["HitboxOffset"])
+	local HitTargets = Hitbox.SpatialQuery(Character, landingHitboxSize, Entity:GetCFrame() * landingHitboxOffset)
 
 	for _, Target: Model in pairs(HitTargets) do
 		Server.Modules.Damage.Tag(Character, Target, aerialStats["DamageTable"])
 	end
 
-	-- Endlag
-	Server.Library.StartAction(Character, "M1Attack", aerialStats["Endlag"])
-	StateManager.TimedState(Character, "Actions", "AerialAttack", aerialStats["Endlag"])
+	-- Send crater VFX to all nearby clients
+	local hrp = Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		Server.Visuals.Ranged(hrp.Position, 300, {Module = "Base", Function = "AerialCrater", Arguments = {Character}})
+	end
 
-	-- Cleanup
-	local aerialSwingConn
-	aerialSwingConn = SwingAnimation.Stopped:Once(function()
+	-- Camera shake for the player
+	if Player then
+		Server.Visuals.FireClient(Player, {Module = "Misc", Function = "CameraShake", Arguments = {"Medium"}})
+	end
+
+	-- Endlag
+	local endlag = aerialStats["Endlag"]
+	Server.Library.StartAction(Character, "M1Attack", endlag)
+	StateManager.TimedState(Character, "Actions", "AerialAttack", endlag)
+
+	-- Cleanup on animation stop
+	SwingAnimation.Stopped:Once(function()
 		if StateManager.StateCheck(Character, "Speeds", "M1Speed8") then
 			StateManager.RemoveState(Character, "Speeds", "M1Speed8")
 		end
@@ -858,7 +896,7 @@ Combat.AerialAttack = function(Character: Model)
 	end)
 
 	-- Safety cleanup
-	task.delay(aerialStats["Endlag"] + 0.5, function()
+	task.delay(endlag + 0.5, function()
 		if StateManager.StateCheck(Character, "Speeds", "M1Speed8") then
 			StateManager.RemoveState(Character, "Speeds", "M1Speed8")
 		end
@@ -891,9 +929,18 @@ Combat.KnockbackFollowUp = function(Character: Model)
 	local searchLocations = { workspace.World.Live }
 
 	-- Also search NpcRegistryCamera for Chrono NPCs
+	-- NPCs are nested inside type folders (e.g. NpcRegistryCamera > DEFAULT > [NPC models])
 	local npcCamera = workspace:FindFirstChild("NpcRegistryCamera")
 	if npcCamera then
-		table.insert(searchLocations, npcCamera)
+		for _, child in ipairs(npcCamera:GetChildren()) do
+			if child:IsA("Folder") then
+				table.insert(searchLocations, child)
+			elseif child:IsA("Model") then
+				-- In case NPCs are direct children
+				table.insert(searchLocations, npcCamera)
+				break
+			end
+		end
 	end
 
 	for _, location in ipairs(searchLocations) do
@@ -901,8 +948,8 @@ Combat.KnockbackFollowUp = function(Character: Model)
 			if model:IsA("Model") and model ~= Character then
 				local attackerName = model:GetAttribute("KnockbackAttacker")
 				if attackerName == Character.Name then
-					-- Verify target still has KnockbackStun active
-					if StateManager.StateCheck(model, "Stuns", "KnockbackStun") then
+					local hasStun = StateManager.StateCheck(model, "Stuns", "KnockbackStun")
+					if hasStun then
 						Target = model
 						break
 					end
@@ -920,7 +967,7 @@ Combat.KnockbackFollowUp = function(Character: Model)
 
 	-- Calculate distance and travel time
 	local distance = (targetRoot.Position - attackerRoot.Position).Magnitude
-	local travelTime = math.clamp(distance / 80, 0.2, 0.75)
+	local travelTime = math.clamp(distance / 40, 0.3, 1.2)
 
 	-- Set Critical cooldown (shared with M2)
 	Server.Library.SetCooldown(Character, "Critical", 5)
@@ -948,25 +995,38 @@ Combat.KnockbackFollowUp = function(Character: Model)
 	SwingAnimation:Play(0.1)
 	SwingAnimation.Priority = Enum.AnimationPriority.Action2
 
-	-- Adjust animation speed to match travel time
+	-- Adjust animation speed to match travel time (cap at 1.5x to avoid looking too fast)
 	local animLength = SwingAnimation.Length
+	local adjustedSpeed = 1
 	if animLength > 0 then
-		SwingAnimation:AdjustSpeed(animLength / travelTime)
+		adjustedSpeed = math.min(animLength / travelTime, 1.5)
+		SwingAnimation:AdjustSpeed(adjustedSpeed)
 	end
 
 	-- Replicate animation to clients for Chrono NPCs
-	local adjustedSpeed = animLength > 0 and (animLength / travelTime) or 1
 	setNPCCombatAnim(Character, Weapon, "RunningAttack", "Running Attack", adjustedSpeed)
 
 	-- Apply bezier velocity
 	if Player then
-		-- Send bezier velocity packet to attacker's client
-		Server.Packets.Bvel.sendTo({
-			Character = Character,
-			Name = "KnockbackFollowUpBvel",
-			Targ = Target,
-			duration = travelTime,
-		}, Player)
+		-- For Chrono NPCs, Target is in the server Camera and can't be sent as Instance ref.
+		-- Send ChronoId so the client can resolve to its local clone.
+		local targetChronoId = Target:GetAttribute("ChronoId")
+		if targetChronoId then
+			Server.Packets.Bvel.sendTo({
+				Character = Character,
+				Name = "KnockbackFollowUpBvel",
+				ChronoId = targetChronoId,
+				duration = travelTime,
+			}, Player)
+		else
+			-- Non-Chrono target (player in workspace.World.Live) — safe to send Instance ref
+			Server.Packets.Bvel.sendTo({
+				Character = Character,
+				Name = "KnockbackFollowUpBvel",
+				Targ = Target,
+				duration = travelTime,
+			}, Player)
+		end
 	else
 		-- NPC attacker: apply server-side bezier chase
 		Server.Modules.ServerBvel.BezierChase(Character, Target, travelTime)
@@ -994,13 +1054,61 @@ Combat.KnockbackFollowUp = function(Character: Model)
 		stunDisconnect = nil
 	end
 
-	-- Hitbox check at destination - use first hitbox from weapon stats
+	-- Stop knockback on the target: remove velocity and stun, then apply follow-up hit
+	if Target and Target.Parent then
+		-- Remove knockback velocity from target
+		local tRoot = Target:FindFirstChild("HumanoidRootPart")
+		if tRoot then
+			for _, child in ipairs(tRoot:GetChildren()) do
+				if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") then
+					child:Destroy()
+				end
+			end
+			tRoot.AssemblyLinearVelocity = Vector3.zero
+		end
+
+		-- Stop knockback animation on target
+		Server.Library.StopAllAnims(Target)
+
+		-- Remove KnockbackStun so the follow-up stun can apply cleanly
+		if StateManager.StateCheck(Target, "Stuns", "KnockbackStun") then
+			StateManager.RemoveState(Target, "Stuns", "KnockbackStun")
+		end
+
+		-- Clear knockback tracking attributes
+		Target:SetAttribute("KnockbackAttacker", nil)
+		Target:SetAttribute("KnockbackTime", nil)
+		Target:SetAttribute("KnockbackAttackerUserId", nil)
+		Target:SetAttribute("KnockbackAttackerChronoId", nil)
+	end
+
+	-- Follow-up damage table: normal M1 hit with longer stun
+	local followUpTable = {
+		Damage = Stats["M1Table"].Damage,
+		PostureDamage = Stats["M1Table"].PostureDamage,
+		LightKnockback = true,
+		M1 = true,
+		FX = Stats["M1Table"].FX,
+		Stun = 1.2, -- Longer stun than normal M1
+	}
+
+	-- Directly tag the known target (don't rely on spatial query — target may have drifted from knockback)
+	if Target and Target.Parent then
+		local targetHumanoid = Target:FindFirstChild("Humanoid")
+		if targetHumanoid and targetHumanoid.Health > 0 then
+			Server.Modules.Damage.Tag(Character, Target, followUpTable)
+		end
+	end
+
+	-- Also check for any other targets caught in the hitbox
 	local hitboxSize = Stats["Hitboxes"][1]["HitboxSize"]
 	local hitboxOffset = Stats["Hitboxes"][1]["HitboxOffset"]
 	local HitTargets = Hitbox.SpatialQuery(Character, hitboxSize, Entity:GetCFrame() * hitboxOffset)
 
 	for _, HitTarget: Model in pairs(HitTargets) do
-		Server.Modules.Damage.Tag(Character, HitTarget, Stats["RATable"])
+		if HitTarget ~= Target then -- Don't double-hit the main target
+			Server.Modules.Damage.Tag(Character, HitTarget, followUpTable)
+		end
 	end
 end
 

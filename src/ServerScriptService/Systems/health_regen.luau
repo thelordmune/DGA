@@ -29,8 +29,8 @@ local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local EntityCleanup = require(ReplicatedStorage.Modules.ECS.entity_cleanup)
 
 -- Health regeneration rates (HP per second)
-local HEALTH_REGEN_OUT_OF_COMBAT = 2
-local HEALTH_REGEN_IN_COMBAT = 0.5
+local HEALTH_REGEN_OUT_OF_COMBAT = 0.5
+local HEALTH_REGEN_IN_COMBAT = 0.1
 
 -- BlockBar regeneration rate (points per second)
 local BLOCKBAR_REGEN_RATE = 20

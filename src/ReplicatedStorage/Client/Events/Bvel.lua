@@ -63,11 +63,11 @@ NetworkModule.EndPoint = function(Player, Data)
 		-- NPC attacker: velocity pre-computed by server, no NPC model ref needed
 		func(Data.Character, Data.Velocity)
 	elseif Data.Name == "KnockbackFollowUpHighlight" then
-		-- Highlight on knockback target + duration
-		func(Data.Character, Data.Targ, Data.duration)
+		-- Highlight on knockback target + duration (ChronoId for NPC targets, Targ for player targets)
+		func(Data.Character, Data.Targ, Data.duration, Data.ChronoId)
 	elseif Data.Name == "KnockbackFollowUpBvel" then
-		-- Bezier chase toward target + duration
-		func(Data.Character, Data.Targ, Data.duration)
+		-- Bezier chase toward target + duration (ChronoId for NPC targets, Targ for player targets)
+		func(Data.Character, Data.Targ, Data.duration, Data.ChronoId)
 	elseif Data.Name == "CriticalChargeStart" or Data.Name == "CriticalChargeRelease" then
 		-- Charged M2 VFX (Character only, no target)
 		func(Data.Character)
@@ -705,9 +705,9 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		end
 	end
 
-	-- Calculate knockback direction (away from attacker)
-	local direction = (eroot.Position - root.Position).Unit
-	direction = Vector3.new(direction.X, 0, direction.Z).Unit  -- Flatten to horizontal
+	-- Knockback direction: opposite of where the TARGET is facing (knocked backwards)
+	local targetLook = eroot.CFrame.LookVector
+	local direction = -Vector3.new(targetLook.X, 0, targetLook.Z).Unit
 
 	-- Make target face the attacker using BodyGyro (more reliable than setting CFrame)
 	local lookDirection = (root.Position - eroot.Position).Unit
@@ -723,7 +723,8 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 
 	local maxPower = 60
 	local duration = 1.267 -- Match KnockbackStun animation length
-	local fullSpeedTime = 0.5 -- Full speed for first 0.5s (frame 30 at 60fps), then decelerate
+	local rampUpTime = 0.15 -- Ease-in from 0 to maxPower
+	local fullSpeedTime = 0.5 -- Hold at max until this point, then decelerate
 
 	-- Reset any existing velocity first
 	eroot.AssemblyLinearVelocity = Vector3.zero
@@ -731,13 +732,10 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 
 	local bv = Instance.new("BodyVelocity")
 	bv.MaxForce = Vector3.new(50000, 0, 50000)
-	bv.Velocity = direction * maxPower -- Start at max power instantly
+	bv.Velocity = Vector3.zero -- Start slow
 	bv.Parent = eroot
 
-	-- Set initial velocity instantly
-	eroot.AssemblyLinearVelocity = direction * maxPower
-
-	-- Two-phase velocity: full speed for 0.5s, then cubic ease-out deceleration
+	-- Three-phase velocity: ramp up (0.15s) → full speed → cubic ease-out deceleration
 	local startTime = os.clock()
 	local connection
 	connection = game:GetService("RunService").Heartbeat:Connect(function()
@@ -748,13 +746,17 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		end
 
 		local currentPower
-		if elapsed < fullSpeedTime then
-			-- Phase 1: Full speed for first 0.5 seconds
+		if elapsed < rampUpTime then
+			-- Phase 1: Ease-in ramp from 0 to maxPower (quadratic)
+			local t = elapsed / rampUpTime
+			currentPower = maxPower * (t * t) -- Quadratic ease-in: slow start, fast finish
+		elseif elapsed < fullSpeedTime then
+			-- Phase 2: Full speed
 			currentPower = maxPower
 		else
-			-- Phase 2: Gradually slow down from 0.5s to 1.267s
+			-- Phase 3: Gradually slow down (cubic ease-out, same as before)
 			local slowdownProgress = (elapsed - fullSpeedTime) / (duration - fullSpeedTime)
-			local easedProgress = 1 - (1 - slowdownProgress) ^ 3 -- Cubic ease out
+			local easedProgress = 1 - (1 - slowdownProgress) ^ 3
 			currentPower = maxPower * (1 - easedProgress)
 		end
 
@@ -834,19 +836,18 @@ NetworkModule["KnockbackBvelFromNPC"] = function(Character: Model | Entity, Velo
 	bodyGyro.Parent = eroot
 
 	local duration = 1.267 -- Match KnockbackStun animation length
-	local fullSpeedTime = 0.5 -- Full speed for first 0.5s, then decelerate
+	local rampUpTime = 0.15 -- Ease-in from 0 to maxPower
+	local fullSpeedTime = 0.5 -- Hold at max until this point, then decelerate
 
 	eroot.AssemblyLinearVelocity = Vector3.zero
 	eroot.AssemblyAngularVelocity = Vector3.zero
 
 	local bv = Instance.new("BodyVelocity")
 	bv.MaxForce = Vector3.new(50000, 0, 50000)
-	bv.Velocity = direction * maxPower
+	bv.Velocity = Vector3.zero -- Start slow
 	bv.Parent = eroot
 
-	eroot.AssemblyLinearVelocity = direction * maxPower
-
-	-- Two-phase velocity: full speed for 0.5s, then cubic ease-out deceleration
+	-- Three-phase velocity: ramp up → full speed → cubic ease-out deceleration
 	local startTime = os.clock()
 	local connection
 	connection = game:GetService("RunService").Heartbeat:Connect(function()
@@ -857,7 +858,10 @@ NetworkModule["KnockbackBvelFromNPC"] = function(Character: Model | Entity, Velo
 		end
 
 		local currentPower
-		if elapsed < fullSpeedTime then
+		if elapsed < rampUpTime then
+			local t = elapsed / rampUpTime
+			currentPower = maxPower * (t * t)
+		elseif elapsed < fullSpeedTime then
 			currentPower = maxPower
 		else
 			local slowdownProgress = (elapsed - fullSpeedTime) / (duration - fullSpeedTime)
@@ -1320,28 +1324,21 @@ end
 -- ============================================
 
 -- Highlight on knockback target (visible only to the attacker)
-NetworkModule["KnockbackFollowUpHighlight"] = function(_Character: Model, Targ: Model, duration: number?)
-	if not Targ then return end
-
-	-- Resolve Chrono NPC target to client clone if needed
-	if typeof(Targ) ~= "Instance" then return end
-
-	-- Check if target is in server NpcRegistryCamera - find client clone instead
-	local resolvedTarget = Targ
-	if Targ.Parent and Targ.Parent.Name == "NpcRegistryCamera" and not Targ.Parent:GetAttribute("ClientOwned") then
-		local chronoId = Targ:GetAttribute("ChronoId")
-		if chronoId then
-			for _, child in ipairs(workspace:GetChildren()) do
-				if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
-					local clone = child:FindFirstChild(tostring(chronoId))
-					if clone then
-						resolvedTarget = clone
-					end
-					break
-				end
+NetworkModule["KnockbackFollowUpHighlight"] = function(_Character: Model, Targ: Model?, duration: number?, chronoId: number?)
+	-- Resolve target: either by ChronoId (NPC in client camera) or direct Instance ref (player)
+	local resolvedTarget = nil
+	if chronoId then
+		for _, child in ipairs(workspace:GetChildren()) do
+			if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
+				resolvedTarget = child:FindFirstChild(tostring(chronoId))
+				break
 			end
 		end
+	elseif Targ and typeof(Targ) == "Instance" then
+		resolvedTarget = Targ
 	end
+
+	if not resolvedTarget then return end
 
 	-- Remove any existing follow-up highlight
 	local existing = resolvedTarget:FindFirstChild("KnockbackFollowUpHighlight")
@@ -1367,29 +1364,28 @@ NetworkModule["KnockbackFollowUpHighlight"] = function(_Character: Model, Targ: 
 end
 
 -- Bezier curve chase velocity for follow-up attack
-NetworkModule["KnockbackFollowUpBvel"] = function(Character: Model, Targ: Model, duration: number?)
-	if not Character or not Targ then return end
-	if typeof(Character) ~= "Instance" or typeof(Targ) ~= "Instance" then return end
+NetworkModule["KnockbackFollowUpBvel"] = function(Character: Model, Targ: Model?, duration: number?, chronoId: number?)
+	if not Character then return end
+	if typeof(Character) ~= "Instance" then return end
 
 	local rootPart = Character:FindFirstChild("HumanoidRootPart")
 	if not rootPart then return end
 
-	-- Resolve Chrono NPC target to client clone if needed
-	local resolvedTarget = Targ
-	if Targ.Parent and Targ.Parent.Name == "NpcRegistryCamera" and not Targ.Parent:GetAttribute("ClientOwned") then
-		local chronoId = Targ:GetAttribute("ChronoId")
-		if chronoId then
-			for _, child in ipairs(workspace:GetChildren()) do
-				if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
-					local clone = child:FindFirstChild(tostring(chronoId))
-					if clone then
-						resolvedTarget = clone
-					end
-					break
-				end
+	-- Resolve target: either by ChronoId (NPC in client camera) or direct Instance ref (player)
+	local resolvedTarget = nil
+	if chronoId then
+		-- Find the client's Chrono camera clone
+		for _, child in ipairs(workspace:GetChildren()) do
+			if child.Name == "NpcRegistryCamera" and child:IsA("Camera") and child:GetAttribute("ClientOwned") then
+				resolvedTarget = child:FindFirstChild(tostring(chronoId))
+				break
 			end
 		end
+	elseif Targ and typeof(Targ) == "Instance" then
+		resolvedTarget = Targ
 	end
+
+	if not resolvedTarget then return end
 
 	local targetRoot = resolvedTarget:FindFirstChild("HumanoidRootPart")
 	if not targetRoot then return end
@@ -1570,16 +1566,16 @@ NetworkModule["AerialAttackBvel"] = function(Character: Model)
 	if not eroot then return end
 
 	local forward = eroot.CFrame.LookVector
-	local velocity = forward * 15 + Vector3.new(0, 20, 0)
 
 	local bv = Instance.new("BodyVelocity")
 	bv.MaxForce = Vector3.new(50000, 50000, 50000)
-	bv.Velocity = velocity
+	bv.Velocity = forward * 35 + Vector3.new(0, 25, 0)
 	bv.Parent = eroot
 
-	-- Tween out over 0.3s
+	-- Smooth diving arc: strong upward launch then forward dive down
+	-- Total ~0.45s — noticeable lift before the dive
 	local startTime = os.clock()
-	local duration = 0.3
+	local duration = 0.45
 	local conn
 	conn = game:GetService("RunService").Heartbeat:Connect(function()
 		local elapsed = os.clock() - startTime
@@ -1588,8 +1584,16 @@ NetworkModule["AerialAttackBvel"] = function(Character: Model)
 			if bv and bv.Parent then bv:Destroy() end
 			return
 		end
-		local t = 1 - (elapsed / duration)
-		bv.Velocity = velocity * t
+
+		local t = elapsed / duration -- 0 to 1 over duration
+
+		-- Forward: strong burst that eases out smoothly
+		local fwdPower = 40 * (1 - t * t) -- Quadratic ease-out
+
+		-- Vertical: strong lift in first ~30%, then dive down
+		local vertPower = 25 * math.cos(t * math.pi * 1.1) - 18 * t
+
+		bv.Velocity = forward * fwdPower + Vector3.new(0, vertPower, 0)
 	end)
 end
 

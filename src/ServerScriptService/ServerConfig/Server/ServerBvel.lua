@@ -274,9 +274,9 @@ ServerBvel.Knockback = function(Character, Attacker)
         humanoid.AutoRotate = false
     end
 
-    -- Calculate knockback direction (away from attacker, horizontal only)
-    local direction = (rootPart.Position - attackerRoot.Position).Unit
-    direction = Vector3.new(direction.X, 0, direction.Z).Unit
+    -- Knockback direction: opposite of target's facing direction (knocked backwards)
+    local targetLook = rootPart.CFrame.LookVector
+    local direction = -Vector3.new(targetLook.X, 0, targetLook.Z).Unit
 
     local attachment = rootPart:FindFirstChild("KnockbackAttachment")
     if not attachment then
@@ -287,7 +287,8 @@ ServerBvel.Knockback = function(Character, Attacker)
 
     local maxPower = 60
     local duration = 1.267 -- Match KnockbackStun animation length
-    local fullSpeedTime = 0.5 -- Full speed for first 0.5s, then decelerate
+    local rampUpTime = 0.15 -- Ease-in from 0 to maxPower
+    local fullSpeedTime = 0.5 -- Hold at max until this point, then decelerate
 
     -- Reset existing velocity
     rootPart.AssemblyLinearVelocity = Vector3.zero
@@ -296,12 +297,12 @@ ServerBvel.Knockback = function(Character, Attacker)
     local lv = Instance.new("LinearVelocity")
     lv.Name = "KnockbackVelocity"
     lv.MaxForce = 50000
-    lv.VectorVelocity = direction * maxPower
+    lv.VectorVelocity = Vector3.zero -- Start slow
     lv.Attachment0 = attachment
     lv.RelativeTo = Enum.ActuatorRelativeTo.World
     lv.Parent = rootPart
 
-    -- Two-phase velocity: full speed for 0.5s, then cubic ease-out deceleration
+    -- Three-phase velocity: ramp up → full speed → cubic ease-out deceleration
     local startTime = os.clock()
     local conn
     conn = game:GetService("RunService").Heartbeat:Connect(function()
@@ -312,7 +313,10 @@ ServerBvel.Knockback = function(Character, Attacker)
         end
 
         local currentPower
-        if elapsed < fullSpeedTime then
+        if elapsed < rampUpTime then
+            local t = elapsed / rampUpTime
+            currentPower = maxPower * (t * t) -- Quadratic ease-in
+        elseif elapsed < fullSpeedTime then
             currentPower = maxPower
         else
             local slowdownProgress = (elapsed - fullSpeedTime) / (duration - fullSpeedTime)
@@ -413,7 +417,7 @@ ServerBvel.BezierChase = function(Character, Target, travelTime)
     end)
 end
 
--- Aerial Attack launch: small upward + forward impulse for NPC aerial attacks
+-- Aerial Attack launch: smooth forward dive for NPC aerial attacks
 ServerBvel.AerialAttackLaunch = function(Character)
     local rootPart = Character.PrimaryPart
     if not rootPart then return end
@@ -426,19 +430,18 @@ ServerBvel.AerialAttackLaunch = function(Character)
     end
 
     local forward = rootPart.CFrame.LookVector
-    local velocity = forward * 15 + Vector3.new(0, 20, 0)
 
     local lv = Instance.new("LinearVelocity")
     lv.Name = "AerialAttackVelocity"
     lv.MaxForce = 50000
-    lv.VectorVelocity = velocity
+    lv.VectorVelocity = forward * 35 + Vector3.new(0, 25, 0)
     lv.Attachment0 = attachment
     lv.RelativeTo = Enum.ActuatorRelativeTo.World
     lv.Parent = rootPart
 
-    -- Tween out over 0.3s
+    -- Smooth diving arc matching client Bvel
     local startTime = os.clock()
-    local duration = 0.3
+    local duration = 0.45
     local conn
     conn = game:GetService("RunService").Heartbeat:Connect(function()
         local elapsed = os.clock() - startTime
@@ -447,8 +450,11 @@ ServerBvel.AerialAttackLaunch = function(Character)
             if lv and lv.Parent then lv:Destroy() end
             return
         end
-        local t = 1 - (elapsed / duration)
-        lv.VectorVelocity = velocity * t
+
+        local t = elapsed / duration
+        local fwdPower = 40 * (1 - t * t)
+        local vertPower = 25 * math.cos(t * math.pi * 1.1) - 18 * t
+        lv.VectorVelocity = forward * fwdPower + Vector3.new(0, vertPower, 0)
     end)
 end
 

@@ -14,10 +14,10 @@ local Table = {
 
 	["Fist"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 26 / 60, 23 / 60, 26 / 60, 35 / 60, 25 / 60 },  -- Final hit (4) endlag reduced for faster recovery
-		["HitTimes"] = { 21.7 / 60, 21.7 / 60, 24.3 / 60, 26.9 / 60, 20.9 / 60 },  -- Adjusted for 1.15x speed
+		["Endlag"] = { 30 / 60, 27 / 60, 30 / 60, 40 / 60, 28 / 60 },  -- Increased for more readable pacing
+		["HitTimes"] = { 21.7 / 60, 21.7 / 60, 24.3 / 60, 26.9 / 60, 20.9 / 60 },
 		["SoundTimes"] = {},
-		["Speed"] = 0.85,  -- Reduced from 1 to 0.85 for slower attacks
+		["Speed"] = 0.75,  -- Slower animations for readability
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(7,9,9),  -- Increased for better hit detection
@@ -46,7 +46,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.7, -- Reduced from 1.2 to allow faster combat flow
+			Stun = 0.85, -- Increased for more readable pacing
 		},
 
 		["Critical"] = {
@@ -61,7 +61,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 20 / 60,
-			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
+			["Endlag"] = 0.9, -- Increased for more readable pacing
 			["Velocity"] = true,
 			["OldCustomFunction"] = function(Character: Model, Entity)
 				local Player: Player
@@ -205,10 +205,10 @@ local Table = {
 
 	["Spear"] = {
 		["MaxCombo"] = 5,
-		["Endlag"] = { 30 / 60, 26 / 60, 30 / 60, 32 / 60, 38 / 60, 24/60 }, -- Final hit (5) endlag reduced for faster recovery
+		["Endlag"] = { 34 / 60, 30 / 60, 34 / 60, 36 / 60, 42 / 60, 28/60 }, -- Increased for more readable pacing
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60, 25/60 },
 		["SoundTimes"] = {},
-		["Speed"] = 0.85,  -- Reduced for slower attacks
+		["Speed"] = 0.75,  -- Slower animations for readability
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
@@ -241,7 +241,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.Blood.Attachment,
-			Stun = 0.7, -- Reduced from 1.2 to allow faster combat flow
+			Stun = 0.85, -- Increased for more readable pacing
 		},
 
 		["Critical"] = {
@@ -256,7 +256,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 20 / 60,
-			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
+			["Endlag"] = 0.9, -- Increased for more readable pacing
 			["Velocity"] = true,
 			["OldCustomFunction"] = function(Character: Model, Entity)
 				local Player: Player
@@ -400,9 +400,10 @@ local Table = {
 
 	["Augment"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 23 / 60, 23 / 60, 23 / 60, 35 / 60 }, -- Final hit (4) endlag reduced for faster recovery
+		["Endlag"] = { 28 / 60, 28 / 60, 28 / 60, 40 / 60 }, -- Increased for more readable pacing
 		["HitTimes"] = { 24 / 60, 24 / 60, 24 / 60, 24 / 60 },
 		["SoundTimes"] = {},
+		["Speed"] = 0.8,  -- Slower animations for readability
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(5, 7, 6.5),
@@ -580,9 +581,10 @@ local Table = {
 
 	["Flame"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 26 / 60, 22 / 60, 26 / 60, 35 / 60, 24 / 60 }, -- Final hit (4) endlag reduced for faster recovery
+		["Endlag"] = { 30 / 60, 26 / 60, 30 / 60, 40 / 60, 28 / 60 }, -- Increased for more readable pacing
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60 },
 		["SoundTimes"] = {},
+		["Speed"] = 0.8,  -- Slower animations for readability
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(5, 7, 8),
@@ -626,7 +628,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 20 / 60,
-			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
+			["Endlag"] = 0.9, -- Increased for more readable pacing
 			["Velocity"] = true,
 		},
 
@@ -658,10 +660,10 @@ local Table = {
 	},
 	["Stone"] = {
 		["MaxCombo"] = 4,
-		["Endlag"] = { 30 / 60, 26 / 60, 30 / 60, 38 / 60, 28 / 60 }, -- Final hit (4) endlag reduced for faster recovery
+		["Endlag"] = { 34 / 60, 30 / 60, 34 / 60, 42 / 60, 32 / 60 }, -- Increased for more readable pacing
 		["HitTimes"] = { 25 / 60, 25 / 60, 28 / 60, 31 / 60, 24 / 60 },
 		["SoundTimes"] = {},
-		["Speed"] = 0.85,  -- Reduced for slower attacks
+		["Speed"] = 0.75,  -- Slower animations for readability
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
@@ -690,7 +692,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.7, -- Reduced from 1.3 to allow faster combat flow
+			Stun = 0.85, -- Increased for more readable pacing
 		},
 
 		["Critical"] = {
@@ -705,7 +707,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 30 / 60,
-			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
+			["Endlag"] = 0.9, -- Increased for more readable pacing
 			["Velocity"] = true,
 			["Sfx"] = {
 				[1] = Replicated.Assets.SFX.Skills.StoneCrit.Smash,
@@ -745,11 +747,11 @@ local Table = {
 
 	["Guns"] = {
 		["MaxCombo"] = 3,
-		["Endlag"] = { 24 / 60, 28 / 60, 35 / 60, 36 / 60, 32 / 60 },  -- Final hit (3) endlag reduced for faster recovery
-		["HitTimes"] = { 16 / 60, 18 / 60, 22 / 60, 28 / 60, 32 / 60 },  -- Adjusted for 1.0x speed
+		["Endlag"] = { 28 / 60, 32 / 60, 40 / 60, 40 / 60, 36 / 60 },  -- Increased for more readable pacing
+		["HitTimes"] = { 16 / 60, 18 / 60, 22 / 60, 28 / 60, 32 / 60 },
 		["SoundTimes"] = {},
 		["Exception"] = true,
-		["Speed"] = 0.85,  -- Reduced for slower attacks
+		["Speed"] = 0.75,  -- Slower animations for readability
 		["Hitboxes"] = {
 			[1] = {
 				["HitboxSize"] = Vector3.new(6, 8, 10),  -- Increased from (5,7,8) for more consistent hits
@@ -778,7 +780,7 @@ local Table = {
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.RunningHit.Attachment,
-			Stun = 0.7, -- Reduced from 1.2 to allow faster combat flow
+			Stun = 0.85, -- Increased for more readable pacing
 			SFX = "Guns",
 		},
 		["LastTable"] = {
@@ -801,7 +803,7 @@ local Table = {
 			},
 			["HitTable"] = {},
 			["WaitTime"] = 20 / 60,
-			["Endlag"] = 0.7, -- Reduced from 1 for faster combat
+			["Endlag"] = 0.9, -- Increased for more readable pacing
 			["Velocity"] = true,
 		},
 
@@ -825,15 +827,12 @@ local Table = {
 
 	["Scythe"] = {
 		["MaxCombo"] = 5,
-		-- Endlag = end frame + linger time (2 frames extra linger at end)
-		-- m1 1: ends f21 + 2 linger = 23, m1 2: ends f18 + 2 = 20, m1 3: ends f19 + 2 = 21
-		-- m1 4: ends f24 + 2 = 26, m1 5: endlag reduced for faster recovery
-		["Endlag"] = { 23 / 60, 20 / 60, 21 / 60, 26 / 60, 38 / 60 },
+		-- Endlag = end frame + linger time, increased for more readable pacing
+		["Endlag"] = { 27 / 60, 24 / 60, 25 / 60, 30 / 60, 42 / 60 },
 		-- HitTimes = start frame (when hitbox begins)
-		-- m1 1: f18, m1 2: f15, m1 3: f16, m1 4: f21, m1 5: f20
 		["HitTimes"] = { 18 / 60, 15 / 60, 16 / 60, 21 / 60, 20 / 60 },
 		["SoundTimes"] = {},
-		["Speed"] = 1,  -- Normal speed, timing is controlled by frame data
+		["Speed"] = 0.75,  -- Slower swing speed
 		["Hitboxes"] = {
 			[1] = {
 				-- m1 1: f18-f21 (3 frames) + 2 linger = 5 frames duration
@@ -869,7 +868,7 @@ local Table = {
 
 		["M1Table"] = {
 			Damage = 8,  -- Higher damage per hit due to slower speed
-			PostureDamage = 25,
+			PostureDamage = 7,
 			LightKnockback = true,
 			M1 = true,
 			FX = Replicated.Assets.VFX.Blood.Attachment,
@@ -880,7 +879,7 @@ local Table = {
 			["DamageTable"] = {
 				BlockBreak = true,
 				Damage = 14,
-				PostureDamage = 35,
+				PostureDamage = 12,
 				Knockback = true,
 				M2 = true,
 				FX = Replicated.Assets.VFX.Blood.Attachment,
@@ -890,12 +889,16 @@ local Table = {
 			["WaitTime"] = 46 / 60,  -- Frame 46 is when hitbox activates
 			["Endlag"] = 54 / 60,  -- Animation ends at frame 54
 			["Velocity"] = false,  -- No velocity, character is locked
+			["CritHitbox"] = {
+				["HitboxSize"] = Vector3.new(8, 9, 16),  -- Longer forward reach
+				["HitboxOffset"] = CFrame.new(0, 0, -8),  -- 8 studs forward
+			},
 		},
 		["SpecialCrit"] = true,  -- Triggers SpecialCritScythe VFX function
 
 		["LastTable"] = {
 			Damage = 12,
-			PostureDamage = 30,
+			PostureDamage = 10,
 			Knockback = true,
 			M1 = true,
 		},
@@ -911,7 +914,7 @@ local Table = {
 		},
 		["RATable"] = {
 			Damage = 18,
-			PostureDamage = 30,
+			PostureDamage = 10,
 			Knockback = true,
 			FX = Replicated.Assets.VFX.Blood.Attachment,
 			Stun = 0.8,
@@ -919,16 +922,18 @@ local Table = {
 
 		["Aerial"] = {
 			["DamageTable"] = {
-				Damage = 12,
-				PostureDamage = 30,
+				Damage = 14,
+				PostureDamage = 12,
 				Knockback = true,
 				M1 = true,
 				FX = Replicated.Assets.VFX.Blood.Attachment,
-				Stun = 0.8,
+				Stun = 1.0,
 			},
-			["PauseTime"] = 38 / 60,       -- Pause animation at frame 38 (before frame 44 attack frame)
-			["HitTimeAfterResume"] = 6 / 60, -- 6 frames after resume to hit (frame 44)
-			["Endlag"] = 20 / 60,           -- Recovery after landing hit
+			["PauseTime"] = 0.3,                  -- Pause animation after 0.3s (before attack frame)
+			["HitTimeAfterResume"] = 6 / 60,      -- 6 frames after landing to check hitbox
+			["Endlag"] = 28 / 60,                  -- Recovery after landing hit
+			["LandingHitboxSize"] = Vector3.new(14, 10, 14),  -- Large circular landing hitbox
+			["LandingHitboxOffset"] = CFrame.new(0, -2, -2),  -- Centered below and slightly forward
 		},
 
 		["Slashes"] = true,
