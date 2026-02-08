@@ -680,6 +680,15 @@ local function releaseCamera()
 	lockedCFrame = nil
 	local cam = workspace.CurrentCamera
 	if cam then
+		-- Reassign CameraSubject to the current character's Humanoid
+		-- (the original subject may reference a destroyed character from respawn)
+		local currentChar = player.Character
+		if currentChar then
+			local humanoid = currentChar:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				cam.CameraSubject = humanoid
+			end
+		end
 		cam.CameraType = Enum.CameraType.Custom
 	end
 end
@@ -831,22 +840,24 @@ local connection = RunService.Heartbeat:Connect(function(dt)
 	local flashV = flashSpring:update(dt)
 	local emblemS = emblemScaleSpring:update(dt)
 
-	-- Apply bar spring values
-	local barHeight = math.round(90 * barH)
-	local barColor = BLACK:Lerp(WHITE, math.clamp(barC, 0, 1))
-	local accentTrans = math.max(0.6 + 0.4 * math.clamp(barC, 0, 1), barT)
+	-- Apply bar spring values (skip during outro - outro controls bar transparency directly)
+	if not outroActive then
+		local barHeight = math.round(90 * barH)
+		local barColor = BLACK:Lerp(WHITE, math.clamp(barC, 0, 1))
+		local accentTrans = math.max(0.6 + 0.4 * math.clamp(barC, 0, 1), barT)
 
-	topBar.Position = UDim2.new(0.5, 0, 0, -90 + 90 * barP)
-	topBar.Size = UDim2.new(1, 0, 0, barHeight)
-	topBar.BackgroundColor3 = barColor
-	topBar.BackgroundTransparency = barT
-	topAccent.BackgroundTransparency = accentTrans
+		topBar.Position = UDim2.new(0.5, 0, 0, -90 + 90 * barP)
+		topBar.Size = UDim2.new(1, 0, 0, barHeight)
+		topBar.BackgroundColor3 = barColor
+		topBar.BackgroundTransparency = barT
+		topAccent.BackgroundTransparency = accentTrans
 
-	bottomBar.Position = UDim2.new(0.5, 0, 1, -90 * barP + 90)
-	bottomBar.Size = UDim2.new(1, 0, 0, barHeight)
-	bottomBar.BackgroundColor3 = barColor
-	bottomBar.BackgroundTransparency = barT
-	bottomAccent.BackgroundTransparency = accentTrans
+		bottomBar.Position = UDim2.new(0.5, 0, 1, -90 * barP + 90)
+		bottomBar.Size = UDim2.new(1, 0, 0, barHeight)
+		bottomBar.BackgroundColor3 = barColor
+		bottomBar.BackgroundTransparency = barT
+		bottomAccent.BackgroundTransparency = accentTrans
+	end
 
 	-- Flash
 	screenFlash.BackgroundTransparency = 1 - flashV

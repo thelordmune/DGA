@@ -9,6 +9,7 @@ local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local RefManager = require(ReplicatedStorage.Modules.ECS.jecs_ref_manager)
 local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
+local FocusHandler = require(script.Parent.FocusHandler)
 
 -- Helper to set combat animation attribute for Chrono NPC replication
 -- Format: "Weapon|AnimType|AnimName|Speed|Timestamp"
@@ -32,7 +33,7 @@ local function setNPCCombatAnim(character: Model, weapon: string, animType: stri
 
 	-- Format: "Weapon|AnimType|AnimName|Speed|Timestamp"
 	local animSpeed = speed or 1
-	local timestamp = os.clock()
+	local timestamp = workspace:GetServerTimeNow()
 	local animData = `{weapon}|{animType}|{animName}|{animSpeed}|{timestamp}`
 
 	-- Set on server model (for server-side reference)
@@ -374,6 +375,17 @@ Combat.Light = function(Character: Model, Air: boolean?)
 		local isLastHit = (Combo >= Stats.MaxCombo)
 		local damageTable = isLastHit and Stats["LastTable"] or Stats["M1Table"]
 
+		if #HitTargets > 0 then
+			-- Focus: reward landing hits
+			FocusHandler.AddFocus(Character, FocusHandler.Amounts.M1_HIT, "m1_hit")
+			if Combo >= 3 then
+				FocusHandler.AddFocus(Character, FocusHandler.Amounts.COMBO_BONUS, "combo_bonus")
+			end
+		else
+			-- Focus: punish whiffing
+			FocusHandler.RemoveFocus(Character, FocusHandler.Amounts.WHIFF_ATTACK, "whiff_attack")
+		end
+
 		for _, Target: Model in pairs(HitTargets) do
 			Server.Modules.Damage.Tag(Character, Target, damageTable)
 		end
@@ -456,7 +468,7 @@ Combat.CriticalStart = function(Character: Model)
 	setNPCCombatAnim(Character, Weapon, "Critical", "Critical", 1)
 
 	if Weapon == "Scythe" then
-		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "ScytheCritLoad", Arguments = {Character}})
+		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Weapons", Function = "ScytheCritLoad", Arguments = {Character}})
 	end
 
 	if Stats["Trail"] then
@@ -633,7 +645,7 @@ Combat.CriticalRelease = function(Character: Model)
 	task.wait(0.1)
 
 	if WeaponStats[Weapon].SpecialCrit == true then
-		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "SpecialCrit"..Weapon, Arguments = {Character}})
+		Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Weapons", Function = "SpecialCrit"..Weapon, Arguments = {Character}})
 		if WeaponStats[Weapon].SpecialCritSound then
 			Server.Library.PlaySound(Character, WeaponStats[Weapon].Critical.Sfx[1])
 			Server.Library.PlaySound(Character, WeaponStats[Weapon].Critical.Sfx[2])
@@ -646,6 +658,13 @@ Combat.CriticalRelease = function(Character: Model)
 	local hitboxSize = critHB and critHB["HitboxSize"] or Stats["Hitboxes"][1]["HitboxSize"]
 	local hitboxOffset = critHB and critHB["HitboxOffset"] or Stats["Hitboxes"][1]["HitboxOffset"]
 	local HitTargets = Hitbox.SpatialQuery(Character, hitboxSize, Entity:GetCFrame() * hitboxOffset)
+
+	-- Focus: reward or punish M2
+	if #HitTargets > 0 then
+		FocusHandler.AddFocus(Character, FocusHandler.Amounts.SKILL_HIT, "critical_hit")
+	else
+		FocusHandler.RemoveFocus(Character, FocusHandler.Amounts.WHIFF_ATTACK, "whiff_critical")
+	end
 
 	for _, Target: Model in pairs(HitTargets) do
 		-- Apply damage with charge multiplier
@@ -865,6 +884,13 @@ Combat.AerialAttack = function(Character: Model)
 
 	local HitTargets = Hitbox.SpatialQuery(Character, landingHitboxSize, Entity:GetCFrame() * landingHitboxOffset)
 
+	-- Focus: reward landing aerial attack
+	if #HitTargets > 0 then
+		FocusHandler.AddFocus(Character, FocusHandler.Amounts.SKILL_HIT, "aerial_hit")
+	else
+		FocusHandler.RemoveFocus(Character, FocusHandler.Amounts.WHIFF_ATTACK, "whiff_aerial")
+	end
+
 	for _, Target: Model in pairs(HitTargets) do
 		Server.Modules.Damage.Tag(Character, Target, aerialStats["DamageTable"])
 	end
@@ -872,7 +898,7 @@ Combat.AerialAttack = function(Character: Model)
 	-- Send crater VFX to all nearby clients
 	local hrp = Character:FindFirstChild("HumanoidRootPart")
 	if hrp then
-		Server.Visuals.Ranged(hrp.Position, 300, {Module = "Base", Function = "AerialCrater", Arguments = {Character}})
+		Server.Visuals.Ranged(hrp.Position, 300, {Module = "Weapons", Function = "AerialCrater", Arguments = {Character}})
 	end
 
 	-- Camera shake for the player
@@ -1083,20 +1109,78 @@ Combat.KnockbackFollowUp = function(Character: Model)
 	end
 
 	-- Follow-up damage table: normal M1 hit with longer stun
+	-- No LightKnockback — custom directional knockback applied below
 	local followUpTable = {
 		Damage = Stats["M1Table"].Damage,
 		PostureDamage = Stats["M1Table"].PostureDamage,
-		LightKnockback = true,
 		M1 = true,
 		FX = Stats["M1Table"].FX,
 		Stun = 1.2, -- Longer stun than normal M1
 	}
+
+	-- Attacker's forward direction for knockback (flattened to horizontal)
+	local attackerLook = attackerRoot.CFrame.LookVector
+	local knockbackDir = Vector3.new(attackerLook.X, 0, attackerLook.Z).Unit
+
+	-- Helper: apply directional knockback and rotate target to face attacker
+	local function applyFollowUpKnockback(hitTarget)
+		local hitRoot = hitTarget:FindFirstChild("HumanoidRootPart")
+		if not hitRoot then return end
+
+		-- Rotate target to face the attacker
+		local targetPos = hitRoot.Position
+		local attackerPos = attackerRoot.Position
+		local lookAtAttacker = CFrame.lookAt(
+			targetPos,
+			Vector3.new(attackerPos.X, targetPos.Y, attackerPos.Z)
+		)
+		hitRoot.CFrame = CFrame.new(targetPos) * lookAtAttacker.Rotation
+
+		-- Knockback in attacker's facing direction
+		local hitPlayer = game:GetService("Players"):GetPlayerFromCharacter(hitTarget)
+		if hitPlayer then
+			Server.Packets.BvelKnockback.sendTo({
+				Character = hitTarget,
+				Direction = knockbackDir,
+				HorizontalPower = 30,
+				UpwardPower = 0,
+			}, hitPlayer)
+		else
+			-- NPC: apply server-side directional knockback
+			for _, child in ipairs(hitRoot:GetChildren()) do
+				if child:IsA("LinearVelocity") or child:IsA("BodyVelocity") then
+					child:Destroy()
+				end
+			end
+
+			local attachment = hitRoot:FindFirstChild("RootAttachment")
+			if not attachment then return end
+
+			local lv = Instance.new("LinearVelocity")
+			lv.Name = "FollowUpKnockback"
+			lv.MaxForce = 50000
+			lv.VectorVelocity = knockbackDir * 30
+			lv.Attachment0 = attachment
+			lv.RelativeTo = Enum.ActuatorRelativeTo.World
+			lv.Parent = hitRoot
+
+			local TweenService = game:GetService("TweenService")
+			TweenService:Create(lv, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				VectorVelocity = Vector3.new(0, 0, 0)
+			}):Play()
+
+			task.delay(0.15, function()
+				if lv and lv.Parent then lv:Destroy() end
+			end)
+		end
+	end
 
 	-- Directly tag the known target (don't rely on spatial query — target may have drifted from knockback)
 	if Target and Target.Parent then
 		local targetHumanoid = Target:FindFirstChild("Humanoid")
 		if targetHumanoid and targetHumanoid.Health > 0 then
 			Server.Modules.Damage.Tag(Character, Target, followUpTable)
+			applyFollowUpKnockback(Target)
 		end
 	end
 
@@ -1108,6 +1192,7 @@ Combat.KnockbackFollowUp = function(Character: Model)
 	for _, HitTarget: Model in pairs(HitTargets) do
 		if HitTarget ~= Target then -- Don't double-hit the main target
 			Server.Modules.Damage.Tag(Character, HitTarget, followUpTable)
+			applyFollowUpKnockback(HitTarget)
 		end
 	end
 end
@@ -1332,6 +1417,12 @@ Combat.AttemptParry = function(Character: Model)
     task.delay(0.5, function()
         if Character then
             StateManager.TimedState(Character, "Actions", "ParryRecovery", 0.15)
+
+            -- Focus: punish whiffed parry (if parry frame expired without landing)
+            if not Character:GetAttribute("ParryLanded") then
+                FocusHandler.RemoveFocus(Character, FocusHandler.Amounts.WHIFF_PARRY, "whiff_parry")
+            end
+            Character:SetAttribute("ParryLanded", nil)
         end
     end)
 

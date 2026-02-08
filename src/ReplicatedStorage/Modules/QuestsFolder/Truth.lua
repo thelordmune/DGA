@@ -117,7 +117,7 @@ function TruthQuest.TruthPayment(Player)
 
 	-- Fire client-side effects (notification, screen effects, return teleport)
 	Visuals.FireClient(Player, {
-		Module = "Base",
+		Module = "Misc",
 		Function = "TruthConsequence",
 		Arguments = {
 			Character,

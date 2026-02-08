@@ -61,6 +61,7 @@ NetworkModule.EndPoint = function(Player, Data)
 		func(Data.Character, Data.Direction, Data.Velocity)
 	elseif Data.Name == "KnockbackBvelFromNPC" then
 		-- NPC attacker: velocity pre-computed by server, no NPC model ref needed
+		warn(`[Bvel EndPoint] KnockbackBvelFromNPC received! Character={Data.Character}, Velocity={Data.Velocity}`)
 		func(Data.Character, Data.Velocity)
 	elseif Data.Name == "KnockbackFollowUpHighlight" then
 		-- Highlight on knockback target + duration (ChronoId for NPC targets, Targ for player targets)
@@ -705,9 +706,9 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		end
 	end
 
-	-- Knockback direction: opposite of where the TARGET is facing (knocked backwards)
-	local targetLook = eroot.CFrame.LookVector
-	local direction = -Vector3.new(targetLook.X, 0, targetLook.Z).Unit
+	-- Knockback direction: attacker's facing direction (target pushed where attacker looks)
+	local attackerLook = root.CFrame.LookVector
+	local direction = Vector3.new(attackerLook.X, 0, attackerLook.Z).Unit
 
 	-- Make target face the attacker using BodyGyro (more reliable than setting CFrame)
 	local lookDirection = (root.Position - eroot.Position).Unit
@@ -723,19 +724,29 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 
 	local maxPower = 60
 	local duration = 1.267 -- Match KnockbackStun animation length
-	local rampUpTime = 0.15 -- Ease-in from 0 to maxPower
 	local fullSpeedTime = 0.5 -- Hold at max until this point, then decelerate
 
 	-- Reset any existing velocity first
 	eroot.AssemblyLinearVelocity = Vector3.zero
 	eroot.AssemblyAngularVelocity = Vector3.zero
 
-	local bv = Instance.new("BodyVelocity")
-	bv.MaxForce = Vector3.new(50000, 0, 50000)
-	bv.Velocity = Vector3.zero -- Start slow
-	bv.Parent = eroot
+	-- Use LinearVelocity (modern, more reliable than deprecated BodyVelocity)
+	local attachment = eroot:FindFirstChild("RootAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "RootAttachment"
+		attachment.Parent = eroot
+	end
 
-	-- Three-phase velocity: ramp up (0.15s) → full speed → cubic ease-out deceleration
+	local lv = Instance.new("LinearVelocity")
+	lv.Name = "KnockbackVelocity"
+	lv.MaxForce = math.huge
+	lv.Attachment0 = attachment
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	lv.VectorVelocity = direction * maxPower
+	lv.Parent = eroot
+
+	-- Two-phase velocity: full speed → cubic ease-out deceleration
 	local startTime = os.clock()
 	local connection
 	connection = game:GetService("RunService").Heartbeat:Connect(function()
@@ -746,23 +757,18 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		end
 
 		local currentPower
-		if elapsed < rampUpTime then
-			-- Phase 1: Ease-in ramp from 0 to maxPower (quadratic)
-			local t = elapsed / rampUpTime
-			currentPower = maxPower * (t * t) -- Quadratic ease-in: slow start, fast finish
-		elseif elapsed < fullSpeedTime then
-			-- Phase 2: Full speed
+		if elapsed < fullSpeedTime then
+			-- Phase 1: Full speed
 			currentPower = maxPower
 		else
-			-- Phase 3: Gradually slow down (cubic ease-out, same as before)
+			-- Phase 2: Gradually slow down (cubic ease-out)
 			local slowdownProgress = (elapsed - fullSpeedTime) / (duration - fullSpeedTime)
 			local easedProgress = 1 - (1 - slowdownProgress) ^ 3
 			currentPower = maxPower * (1 - easedProgress)
 		end
 
-		if bv and bv.Parent then
-			bv.Velocity = direction * currentPower
-			eroot.AssemblyLinearVelocity = direction * currentPower
+		if lv and lv.Parent then
+			lv.VectorVelocity = direction * currentPower
 		else
 			connection:Disconnect()
 		end
@@ -773,8 +779,8 @@ NetworkModule["KnockbackBvel"] = function(Character: Model | Entity, Targ: Model
 		if connection then
 			connection:Disconnect()
 		end
-		if bv and bv.Parent then
-			bv:Destroy()
+		if lv and lv.Parent then
+			lv:Destroy()
 		end
 		if bodyGyro and bodyGyro.Parent then
 			bodyGyro:Destroy()
@@ -792,8 +798,13 @@ end
 -- Knockback from NPC: same as KnockbackBvel but uses pre-computed velocity from server
 -- (NPC model refs may not serialize via ByteNet.inst, so server sends direction directly)
 NetworkModule["KnockbackBvelFromNPC"] = function(Character: Model | Entity, Velocity: Vector3?)
+	warn(`[KnockbackBvelFromNPC] CALLED! Character={Character}, Velocity={Velocity}, IsLocalChar={Character == Client.Character}`)
 	local eroot = Character.HumanoidRootPart
-	if not eroot then return end
+	if not eroot then
+		warn("[KnockbackBvelFromNPC] NO EROOT - Character has no HumanoidRootPart!")
+		return
+	end
+	warn(`[KnockbackBvelFromNPC] eroot found, position={eroot.Position}`)
 
 	-- Cancel all client actions when knockback is received (for local player)
 	if Character == Client.Character and Client.ClearClientActions then
@@ -836,18 +847,30 @@ NetworkModule["KnockbackBvelFromNPC"] = function(Character: Model | Entity, Velo
 	bodyGyro.Parent = eroot
 
 	local duration = 1.267 -- Match KnockbackStun animation length
-	local rampUpTime = 0.15 -- Ease-in from 0 to maxPower
 	local fullSpeedTime = 0.5 -- Hold at max until this point, then decelerate
 
 	eroot.AssemblyLinearVelocity = Vector3.zero
 	eroot.AssemblyAngularVelocity = Vector3.zero
 
-	local bv = Instance.new("BodyVelocity")
-	bv.MaxForce = Vector3.new(50000, 0, 50000)
-	bv.Velocity = Vector3.zero -- Start slow
-	bv.Parent = eroot
+	-- Use LinearVelocity (modern, more reliable than deprecated BodyVelocity)
+	local attachment = eroot:FindFirstChild("RootAttachment")
+	if not attachment then
+		attachment = Instance.new("Attachment")
+		attachment.Name = "RootAttachment"
+		attachment.Parent = eroot
+	end
 
-	-- Three-phase velocity: ramp up → full speed → cubic ease-out deceleration
+	local lv = Instance.new("LinearVelocity")
+	lv.Name = "KnockbackVelocity"
+	lv.MaxForce = math.huge
+	lv.Attachment0 = attachment
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	lv.VectorVelocity = direction * maxPower
+	lv.Parent = eroot
+
+	warn(`[KnockbackBvelFromNPC] LinearVelocity CREATED! dir={direction}, power={maxPower}, vel={direction * maxPower}`)
+
+	-- Two-phase velocity: full speed → cubic ease-out deceleration
 	local startTime = os.clock()
 	local connection
 	connection = game:GetService("RunService").Heartbeat:Connect(function()
@@ -858,10 +881,7 @@ NetworkModule["KnockbackBvelFromNPC"] = function(Character: Model | Entity, Velo
 		end
 
 		local currentPower
-		if elapsed < rampUpTime then
-			local t = elapsed / rampUpTime
-			currentPower = maxPower * (t * t)
-		elseif elapsed < fullSpeedTime then
+		if elapsed < fullSpeedTime then
 			currentPower = maxPower
 		else
 			local slowdownProgress = (elapsed - fullSpeedTime) / (duration - fullSpeedTime)
@@ -869,10 +889,10 @@ NetworkModule["KnockbackBvelFromNPC"] = function(Character: Model | Entity, Velo
 			currentPower = maxPower * (1 - easedProgress)
 		end
 
-		if bv and bv.Parent then
-			bv.Velocity = direction * currentPower
-			eroot.AssemblyLinearVelocity = direction * currentPower
+		if lv and lv.Parent then
+			lv.VectorVelocity = direction * currentPower
 		else
+			warn("[KnockbackBvelFromNPC] LinearVelocity was DESTROYED early!")
 			connection:Disconnect()
 		end
 	end)
@@ -881,8 +901,8 @@ NetworkModule["KnockbackBvelFromNPC"] = function(Character: Model | Entity, Velo
 		if connection then
 			connection:Disconnect()
 		end
-		if bv and bv.Parent then
-			bv:Destroy()
+		if lv and lv.Parent then
+			lv:Destroy()
 		end
 		if bodyGyro and bodyGyro.Parent then
 			bodyGyro:Destroy()
@@ -1424,21 +1444,27 @@ NetworkModule["KnockbackFollowUpBvel"] = function(Character: Model, Targ: Model?
 	local conn
 	conn = RunService.Heartbeat:Connect(function()
 		local elapsed = os.clock() - startTime
-		local t = math.clamp(elapsed / travelTime, 0, 1)
+		local tLinear = math.clamp(elapsed / travelTime, 0, 1)
 
-		if t >= 1 then
+		if tLinear >= 1 then
 			if conn then conn:Disconnect() end
 			if lv and lv.Parent then lv:Destroy() end
 			return
 		end
+
+		-- Ease-out: fast at start, slows down approaching target
+		local t = 1 - (1 - tLinear) ^ 2.5
 
 		-- Quadratic bezier derivative: B'(t) = 2(1-t)(P1-P0) + 2t(P2-P1)
 		local p0 = startPos
 		local p1 = midpoint
 		local p2 = targetRoot.Position -- Track target position live
 
+		-- dt/dtLinear for the ease-out curve (chain rule for velocity correction)
+		local dtdtLinear = 2.5 * (1 - tLinear) ^ 1.5
+
 		local velocity = 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1)
-		velocity = velocity / travelTime
+		velocity = velocity * dtdtLinear / travelTime
 
 		if lv and lv.Parent then
 			lv.VectorVelocity = velocity
@@ -1569,7 +1595,7 @@ NetworkModule["AerialAttackBvel"] = function(Character: Model)
 
 	local bv = Instance.new("BodyVelocity")
 	bv.MaxForce = Vector3.new(50000, 50000, 50000)
-	bv.Velocity = forward * 35 + Vector3.new(0, 25, 0)
+	bv.Velocity = forward * 35 + Vector3.new(0, 40, 0)
 	bv.Parent = eroot
 
 	-- Smooth diving arc: strong upward launch then forward dive down
@@ -1591,7 +1617,7 @@ NetworkModule["AerialAttackBvel"] = function(Character: Model)
 		local fwdPower = 40 * (1 - t * t) -- Quadratic ease-out
 
 		-- Vertical: strong lift in first ~30%, then dive down
-		local vertPower = 25 * math.cos(t * math.pi * 1.1) - 18 * t
+		local vertPower = 60 * math.cos(t * math.pi * 1.1) - 22 * t
 
 		bv.Velocity = forward * fwdPower + Vector3.new(0, vertPower, 0)
 	end)

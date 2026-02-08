@@ -367,6 +367,12 @@ local function processPlayer(world, player)
                 {comps.BBRegen, {value = false, duration = 0}},
                 {comps.Armor, {duration = 0, armortype = "None", value = false}},
                 {comps.InCombat, {duration = 0, value = false}},
+                {comps.Focus, {
+                    current = 0, max = 50, decayRate = 0.3,
+                    permanentFloor = 0, tempFloor = 0,
+                    trainingXP = 0, trainingLevel = 0,
+                    inMiniMode = false, inAbsoluteMode = false,
+                }},
                 {comps.Locked, {duration = 0, value = false}},
                 {comps.Attack, {type = "None", name = "None"}},
                 {comps.Inventory, {items = {}, maxSlots = 50}},
@@ -412,6 +418,10 @@ local function processPlayer(world, player)
                 Action = "EntityReady",
                 EntityId = e
             })
+
+            -- Load saved Focus training data before marking ready
+            local FocusHandler = require(game:GetService("ServerScriptService").ServerConfig.Server.FocusHandler)
+            FocusHandler.LoadTrainingData(player, e)
 
             -- Mark components as ready - this signals to systems that they can start processing this entity
             world:add(e, comps.ComponentsReady) -- Tag: indicates entity is fully initialized
@@ -531,9 +541,15 @@ Players.PlayerRemoving:Connect(function(player)
         print(`[PlayerLoader] ✅ Disconnected CharacterAdded for {player.Name}`)
     end
 
-    -- Clean up entity - MUST delete to prevent memory leaks
+    -- Save Focus training data before entity cleanup
     local entity = ref.get("player", player)
     if entity then
+        local focusData = world:get(entity, comps.Focus)
+        if focusData and focusData.trainingXP > 0 then
+            local FocusHandler = require(game:GetService("ServerScriptService").ServerConfig.Server.FocusHandler)
+            FocusHandler.SaveTrainingData(player, focusData)
+        end
+
         print(`[PlayerLoader] 🗑️ Deleting entity {entity} for {player.Name}`)
         -- Clean up all per-entity tracking tables before deleting
         EntityCleanup.cleanup(entity)

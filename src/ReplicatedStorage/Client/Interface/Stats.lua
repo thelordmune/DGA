@@ -15,6 +15,10 @@ local playerBarsData = nil
 local NenIndicatorComponent = require(Replicated.Client.Components.NenIndicator)
 local nenIndicatorData = nil
 
+-- Focus Bar Component (3D BillboardGui bar next to character)
+local FocusBarComponent = require(Replicated.Client.Components.FocusBar)
+local focusBarData = nil
+
 -- Track Fusion scopes for cleanup on death
 local activeScopes = {}
 
@@ -24,6 +28,7 @@ local persistentHotbarScope = nil -- Stores the reusable Hotbar scope
 -- Expose playerBarsData for external systems to access
 Controller.playerBarsData = playerBarsData
 Controller.nenIndicatorData = nenIndicatorData
+Controller.focusBarData = focusBarData
 
 -- Cleanup function called on death - HIDES UI instead of destroying
 -- CRITICAL: Don't destroy UI - just hide it to avoid recreation overhead
@@ -52,6 +57,11 @@ Controller.CleanupUI = function()
 		-- DON'T destroy - we reuse it
 	end
 
+	-- Reset focus bar state but keep it alive
+	if focusBarData and focusBarData.reset then
+		focusBarData.reset()
+	end
+
 	-- DON'T clean up hotbar scope - just hide it
 	-- The hotbar will be shown again on respawn
 
@@ -67,6 +77,13 @@ Controller.FullCleanupUI = function()
 	end
 	playerBarsData = nil
 	Controller.playerBarsData = nil
+
+	-- Clean up focus bar component completely
+	if focusBarData and focusBarData.cleanup then
+		focusBarData.cleanup()
+	end
+	focusBarData = nil
+	Controller.focusBarData = nil
 
 	-- Clean up persistent hotbar scope
 	if persistentHotbarScope then
@@ -142,6 +159,15 @@ Controller.Check = function()
             end
             nenIndicatorData = NenIndicatorComponent()
             Controller.nenIndicatorData = nenIndicatorData
+        end
+
+        -- Initialize FocusBar if not already created
+        if not focusBarData or not focusBarData.billboardGui then
+            if focusBarData and focusBarData.cleanup then
+                focusBarData.cleanup()
+            end
+            focusBarData = FocusBarComponent()
+            Controller.focusBarData = focusBarData
         end
     end
 end
@@ -592,6 +618,20 @@ Client.Packets.PostureSync.listen(function(data)
         -- data.Current is 0-100 posture value, data.Max is max posture
         local posturePercent = math.clamp((data.Current / data.Max) * 100, 0, 100)
         playerBarsData.parryValue:set(posturePercent)
+    end
+end)
+
+-- Set up ByteNet listener for focus sync from server
+-- This updates the FocusBar BillboardGui next to the character
+Client.Packets.FocusSync.listen(function(data)
+    if _G.LoadingScreenActive then
+        return
+    end
+
+    if focusBarData and focusBarData.focusValue then
+        -- data.Current is 0-255 (uint8), data.Max is 0-255
+        local focusPercent = data.Max > 0 and (data.Current / data.Max) or 0
+        focusBarData.focusValue:set(math.clamp(focusPercent, 0, 1))
     end
 end)
 

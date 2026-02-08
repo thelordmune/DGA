@@ -51,6 +51,7 @@ local function performAttack(Client)
 	if Client._Running then
 		Client.Modules['Movement'].Run(false)
 	end
+	Client.Attacking = true
 	Client.Packets.Attack.send({Type = AttackTypeEnum.Normal, Held = true, Air = Client.InAir})
 end
 
@@ -85,6 +86,7 @@ end
 
 InputModule.InputEnded = function(_, Client)
 	self.AttackHeld = false
+	Client.Attacking = false
 	-- Release buffered attack if any
 	InputBuffer.Release(InputBuffer.InputType.Attack)
 	Client.Packets.Attack.send({Type = AttackTypeEnum.None, Held = false, Air = false})

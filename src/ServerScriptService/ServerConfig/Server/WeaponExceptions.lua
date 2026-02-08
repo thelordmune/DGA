@@ -26,7 +26,7 @@ local function setNPCCombatAnim(character: Model, weapon: string, animType: stri
 	end
 
 	local animSpeed = speed or 1
-	local timestamp = os.clock()
+	local timestamp = workspace:GetServerTimeNow()
 	local animData = `{weapon}|{animType}|{animName}|{animSpeed}|{timestamp}`
 
 	character:SetAttribute("NPCCombatAnim", animData)
@@ -216,7 +216,7 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
         Server.Visuals.Ranged(
             Character.HumanoidRootPart.Position,
             300,
-            { Module = "Base", Function = "Shot", Arguments = { Character, Combo, LeftGun, RightGun } }
+            { Module = "Weapons", Function = "Shot", Arguments = { Character, Combo, LeftGun, RightGun } }
         )
 
         local HitTargets = Hitbox.SpatialQuery(
@@ -242,7 +242,7 @@ Customs.Guns = function(Character, Entity, Weapon, Stats)
             Server.Visuals.Ranged(
                 Character.HumanoidRootPart.Position,
                 300,
-                { Module = "Base", Function = "Shot", Arguments = { Character, 2, LeftGun, RightGun } }
+                { Module = "Weapons", Function = "Shot", Arguments = { Character, 2, LeftGun, RightGun } }
             )
 
             local SecondHitTargets = Hitbox.SpatialQuery(

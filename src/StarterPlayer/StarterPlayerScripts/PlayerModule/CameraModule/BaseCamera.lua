@@ -406,7 +406,19 @@ function BaseCamera:GetSubjectPosition(): Vector3?
 				cameraOffset = Vector3.new()
 			end
 
-			local bodyPartToFollow = humanoid.Parent:FindFirstChild("Torso")
+			local bodyPartToFollow = humanoid.Parent and humanoid.Parent:FindFirstChild("Torso")
+
+			-- DEBUG: Log camera state during loading
+			if not self._debugThrottle then self._debugThrottle = 0 end
+			self._debugThrottle += 1
+			if self._debugThrottle % 60 == 1 then
+				warn("[BaseCamera DEBUG] Parent:", humanoid.Parent and humanoid.Parent.Name or "NIL",
+					"| Torso:", bodyPartToFollow and "YES" or "NO",
+					"| RootPart:", humanoid.RootPart and "YES" or "NO",
+					"| Head:", humanoid.Parent and humanoid.Parent:FindFirstChild("Head") and "YES" or "NO",
+					"| Dead:", humanoidIsDead,
+					"| lastSubjectPos:", self.lastSubjectPosition and "YES" or "NO")
+			end
 
 			if humanoidIsDead then
 				if humanoid.Parent and humanoid.Parent:IsA("Model") then
@@ -455,10 +467,32 @@ function BaseCamera:GetSubjectPosition(): Vector3?
 		return nil
 	end
 
+	-- Fallback: if rawPosition is nil, try to get any position from the character
+	if not rawPosition then
+		if cameraSubject:IsA("Humanoid") and cameraSubject.RootPart then
+			rawPosition = cameraSubject.RootPart.CFrame.p
+		elseif cameraSubject.Parent and cameraSubject.Parent:IsA("Model") then
+			rawPosition = cameraSubject.Parent:GetPivot().Position
+		end
+	end
+
 	local result = rawPosition
 	if self.lastSubjectPosition then
 		local lerpFactor = .5
-		result = self.lastSubjectPosition:Lerp(cameraSubject.Parent.Head.CFrame.p, lerpFactor)
+		local head = cameraSubject.Parent and cameraSubject.Parent:FindFirstChild("Head")
+		if head and head:IsA("BasePart") then
+			result = self.lastSubjectPosition:Lerp(head.CFrame.p, lerpFactor)
+		elseif rawPosition then
+			result = self.lastSubjectPosition:Lerp(rawPosition, lerpFactor)
+		else
+			result = self.lastSubjectPosition
+		end
+	end
+
+	-- DEBUG: Log result
+	if self._debugThrottle and self._debugThrottle % 60 == 1 then
+		warn("[BaseCamera DEBUG] rawPosition:", rawPosition and tostring(rawPosition) or "NIL",
+			"| result:", result and tostring(result) or "NIL")
 	end
 
 	self.lastSubject = cameraSubject

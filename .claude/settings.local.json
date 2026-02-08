@@ -19,7 +19,10 @@
       "Bash(git push:*)",
       "Bash(git checkout:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(wc:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

@@ -26,9 +26,9 @@ QuestEvents.Connect = function()
 
     -- Handle TruthReturn - stop Truth room sounds when leaving
     bridges.TruthReturn:Connect(function()
-        local Base = require(ReplicatedStorage.Effects.Base)
-        if Base.StopTruthRoomSounds then
-            Base.StopTruthRoomSounds()
+        local Misc = require(ReplicatedStorage.Effects.Misc)
+        if Misc.StopTruthRoomSounds then
+            Misc.StopTruthRoomSounds()
         end
     end)
 end

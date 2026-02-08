@@ -187,11 +187,23 @@ local function onCombatAnimChanged(model: Model, animData: string?)
 
 	if success and track then
 		track.Priority = Enum.AnimationPriority.Action2
-		track:Play(0.1)
+		track:Play(0) -- No fade for snappier response
 		if speed ~= 1 then
 			track:AdjustSpeed(speed)
 		end
-		print(`[NpcAnimator] ✅ Playing animation on {model.Name}`)
+
+		-- Compensate for network latency: advance animation to match server timing
+		-- The timestamp is workspace:GetServerTimeNow() when the server played the animation.
+		-- Client also uses GetServerTimeNow() so the clocks are synchronized.
+		if timestamp > 0 then
+			local networkDelay = workspace:GetServerTimeNow() - timestamp
+			warn(`[NpcAnimator] networkDelay={networkDelay*1000}ms (raw), clamped to {math.clamp(networkDelay, 0, 0.2)*1000}ms`)
+			-- Clamp to reasonable range (0 to 200ms) to avoid over-advancing
+			networkDelay = math.clamp(networkDelay, 0, 0.2)
+			if networkDelay > 0.01 then
+				track.TimePosition = networkDelay * speed
+			end
+		end
 
 		-- Clean up track when done
 		track.Stopped:Once(function()

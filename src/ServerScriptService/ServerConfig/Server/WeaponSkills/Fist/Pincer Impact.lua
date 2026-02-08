@@ -178,7 +178,7 @@ return function(Player, Data, Server)
 
             Server.Library.PlaySound(Char, SFX.PI.Start)
             Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
-					Module = "Base",
+					Module = "Weapons",
 					Function = "AlchemicAssault",
 					Arguments = { Char, "Jump" },
 				})
@@ -202,7 +202,7 @@ return function(Player, Data, Server)
         task.delay(hittimes[3], function()
             Server.Library.PlaySound(Char, SFX.PI.Leap)
             Server.Visuals.Ranged(Char.HumanoidRootPart.Position, 300, {
-					Module = "Base",
+					Module = "Weapons",
 					Function = "AlchemicAssault",
 					Arguments = { Char, "Jump" },
 				})

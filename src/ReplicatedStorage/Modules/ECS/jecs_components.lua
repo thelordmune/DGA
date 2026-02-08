@@ -102,6 +102,19 @@ local components: {
     -- Combat Systems
     Stamina: Entity<{current: number, max: number, regenRate: number, drainRate: number}>, -- Stamina system for Nen abilities
 
+    -- Focus System
+    Focus: Entity<{
+        current: number,         -- Current focus (0-100)
+        max: number,             -- Current max focus (starts 50, trainable to 100)
+        decayRate: number,       -- Passive decay per second
+        permanentFloor: number,  -- Trained minimum (0-40)
+        tempFloor: number,       -- Temporary floor set when entering Absolute Focus
+        trainingXP: number,      -- Accumulated training progress
+        trainingLevel: number,   -- Current training level (determines max)
+        inMiniMode: boolean,     -- Currently in mini mode (50%+)
+        inAbsoluteMode: boolean, -- Currently in absolute focus (100%)
+    }>,
+
     -- Status Effects (ECS-driven, replaces RunService loops)
     Burning: Entity<{
         damagePerTick: number,
@@ -457,6 +470,7 @@ local components: {
 
         -- Combat Systems
         Stamina = world:component(),
+        Focus = world:component(),
 
         -- Status Effects (ECS-driven)
         Burning = world:component(),

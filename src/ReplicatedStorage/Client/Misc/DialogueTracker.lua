@@ -60,7 +60,7 @@ DialogueTracker.Start = function()
      ---- print("✅ Dialogue component:", dialogueComp)
 
     -- Check for Effects module
-    local effectsSuccess, effmod = pcall(require, Replicated.Effects.Base)
+    local effectsSuccess, effmod = pcall(require, Replicated.Effects.Misc)
     if not effectsSuccess then
          ---- print("❌ ERROR: Could not load Effects.Base module:", effmod)
         return

@@ -128,12 +128,15 @@ ClientThread.Spawn = function()
                 end
             else
                 -- Normal mode
-                local offset = (Root.CFrame + Vector3.new(0, .3, 0)):PointToObjectSpace(Character.Head.Position)
-                -- Reset camera offset if it becomes invalid (fixes reset bug)
-                if Humanoid.CameraOffset.Magnitude > 50 or Humanoid.CameraOffset ~= Humanoid.CameraOffset then
-                    Humanoid.CameraOffset = offset
-                else
-                    Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset, DeltaTime * 1.5)
+                local head = Character:FindFirstChild("Head")
+                if head then
+                    local offset = (Root.CFrame + Vector3.new(0, .3, 0)):PointToObjectSpace(head.Position)
+                    -- Reset camera offset if it becomes invalid (fixes reset bug)
+                    if Humanoid.CameraOffset.Magnitude > 50 or Humanoid.CameraOffset ~= Humanoid.CameraOffset then
+                        Humanoid.CameraOffset = offset
+                    else
+                        Humanoid.CameraOffset = Humanoid.CameraOffset:Lerp(offset, DeltaTime * 1.5)
+                    end
                 end
             end
             

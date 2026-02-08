@@ -93,7 +93,7 @@ return function(Player, Data, Server)
 			-- First kick - ground effect (no damage) + start leap
 			task.delay(hittimes[1], function()
 				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-					Module = "Base",
+					Module = "Weapons",
 					Function = "TripleKick",
 					Arguments = { Character, "Ground" },
 				})
@@ -179,7 +179,7 @@ return function(Player, Data, Server)
 			-- Fallback if no HumanoidRootPart/Humanoid
 			task.delay(hittimes[1], function()
 				Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-					Module = "Base",
+					Module = "Weapons",
 					Function = "TripleKick",
 					Arguments = { Character, "Ground" },
 				})
@@ -189,7 +189,7 @@ return function(Player, Data, Server)
 		-- Second kick - damage
         task.delay(hittimes[2], function()
             Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-				Module = "Base",
+				Module = "Weapons",
 				Function = "TripleKick",
 				Arguments = { Character, "Hit" },
 			})
@@ -239,7 +239,7 @@ return function(Player, Data, Server)
 		-- Third kick - damage + knockback to the left
         task.delay(hittimes[3], function()
             Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-				Module = "Base",
+				Module = "Weapons",
 				Function = "TripleKick",
 				Arguments = { Character, "Hit" },
 			})
@@ -381,7 +381,7 @@ return function(Player, Data, Server)
 		-- Fourth kick - damage (more impactful screenshake)
         task.delay(hittimes[4], function()
             Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-				Module = "Base",
+				Module = "Weapons",
 				Function = "TripleKick",
 				Arguments = { Character, "Hit" },
 			})

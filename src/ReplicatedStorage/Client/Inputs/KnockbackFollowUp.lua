@@ -98,6 +98,15 @@ InputModule.InputBegan = function(_, Client)
 		end
 	end
 
+	-- M2 during M1 swing = feint (cancel attack before hit frame)
+	-- Uses client-side Attacking flag set in Attack.lua (avoids ECS sync delay)
+	if Client.Attacking then
+		Client.Attacking = false
+		Client.Packets.Feint.send()
+		self.LastInput = os.clock()
+		return
+	end
+
 	local knockbackTarget = findKnockbackTarget(Client)
 	if knockbackTarget then
 		Client.Packets.KnockbackFollowUp.send()

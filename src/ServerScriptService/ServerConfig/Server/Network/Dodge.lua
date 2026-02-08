@@ -11,6 +11,7 @@ local world      = require(Replicated.Modules.ECS.jecs_world);
 local comps      = require(Replicated.Modules.ECS.jecs_components);
 local ref        = require(Replicated.Modules.ECS.jecs_ref);
 local StateManager = require(Replicated.Modules.ECS.StateManager);
+local FocusHandler = require(script.Parent.Parent.FocusHandler);
 
 -- Direction enum decoder: uint8 -> string
 local EnumToDirection = {
@@ -98,8 +99,8 @@ NetworkModule.EndPoint = function(Player, Data)
     if playerEntity then
         world:add(playerEntity, comps.Dashing)
 
-        -- Clear dashing state after dash duration (0.4s)
-        task.delay(0.4, function()
+        -- Clear dashing state after dash duration (0.5s)
+        task.delay(0.5, function()
             if playerEntity and world:contains(playerEntity) then
                 world:remove(playerEntity, comps.Dashing)
             end
@@ -107,10 +108,10 @@ NetworkModule.EndPoint = function(Player, Data)
     end
 
     -- Add Dashing state to Actions (not Stuns - dashing is an action, not a stun)
-    StateManager.TimedState(Character, "Actions", "Dashing", 0.4)
+    StateManager.TimedState(Character, "Actions", "Dashing", 0.5)
 
     -- Add recovery endlag after dodge completes (prevents instant action after dodge)
-    task.delay(0.4, function()
+    task.delay(0.5, function()
         if Character then
             StateManager.TimedState(Character, "Actions", "DodgeRecovery", 0.15)
         end
@@ -119,11 +120,19 @@ NetworkModule.EndPoint = function(Player, Data)
     -- Always process VFX if we got here
     local Entity = Server.Modules["Entities"].Get(Character);
     if Entity and Entity.Character then
-        StateManager.TimedState(Entity.Character, "IFrames", "Dodge", 0.35)
+        -- Mini mode grants extra dodge iframes (+0.1s)
+        local iframeDuration = 0.45
+        if Character:GetAttribute("FocusMiniMode") == true then
+            iframeDuration = 0.55
+        end
+        StateManager.TimedState(Entity.Character, "IFrames", "Dodge", iframeDuration)
 
         -- Add PerfectDodgeWindow - allows counter hit if player attacks during this window
         -- This gives 0.5s after dodge to land a counter attack on an enemy in recovery
         StateManager.TimedState(Entity.Character, "Frames", "PerfectDodgeWindow", 0.5)
+
+        -- Focus: reward successful dodge
+        FocusHandler.AddFocus(Character, FocusHandler.Amounts.DODGE_SUCCESS, "dodge_success")
 
         Visuals.Ranged(Character.HumanoidRootPart.Position,300, {Module = "Base", Function = "DashFX", Arguments = {Character, Direction}})
     end

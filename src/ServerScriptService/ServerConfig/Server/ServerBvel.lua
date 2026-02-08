@@ -206,7 +206,7 @@ ServerBvel.PullVelocity = function(Character, direction, pullPower, duration)
 end
 
 -- Light Knockback (mirrors client BaseBvel - small backward push on hit)
-ServerBvel.LightKnockback = function(Character)
+ServerBvel.LightKnockback = function(Character, Attacker)
     local rootPart = Character.PrimaryPart
     if not rootPart then
         warn("[ServerBvel] No PrimaryPart found for LightKnockback")
@@ -220,9 +220,21 @@ ServerBvel.LightKnockback = function(Character)
         end
     end
 
-    -- Calculate backward direction (flatten to horizontal)
-    local backwardDirection = -rootPart.CFrame.LookVector
-    backwardDirection = Vector3.new(backwardDirection.X, 0, backwardDirection.Z).Unit
+    -- Knockback direction: attacker's facing direction (or fall back to target's backward)
+    local kbDirection
+    local attackerRoot = Attacker and Attacker:FindFirstChild("HumanoidRootPart")
+    if attackerRoot then
+        local attackerLook = attackerRoot.CFrame.LookVector
+        kbDirection = Vector3.new(attackerLook.X, 0, attackerLook.Z).Unit
+
+        -- Rotate target to face the attacker
+        local tPos = rootPart.Position
+        local aPos = attackerRoot.Position
+        rootPart.CFrame = CFrame.new(tPos) * CFrame.lookAt(tPos, Vector3.new(aPos.X, tPos.Y, aPos.Z)).Rotation
+    else
+        local backwardDirection = -rootPart.CFrame.LookVector
+        kbDirection = Vector3.new(backwardDirection.X, 0, backwardDirection.Z).Unit
+    end
 
     local attachment = rootPart:FindFirstChild("LightKBAttachment")
     if not attachment then
@@ -234,7 +246,7 @@ ServerBvel.LightKnockback = function(Character)
     local lv = Instance.new("LinearVelocity")
     lv.Name = "LightKnockbackVelocity"
     lv.MaxForce = 50000
-    lv.VectorVelocity = backwardDirection * 50
+    lv.VectorVelocity = kbDirection * 50
     lv.Attachment0 = attachment
     lv.RelativeTo = Enum.ActuatorRelativeTo.World
     lv.Parent = rootPart
@@ -255,11 +267,12 @@ end
 -- Full Knockback (mirrors client KnockbackBvel - strong push away from attacker)
 ServerBvel.Knockback = function(Character, Attacker)
     local rootPart = Character.PrimaryPart
-    local attackerRoot = Attacker and Attacker:FindFirstChild("HumanoidRootPart")
-    if not rootPart or not attackerRoot then
+    if not rootPart then
         warn("[ServerBvel] Missing PrimaryPart for Knockback")
         return
     end
+
+    local attackerRoot = Attacker and Attacker:FindFirstChild("HumanoidRootPart")
 
     -- Clean up existing body movers
     for _, child in ipairs(rootPart:GetChildren()) do
@@ -274,9 +287,20 @@ ServerBvel.Knockback = function(Character, Attacker)
         humanoid.AutoRotate = false
     end
 
-    -- Knockback direction: opposite of target's facing direction (knocked backwards)
-    local targetLook = rootPart.CFrame.LookVector
-    local direction = -Vector3.new(targetLook.X, 0, targetLook.Z).Unit
+    -- Knockback direction: attacker's facing direction (fallback to target backward)
+    local direction
+    if attackerRoot then
+        local attackerLook = attackerRoot.CFrame.LookVector
+        direction = Vector3.new(attackerLook.X, 0, attackerLook.Z).Unit
+
+        -- Rotate target to face the attacker
+        local tPos = rootPart.Position
+        local aPos = attackerRoot.Position
+        rootPart.CFrame = CFrame.new(tPos) * CFrame.lookAt(tPos, Vector3.new(aPos.X, tPos.Y, aPos.Z)).Rotation
+    else
+        local backDir = -rootPart.CFrame.LookVector
+        direction = Vector3.new(backDir.X, 0, backDir.Z).Unit
+    end
 
     local attachment = rootPart:FindFirstChild("KnockbackAttachment")
     if not attachment then
@@ -287,7 +311,7 @@ ServerBvel.Knockback = function(Character, Attacker)
 
     local maxPower = 60
     local duration = 1.267 -- Match KnockbackStun animation length
-    local rampUpTime = 0.15 -- Ease-in from 0 to maxPower
+    local rampUpTime = 0.05 -- Quick ramp-up for snappier feel
     local fullSpeedTime = 0.5 -- Hold at max until this point, then decelerate
 
     -- Reset existing velocity
@@ -297,12 +321,12 @@ ServerBvel.Knockback = function(Character, Attacker)
     local lv = Instance.new("LinearVelocity")
     lv.Name = "KnockbackVelocity"
     lv.MaxForce = 50000
-    lv.VectorVelocity = Vector3.zero -- Start slow
+    lv.VectorVelocity = direction * maxPower * 0.5 -- Start with initial burst
     lv.Attachment0 = attachment
     lv.RelativeTo = Enum.ActuatorRelativeTo.World
     lv.Parent = rootPart
 
-    -- Three-phase velocity: ramp up → full speed → cubic ease-out deceleration
+    -- Two-phase velocity: quick ramp to full speed → cubic ease-out deceleration
     local startTime = os.clock()
     local conn
     conn = game:GetService("RunService").Heartbeat:Connect(function()
@@ -314,8 +338,9 @@ ServerBvel.Knockback = function(Character, Attacker)
 
         local currentPower
         if elapsed < rampUpTime then
+            -- Phase 1: Quick ramp from 50% to maxPower (linear)
             local t = elapsed / rampUpTime
-            currentPower = maxPower * (t * t) -- Quadratic ease-in
+            currentPower = maxPower * (0.5 + 0.5 * t)
         elseif elapsed < fullSpeedTime then
             currentPower = maxPower
         else
@@ -388,21 +413,27 @@ ServerBvel.BezierChase = function(Character, Target, travelTime)
     local conn
     conn = game:GetService("RunService").Heartbeat:Connect(function()
         local elapsed = os.clock() - startTime
-        local t = math.clamp(elapsed / travelTime, 0, 1)
+        local tLinear = math.clamp(elapsed / travelTime, 0, 1)
 
-        if t >= 1 then
+        if tLinear >= 1 then
             conn:Disconnect()
             if lv and lv.Parent then lv:Destroy() end
             return
         end
+
+        -- Ease-out: fast at start, slows down approaching target
+        local t = 1 - (1 - tLinear) ^ 2.5
 
         -- Quadratic bezier derivative: B'(t) = 2(1-t)(P1-P0) + 2t(P2-P1)
         local p0 = startPos
         local p1 = midpoint
         local p2 = targetRoot.Position -- Track target position live
 
+        -- dt/dtLinear for the ease-out curve (chain rule for velocity correction)
+        local dtdtLinear = 2.5 * (1 - tLinear) ^ 1.5
+
         local velocity = 2 * (1 - t) * (p1 - p0) + 2 * t * (p2 - p1)
-        velocity = velocity / travelTime
+        velocity = velocity * dtdtLinear / travelTime
 
         if lv and lv.Parent then
             lv.VectorVelocity = velocity
@@ -434,7 +465,7 @@ ServerBvel.AerialAttackLaunch = function(Character)
     local lv = Instance.new("LinearVelocity")
     lv.Name = "AerialAttackVelocity"
     lv.MaxForce = 50000
-    lv.VectorVelocity = forward * 35 + Vector3.new(0, 25, 0)
+    lv.VectorVelocity = forward * 35 + Vector3.new(0, 40, 0)
     lv.Attachment0 = attachment
     lv.RelativeTo = Enum.ActuatorRelativeTo.World
     lv.Parent = rootPart
@@ -453,7 +484,7 @@ ServerBvel.AerialAttackLaunch = function(Character)
 
         local t = elapsed / duration
         local fwdPower = 40 * (1 - t * t)
-        local vertPower = 25 * math.cos(t * math.pi * 1.1) - 18 * t
+        local vertPower = 60 * math.cos(t * math.pi * 1.1) - 22 * t
         lv.VectorVelocity = forward * fwdPower + Vector3.new(0, vertPower, 0)
     end)
 end

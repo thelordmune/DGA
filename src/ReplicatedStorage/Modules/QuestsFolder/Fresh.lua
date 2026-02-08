@@ -61,7 +61,7 @@ if isServer then
 
 			-- Start screen fade to white
 			Server.Visuals.Ranged(root.Position, 300, {
-				Module = "Base",
+				Module = "Misc",
 				Function = "ScreenFadeWhiteOut",
 				Arguments = {},
 			})
@@ -103,7 +103,7 @@ if isServer then
 
 			-- Fade screen back from white
 			Server.Visuals.Ranged(root.Position, 300, {
-				Module = "Base",
+				Module = "Misc",
 				Function = "ScreenFadeWhiteIn",
 				Arguments = {},
 			})

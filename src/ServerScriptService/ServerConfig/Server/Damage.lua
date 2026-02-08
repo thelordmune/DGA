@@ -24,6 +24,7 @@ local StunRegistry = require(Replicated.Modules.ECS.StunRegistry)
 local ActionCancellation = require(Replicated.Modules.ECS.ActionCancellation)
 local StateManager = require(Replicated.Modules.ECS.StateManager)
 local Players = game:GetService("Players")
+local FocusHandler = require(script.Parent.FocusHandler)
 
 -- Helper to set combat animation attribute for Chrono NPC replication
 -- Same as Combat.lua - replicates animations to client clones
@@ -41,7 +42,7 @@ local function setNPCCombatAnim(character: Model, weapon: string, animType: stri
 	end
 
 	local animSpeed = speed or 1
-	local timestamp = os.clock()
+	local timestamp = workspace:GetServerTimeNow()
 	local animData = `{weapon}|{animType}|{animName}|{animSpeed}|{timestamp}`
 
 	character:SetAttribute("NPCCombatAnim", animData)
@@ -515,9 +516,9 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		Library.StopAllAnims(Target)
 
 		-- ParryStun has priority 5, will override lower priority stuns
-		Library.ApplyStun(Invoker, "ParryStun", 1.0, Target)
+		Library.ApplyStun(Invoker, "ParryStun", 0.6, Target)
 
-		---- print(`[PARRY DEBUG] - Applied ParryStun to {Invoker.Name} for 1.0s, isMultiPart: {isInMultiPartSkill}`)
+		---- print(`[PARRY DEBUG] - Applied ParryStun to {Invoker.Name} for 0.6s, isMultiPart: {isInMultiPartSkill}`)
 
 		-- Add knockback state and iframes for both characters using priority system
 		-- ParryKnockback has priority 4 with built-in iframes
@@ -553,6 +554,13 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				end
 			end
 		end
+
+		-- Focus: parrier gains focus, attacker who got parried loses focus
+		FocusHandler.AddFocus(Target, FocusHandler.Amounts.PARRY_SUCCESS, "parry_success")
+		FocusHandler.RemoveFocus(Invoker, FocusHandler.Amounts.GOT_PARRIED, "got_parried")
+
+		-- Mark parry as landed (used by Combat.lua to skip whiff penalty)
+		Target:SetAttribute("ParryLanded", true)
 
 		-- Always execute core parry effects (VFX, knockback, animations, sounds)
 		Library.ResetCooldown(Target, "Parry")
@@ -788,6 +796,17 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		-- Note: NPC aggression is now handled through behavior trees using the Damage_Log above
 
+		-- Focus: target loses focus from taking damage
+		local health = Target:FindFirstChild("Humanoid")
+		if health then
+			local dmgPercent = originalBaseDamage / health.MaxHealth
+			if dmgPercent > 0.1 then
+				FocusHandler.RemoveFocus(Target, FocusHandler.Amounts.HEAVY_DAMAGE, "heavy_damage")
+			else
+				FocusHandler.RemoveFocus(Target, FocusHandler.Amounts.LIGHT_DAMAGE, "light_damage")
+			end
+		end
+
 		-- Apply the FINAL calculated damage (not Table.Damage which is the original base)
 		-- DEATH THRESHOLD: Clamp health at 1 HP instead of 0 to prevent Roblox's death system from interfering
 		local totalDamage = pData and (finalDamage + pData.Stats.Damage) or finalDamage
@@ -901,11 +920,35 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 	end
 
 	local function LightKnockback()
-		if TargetPlayer then
-			Server.Packets.Bvel.sendTo({ Character = Target, Name = "BaseBvel" }, TargetPlayer)
+		-- Knockback in attacker's facing direction + rotate target to face attacker
+		local invokerRoot = Invoker:FindFirstChild("HumanoidRootPart")
+		local targetRoot = Target:FindFirstChild("HumanoidRootPart")
+		if not targetRoot then return end
+
+		local kbDir
+		if invokerRoot then
+			local attackerLook = invokerRoot.CFrame.LookVector
+			kbDir = Vector3.new(attackerLook.X, 0, attackerLook.Z).Unit
+
+			-- Rotate target to face attacker
+			local tPos = targetRoot.Position
+			local aPos = invokerRoot.Position
+			targetRoot.CFrame = CFrame.new(tPos) * CFrame.lookAt(tPos, Vector3.new(aPos.X, tPos.Y, aPos.Z)).Rotation
 		else
-			-- NPC: apply server-side light knockback directly
-			Server.Modules.ServerBvel.LightKnockback(Target)
+			-- Fallback: push target backward
+			local targetLook = targetRoot.CFrame.LookVector
+			kbDir = -Vector3.new(targetLook.X, 0, targetLook.Z).Unit
+		end
+
+		if TargetPlayer then
+			Server.Packets.BvelVelocity.sendTo({
+				Character = Target,
+				Velocity = kbDir * 50,
+				Duration = 0.15,
+			}, TargetPlayer)
+		else
+			-- NPC: apply server-side light knockback in attacker's direction
+			Server.Modules.ServerBvel.LightKnockback(Target, Invoker)
 		end
 	end
 
@@ -1139,7 +1182,6 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			end
 
 			-- NORMAL KNOCKBACK (not wallbanged)
-			---- print("[Knockback] Applying knockback to", Target.Name, "from", Invoker.Name)
 			Library.StopAllAnims(Target)
 			local Animation = Library.PlayAnimation(Target, Replicated.Assets.Animations.Misc.KnockbackStun)
 			Animation.Priority = Enum.AnimationPriority.Action3
@@ -1149,6 +1191,9 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 			-- Apply knockback stun using priority system - KnockbackStun has priority 4 with lockRotation
 			Library.ApplyStun(Target, "KnockbackStun", 1.267, Invoker)
+
+			-- Knockback VFX: kbhit at torso + kbSmoke at feet (later half)
+			Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {Module = "Base", Function = "KnockbackVFX", Arguments = {Target}})
 
 			-- Schedule endlag recovery after knockback ends (0.4s where target can only dodge)
 			task.delay(1.267, function()
@@ -1219,9 +1264,18 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					Server.Packets.Bvel.sendToAll({ Character = Invoker, Name = "KnockbackBvel", Targ = Target })
 				else
 					-- NPC hitting Player: NPC model ref may not serialize, send pre-computed velocity
-					-- Knockback direction: opposite of target's facing direction (knocked backwards)
-					local targetLook = Target.HumanoidRootPart.CFrame.LookVector
-					local dir = -Vector3.new(targetLook.X, 0, targetLook.Z).Unit
+					-- Knockback direction: attacker's (NPC's) facing direction
+					warn(`[Damage.Knockback] NPC->Player knockback triggered! Invoker={Invoker.Name}, Target={Target.Name}`)
+					local invokerRoot = Invoker:FindFirstChild("HumanoidRootPart")
+					local dir
+					if invokerRoot then
+						local attackerLook = invokerRoot.CFrame.LookVector
+						dir = Vector3.new(attackerLook.X, 0, attackerLook.Z).Unit
+					else
+						-- Fallback: push target backward from their own facing
+						local targetLook = Target.HumanoidRootPart.CFrame.LookVector
+						dir = -Vector3.new(targetLook.X, 0, targetLook.Z).Unit
+					end
 					Server.Packets.Bvel.sendTo({
 						Character = Target,
 						Name = "KnockbackBvelFromNPC",
@@ -1233,29 +1287,14 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				Server.Modules.ServerBvel.Knockback(Target, Invoker)
 			end
 
-			-- Send highlight to the attacking player (shows follow-up opportunity)
-			if Player then
-				if targetChronoId then
-					-- Chrono NPC: send ChronoId so client can resolve to its local clone
-					Server.Packets.Bvel.sendTo({
-						Character = Invoker,
-						Name = "KnockbackFollowUpHighlight",
-						ChronoId = targetChronoId,
-						duration = 1.267,
-					}, Player)
-				else
-					-- Non-Chrono target (player): safe to send Instance ref
-					Server.Packets.Bvel.sendTo({
-						Character = Invoker,
-						Name = "KnockbackFollowUpHighlight",
-						Targ = Target,
-						duration = 1.267,
-					}, Player)
-				end
-			end
+			-- Show FollowUp VFX on the target (visible to all nearby players)
+			Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {Module = "Base", Function = "KnockbackFollowUpVFX", Arguments = {Target, 1.267}})
 
 			---- print("[Knockback] Sent KnockbackBvel packet")
-			handleWallbang()
+			local ok, err = pcall(handleWallbang)
+			if not ok then
+				warn(`[Knockback] handleWallbang error: {err}`)
+			end
 		end
 	end
 
@@ -1423,11 +1462,34 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			end
 		end
 
-		if TargetPlayer then
-			Server.Packets.Bvel.sendTo({ Character = Target, Name = "BaseBvel" }, TargetPlayer)
-		else
-			-- NPC: apply server-side light knockback directly
-			Server.Modules.ServerBvel.LightKnockback(Target)
+		-- Block knockback in attacker's facing direction + rotate target to face attacker
+		local bInvokerRoot = Invoker:FindFirstChild("HumanoidRootPart")
+		local bTargetRoot = Target:FindFirstChild("HumanoidRootPart")
+		if bTargetRoot then
+			local bKbDir
+			if bInvokerRoot then
+				local bAttackerLook = bInvokerRoot.CFrame.LookVector
+				bKbDir = Vector3.new(bAttackerLook.X, 0, bAttackerLook.Z).Unit
+
+				-- Rotate target to face attacker
+				local bTPos = bTargetRoot.Position
+				local bAPos = bInvokerRoot.Position
+				bTargetRoot.CFrame = CFrame.new(bTPos) * CFrame.lookAt(bTPos, Vector3.new(bAPos.X, bTPos.Y, bAPos.Z)).Rotation
+			else
+				-- Fallback: push target backward
+				local bTargetLook = bTargetRoot.CFrame.LookVector
+				bKbDir = -Vector3.new(bTargetLook.X, 0, bTargetLook.Z).Unit
+			end
+
+			if TargetPlayer then
+				Server.Packets.BvelVelocity.sendTo({
+					Character = Target,
+					Velocity = bKbDir * 50,
+					Duration = 0.15,
+				}, TargetPlayer)
+			else
+				Server.Modules.ServerBvel.LightKnockback(Target, Invoker)
+			end
 		end
 
 		Visuals.Ranged(

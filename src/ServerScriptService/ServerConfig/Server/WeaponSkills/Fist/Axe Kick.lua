@@ -77,7 +77,7 @@ return function(Player, Data, Server)
 			end
 
 			Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {
-				Module = "Base",
+				Module = "Weapons",
 				Function = "AxeKick",
 				Arguments = { Character, "Swing" },
 			})

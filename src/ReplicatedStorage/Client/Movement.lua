@@ -86,7 +86,7 @@ Movement.Dodge = function()
 	StateManager.AddState(Client.Character, "Status", "Dodging")
 
 	local Speed = 45
-	local Duration = 0.4
+	local Duration = 0.5
 
 	Client.Library.StartAction(Client.Character, "Dodge", Duration)
 
@@ -108,6 +108,169 @@ Movement.Dodge = function()
 	local direction = Vector3.new(initialWorldDir.X, 0, initialWorldDir.Z).Unit
 
 	local camera = workspace.CurrentCamera
+
+	-- Check for Focus Mini Mode teleport dash
+	local isMiniMode = Client.Character:GetAttribute("FocusMiniMode") == true
+
+	if isMiniMode then
+		-- TELEPORT DASH: instant warp instead of velocity-based dash
+		Client.Packets.Dodge.send(self.DirectionToEnum[Direction])
+
+		local teleportDistance = Speed * Duration * 0.7
+		local startPos = Client.Root.Position
+		local endPos = startPos + direction * teleportDistance
+
+		-- Raycast to prevent teleporting through walls
+		local rayParams = RaycastParams.new()
+		rayParams.FilterType = Enum.RaycastFilterType.Exclude
+		rayParams.FilterDescendantsInstances = { Client.Character }
+		local rayResult = workspace:Raycast(startPos, direction * teleportDistance, rayParams)
+		if rayResult then
+			endPos = rayResult.Position - direction * 2
+		end
+
+		-- Collect visible parts and effects to hide during teleport
+		local flickerParts = {}
+		local hiddenEmitters = {}
+		for _, desc in Client.Character:GetDescendants() do
+			if desc:IsA("BasePart") and desc.Name ~= "HumanoidRootPart" and desc.Transparency < 1 then
+				table.insert(flickerParts, { part = desc, orig = desc.Transparency })
+			elseif desc:IsA("ParticleEmitter") and desc.Enabled then
+				table.insert(hiddenEmitters, desc)
+			elseif desc:IsA("Beam") and desc.Enabled then
+				table.insert(hiddenEmitters, desc)
+			elseif desc:IsA("Trail") and desc.Enabled then
+				table.insert(hiddenEmitters, desc)
+			end
+		end
+
+		-- Helper to run flicker for a duration at a given rate
+		local function doFlicker(duration, rate)
+			local interval = 1 / rate
+			local elapsed = 0
+			local on = false
+			while elapsed < duration do
+				on = not on
+				for _, data in flickerParts do
+					if data.part and data.part.Parent then
+						data.part.Transparency = on and math.min(data.orig + 0.5, 0.9) or data.orig
+					end
+				end
+				task.wait(interval)
+				elapsed += interval
+			end
+		end
+
+		-- Helper to hide/show everything
+		local function hideCharacter()
+			for _, data in flickerParts do
+				if data.part and data.part.Parent then
+					data.part.Transparency = 1
+				end
+			end
+			for _, emitter in hiddenEmitters do
+				if emitter and emitter.Parent then
+					emitter.Enabled = false
+				end
+			end
+		end
+
+		local function showCharacter()
+			for _, data in flickerParts do
+				if data.part and data.part.Parent then
+					data.part.Transparency = data.orig
+				end
+			end
+			for _, emitter in hiddenEmitters do
+				if emitter and emitter.Parent then
+					emitter.Enabled = true
+				end
+			end
+		end
+
+		-- Pre-teleport flicker (fast, at origin)
+		doFlicker(0.15, 30)
+
+		-- Vanish completely
+		hideCharacter()
+
+		-- Spawn teleport VFX at start position (feet)
+		local TeleportVFX = ReplicatedStorage:FindFirstChild("Assets")
+			and ReplicatedStorage.Assets:FindFirstChild("VFX")
+			and ReplicatedStorage.Assets.VFX:FindFirstChild("Focus")
+			and ReplicatedStorage.Assets.VFX.Focus:FindFirstChild("Teleport")
+		local feetOffset = Vector3.new(0, -3, 0)
+		if TeleportVFX then
+			local startVFX = TeleportVFX:Clone()
+			local startFeetPos = startPos + feetOffset
+			if startVFX:IsA("BasePart") then
+				startVFX.CFrame = CFrame.new(startFeetPos)
+				startVFX.Anchored = true
+			elseif startVFX:IsA("Model") then
+				startVFX:PivotTo(CFrame.new(startFeetPos))
+			end
+			startVFX.Parent = workspace.World and workspace.World.Visuals or workspace
+			for _, emitter in startVFX:GetDescendants() do
+				if emitter:IsA("ParticleEmitter") then
+					emitter:Emit(emitter:GetAttribute("EmitCount") or 10)
+				end
+			end
+			task.delay(2, function() startVFX:Destroy() end)
+		end
+
+		-- Warp to destination
+		Client.Root.CFrame = CFrame.new(endPos) * Client.Root.CFrame.Rotation
+
+		-- Spawn teleport VFX at end position (feet)
+		if TeleportVFX then
+			local endVFX = TeleportVFX:Clone()
+			local endFeetPos = endPos + feetOffset
+			if endVFX:IsA("BasePart") then
+				endVFX.CFrame = CFrame.new(endFeetPos)
+				endVFX.Anchored = true
+			elseif endVFX:IsA("Model") then
+				endVFX:PivotTo(CFrame.new(endFeetPos))
+			end
+			endVFX.Parent = workspace.World and workspace.World.Visuals or workspace
+			for _, emitter in endVFX:GetDescendants() do
+				if emitter:IsA("ParticleEmitter") then
+					emitter:Emit(emitter:GetAttribute("EmitCount") or 10)
+				end
+			end
+			task.delay(2, function() endVFX:Destroy() end)
+		end
+
+		-- Re-show character then do brief arrival flicker
+		showCharacter()
+		doFlicker(0.1, 30)
+		showCharacter() -- ensure restored after flicker ends
+
+		-- Clean up dash state after short delay
+		task.delay(0.3, function()
+			Client.Dodging = false
+			Client.DashDirection = nil
+			Client.CancelDashFn = nil
+			StateManager.RemoveState(Client.Character, "Status", "Dodging")
+			Client.Library.EndAction(Client.Character, "Dodge")
+
+			if wasRunning and Client.Character and Client.Character.Parent and not StateManager.StateCount(Client.Character, "Stuns") then
+				Client.Running = true
+				Client._Running = true
+				StateManager.AddState(Client.Character, "Speeds", "RunSpeedSet30")
+				local Equipped = Client.Character:GetAttribute("Equipped")
+				if Equipped then
+					Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.WeaponRun)
+				else
+					Client.RunAnim = Client.Library.PlayAnimation(Client.Character, Client.Service["ReplicatedStorage"].Assets.Animations.Movement.Run)
+				end
+				if Client.RunAnim then
+					Client.RunAnim.Priority = Enum.AnimationPriority.Action
+				end
+			end
+		end)
+
+		return -- Skip normal velocity-based dash
+	end
 
 	local Velocity = Instance.new("LinearVelocity")
 	Velocity.MaxAxesForce = Vector3.new(100000, 0, 100000)
@@ -145,8 +308,8 @@ Movement.Dodge = function()
 	-- Dash velocity loop in a spawned thread (like reference updateDashVelocity)
 	task.spawn(function()
 		local start = os.clock()
-		local dashDuration = Duration * 0.5
-		local decelerationDuration = Duration * 0.5
+		local fullSpeedPhase = Duration * 0.7  -- Full power for the first 40%
+		local falloffPhase = Duration * 0.3    -- Decelerating for the remaining 60%
 
 		while os.clock() - start <= Duration do
 			if dashCancelled then break end
@@ -165,8 +328,14 @@ Movement.Dodge = function()
 			if dashCancelled then break end
 
 			local elapsed = os.clock() - start
-			local decelerationFactor = math.max(0, (decelerationDuration - (elapsed - dashDuration)) / decelerationDuration)
-			local speed = Speed * decelerationFactor
+			local speed
+			if elapsed <= fullSpeedPhase then
+				speed = Speed
+			else
+				-- Ease-out falloff: power drops off smoothly in the later half
+				local falloffT = (elapsed - fullSpeedPhase) / falloffPhase
+				speed = Speed * (1 - falloffT) ^ 3.5
+			end
 
 			-- Update direction from player input (allows steering mid-dash)
 			if Client.Humanoid.MoveDirection.Magnitude > 0 then
@@ -255,9 +424,6 @@ Movement.CancelDashWithAnimation = function(cancelAnimName)
 	if anim then
 		Client.Library.PlayAnimation(Client.Character, anim)
 	end
-
-	-- Refund one dash charge (cancel doesn't consume a charge)
-	Client.DodgeCharges = math.min(2, (Client.DodgeCharges or 0) + 1)
 
 	-- Tell server about the cancel
 	Client.Packets.DodgeCancel.send()

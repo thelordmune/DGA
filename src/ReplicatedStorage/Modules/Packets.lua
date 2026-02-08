@@ -286,6 +286,12 @@ return ByteNet.defineNamespace("Networking", function()
 			value = ByteNet.nothing;
 		});
 
+		-- Feint: Client -> Server (player presses M2 during M1 swing to cancel before hit frame)
+		Feint = ByteNet.definePacket({
+			reliabilityType = "reliable";
+			value = ByteNet.nothing;
+		});
+
 		-- ============================================
 		-- ECS STATE SYNC PACKETS
 		-- Server -> Client: Replicate ECS state changes
@@ -309,6 +315,16 @@ return ByteNet.defineNamespace("Networking", function()
 			value = ByteNet.struct({
 				Current = ByteNet.uint8; -- 0-100 posture value
 				Max = ByteNet.uint8; -- Max posture (usually 100)
+			})
+		});
+
+		-- FocusSync: Sync focus bar value to client for UI display
+		-- Server -> Client: Updates the focus bar BillboardGui
+		FocusSync = ByteNet.definePacket({
+			reliabilityType = "unreliable"; -- Visual UI, next update corrects
+			value = ByteNet.struct({
+				Current = ByteNet.uint8; -- 0-100 focus value
+				Max = ByteNet.uint8; -- Current max focus (50-100, trainable)
 			})
 		});
 
