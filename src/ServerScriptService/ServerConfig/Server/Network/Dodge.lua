@@ -99,23 +99,16 @@ NetworkModule.EndPoint = function(Player, Data)
     if playerEntity then
         world:add(playerEntity, comps.Dashing)
 
-        -- Clear dashing state after dash duration (0.5s)
-        task.delay(0.5, function()
+        -- Clear dashing state after active movement phase
+        task.delay(0.35, function()
             if playerEntity and world:contains(playerEntity) then
                 world:remove(playerEntity, comps.Dashing)
             end
         end)
     end
 
-    -- Add Dashing state to Actions (not Stuns - dashing is an action, not a stun)
-    StateManager.TimedState(Character, "Actions", "Dashing", 0.5)
-
-    -- Add recovery endlag after dodge completes (prevents instant action after dodge)
-    task.delay(0.5, function()
-        if Character then
-            StateManager.TimedState(Character, "Actions", "DodgeRecovery", 0.15)
-        end
-    end)
+    -- Add Dashing state to Actions — only covers active movement, not falloff
+    StateManager.TimedState(Character, "Actions", "Dashing", 0.35)
 
     -- Always process VFX if we got here
     local Entity = Server.Modules["Entities"].Get(Character);

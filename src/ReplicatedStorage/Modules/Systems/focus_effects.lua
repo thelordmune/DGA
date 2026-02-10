@@ -71,7 +71,7 @@ local lastVoicelineIndex = {} -- [pool table ref] = last index used
 local VOICELINE_FONT = Font.new(
 	"rbxasset://fonts/families/Jura.json",
 	Enum.FontWeight.Bold,
-	Enum.FontStyle.Normal
+	Enum.FontStyle.Italic
 )
 
 -- State tracking
@@ -273,11 +273,12 @@ local function showVoiceline(character)
 	label.TextTransparency = 0
 	label.Parent = billboard
 
-	-- Typewriter effect
+	-- Typewriter effect with quotes
+	local displayText = '"' .. text .. '"'
 	task.spawn(function()
-		for i = 1, #text do
+		for i = 1, #displayText do
 			if not billboard.Parent then return end
-			label.Text = string.sub(text, 1, i)
+			label.Text = string.sub(displayText, 1, i)
 			task.wait(0.03)
 		end
 

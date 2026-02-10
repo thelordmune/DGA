@@ -215,10 +215,13 @@ Combat.Light = function(Character: Model, Air: boolean?)
 
 	if Stats then
 
+		-- Per-weapon M1 speed state (defaults to M1Speed13 if not specified)
+		local m1SpeedState = Stats["M1Speed"] or "M1Speed13"
+
 		-- Clean up existing swing connection (ECS-based)
 		if combatState.swingConnection then
-			if StateManager.StateCheck(Character, "Speeds", "M1Speed13") then
-				StateManager.RemoveState(Character, "Speeds", "M1Speed13")
+			if StateManager.StateCheck(Character, "Speeds", m1SpeedState) then
+				StateManager.RemoveState(Character, "Speeds", m1SpeedState)
 			end
 
 			combatState.swingConnection:Disconnect()
@@ -248,7 +251,7 @@ Combat.Light = function(Character: Model, Air: boolean?)
 		Server.Library.StartAction(Character, "M1Attack", Stats["Endlag"][Combo])
 
 		StateManager.TimedState(Character, "Actions", "M1"..Combo, Stats["Endlag"][Combo])
-		StateManager.AddState(Character, "Speeds", "M1Speed13") -- Reduced walkspeed to 13 (16 + (-3)) for more consistent hitboxes
+		StateManager.AddState(Character, "Speeds", m1SpeedState)
 
 		local Swings = Server.Service.ReplicatedStorage.Assets.Animations.Weapons[Weapon].Swings
 
@@ -281,8 +284,8 @@ Combat.Light = function(Character: Model, Air: boolean?)
 				setCombatState(Character, currentState)
 			end
 
-			if StateManager.StateCheck(Character, "Speeds", "M1Speed13") then
-				StateManager.RemoveState(Character, "Speeds", "M1Speed13")
+			if StateManager.StateCheck(Character, "Speeds", m1SpeedState) then
+				StateManager.RemoveState(Character, "Speeds", m1SpeedState)
 			end
 
 			if Stats["Trail"] then
@@ -303,8 +306,8 @@ Combat.Light = function(Character: Model, Air: boolean?)
 				m1StunDisconnect = nil
 			end
 
-			if StateManager.StateCheck(Character, "Speeds", "M1Speed13") then
-				StateManager.RemoveState(Character, "Speeds", "M1Speed13")
+			if StateManager.StateCheck(Character, "Speeds", m1SpeedState) then
+				StateManager.RemoveState(Character, "Speeds", m1SpeedState)
 			end
 
 			if StateManager.StateCheck(Character, "Actions", "M1"..Combo) then

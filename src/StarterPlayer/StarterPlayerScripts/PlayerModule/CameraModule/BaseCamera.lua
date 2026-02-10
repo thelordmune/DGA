@@ -408,18 +408,6 @@ function BaseCamera:GetSubjectPosition(): Vector3?
 
 			local bodyPartToFollow = humanoid.Parent and humanoid.Parent:FindFirstChild("Torso")
 
-			-- DEBUG: Log camera state during loading
-			if not self._debugThrottle then self._debugThrottle = 0 end
-			self._debugThrottle += 1
-			if self._debugThrottle % 60 == 1 then
-				warn("[BaseCamera DEBUG] Parent:", humanoid.Parent and humanoid.Parent.Name or "NIL",
-					"| Torso:", bodyPartToFollow and "YES" or "NO",
-					"| RootPart:", humanoid.RootPart and "YES" or "NO",
-					"| Head:", humanoid.Parent and humanoid.Parent:FindFirstChild("Head") and "YES" or "NO",
-					"| Dead:", humanoidIsDead,
-					"| lastSubjectPos:", self.lastSubjectPosition and "YES" or "NO")
-			end
-
 			if humanoidIsDead then
 				if humanoid.Parent and humanoid.Parent:IsA("Model") then
 					bodyPartToFollow = humanoid.Parent:FindFirstChild("Torso") or bodyPartToFollow
@@ -487,12 +475,6 @@ function BaseCamera:GetSubjectPosition(): Vector3?
 		else
 			result = self.lastSubjectPosition
 		end
-	end
-
-	-- DEBUG: Log result
-	if self._debugThrottle and self._debugThrottle % 60 == 1 then
-		warn("[BaseCamera DEBUG] rawPosition:", rawPosition and tostring(rawPosition) or "NIL",
-			"| result:", result and tostring(result) or "NIL")
 	end
 
 	self.lastSubject = cameraSubject

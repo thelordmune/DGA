@@ -52,10 +52,12 @@ local SPEED_PRIORITY = {
 	-- Defensive speeds
 	BlockSpeed = 40,
 
+	-- Focus mini mode (overrides normal movement speeds)
+	FocusMiniSpeed = 35,
+
 	-- Movement speeds (lowest priority - can be overridden by combat)
 	RunSpeedSet = 30,
 	FlashSpeedSet = 30,
-	FocusMiniSpeed = 30,
 }
 
 -- Get the priority for a speed state

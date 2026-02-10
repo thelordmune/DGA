@@ -290,8 +290,8 @@ function FocusHandler.EnterMiniMode(character: Model)
 
 	focus.inMiniMode = true
 
-	-- Server buffs (20 walkspeed = slight boost from default 16)
-	StateManager.AddState(character, "Speeds", "FocusMiniSpeed20")
+	-- Server buffs (35 walkspeed = boost over default 16 and sprint 30)
+	StateManager.AddState(character, "Speeds", "FocusMiniSpeed35")
 	character:SetAttribute("FocusMiniMode", true)
 end
 
@@ -305,7 +305,7 @@ function FocusHandler.ExitMiniMode(character: Model)
 	focus.inMiniMode = false
 
 	-- Remove server buffs
-	StateManager.RemoveState(character, "Speeds", "FocusMiniSpeed20")
+	StateManager.RemoveState(character, "Speeds", "FocusMiniSpeed35")
 	character:SetAttribute("FocusMiniMode", false)
 
 	-- Also clear absolute mode if dropping below mini

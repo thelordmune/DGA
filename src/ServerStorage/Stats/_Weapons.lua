@@ -826,13 +826,14 @@ local Table = {
 	},
 
 	["Scythe"] = {
-		["MaxCombo"] = 5,
+		["MaxCombo"] = 4,
 		-- Endlag = end frame + linger time, increased for more readable pacing
-		["Endlag"] = { 27 / 60, 24 / 60, 25 / 60, 30 / 60, 42 / 60 },
+		["Endlag"] = { 33 / 60, 30 / 60, 31 / 60, 48 / 60 },
 		-- HitTimes = start frame (when hitbox begins)
-		["HitTimes"] = { 18 / 60, 15 / 60, 16 / 60, 21 / 60, 20 / 60 },
+		["HitTimes"] = { 18 / 60, 15 / 60, 16 / 60, 20 / 60 },
 		["SoundTimes"] = {},
-		["Speed"] = 0.75,  -- Slower swing speed
+		["Speed"] = 1,
+		["M1Speed"] = "M1Speed8",
 		["Hitboxes"] = {
 			[1] = {
 				-- m1 1: f18-f21 (3 frames) + 2 linger = 5 frames duration
@@ -853,13 +854,7 @@ local Table = {
 				["HitboxDuration"] = 5 / 60,
 			},
 			[4] = {
-				-- m1 4: f21-f24 (3 frames) + 2 linger = 5 frames duration
-				["HitboxSize"] = Vector3.new(8, 9, 12),
-				["HitboxOffset"] = CFrame.new(0, 0, -5),
-				["HitboxDuration"] = 5 / 60,
-			},
-			[5] = {
-				-- m1 5: f20-f24 (4 frames) + 2 linger = 6 frames duration
+				-- m1 4 (final): f20-f24 (4 frames) + 2 linger = 6 frames duration
 				["HitboxSize"] = Vector3.new(9, 10, 14),  -- Final hit has larger hitbox
 				["HitboxOffset"] = CFrame.new(0, 0, -5),
 				["HitboxDuration"] = 6 / 60,

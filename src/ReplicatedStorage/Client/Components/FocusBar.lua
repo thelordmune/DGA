@@ -271,7 +271,7 @@ return function()
 		Name = "BarAssembly",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(BAR_WIDTH + 10, BAR_HEIGHT + 18),
+		Size = UDim2.fromOffset(BAR_WIDTH + 10, BAR_HEIGHT + 30),
 		BackgroundTransparency = 1,
 		[Ref] = barAssemblyRef,
 
@@ -280,12 +280,12 @@ return function()
 			scope:New "TextLabel" {
 				Name = "PercentLabel",
 				AnchorPoint = Vector2.new(0.5, 1),
-				Position = UDim2.new(0.5, 0, 0, -2),
-				Size = UDim2.fromOffset(30, 12),
+				Position = UDim2.new(0.5, 0, 0, 14),
+				Size = UDim2.fromOffset(30, 14),
 				BackgroundTransparency = 1,
 				Text = "0%",
 				TextColor3 = WHITE,
-				TextSize = 8,
+				TextSize = 9,
 				FontFace = JURA_BOLD,
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextTransparency = 1,
@@ -299,7 +299,7 @@ return function()
 			scope:New "Frame" {
 				Name = "BarContainer",
 				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.new(0.5, 0, 0, 0),
+				Position = UDim2.new(0.5, 0, 0, 16),
 				Size = UDim2.fromOffset(BAR_WIDTH, BAR_HEIGHT),
 				BackgroundTransparency = 1,
 				ClipsDescendants = true,
@@ -384,9 +384,9 @@ return function()
 	local billboardGui = scope:New "BillboardGui" {
 		Name = "FocusBar",
 		Adornee = root,
-		Size = UDim2.fromOffset(BAR_WIDTH + 10, BAR_HEIGHT + 18),
-		StudsOffset = Vector3.new(1.8, 0.5, 0),
-		AlwaysOnTop = false,
+		Size = UDim2.fromOffset(BAR_WIDTH + 10, BAR_HEIGHT + 30),
+		StudsOffset = Vector3.new(2.5, 0.5, 0),
+		AlwaysOnTop = true,
 		MaxDistance = 50,
 		Active = false,
 
