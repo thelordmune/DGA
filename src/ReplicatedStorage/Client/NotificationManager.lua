@@ -23,15 +23,17 @@ local NotificationComp = require(ReplicatedStorage.Client.Components.Notificatio
 
 local Player = Players.LocalPlayer
 
+local ClientConfig = require(script.Parent.ClientConfig)
+
 local NotificationManager = {}
 
 -- Active notifications tracking
 local activeNotifications = {} -- Array of {scope, frame, slot}
 local notificationQueue = {}
 local notificationContainer = nil
-local MAX_NOTIFICATIONS = 5
-local NOTIFICATION_HEIGHT = 30 -- Height + spacing (smaller for text-only)
-local SPAWN_DELAY = 0.2 -- Delay between spawning notifications
+local MAX_NOTIFICATIONS = ClientConfig.Notifications.MAX_NOTIFICATIONS
+local NOTIFICATION_HEIGHT = ClientConfig.Notifications.NOTIFICATION_HEIGHT
+local SPAWN_DELAY = ClientConfig.Notifications.SPAWN_DELAY
 local isSpawning = false -- Prevent multiple spawns at once
 
 -- Initialize the notification container

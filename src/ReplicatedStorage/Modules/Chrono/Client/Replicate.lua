@@ -13,10 +13,10 @@ local Character = require(script.Parent.Parent.Shared.Character)
 local InterpolationMath = require(script.Parent.Parent.Shared.InterpolationMath)
 
 local CUSTOM_CHARACTERS = Config.ENABLE_CUSTOM_CHARACTERS
-local MAX_UNRELIABLE_BYTES = 900
+local MAX_UNRELIABLE_BYTES = Config.MAX_UNRELIABLE_BYTES
 local SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 24 else 20
-local HEADER_SIZE = 2
-local MAX_AWAITING_TIME = 2 --seconds
+local HEADER_SIZE = Config.HEADER_SIZE
+local MAX_AWAITING_TIME = Config.MAX_AWAITING_TIME --seconds
 local MAX_BATCH = (MAX_UNRELIABLE_BYTES - HEADER_SIZE) // SNAPSHOT_SIZE
 
 local outgoingSnapshots = {} :: { { timestamp: number, cframe: CFrame, id: number } }

@@ -12,10 +12,11 @@
 ]]
 
 local Lighting = game:GetService("Lighting")
+local ClientConfig = require(game.ReplicatedStorage.Client.ClientConfig)
 
 -- Day/Night cycle configuration
-local DAY_LENGTH = 3 * 60 -- 20 minutes in seconds for a full day/night cycle
-local START_TIME = 6 -- Start at 6 AM
+local DAY_LENGTH = ClientConfig.DayNight.DAY_LENGTH
+local START_TIME = ClientConfig.DayNight.START_TIME
 
 -- Calculate start time offset so that the cycle begins at START_TIME
 local startTimeOffset = (START_TIME / 24) * DAY_LENGTH

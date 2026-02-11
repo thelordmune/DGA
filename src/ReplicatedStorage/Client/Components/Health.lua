@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Fusion = require(ReplicatedStorage.Modules.Fusion)
 local CastingComponent = require(ReplicatedStorage.Client.Components.Casting)
+local ClientConfig = require(script.Parent.Parent.ClientConfig)
 
 local Children, scoped, peek, out, OnEvent, Value, Computed =
 	Fusion.Children, Fusion.scoped, Fusion.peek, Fusion.Out, Fusion.OnEvent, Fusion.Value, Fusion.Computed
@@ -77,7 +78,8 @@ return function(Target)
 	local posture = scope:Value(0) -- Posture damage (0 = fresh, 100 = about to break)
 
 	-- ULTRA-OPTIMIZED: Direct animation state (no Fusion reactivity for columns)
-	local COLUMNS = 84
+	local COLUMNS = ClientConfig.Health.COLUMNS
+	local ADRENALINE_THRESHOLDS = ClientConfig.Health.ADRENALINE_THRESHOLDS
 	local healthColumns = {} -- Will hold column data objects
 	local gradientOffset = -1 -- Direct value, not Fusion Value
 	local waveTime = 0 -- Direct value, not Fusion Value
@@ -87,7 +89,7 @@ return function(Target)
 
 	-- ULTRA-OPTIMIZED: Single RenderStepped updates ALL 84 columns directly
 	-- No Fusion Computed/Spring overhead - just direct property manipulation
-	local LERP_SPEED = 12 -- Spring-like smoothing factor
+	local LERP_SPEED = ClientConfig.Health.LERP_SPEED -- Spring-like smoothing factor
 	local rotationConnection = RunService.RenderStepped:Connect(function(dt)
 		-- Update circle rotation (still uses Fusion for the main UI elements)
 		circleRotation:set((peek(circleRotation) + (dt * 50)) % 360)
@@ -111,9 +113,9 @@ return function(Target)
 
 		-- Calculate base height from adrenaline
 		local baseHeight
-		if currentAdrenaline <= 33 then
+		if currentAdrenaline <= ADRENALINE_THRESHOLDS[1] then
 			baseHeight = 0.3
-		elseif currentAdrenaline <= 66 then
+		elseif currentAdrenaline <= ADRENALINE_THRESHOLDS[2] then
 			baseHeight = 0.6
 		else
 			baseHeight = 0.9
@@ -344,7 +346,7 @@ return function(Target)
 								Size = UDim2.fromScale(1, 1),
 								Text = scope:Computed(function(use)
 									local adrLvl = use(adrenaline)
-									local level = adrLvl > 66 and "High" or (adrLvl > 33 and "Medium" or "Low")
+									local level = adrLvl > ADRENALINE_THRESHOLDS[2] and "High" or (adrLvl > ADRENALINE_THRESHOLDS[1] and "Medium" or "Low")
 									return "Adrenaline: " .. level
 								end),
 								TextColor3 = Color3.fromRGB(255, 255, 255),

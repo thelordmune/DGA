@@ -99,7 +99,7 @@ local function canSprint(Client)
     end
 
     -- Check client flags
-    if Client.Dodging or Client.Sliding or Client.WallRunning or Client.LedgeClimbing then
+    if Client.Dodging or Client.WallRunning or Client.LedgeClimbing then
         return false
     end
 

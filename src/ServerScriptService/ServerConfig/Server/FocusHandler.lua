@@ -10,6 +10,7 @@
 
 local FocusHandler = {}
 local Server = require(script.Parent)
+local FocusConfig = require(script.Parent.FocusConfig)
 
 local Replicated = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -23,59 +24,23 @@ local Packets = require(Replicated.Modules.Packets)
 local Visuals = require(Replicated.Modules.Visuals)
 
 --------------------------------------------------------------------------------
--- Focus Change Amounts (tunable)
+-- Focus Change Amounts (from FocusConfig)
 --------------------------------------------------------------------------------
 
-FocusHandler.Amounts = {
-	-- Good actions
-	M1_HIT = 6,
-	COMBO_BONUS = 8,         -- extra for combo 3+
-	SKILL_HIT = 12,
-	PARRY_SUCCESS = 15,
-	DODGE_SUCCESS = 8,
-
-	-- Bad actions
-	WHIFF_ATTACK = 3,
-	WHIFF_PARRY = 2,
-	GOT_PARRIED = 4,
-	LIGHT_DAMAGE = 2,
-	HEAVY_DAMAGE = 5,        -- >10% HP
-
-	-- Per-second rates (applied in focus_system.luau)
-	PASSIVE_DECAY = 0.3,     -- always
-	RUNNING_IN_COMBAT = 0.5, -- while running + InCombat
-	BLOCKING_IN_COMBAT = 0.5,-- while blocking + InCombat
-}
+FocusHandler.Amounts = FocusConfig.Amounts
 
 --------------------------------------------------------------------------------
--- Training Levels
+-- Training Levels (from FocusConfig)
 --------------------------------------------------------------------------------
 
-local TRAINING_LEVELS = {
-	-- { requiredXP, maxFocus, permanentFloor }
-	[0] = { xp = 0,     max = 50,  floor = 0  },
-	[1] = { xp = 1000,  max = 55,  floor = 5  },
-	[2] = { xp = 3000,  max = 60,  floor = 10 },
-	[3] = { xp = 6000,  max = 65,  floor = 15 },
-	[4] = { xp = 10000, max = 70,  floor = 20 },
-	[5] = { xp = 16000, max = 75,  floor = 25 },
-	[6] = { xp = 25000, max = 80,  floor = 30 },
-	[7] = { xp = 36000, max = 90,  floor = 35 },
-	[8] = { xp = 50000, max = 100, floor = 40 },
-}
-
-local MAX_TRAINING_LEVEL = 8
+local TRAINING_LEVELS = FocusConfig.TrainingLevels
+local MAX_TRAINING_LEVEL = FocusConfig.MaxTrainingLevel
 
 --------------------------------------------------------------------------------
--- Voicelines for Absolute Focus
+-- Voicelines for Absolute Focus (from FocusConfig)
 --------------------------------------------------------------------------------
 
-local VOICELINES = {
-	"Don't hesitate to kill.",
-	"Very well...",
-	"I'll give you all I got.",
-	"Nah, I'd win.",
-}
+local VOICELINES = FocusConfig.Voicelines
 
 --------------------------------------------------------------------------------
 -- Helpers
@@ -112,7 +77,7 @@ function FocusHandler.AddFocus(character: Model, amount: number, reason: string?
 
 	-- Grant training XP for good actions
 	if amount > 0 and focus.current > 0 then
-		FocusHandler.AddTrainingXP(character, math.ceil(amount * 0.5))
+		FocusHandler.AddTrainingXP(character, math.ceil(amount * FocusConfig.TrainingXPMultiplier))
 	end
 end
 
@@ -241,7 +206,7 @@ function FocusHandler.TriggerAbsoluteFocus(character: Model)
 	focus.tempFloor = focus.current -- Lock current as floor
 
 	-- Brief iframes (no pose)
-	StateManager.TimedState(character, "IFrames", "AbsoluteFocusIFrame", 0.5)
+	StateManager.TimedState(character, "IFrames", "AbsoluteFocusIFrame", FocusConfig.AbsoluteFocusIFrameDuration)
 
 	-- Voiceline in chat
 	if player then
@@ -267,7 +232,7 @@ function FocusHandler.TriggerAbsoluteFocus(character: Model)
 	end
 
 	-- Clear absolute mode flag after brief window but keep tempFloor
-	task.delay(0.5, function()
+	task.delay(FocusConfig.AbsoluteFocusModeDuration, function()
 		if entity and world:contains(entity) then
 			local f = getFocusData(entity)
 			if f then

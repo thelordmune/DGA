@@ -33,7 +33,6 @@ InputModule.InputBegan = function(_, Client)
 		return not Client.Library.StateCount(Client.Character, "Stuns")
 			and not hasBlockingActions()
 			and not Client.Dodging
-			and not Client.Sliding
 			and not Client.WallRunning
 			and not Client.LedgeClimbing
 	end

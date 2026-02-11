@@ -21,6 +21,7 @@ local ref = require(ReplicatedStorage.Modules.ECS.jecs_ref)
 local StateManager = require(ReplicatedStorage.Modules.ECS.StateManager)
 local Packets = require(ReplicatedStorage.Modules.Packets)
 local EntityCleanup = require(ReplicatedStorage.Modules.ECS.entity_cleanup)
+local FocusConfig = require(game.ServerScriptService.ServerConfig.Server.FocusConfig)
 
 -- Lazy-load FocusHandler to avoid circular dependency
 local FocusHandler = nil
@@ -38,27 +39,13 @@ local function getFocusHandler()
 end
 
 -- Sync throttle
-local SYNC_INTERVAL = 0.1 -- 10Hz
 local syncAccumulators: {[number]: number} = {}
 
 -- Focus bonus health regen accumulators
 local focusHealthAccumulators: {[number]: number} = {}
 
--- Training save throttle (save every 60s)
-local TRAINING_SAVE_INTERVAL = 60
+-- Training save throttle
 local trainingSaveAccumulators: {[number]: number} = {}
-
--- Mini mode threshold (percentage of max)
-local MINI_MODE_THRESHOLD = 0.5
-
--- Focus bonus rates
-local FOCUS_HP_REGEN_50 = 0.3   -- HP/s at 50%+ focus
-local FOCUS_HP_REGEN_75 = 0.5   -- HP/s at 75%+ focus
-local FOCUS_HP_REGEN_100 = 1.0  -- HP/s at 100% focus
-
-local FOCUS_NEN_DRAIN_REDUCTION_50 = 0.20  -- 20% less drain
-local FOCUS_NEN_DRAIN_REDUCTION_75 = 0.35  -- 35% less drain
-local FOCUS_NEN_DRAIN_REDUCTION_100 = 0.50 -- 50% less drain
 
 -- Query for entities with Focus + Character + Player (only players have focus)
 local focusQuery = world:query(comps.Focus, comps.Character, comps.Player):with(comps.ComponentsReady):without(comps.Dead):cached()
@@ -103,7 +90,7 @@ local function focus_system(_world, dt: number)
 
 			-- Grant training XP for natural decay while having focus
 			if oldCurrent > floor and focus.current > 0 then
-				focus.trainingXP = focus.trainingXP + (0.1 * dt)
+				focus.trainingXP = focus.trainingXP + (FocusConfig.DecayTrainingXPPerSecond * dt)
 			end
 		end
 
@@ -117,13 +104,13 @@ local function focus_system(_world, dt: number)
 			-- Running in combat
 			if StateManager.StateCheck(character, "Actions", "Running") or
 			   StateManager.StateCheck(character, "Speeds", "RunSpeedSet30") then
-				extraDecay = extraDecay + (handler and handler.Amounts.RUNNING_IN_COMBAT or 1) * dt
+				extraDecay = extraDecay + FocusConfig.Amounts.RUNNING_IN_COMBAT * dt
 			end
 
 			-- Blocking in combat
 			if StateManager.StateCheck(character, "Actions", "Blocking") or
 			   StateManager.StateCheck(character, "Frames", "Blocking") then
-				extraDecay = extraDecay + (handler and handler.Amounts.BLOCKING_IN_COMBAT or 1) * dt
+				extraDecay = extraDecay + FocusConfig.Amounts.BLOCKING_IN_COMBAT * dt
 			end
 
 			if extraDecay > 0 then
@@ -137,7 +124,7 @@ local function focus_system(_world, dt: number)
 		--------------------------------------------------------------------
 		local focusPercent = focus.max > 0 and (focus.current / focus.max) or 0
 
-		if focusPercent >= MINI_MODE_THRESHOLD then
+		if focusPercent >= FocusConfig.MiniModeThreshold then
 			if not focus.inMiniMode and handler then
 				handler.EnterMiniMode(character)
 			end
@@ -157,14 +144,14 @@ local function focus_system(_world, dt: number)
 		--------------------------------------------------------------------
 		-- Focus Bonuses: HP Regen
 		--------------------------------------------------------------------
-		if focusPercent >= MINI_MODE_THRESHOLD then
+		if focusPercent >= FocusConfig.MiniModeThreshold then
 			local bonusRegen = 0
 			if focusPercent >= 1.0 then
-				bonusRegen = FOCUS_HP_REGEN_100
+				bonusRegen = FocusConfig.HPRegen.At100Percent
 			elseif focusPercent >= 0.75 then
-				bonusRegen = FOCUS_HP_REGEN_75
+				bonusRegen = FocusConfig.HPRegen.At75Percent
 			else
-				bonusRegen = FOCUS_HP_REGEN_50
+				bonusRegen = FocusConfig.HPRegen.At50Percent
 			end
 
 			local health = world:get(entity, comps.Health)
@@ -188,16 +175,16 @@ local function focus_system(_world, dt: number)
 		-- Focus Bonuses: Nen Drain Reduction
 		-- Applied by modifying the stamina drainRate
 		--------------------------------------------------------------------
-		if focusPercent >= MINI_MODE_THRESHOLD then
+		if focusPercent >= FocusConfig.MiniModeThreshold then
 			local stamina = world:get(entity, comps.Stamina)
 			if stamina and stamina.drainRate > 0 then
 				local reduction = 0
 				if focusPercent >= 1.0 then
-					reduction = FOCUS_NEN_DRAIN_REDUCTION_100
+					reduction = FocusConfig.NenDrainReduction.At100Percent
 				elseif focusPercent >= 0.75 then
-					reduction = FOCUS_NEN_DRAIN_REDUCTION_75
+					reduction = FocusConfig.NenDrainReduction.At75Percent
 				else
-					reduction = FOCUS_NEN_DRAIN_REDUCTION_50
+					reduction = FocusConfig.NenDrainReduction.At50Percent
 				end
 
 				-- Store the focus reduction on the character as an attribute
@@ -215,7 +202,7 @@ local function focus_system(_world, dt: number)
 		-- Sync to Client (throttled)
 		--------------------------------------------------------------------
 		syncAccumulators[entity] = syncAccumulators[entity] + dt
-		if syncAccumulators[entity] >= SYNC_INTERVAL then
+		if syncAccumulators[entity] >= FocusConfig.SyncInterval then
 			syncAccumulators[entity] = 0
 
 			-- Find the Player instance
@@ -233,7 +220,7 @@ local function focus_system(_world, dt: number)
 		--------------------------------------------------------------------
 		if focus.trainingXP > 0 then
 			trainingSaveAccumulators[entity] = trainingSaveAccumulators[entity] + dt
-			if trainingSaveAccumulators[entity] >= TRAINING_SAVE_INTERVAL then
+			if trainingSaveAccumulators[entity] >= FocusConfig.TrainingSaveInterval then
 				trainingSaveAccumulators[entity] = 0
 
 				local playerInstance2 = Players:GetPlayerFromCharacter(character)

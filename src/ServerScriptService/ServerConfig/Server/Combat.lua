@@ -1,5 +1,6 @@
 local Combat = {}; local Server = require(script.Parent);
 local WeaponStats = require(Server.Service.ServerStorage:WaitForChild("Stats")._Weapons)
+local CombatConfig = require(script.Parent.CombatConfig)
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
@@ -199,8 +200,8 @@ Combat.Light = function(Character: Model, Air: boolean?)
 	local combatState = getCombatState(Character)
 	StateManager.RemoveState(Entity.Character, "IFrames", "Dodge");
 
-	-- Reset combo if more than 2 seconds since last hit
-	if os.clock() - combatState.lastHitTime > 2 then
+	-- Reset combo if more than ComboResetTimeout seconds since last hit
+	if os.clock() - combatState.lastHitTime > CombatConfig.ComboResetTimeout then
 		combatState.combo = 0
 	end
 
@@ -242,7 +243,7 @@ Combat.Light = function(Character: Model, Air: boolean?)
 			-- This prevents immediately starting another M1 chain after the final hit
 			task.delay(Stats["Endlag"][Combo], function()
 				if Character then
-					StateManager.TimedState(Character, "Actions", "ComboRecovery", 0.6)
+					StateManager.TimedState(Character, "Actions", "ComboRecovery", CombatConfig.ComboRecoveryDuration)
 				end
 			end)
 		end
@@ -443,7 +444,7 @@ Combat.CriticalStart = function(Character: Model)
 		return
 	end
 
-	Server.Library.SetCooldown(Character, "Critical", 5)
+	Server.Library.SetCooldown(Character, "Critical", CombatConfig.CriticalCooldown)
 	Server.Visuals.Ranged(Character.HumanoidRootPart.Position, 300, {Module = "Base", Function = "CriticalIndicator", Arguments = {Character}})
 
 	local combatState = getCombatState(Character)
@@ -456,7 +457,7 @@ Combat.CriticalStart = function(Character: Model)
 	end
 
 	-- Max charge duration + buffer for action state
-	local MAX_CHARGE = 1.0
+	local MAX_CHARGE = CombatConfig.MAX_CHARGE
 	local actionDuration = Stats["Critical"]["Endlag"] + MAX_CHARGE + 0.5
 
 	Server.Library.StartAction(Character, "M2Attack", actionDuration)
@@ -574,17 +575,17 @@ Combat.CriticalRelease = function(Character: Model)
 	if Entity.Player then Player = Entity.Player end
 
 	-- Calculate charge time and stage
-	local chargeTime = math.clamp(os.clock() - chargeStart, 0, 1.0)
+	local chargeTime = math.clamp(os.clock() - chargeStart, 0, CombatConfig.MAX_CHARGE)
 	local stage, damageMultiplier
-	if chargeTime >= 0.66 then
-		stage = 3
-		damageMultiplier = 1.5
-	elseif chargeTime >= 0.33 then
-		stage = 2
-		damageMultiplier = 1.25
-	else
-		stage = 1
-		damageMultiplier = 1.0
+	local chargeStages = CombatConfig.ChargeStages
+	stage = 1
+	damageMultiplier = chargeStages[#chargeStages].multiplier -- default to lowest stage
+	for i, stageData in ipairs(chargeStages) do
+		if chargeTime >= stageData.threshold then
+			stage = #chargeStages - i + 1 -- Stage 3 = first entry, Stage 1 = last
+			damageMultiplier = stageData.multiplier
+			break
+		end
 	end
 
 	-- Clear charge state
@@ -688,13 +689,13 @@ Combat.CriticalRelease = function(Character: Model)
 
 			if isRagdolled then
 				local direction = Character.HumanoidRootPart.CFrame.LookVector
-				local horizontalPower = 60
-				local upwardPower = 50
+				local horizontalPower = CombatConfig.BFKnockback.HorizontalPower
+				local upwardPower = CombatConfig.BFKnockback.UpwardPower
 
 				Server.Modules.ServerBvel.BFKnockback(Target, direction, horizontalPower, upwardPower)
 
 				local Ragdoller = require(game.ReplicatedStorage.Modules.Utils.Ragdoll)
-				Ragdoller.Ragdoll(Target, 3)
+				Ragdoller.Ragdoll(Target, CombatConfig.BFKnockback.RagdollDuration)
 			end
 		end
 
@@ -707,8 +708,8 @@ Combat.CriticalRelease = function(Character: Model)
 					local originalCFrame = wall.CFrame
 					local originalColor = wall.Color
 					local startTime = os.clock()
-					local duration = 1.0
-					local maxDistance = 35
+					local duration = CombatConfig.WallSlide.Duration
+					local maxDistance = CombatConfig.WallSlide.MaxDistance
 			task.spawn(function()
 						local movingTargets = {}
 						local hitboxSize = wall.Size + Vector3.new(3, 3, 3)
@@ -818,7 +819,7 @@ Combat.AerialAttack = function(Character: Model)
 	Server.Library.StopAllAnims(Character)
 
 	-- Generous action duration — will be refreshed on landing
-	local maxAirTime = 2.0
+	local maxAirTime = CombatConfig.Aerial.MaxAirTime
 	Server.Library.StartAction(Character, "M1Attack", maxAirTime)
 	StateManager.TimedState(Character, "Actions", "AerialAttack", maxAirTime)
 	StateManager.AddState(Character, "Speeds", "M1Speed8")
@@ -855,7 +856,7 @@ Combat.AerialAttack = function(Character: Model)
 	end)
 
 	-- Wait for the Bvel arc to finish before checking ground contact
-	task.wait(0.45)
+	task.wait(CombatConfig.Aerial.BvelArcWait)
 	if Cancel then return end
 
 	-- Now poll for ground contact (character is descending)
@@ -872,8 +873,8 @@ Combat.AerialAttack = function(Character: Model)
 			landed = true
 		end
 
-		-- Safety timeout (1.5s after Bvel ends)
-		if os.clock() - groundCheckStart > 1.5 then
+		-- Safety timeout after Bvel ends
+		if os.clock() - groundCheckStart > CombatConfig.Aerial.GroundCheckTimeout then
 			landed = true
 		end
 	end
@@ -996,10 +997,10 @@ Combat.KnockbackFollowUp = function(Character: Model)
 
 	-- Calculate distance and travel time
 	local distance = (targetRoot.Position - attackerRoot.Position).Magnitude
-	local travelTime = math.clamp(distance / 40, 0.3, 1.2)
+	local travelTime = math.clamp(distance / CombatConfig.FollowUp.SpeedDivisor, CombatConfig.FollowUp.MinTravelTime, CombatConfig.FollowUp.MaxTravelTime)
 
 	-- Set Critical cooldown (shared with M2)
-	Server.Library.SetCooldown(Character, "Critical", 5)
+	Server.Library.SetCooldown(Character, "Critical", CombatConfig.CriticalCooldown)
 
 	-- CANCEL SPRINT when following up (for players only)
 	if Player then
@@ -1028,7 +1029,7 @@ Combat.KnockbackFollowUp = function(Character: Model)
 	local animLength = SwingAnimation.Length
 	local adjustedSpeed = 1
 	if animLength > 0 then
-		adjustedSpeed = math.min(animLength / travelTime, 1.5)
+		adjustedSpeed = math.min(animLength / travelTime, CombatConfig.FollowUp.MaxAnimSpeed)
 		SwingAnimation:AdjustSpeed(adjustedSpeed)
 	end
 
@@ -1118,7 +1119,7 @@ Combat.KnockbackFollowUp = function(Character: Model)
 		PostureDamage = Stats["M1Table"].PostureDamage,
 		M1 = true,
 		FX = Stats["M1Table"].FX,
-		Stun = 1.2, -- Longer stun than normal M1
+		Stun = CombatConfig.FollowUp.StunDuration, -- Longer stun than normal M1
 	}
 
 	-- Attacker's forward direction for knockback (flattened to horizontal)
@@ -1145,7 +1146,7 @@ Combat.KnockbackFollowUp = function(Character: Model)
 			Server.Packets.BvelKnockback.sendTo({
 				Character = hitTarget,
 				Direction = knockbackDir,
-				HorizontalPower = 30,
+				HorizontalPower = CombatConfig.FollowUp.HorizontalPower,
 				UpwardPower = 0,
 			}, hitPlayer)
 		else
@@ -1162,7 +1163,7 @@ Combat.KnockbackFollowUp = function(Character: Model)
 			local lv = Instance.new("LinearVelocity")
 			lv.Name = "FollowUpKnockback"
 			lv.MaxForce = 50000
-			lv.VectorVelocity = knockbackDir * 30
+			lv.VectorVelocity = knockbackDir * CombatConfig.FollowUp.HorizontalPower
 			lv.Attachment0 = attachment
 			lv.RelativeTo = Enum.ActuatorRelativeTo.World
 			lv.Parent = hitRoot
@@ -1214,7 +1215,7 @@ Combat.HasRecentBlockAttempt = function(Character: Model)
 	if not attempt then return false end
 
 	local timeSinceAttempt = os.clock() - attempt.StartTime
-	return timeSinceAttempt <= 0.23 -- Within 0.23s parry window
+	return timeSinceAttempt <= CombatConfig.Parry.Window -- Within parry window
 end
 
 -- Clear block state tracking for a character (used during block break and character death)
@@ -1313,8 +1314,8 @@ Combat.HandleBlockInput = function(Character: Model, State: boolean)
 
                 BlockStates[Character].HoldTime = BlockStates[Character].HoldTime + dt
 
-                -- After 0.23s, parry window expires
-                if BlockStates[Character].HoldTime >= 0.23 and BlockStates[Character].ParryWindow then
+                -- After parry window duration, parry window expires
+                if BlockStates[Character].HoldTime >= CombatConfig.Parry.Window and BlockStates[Character].ParryWindow then
                     BlockStates[Character].ParryWindow = false
                 end
 
@@ -1397,10 +1398,10 @@ Combat.AttemptParry = function(Character: Model)
 
    -- print(`[PARRY DEBUG] {Character.Name} - ✅ PARRY STARTED - Weapon: {Weapon}`)
 
-    Server.Library.SetCooldown(Character, "Parry", 1.5) -- Increased from 0.5 to 1.5 for longer cooldown
+    Server.Library.SetCooldown(Character, "Parry", CombatConfig.Parry.Cooldown)
 
     -- Start Parry action with priority system (priority 4, same as skills)
-    Server.Library.StartAction(Character, "Parry", 0.5)
+    Server.Library.StartAction(Character, "Parry", CombatConfig.Parry.FrameDuration)
 
     Server.Library.StopAllAnims(Character)
 
@@ -1411,15 +1412,15 @@ Combat.AttemptParry = function(Character: Model)
     -- Replicate animation to clients for Chrono NPCs
     setNPCCombatAnim(Character, Weapon, "Parry", "Parry", 1)
 
-    -- Add parry frames - increased from 0.3s to 0.5s to make parrying easier
-    StateManager.TimedState(Character, "Frames", "Parry", 0.5)
+    -- Add parry frames
+    StateManager.TimedState(Character, "Frames", "Parry", CombatConfig.Parry.FrameDuration)
 
    -- print(`[PARRY DEBUG] {Character.Name} - Parry frames active for 0.5s`)
 
     -- Add recovery endlag after parry window expires (prevents instant action after parry attempt)
-    task.delay(0.5, function()
+    task.delay(CombatConfig.Parry.FrameDuration, function()
         if Character then
-            StateManager.TimedState(Character, "Actions", "ParryRecovery", 0.15)
+            StateManager.TimedState(Character, "Actions", "ParryRecovery", CombatConfig.Parry.RecoveryDuration)
 
             -- Focus: punish whiffed parry (if parry frame expired without landing)
             if not Character:GetAttribute("ParryLanded") then
@@ -1476,7 +1477,7 @@ Combat.EndBlock = function(Character: Model)
     StateManager.RemoveState(Character, "Frames", "Blocking")
 
     -- Add recovery endlag after releasing block (prevents instant attack after block)
-    StateManager.TimedState(Character, "Actions", "BlockRecovery", 0.1)
+    StateManager.TimedState(Character, "Actions", "BlockRecovery", CombatConfig.Block.RecoveryDuration)
 end
 
 Combat.Trail = function(Character: Model, State: boolean)

@@ -178,7 +178,6 @@ AnimationController.PlayAnimation = function(Animation, Transition)
                     Client.InAir
                     or Client.Dashing
                     or not Client.Humanoid
-                    or Client.Sliding
                     or Client.Character:GetAttribute("Ragdolled")
                 then
                     return
@@ -191,7 +190,6 @@ AnimationController.PlayAnimation = function(Animation, Transition)
                     Client.InAir
                     or Client.Dashing
                     or not Client.Humanoid
-                    or Client.Sliding
                     or Client.Character:GetAttribute("Ragdolled")
                 then
                     return
@@ -217,7 +215,7 @@ AnimationController.Listeners["Move"] = function()
 	local Speed = Client.Humanoid.MoveDirection.Magnitude
 
 	-- Don't play walking animations during parkour actions
-	if Client.InAir or Client.Sliding or Client.WallRunning or Client.LedgeClimbing or Client.Leaping then
+	if Client.InAir or Client.WallRunning or Client.LedgeClimbing or Client.Leaping then
 		return
 	end
 

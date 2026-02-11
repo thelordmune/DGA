@@ -8,6 +8,7 @@
 
 local AntiFling = {}
 local CSystem = require(script.Parent)
+local ClientConfig = require(script.Parent.ClientConfig)
 
 local RunService = CSystem.Service.RunService
 local ReplicatedStorage = CSystem.Service.ReplicatedStorage
@@ -19,10 +20,10 @@ local Player = Players.LocalPlayer
 local Library = require(ReplicatedStorage.Modules.Library)
 
 -- Configuration
-local MAX_HORIZONTAL_VELOCITY = 150
-local MAX_VERTICAL_VELOCITY = 120
-local VELOCITY_CHECK_INTERVAL = 0
-local BODY_MOVER_CHECK_INTERVAL = 0.3
+local MAX_HORIZONTAL_VELOCITY = ClientConfig.AntiFling.MAX_HORIZONTAL_VELOCITY
+local MAX_VERTICAL_VELOCITY = ClientConfig.AntiFling.MAX_VERTICAL_VELOCITY
+local VELOCITY_CHECK_INTERVAL = ClientConfig.AntiFling.VELOCITY_CHECK_INTERVAL
+local BODY_MOVER_CHECK_INTERVAL = ClientConfig.AntiFling.BODY_MOVER_CHECK_INTERVAL
 
 -- Track last check time
 local lastCheckTime = 0
@@ -30,7 +31,7 @@ local lastBodyMoverCheckTime = 0
 
 -- Track when body movers were created (to detect orphaned ones)
 local bodyMoverCreationTimes = {}
-local MAX_BODY_MOVER_LIFETIME = 2
+local MAX_BODY_MOVER_LIFETIME = ClientConfig.AntiFling.MAX_BODY_MOVER_LIFETIME
 
 -- PERFORMANCE: Cache body movers instead of GetDescendants every frame
 local cachedBodyMovers = {}

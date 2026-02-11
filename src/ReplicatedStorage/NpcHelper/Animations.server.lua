@@ -183,7 +183,6 @@ AnimationController.PlayAnimation = function(Animation, Transition)
                     Client.InAir
                     or Client.Dashing
                     or not Client.Humanoid
-                    or Client.Sliding
                     or Client:GetAttribute("Ragdolled")
                 then
                     return
@@ -196,7 +195,6 @@ AnimationController.PlayAnimation = function(Animation, Transition)
                     Client.InAir
                     or Client.Dashing
                     or not Client.Humanoid
-                    or Client.Sliding
                     or Client:GetAttribute("Ragdolled")
                 then
                     return

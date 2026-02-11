@@ -509,7 +509,7 @@ Movement.Run = function(State)
 	-- Use StateManager for stun check
 	local isStunned = StateManager.StateCount(Client.Character, "Stuns")
 
-	if State and not isStunned and not hasBlockingAction and not Client.Running and not Client.Leaping and not Client.Sliding and not Client.WallRunning and not Client.LedgeClimbing then
+	if State and not isStunned and not hasBlockingAction and not Client.Running and not Client.Leaping and not Client.WallRunning and not Client.LedgeClimbing then
 		---- print("[Movement.Run] ✅ Starting running - adding RunSpeedSet30 to Speeds")
 
 		Client.Library.StopAllAnims(Client.Character);

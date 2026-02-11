@@ -1,5 +1,6 @@
 local AnimationController = {}
 local Client = require(script.Parent)
+local ClientConfig = require(script.Parent.ClientConfig)
 AnimationController.__index = AnimationController
 local self = setmetatable({}, AnimationController)
 local Defaults = require(script.Cache)
@@ -15,8 +16,8 @@ AnimationController.Connections = {}
 
 AnimationController.FreeFallTime = 0
 AnimationController.JumpAnimTime = 0
-AnimationController.JumpAnimDuration = 0.316
-AnimationController.FallTransitionTime = 0.1
+AnimationController.JumpAnimDuration = ClientConfig.Animation.JUMP_ANIM_DURATION
+AnimationController.FallTransitionTime = ClientConfig.Animation.FALL_TRANSITION_TIME
 
 AnimationController.KillCache = {
 	"Dead",
@@ -190,7 +191,6 @@ AnimationController.PlayAnimation = function(Animation, Transition)
                     Client.InAir
                     or Client.Dashing
                     or not Client.Humanoid
-                    or Client.Sliding
                     or Client.Character:GetAttribute("Ragdolled")
                 then
                     return
@@ -203,7 +203,6 @@ AnimationController.PlayAnimation = function(Animation, Transition)
                     Client.InAir
                     or Client.Dashing
                     or not Client.Humanoid
-                    or Client.Sliding
                     or Client.Character:GetAttribute("Ragdolled")
                 then
                     return
@@ -251,7 +250,7 @@ AnimationController.Listeners["Move"] = function()
 	-- Don't play walking animations during parkour actions
 	-- NOTE: Removed Client.InAir check here - the Humanoid.Running event already knows if we're grounded
 	-- The InAir raycast cache (10Hz) was causing stale state issues where animations wouldn't update
-	if Client.Sliding or Client.WallRunning or Client.LedgeClimbing or Client.Leaping then
+	if Client.WallRunning or Client.LedgeClimbing or Client.Leaping then
 		return
 	end
 
@@ -481,6 +480,13 @@ AnimationController.Init = function()
 				Client.Character.Torso["Left Shoulder"]:SetDesiredAngle(Angle)
 				Client.Character.Torso["Right Hip"]:SetDesiredAngle(-Angle)
 				Client.Character.Torso["Left Hip"]:SetDesiredAngle(-Angle)
+			end
+
+			-- En sphere slowdown: reduce animation speed when EnSlowed attribute is set
+			if Client.Character and Client.Character:GetAttribute("EnSlowed") then
+				if self.CurrentTrack and self.CurrentTrack.IsPlaying then
+					self.CurrentTrack:AdjustSpeed(0.4) -- 40% animation speed
+				end
 			end
 
 			self.FrameCount -= 1 / 60

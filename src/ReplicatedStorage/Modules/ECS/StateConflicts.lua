@@ -27,6 +27,7 @@ StateConflicts.Speeds = {
 		"BlockSpeed8",
 		"FlashSpeedSet50",
 		"FocusMiniSpeed35",
+		"EnSpeed4",
 	},
 
 	-- Jump modifiers

@@ -25,6 +25,7 @@ local ActionCancellation = require(Replicated.Modules.ECS.ActionCancellation)
 local StateManager = require(Replicated.Modules.ECS.StateManager)
 local Players = game:GetService("Players")
 local FocusHandler = require(script.Parent.FocusHandler)
+local CombatConfig = require(script.Parent.CombatConfig)
 
 -- Helper to set combat animation attribute for Chrono NPC replication
 -- Same as Combat.lua - replicates animations to client clones
@@ -126,7 +127,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		if pentity then
 			local currentInCombat = world:get(pentity, comps.InCombat)
 			print(`[Damage] Attacker prev InCombat: value={currentInCombat and tostring(currentInCombat.value) or "nil"}, dur={currentInCombat and tostring(currentInCombat.duration) or "nil"}`)
-			world:set(pentity, comps.InCombat, { value = true, duration = 40 })
+			world:set(pentity, comps.InCombat, { value = true, duration = CombatConfig.InCombatDuration })
 			local verify = world:get(pentity, comps.InCombat)
 			print(`[Damage] Attacker VERIFY after set: value={verify and tostring(verify.value) or "nil"}, dur={verify and tostring(verify.duration) or "nil"}, hasPlayer={world:get(pentity, comps.Player) ~= nil}`)
 
@@ -154,7 +155,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		if tentity then
 			local currentInCombat = world:get(tentity, comps.InCombat)
 			print(`[Damage] Target prev InCombat: value={currentInCombat and tostring(currentInCombat.value) or "nil"}, dur={currentInCombat and tostring(currentInCombat.duration) or "nil"}`)
-			world:set(tentity, comps.InCombat, { value = true, duration = 40 })
+			world:set(tentity, comps.InCombat, { value = true, duration = CombatConfig.InCombatDuration })
 			local verify = world:get(tentity, comps.InCombat)
 			print(`[Damage] Target VERIFY after set: value={verify and tostring(verify.value) or "nil"}, dur={verify and tostring(verify.duration) or "nil"}, hasPlayer={world:get(tentity, comps.Player) ~= nil}`)
 
@@ -281,7 +282,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 				-- Check if damage exceeds threshold
 				local accumulatedDamage = newDamage
-				local threshold = 50 -- Damage threshold before hyperarmor breaks
+				local threshold = CombatConfig.HyperarmorBreakThreshold
 
 				-- Update hyperarmor visual indicator (white → red based on damage)
 				local damagePercent = math.clamp(accumulatedDamage / threshold, 0, 1)
@@ -413,7 +414,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			-- Grant CounterArmor to the invoker (prevents being interrupted during follow-up)
 			-- This gives brief super armor to complete the counter punish
 			if Invoker then
-				StateManager.TimedState(Invoker, "IFrames", "CounterArmor", 0.3)
+				StateManager.TimedState(Invoker, "IFrames", "CounterArmor", CombatConfig.CounterHit.CounterArmorDuration)
 			end
 
 			-- Fire counter hit signal for VFX
@@ -437,7 +438,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			if targetEntity then
 				local postureBar = world:get(targetEntity, comps.PostureBar)
 				if postureBar then
-					local bonusPostureDamage = 15 -- Counter hit bonus
+					local bonusPostureDamage = CombatConfig.CounterHit.PostureBonus
 					postureBar.current = math.min(postureBar.current + bonusPostureDamage, postureBar.max)
 					postureBar.lastDamageTime = os.clock()
 					world:set(targetEntity, comps.PostureBar, postureBar)
@@ -516,15 +517,15 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		Library.StopAllAnims(Target)
 
 		-- ParryStun has priority 5, will override lower priority stuns
-		Library.ApplyStun(Invoker, "ParryStun", 0.6, Target)
+		Library.ApplyStun(Invoker, "ParryStun", CombatConfig.Parry.StunDuration, Target)
 
 		---- print(`[PARRY DEBUG] - Applied ParryStun to {Invoker.Name} for 0.6s, isMultiPart: {isInMultiPartSkill}`)
 
 		-- Add knockback state and iframes for both characters using priority system
 		-- ParryKnockback has priority 4 with built-in iframes
 		-- Invoker (attacker who got parried) gets longer knockback, Target (parrier) gets shorter
-		Library.ApplyStun(Invoker, "ParryKnockback", 0.4, Target)
-		Library.ApplyStun(Target, "ParryKnockback", 0.15, Invoker)
+		Library.ApplyStun(Invoker, "ParryKnockback", CombatConfig.Parry.KnockbackInvokerDuration, Target)
+		Library.ApplyStun(Target, "ParryKnockback", CombatConfig.Parry.KnockbackTargetDuration, Invoker)
 
 		-- Cancel run animation for both characters if they're running
 		-- Try to stop run animation (works for both players and NPCs)
@@ -538,10 +539,10 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		-- Force walk speed for both characters during knockback (default walkspeed is 16)
 		if Invoker:FindFirstChild("Humanoid") then
-			Invoker.Humanoid.WalkSpeed = 16
+			Invoker.Humanoid.WalkSpeed = CombatConfig.DefaultWalkSpeed
 		end
 		if Target:FindFirstChild("Humanoid") then
-			Target.Humanoid.WalkSpeed = 16
+			Target.Humanoid.WalkSpeed = CombatConfig.DefaultWalkSpeed
 		end
 
 		-- Execute parry callbacks for passives
@@ -597,7 +598,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		)
 
 		-- Apply knockback to both characters (nudge them backwards with snappy easing)
-		local knockbackPower = 30 -- Moderate knockback for a "nudge" (increased from 25 for more impact)
+		local knockbackPower = CombatConfig.Parry.KnockbackPower
 
 		-- Knockback for invoker (person who got parried) - push them away from target
 		local invokerDirection = (Invoker.HumanoidRootPart.Position - Target.HumanoidRootPart.Position).Unit
@@ -664,7 +665,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		if targetEntity then
 			-- Reset BlockBar to 0 and set BlockBroken to true
-			world:set(targetEntity, comps.BlockBar, {Value = 0, MaxValue = 100})
+			world:set(targetEntity, comps.BlockBar, {Value = 0, MaxValue = CombatConfig.Posture.MaxPostureBar})
 			world:add(targetEntity, comps.BlockBroken)
 
 			-- Also reset PostureBar to 0 immediately (prevents repeated breaks)
@@ -679,8 +680,8 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				world:remove(targetEntity, tags.PostureBroken)
 			end
 
-			-- Schedule BlockBroken reset after 3 seconds (when stun ends)
-			task.delay(3, function()
+			-- Schedule BlockBroken reset after stun ends
+			task.delay(CombatConfig.BlockBreak.ResetDelay, function()
 				if world:contains(targetEntity) then
 					world:remove(targetEntity, comps.BlockBroken)
 					-- Fire posture reset signal for UI update
@@ -704,12 +705,12 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		Animation.Priority = Enum.AnimationPriority.Action3
 
 		-- Apply stun using priority system - BlockBreakStun has priority 6
-		Library.ApplyStun(Target, "BlockBreakStun", 2, Invoker)
-		StateManager.TimedState(Target, "Actions", "BlockBreak", 2)
+		Library.ApplyStun(Target, "BlockBreakStun", CombatConfig.BlockBreak.StunDuration, Invoker)
+		StateManager.TimedState(Target, "Actions", "BlockBreak", CombatConfig.BlockBreak.ActionDuration)
 
-		-- BlockBreakCooldown lasts same duration as stun (2 seconds)
+		-- BlockBreakCooldown lasts same duration as stun
 		-- Blocking is allowed again once the stun ends
-		StateManager.TimedState(Target, "Stuns", "BlockBreakCooldown", 2)
+		StateManager.TimedState(Target, "Stuns", "BlockBreakCooldown", CombatConfig.BlockBreak.CooldownDuration)
 
 		-- Play sound effect
 		local sound = Replicated.Assets.SFX.Extra.Guardbreak:Clone()
@@ -800,7 +801,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		local health = Target:FindFirstChild("Humanoid")
 		if health then
 			local dmgPercent = originalBaseDamage / health.MaxHealth
-			if dmgPercent > 0.1 then
+			if dmgPercent > CombatConfig.HeavyDamageThreshold then
 				FocusHandler.RemoveFocus(Target, FocusHandler.Amounts.HEAVY_DAMAGE, "heavy_damage")
 			else
 				FocusHandler.RemoveFocus(Target, FocusHandler.Amounts.LIGHT_DAMAGE, "light_damage")
@@ -943,8 +944,8 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		if TargetPlayer then
 			Server.Packets.BvelVelocity.sendTo({
 				Character = Target,
-				Velocity = kbDir * 50,
-				Duration = 0.15,
+				Velocity = kbDir * CombatConfig.LightKnockback.Velocity,
+				Duration = CombatConfig.LightKnockback.Duration,
 			}, TargetPlayer)
 		else
 			-- NPC: apply server-side light knockback in attacker's direction
@@ -962,7 +963,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 		local direction = (eroot.Position - root.Position).Unit
 		local connection
 		local wallbangTriggered = false
-		local triggerDistance = 5
+		local triggerDistance = CombatConfig.Wallbang.TriggerDistance
 
 		connection = RunService.Heartbeat:Connect(function(dt)
 			if not Target.Parent then
@@ -990,7 +991,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					Debris:AddItem(sound, sound.TimeLength)
 
 					-- Increase damage
-					Table.Damage = Table.Damage * 1.2
+					Table.Damage = Table.Damage * CombatConfig.Wallbang.DamageMultiplier
 					local wallPosition = result.Position
 
 					-- Visual effect
@@ -1033,14 +1034,14 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					bodyPos.Parent = eroot
 
 					-- Apply wallbang stun using priority system - WallbangStun has priority 5 with iframes and lockRotation
-					Library.ApplyStun(Target, "WallbangStun", 1.5, Invoker)
+					Library.ApplyStun(Target, "WallbangStun", CombatConfig.Wallbang.StunDuration, Invoker)
 
 					-- Mark that this character is wallbanged (for wall break detection)
 					Target:SetAttribute("Wallbanged", true)
 					Target:SetAttribute("WallbangWall", part:GetFullName())
 
-					-- Clean up after 1.5 seconds
-					task.delay(1.5, function()
+					-- Clean up after wallbang stun ends
+					task.delay(CombatConfig.Wallbang.StunDuration, function()
 						if bodyPos and bodyPos.Parent then
 							bodyPos:Destroy()
 						end
@@ -1056,7 +1057,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			end
 		end)
 
-		Debris:AddItem(connection, 1.267) -- Match knockback duration
+		Debris:AddItem(connection, CombatConfig.Knockback.StunDuration) -- Match knockback duration
 	end
 
 	local function Knockback()
@@ -1132,12 +1133,12 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 				-- Apply ragdoll
 				local Ragdoll = require(Replicated.Modules.Utils.Ragdoll)
-				Ragdoll.Ragdoll(Target, 2)
+				Ragdoll.Ragdoll(Target, CombatConfig.Wallbang.WallBreakRagdollDuration)
 
 				-- Apply backwards and upwards velocity
 				local direction = (eroot.Position - Invoker.HumanoidRootPart.Position).Unit
-				local horizontalPower = 40
-				local upwardPower = 30
+				local horizontalPower = CombatConfig.Knockback.HorizontalPower
+				local upwardPower = CombatConfig.Knockback.UpwardPower
 
 				local velocity = Vector3.new(
 					direction.X * horizontalPower,
@@ -1190,15 +1191,15 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			setNPCCombatAnim(Target, "Misc", "Stun", "KnockbackStun", 1)
 
 			-- Apply knockback stun using priority system - KnockbackStun has priority 4 with lockRotation
-			Library.ApplyStun(Target, "KnockbackStun", 1.267, Invoker)
+			Library.ApplyStun(Target, "KnockbackStun", CombatConfig.Knockback.StunDuration, Invoker)
 
 			-- Knockback VFX: kbhit at torso + kbSmoke at feet (later half)
 			Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {Module = "Base", Function = "KnockbackVFX", Arguments = {Target}})
 
 			-- Schedule endlag recovery after knockback ends (0.4s where target can only dodge)
-			task.delay(1.267, function()
+			task.delay(CombatConfig.Knockback.StunDuration, function()
 				if Target and Target.Parent then
-					Library.ApplyStun(Target, "KnockbackRecovery", 0.4, Invoker)
+					Library.ApplyStun(Target, "KnockbackRecovery", CombatConfig.Knockback.RecoveryDuration, Invoker)
 				end
 			end)
 
@@ -1233,7 +1234,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			end
 
 			-- Clear knockback tracking after stun + endlag expires
-			task.delay(1.267 + 0.4, function()
+			task.delay(CombatConfig.Knockback.StunDuration + CombatConfig.Knockback.RecoveryDuration, function()
 				if Target and Target.Parent then
 					Target:SetAttribute("KnockbackAttacker", nil)
 					Target:SetAttribute("KnockbackTime", nil)
@@ -1279,7 +1280,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 					Server.Packets.Bvel.sendTo({
 						Character = Target,
 						Name = "KnockbackBvelFromNPC",
-						Velocity = dir * 60,
+						Velocity = dir * CombatConfig.Knockback.NPCVelocity,
 					}, TargetPlayer)
 				end
 			else
@@ -1288,7 +1289,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			end
 
 			-- Show FollowUp VFX on the target (visible to all nearby players)
-			Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {Module = "Base", Function = "KnockbackFollowUpVFX", Arguments = {Target, 1.267}})
+			Visuals.Ranged(Target.HumanoidRootPart.Position, 300, {Module = "Base", Function = "KnockbackFollowUpVFX", Arguments = {Target, CombatConfig.Knockback.StunDuration}})
 
 			---- print("[Knockback] Sent KnockbackBvel packet")
 			local ok, err = pcall(handleWallbang)
@@ -1336,16 +1337,16 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			end
 
 			-- Blocking reduces incoming posture damage by 50%
-			local postureDamage = (baseDamage * postureDamageMultiplier) * 0.5
+			local postureDamage = (baseDamage * postureDamageMultiplier) * CombatConfig.Block.PostureReduction
 
 			-- Get or initialize posture bar
 			local postureBar = world:get(targetEntity, comps.PostureBar)
 			if not postureBar then
 				postureBar = {
 					current = 0,
-					max = 100,
-					regenRate = 10,
-					regenDelay = 2,
+					max = CombatConfig.Posture.MaxPostureBar,
+					regenRate = CombatConfig.Posture.RegenRate,
+					regenDelay = CombatConfig.Posture.RegenDelay,
 					lastDamageTime = 0,
 				}
 			end
@@ -1395,8 +1396,8 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				gbAnimation.Priority = Enum.AnimationPriority.Action3
 
 				-- Apply PostureBreakStun (2.5s, priority 6) instead of regular BlockBreakStun
-				Library.ApplyStun(Target, "PostureBreakStun", 2.5, Invoker)
-				StateManager.TimedState(Target, "Actions", "PostureBreak", 2.5)
+				Library.ApplyStun(Target, "PostureBreakStun", CombatConfig.Posture.PostureBreakStun, Invoker)
+				StateManager.TimedState(Target, "Actions", "PostureBreak", CombatConfig.Posture.PostureBreakStun)
 
 				-- Play sound effect
 				local sound = Replicated.Assets.SFX.Extra.Guardbreak:Clone()
@@ -1412,7 +1413,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 				)
 
 				-- Reset posture after stun ends
-				task.delay(2.5, function()
+				task.delay(CombatConfig.Posture.PostureBreakStun, function()
 					if targetEntity and world:contains(targetEntity) then
 						local pb = world:get(targetEntity, comps.PostureBar)
 						if pb then
@@ -1438,11 +1439,11 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			local blockBar = world:get(targetEntity, comps.BlockBar)
 			if blockBar then
 				-- Increase block damage (reduced since posture handles main mechanic)
-				blockBar.Value = blockBar.Value + (Table.Damage / 6) -- Halved from /3
+				blockBar.Value = blockBar.Value + (Table.Damage / CombatConfig.Block.BlockBarDivisor) -- Halved from /3
 				world:set(targetEntity, comps.BlockBar, blockBar)
 
 				-- Set BBRegen to start regenerating after 2 seconds of not being hit
-				world:set(targetEntity, comps.BBRegen, {value = true, duration = 2})
+				world:set(targetEntity, comps.BBRegen, {value = true, duration = CombatConfig.Block.BBRegenDelay})
 
 				-- Check if block is broken (legacy fallback)
 				if blockBar.Value >= blockBar.MaxValue then
@@ -1454,7 +1455,7 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 
 		-- Also update old Posture.Value for backwards compatibility
 		if Target:FindFirstChild("Posture") then
-			Target.Posture.Value = Target.Posture.Value + (Table.Damage / 6) -- Halved
+			Target.Posture.Value = Target.Posture.Value + (Table.Damage / CombatConfig.Block.BlockBarDivisor) -- Halved
 
 			if Target.Posture.Value >= Target.Posture.MaxValue then
 				BlockBreak()
@@ -1484,8 +1485,8 @@ DamageService.Tag = function(Invoker: Model, Target: Model, Table: {})
 			if TargetPlayer then
 				Server.Packets.BvelVelocity.sendTo({
 					Character = Target,
-					Velocity = bKbDir * 50,
-					Duration = 0.15,
+					Velocity = bKbDir * CombatConfig.LightKnockback.Velocity,
+					Duration = CombatConfig.LightKnockback.Duration,
 				}, TargetPlayer)
 			else
 				Server.Modules.ServerBvel.LightKnockback(Target, Invoker)
@@ -1793,7 +1794,7 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 	for _, part in pairs(partsToDestroy) do
 		-- Calculate number of parts based on object size
 		local volume = part.Size.X * part.Size.Y * part.Size.Z
-		local desiredParts = math.clamp(math.floor(volume / 12) + 3, 4, 15) -- Fewer pieces per part for performance
+		local desiredParts = math.clamp(math.floor(volume / 12) + 3, CombatConfig.Destructibles.MinDebrisPerPart, CombatConfig.Destructibles.MaxDebrisPerPart)
 
 		-- Create a clone of the part to work with
 		local partClone = part:Clone()
@@ -1877,12 +1878,12 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 
 			-- Apply much lower velocity based on piece size
 			local sizeMultiplier = math.max(0.3, 2 / math.max(piece.Size.X, piece.Size.Y, piece.Size.Z))
-			local velocity = scatterDirection * (15 + math.random() * 10) * sizeMultiplier -- Heavily reduced from 50+30
+			local velocity = scatterDirection * (CombatConfig.Destructibles.DebrisVelocityBase + math.random() * CombatConfig.Destructibles.DebrisVelocityRandom) * sizeMultiplier
 
 			-- Create BodyVelocity for initial impulse (reduced force)
 			local bodyVelocity = Instance.new("BodyVelocity")
 			bodyVelocity.Velocity = velocity
-			bodyVelocity.MaxForce = Vector3.new(2000, 2000, 2000) -- Further reduced from 3000 to prevent flinging
+			bodyVelocity.MaxForce = Vector3.new(CombatConfig.Destructibles.DebrisMaxForce, CombatConfig.Destructibles.DebrisMaxForce, CombatConfig.Destructibles.DebrisMaxForce)
 			bodyVelocity.Parent = piece
 
 			-- Remove velocity after a short time to let gravity take over
@@ -1891,19 +1892,19 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 			-- Add some angular velocity for realistic tumbling (reduced)
 			local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
 			bodyAngularVelocity.AngularVelocity = Vector3.new(
-				(math.random() - 0.5) * 8,  -- Reduced from 20
-				(math.random() - 0.5) * 8,  -- Reduced from 20
-				(math.random() - 0.5) * 8   -- Reduced from 20
+				(math.random() - 0.5) * CombatConfig.Destructibles.DebrisAngularVelocity,
+				(math.random() - 0.5) * CombatConfig.Destructibles.DebrisAngularVelocity,
+				(math.random() - 0.5) * CombatConfig.Destructibles.DebrisAngularVelocity
 			)
-			bodyAngularVelocity.MaxTorque = Vector3.new(800, 800, 800) -- Reduced from 2000
+			bodyAngularVelocity.MaxTorque = Vector3.new(CombatConfig.Destructibles.DebrisMaxTorque, CombatConfig.Destructibles.DebrisMaxTorque, CombatConfig.Destructibles.DebrisMaxTorque)
 			bodyAngularVelocity.Parent = piece
 			Debris:AddItem(bodyAngularVelocity, 0.8 + math.random() * 0.4) -- Shorter duration
 
 			-- Start fading the piece after 3 seconds
-			task.delay(3 + math.random() * 2, function()
+			task.delay(CombatConfig.Destructibles.DebrisFadeDelayMin + math.random() * (CombatConfig.Destructibles.DebrisFadeDelayMax - CombatConfig.Destructibles.DebrisFadeDelayMin), function()
 				if piece and piece.Parent then
 					local fadeInfo = TweenInfo.new(
-						4, -- 4 second fade
+						CombatConfig.Destructibles.DebrisFadeDuration,
 						Enum.EasingStyle.Quad,
 						Enum.EasingDirection.InOut
 					)
@@ -1924,8 +1925,8 @@ DamageService.HandleDestructibleObject = function(Invoker: Model, Target: BasePa
 		end
 	end
 
-	-- Schedule respawn after 30 seconds
-	task.delay(30, function()
+	-- Schedule respawn
+	task.delay(CombatConfig.Destructibles.RespawnDelay, function()
 		if originalParent and originalParent.Parent then
 			if originalData.isModel then
 				-- Respawn the entire model

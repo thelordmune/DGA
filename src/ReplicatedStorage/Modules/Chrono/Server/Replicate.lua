@@ -17,9 +17,9 @@ ClientReplicateCFrame.Name = "ClientReplicateCFrame"
 ClientReplicateCFrame.Parent = ReplicatedStorage
 
 local CUSTOM_CHARACTERS = Config.ENABLE_CUSTOM_CHARACTERS
-local MAX_UNRELIABLE_BYTES = 900
+local MAX_UNRELIABLE_BYTES = Config.MAX_UNRELIABLE_BYTES
 local SNAPSHOT_SIZE = if Config.SEND_FULL_ROTATION then 22 + 2 else 18 + 2 -- assume worst cast for id (uInt)
-local HEADER_SIZE = 2
+local HEADER_SIZE = Config.HEADER_SIZE
 local MAX_BATCH = (MAX_UNRELIABLE_BYTES - HEADER_SIZE) // SNAPSHOT_SIZE
 
 local ServerReplicateCFrame = Instance.new("UnreliableRemoteEvent")
@@ -165,7 +165,7 @@ end
 
 local RandomOffset = Random.new()
 local function ReturnID(id: number)
-	task.delay(RandomOffset:NextNumber(2, 4), table.insert, idStack, id) -- this way we don't immediately reuse ids
+	task.delay(RandomOffset:NextNumber(Config.ID_REUSE_DELAY_MIN, Config.ID_REUSE_DELAY_MAX), table.insert, idStack, id) -- this way we don't immediately reuse ids
 end
 
 local function GetIdFrom(input: Player | Model | number): number?
@@ -472,7 +472,7 @@ local function GetTickInterval(character: Model?, id: number): number
 	local model = if Config.DISABLE_DEFAULT_REPLICATION then replicators[id] else character
 	local nearbyPlayers = Grid.GetNearbyEntities(model, Config.PROXIMITY, { "player" })
 
-	local multiplier = if Config.DISABLE_DEFAULT_REPLICATION then 4 else 50
+	local multiplier = if Config.DISABLE_DEFAULT_REPLICATION then Config.FAR_PLAYER_MULTIPLIER else Config.FAR_PLAYER_MULTIPLIER_DEFAULT
 	local newTickRate = if #nearbyPlayers > 1 then baseTick else baseTick * multiplier
 
 	if newTickRate ~= playerTickRates[id] then
@@ -569,8 +569,8 @@ RunService.PostSimulation:Connect(function(deltaTime)
 		end
 
 		local lastSentCFrame = (data :: any).lastCFrame or CFrame.identity
-		local changed = vector.magnitude(lastSentCFrame.Position - cframe.Position :: any) >= 0.05
-			or not lastSentCFrame.Rotation:FuzzyEq(cframe.Rotation :: any, 0.0001);
+		local changed = vector.magnitude(lastSentCFrame.Position - cframe.Position :: any) >= Config.POSITION_THRESHOLD
+			or not lastSentCFrame.Rotation:FuzzyEq(cframe.Rotation :: any, Config.ROTATION_EPSILON);
 		(data :: any).lastCFrame = cframe
 
 		if CUSTOM_CHARACTERS and character and character.PrimaryPart then

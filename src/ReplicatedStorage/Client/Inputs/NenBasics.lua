@@ -49,16 +49,14 @@ self.ActiveSounds = {} :: {[string]: Sound} -- Currently playing sounds
 self.ActiveAuraVFX = {} :: {Instance} -- Currently active aura VFX instances
 self.ActiveAnimations = {} :: {[string]: AnimationTrack} -- Currently playing Nen animations
 
--- Ability mappings
+-- Ability mappings (V freed up - Ten is now activated directly via C key)
 local BasicAbilities = {
-	[Enum.KeyCode.V] = "Ten",
 	[Enum.KeyCode.B] = "Zetsu",
 	[Enum.KeyCode.G] = "Ren",
 	[Enum.KeyCode.H] = "Hatsu",
 }
 
 local AdvancedAbilities = {
-	[Enum.KeyCode.V] = "En",    -- Advanced Ten
 	[Enum.KeyCode.B] = "Ken",   -- Advanced Zetsu
 	[Enum.KeyCode.G] = "Gyo",   -- Advanced Ren
 	[Enum.KeyCode.H] = "Ryu",   -- Advanced Hatsu
@@ -459,6 +457,28 @@ local function applyAuraVFX(abilityName: string)
 	end
 	self.ActiveAuraVFX = {}
 
+	-- Safety: destroy any orphaned aura parts on the character (highlights)
+	for _, child in character:GetChildren() do
+		if child.Name == "NenAuraHighlight" then
+			child:Destroy()
+		end
+	end
+	-- Check visuals folder for orphaned Ten aura parts
+	local visualsFolder = workspace:FindFirstChild("World") and workspace.World:FindFirstChild("Visuals")
+	if visualsFolder then
+		for _, child in visualsFolder:GetChildren() do
+			if child.Name:find("^TenAura_") then
+				child:Destroy()
+			end
+		end
+	end
+	-- Check workspace.Terrain for orphaned Ren auras
+	for _, child in workspace.Terrain:GetChildren() do
+		if child.Name == "RenAura" then
+			child:Destroy()
+		end
+	end
+
 	-- Get player's custom Nen color (if they have Nen unlocked)
 	local customNenColor = getPlayerNenColor()
 
@@ -524,54 +544,129 @@ local function applyAuraVFX(abilityName: string)
 	end
 
 	if abilityName == "Ten" or abilityName == "En" then
-		-- Ten/En: Has Rest and Torso folders
+		-- Ten/En: Clone Limbs part per limb, parent under character, weld with Motor6D
+		-- Only alter Size to match each limb. Bottom-to-top stagger.
 		local tenFolder = aurasFolder:FindFirstChild("Ten")
 		if not tenFolder then return end
 
-		-- Apply Torso VFX to torso
-		local torsoVFX = tenFolder:FindFirstChild("Torso")
-		if torsoVFX and bodyParts.Torso then
-			for _, vfx in torsoVFX:GetChildren() do
-				local clone = vfx:Clone()
-				clone.Parent = bodyParts.Torso
-				table.insert(self.ActiveAuraVFX, clone)
-				processClonedVFX(clone)
-			end
-		end
+		local limbsTemplate = tenFolder:FindFirstChild("Limbs")
+		if not limbsTemplate or not limbsTemplate:IsA("BasePart") then return end
 
-		-- Apply Rest VFX to all other body parts
-		local restVFX = tenFolder:FindFirstChild("Rest")
-		if restVFX then
-			for partName, part in pairs(bodyParts) do
-				if part and partName ~= "Torso" then
-					for _, vfx in restVFX:GetChildren() do
-						local clone = vfx:Clone()
-						clone.Parent = part
-						table.insert(self.ActiveAuraVFX, clone)
-						processClonedVFX(clone)
+		-- R6 body parts ordered bottom-to-top for staggered transition (no Head)
+		local limbOrder = {
+			{ name = "Left Leg",  delay = 0.0 },
+			{ name = "Right Leg", delay = 0.05 },
+			{ name = "Torso",     delay = 0.15 },
+			{ name = "Left Arm",  delay = 0.25 },
+			{ name = "Right Arm", delay = 0.30 },
+		}
+
+		for _, limbInfo in ipairs(limbOrder) do
+			local part = character:FindFirstChild(limbInfo.name)
+			if not part then continue end
+
+			task.delay(limbInfo.delay, function()
+				-- Abort if ability changed during stagger
+				if self.CurrentAbility ~= abilityName then return end
+
+				local clone = limbsTemplate:Clone()
+				clone.Name = "TenAura_" .. limbInfo.name
+				clone.CanCollide = false
+				clone.Massless = true
+
+				-- Torso needs more coverage than limbs
+				local sizeOffset = limbInfo.name == "Torso"
+					and Vector3.new(1.2, 1.2, 1.2)
+					or Vector3.new(0.8, 0.8, 0.8)
+				clone.Size = part.Size + sizeOffset
+
+				-- Set the part color to the player's nen color
+				local auraColor = customNenColor or Color3.fromRGB(100, 200, 255)
+				clone.Color = auraColor
+
+				-- Set VertexColor on SpecialMesh to match nen color
+				for _, desc in clone:GetDescendants() do
+					if desc:IsA("SpecialMesh") then
+						desc.VertexColor = Vector3.new(auraColor.R, auraColor.G, auraColor.B)
 					end
 				end
-			end
+
+				-- Create Motor6D to weld to limb
+				local motor = Instance.new("Motor6D")
+				motor.Name = "TenAuraMotor"
+				motor.Part0 = part
+				motor.Part1 = clone
+				motor.Parent = clone
+
+				local visualsFolder = workspace:FindFirstChild("World") and workspace.World:FindFirstChild("Visuals")
+				clone.Parent = visualsFolder or workspace
+
+				-- Apply Nen color to descendant effects (particles, etc.)
+				if customNenColor then
+					applyNenColorToEffects(clone, customNenColor, true)
+				end
+
+				-- Fade in any descendant ParticleEmitters
+				for _, descendant in clone:GetDescendants() do
+					if descendant:IsA("ParticleEmitter") then
+						fadeInParticleEmitter(descendant, 0.4)
+					end
+				end
+
+				table.insert(self.ActiveAuraVFX, clone)
+			end)
 		end
 
 	elseif abilityName == "Ren" or abilityName == "Gyo" then
-		-- Ren/Gyo: Has All folder for all body parts
+		-- Ren/Gyo: Clone Aura part and keep at character's feet, centered
 		local renFolder = aurasFolder:FindFirstChild("Ren")
 		if not renFolder then return end
 
-		local allVFX = renFolder:FindFirstChild("All")
-		if allVFX then
-			for _, part in pairs(bodyParts) do
-				if part then
-					for _, vfx in allVFX:GetChildren() do
-						local clone = vfx:Clone()
-						clone.Parent = part
-						table.insert(self.ActiveAuraVFX, clone)
-						processClonedVFX(clone)
-					end
-				end
-			end
+		local auraTemplate = renFolder:FindFirstChild("Aura")
+		if not auraTemplate then return end
+
+		local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+		if not humanoidRootPart then return end
+
+		local clone = auraTemplate:Clone()
+		clone.Name = "RenAura"
+		clone.CanCollide = false
+		clone.Anchored = true
+
+		-- Calculate feet offset (HumanoidRootPart center is ~3 studs above feet in R6)
+		local leftLeg = character:FindFirstChild("Left Leg")
+		local legHeight = leftLeg and leftLeg.Size.Y or 2
+		local feetOffset = -(humanoidRootPart.Size.Y / 2 + legHeight)
+
+		-- Position at feet, flat on the ground (only use Y rotation, no pitch/roll)
+		local pos = humanoidRootPart.Position + Vector3.new(0, feetOffset, 0)
+		local _, yRot, _ = humanoidRootPart.CFrame:ToEulerAnglesYXZ()
+		clone.CFrame = CFrame.new(pos) * CFrame.Angles(0, yRot, 0)
+		clone.Parent = workspace.Terrain
+
+		-- Apply Nen color
+		if customNenColor then
+			applyNenColorToEffects(clone, customNenColor, true)
 		end
+
+		-- Fade in
+		processClonedVFX(clone)
+
+		table.insert(self.ActiveAuraVFX, clone)
+
+		-- Follow character every frame (keep flat, only Y rotation)
+		local followConnection = RunService.RenderStepped:Connect(function()
+			if not clone or not clone.Parent then return end
+			if not humanoidRootPart or not humanoidRootPart.Parent then return end
+			local feetPos = humanoidRootPart.Position + Vector3.new(0, feetOffset, 0)
+			local _, yAngle, _ = humanoidRootPart.CFrame:ToEulerAnglesYXZ()
+			clone.CFrame = CFrame.new(feetPos) * CFrame.Angles(0, yAngle, 0)
+		end)
+
+		-- Clean up follow connection when clone is destroyed
+		clone.Destroying:Connect(function()
+			followConnection:Disconnect()
+		end)
 
 	elseif abilityName == "Zetsu" or abilityName == "Ken" then
 		-- Zetsu/Ken: Check if there's a Zetsu folder
@@ -621,6 +716,30 @@ local function removeAuraVFX()
 		end
 	end
 	self.ActiveAuraVFX = {}
+
+	-- Safety: destroy any orphaned aura parts
+	local player = Players.LocalPlayer
+	local character = player and player.Character
+	if character then
+		for _, child in character:GetChildren() do
+			if child.Name == "NenAuraHighlight" then
+				child:Destroy()
+			end
+		end
+	end
+	local visualsFolder = workspace:FindFirstChild("World") and workspace.World:FindFirstChild("Visuals")
+	if visualsFolder then
+		for _, child in visualsFolder:GetChildren() do
+			if child.Name:find("^TenAura_") then
+				child:Destroy()
+			end
+		end
+	end
+	for _, child in workspace.Terrain:GetChildren() do
+		if child.Name == "RenAura" then
+			child:Destroy()
+		end
+	end
 end
 
 -- Screen shake effect when entering nen mode (increased intensity)
@@ -835,6 +954,12 @@ InputModule.ResetState = function()
 	stopNenAnimations()
 	removeAuraVFX()
 
+	-- Also stop En sphere if active
+	local EnInput = require(script.Parent.En)
+	if EnInput and EnInput.IsEnActive and EnInput.IsEnActive() then
+		EnInput.StopEn(require(ReplicatedStorage.Client))
+	end
+
 	print("[NenBasics] State reset due to exhaustion")
 end
 
@@ -931,18 +1056,47 @@ InputModule.InputBegan = function()
 		return
 	end
 
-	-- Toggle nen mode on/off
+	-- Toggle Ten on/off (C key directly activates Ten)
 	self.NenActive = not self.NenActive
 
 	if self.NenActive then
-		print("[NenBasics] Nen mode activated - Press V/B/G/H for abilities")
+		print("[NenBasics] Ten activated")
 
-		-- Start listening for secondary keys
+		-- Set Ten as current ability immediately
+		self.CurrentAbility = "Ten"
+		self.LastModeSwitchTime = os.clock()
+
+		-- Start listening for secondary keys (B/G/H for other abilities)
 		if not secondaryKeyConnection then
 			secondaryKeyConnection = UserInputService.InputBegan:Connect(handleSecondaryKey)
 		end
+
+		-- Send Ten activation to server
+		local Bridges = require(ReplicatedStorage.Modules.Bridges)
+		Bridges.NenAbility:Fire({
+			action = "activate",
+			abilityName = "Ten",
+		})
+
+		-- Play Ten animation with startup frame timing
+		playNenAnimation("Ten", function()
+			-- Update nen indicator at startup frame
+			local StatsInterface = require(ReplicatedStorage.Client.Interface.Stats)
+			if StatsInterface.nenIndicatorData and StatsInterface.nenIndicatorData.setAbility then
+				StatsInterface.nenIndicatorData.setAbility("Ten")
+			end
+
+			-- Play sounds at startup frame
+			playNenSounds("Ten")
+
+			-- Apply VFX at startup frame
+			applyAuraVFX("Ten")
+
+			-- Screen shake at startup frame
+			playScreenShake(0.4, 0.6)
+		end)
 	else
-		print("[NenBasics] Nen mode deactivated")
+		print("[NenBasics] Ten deactivated")
 		self.LastSecondaryKey = nil
 
 		-- Stop listening for secondary keys
@@ -951,27 +1105,26 @@ InputModule.InputBegan = function()
 			secondaryKeyConnection = nil
 		end
 
-		-- Deactivate any active ability when exiting nen mode
-		if self.CurrentAbility then
-			local abilityToDeactivate = self.CurrentAbility
-			self.CurrentAbility = nil
-			local Bridges = require(ReplicatedStorage.Modules.Bridges)
-			Bridges.NenAbility:Fire({
-				action = "deactivate",
-				abilityName = abilityToDeactivate,
-			})
+		-- Deactivate any active ability when exiting
+		local abilityToDeactivate = self.CurrentAbility or "Ten"
+		self.CurrentAbility = nil
 
-			-- Update nen indicator
-			local StatsInterface = require(ReplicatedStorage.Client.Interface.Stats)
-			if StatsInterface.nenIndicatorData and StatsInterface.nenIndicatorData.setAbility then
-				StatsInterface.nenIndicatorData.setAbility(nil)
-			end
+		local Bridges = require(ReplicatedStorage.Modules.Bridges)
+		Bridges.NenAbility:Fire({
+			action = "deactivate",
+			abilityName = abilityToDeactivate,
+		})
 
-			-- Stop sounds, animations, and remove VFX
-			stopNenSounds()
-			stopNenAnimations()
-			removeAuraVFX()
+		-- Update nen indicator
+		local StatsInterface = require(ReplicatedStorage.Client.Interface.Stats)
+		if StatsInterface.nenIndicatorData and StatsInterface.nenIndicatorData.setAbility then
+			StatsInterface.nenIndicatorData.setAbility(nil)
 		end
+
+		-- Stop sounds, animations, and remove VFX
+		stopNenSounds()
+		stopNenAnimations()
+		removeAuraVFX()
 	end
 end
 

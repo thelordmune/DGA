@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local Replicated = game:GetService("ReplicatedStorage")
+local ClientConfig = require(game.ReplicatedStorage.Client.ClientConfig)
 local ContentProvider = game:GetService("ContentProvider")
 local StarterGui = game:GetService("StarterGui")
 
@@ -75,7 +76,7 @@ Bridges.ECSClient:Connect(function(data)
 			{comps.StateFrames, {}},
 			{comps.StateStatus, {}},
 			{comps.Dialogue, { npc = nil, name = "none", inrange = false, state = "interact" }},
-			{comps.Inventory, {items = {}, maxSlots = 50}},
+			{comps.Inventory, {items = {}, maxSlots = ClientConfig.Inventory.MAX_SLOTS}},
 			{comps.Hotbar, {slots = {}, activeSlot = 1}},
 		})
 		print(`[ECS] ✅ Initialized state components on client entity {entityId} (batched)`)
@@ -738,7 +739,7 @@ function Initialize(Character: Model)
 	local InterfaceStats = Client.Modules and Client.Modules["Interface"] and Client.Modules["Interface"].Modules and Client.Modules["Interface"].Modules["Stats"]
 	if InterfaceStats then
 		-- Clear all hotbar slot displays
-		for i = 1, 10 do
+		for i = 1, ClientConfig.Inventory.HOTBAR_SLOTS do
 			if InterfaceStats.UpdateHotbarSlot then
 				InterfaceStats.UpdateHotbarSlot(i, "")
 			end

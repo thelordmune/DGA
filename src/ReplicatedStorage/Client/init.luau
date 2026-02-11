@@ -81,11 +81,6 @@ function System.GetRunning(): boolean
 	return StateAccessors.IsRunning(System.Character)
 end
 
-function System.GetSliding(): boolean
-	if not System.Character then return false end
-	return StateAccessors.IsSliding(System.Character)
-end
-
 function System.GetWallRunning(): boolean
 	if not System.Character then return false end
 	return StateAccessors.IsWallRunning(System.Character)
@@ -125,12 +120,6 @@ function System.SetRunning(value: boolean)
 	end
 end
 
-function System.SetSliding(value: boolean)
-	if System.Character then
-		StateAccessors.SetSliding(System.Character, value)
-	end
-end
-
 function System.SetWallRunning(value: boolean)
 	if System.Character then
 		StateAccessors.SetWallRunning(System.Character, value)
@@ -160,7 +149,6 @@ local ECS_STATE_PROPERTIES = {
 	InAir = { get = System.GetInAir, set = System.SetInAir },
 	Dodging = { get = System.GetDodging, set = System.SetDodging },
 	Running = { get = System.GetRunning, set = System.SetRunning },
-	Sliding = { get = System.GetSliding, set = System.SetSliding },
 	WallRunning = { get = System.GetWallRunning, set = System.SetWallRunning },
 	LedgeClimbing = { get = System.GetLedgeClimbing, set = System.SetLedgeClimbing },
 	Leaping = { get = System.GetLeaping, set = System.SetLeaping },
@@ -192,7 +180,8 @@ System.Settings = {
 		Block    = Enum.KeyCode.F;
 		Dodge    = Enum.KeyCode.Q;
 		Equip    = Enum.KeyCode.E;
-		NenBasics = Enum.KeyCode.C; -- C key for Nen basics activation
+		NenBasics = Enum.KeyCode.C; -- C key for Nen basics activation (Ten)
+		En       = Enum.KeyCode.V; -- Hold V for En sphere
 		Z 	     = Enum.KeyCode.Z; -- Z key for casting sequence
 		Run      = Enum.KeyCode.LeftShift;
 
@@ -225,7 +214,6 @@ System.ClearClientActions = function()
 	System.SetDodging(false)
 	System.SetRunning(false)
 	SystemInternal.RunAtk = false
-	System.SetSliding(false)
 	System.SetWallRunning(false)
 	System.SetLedgeClimbing(false)
 	System.SetLeaping(false)
@@ -249,7 +237,7 @@ end
 System.IsInAction = function()
 	-- Use ECS-backed getters for state checks
 	local StateManager = require(Replicated.Modules.ECS.StateManager)
-	return System.GetDodging() or System.GetRunning() or System.GetSliding()
+	return System.GetDodging() or System.GetRunning()
 		or System.GetWallRunning() or System.GetLedgeClimbing() or System.GetLeaping()
 		or (System.Character and StateManager.StateCount(System.Character, "Actions"))
 end

@@ -524,6 +524,22 @@ local function updateNpcAnimation(model: Model)
 		data.idleTrack:Play(0.2)
 		data.lastState = "idle"
 	end
+
+	-- En sphere slowdown: check EnSlowed attribute on cache model or NPC model
+	local enSlowed = false
+	if data.cacheModel and typeof(data.cacheModel) == "Instance" then
+		enSlowed = data.cacheModel:GetAttribute("EnSlowed") == true
+	end
+	if not enSlowed then
+		enSlowed = model:GetAttribute("EnSlowed") == true
+	end
+
+	if enSlowed then
+		local activeTrack = data.lastState == "walk" and data.walkTrack or data.idleTrack
+		if activeTrack and activeTrack.IsPlaying then
+			activeTrack:AdjustSpeed(0.4) -- 40% animation speed
+		end
+	end
 end
 
 -- Initialize Chrono connection

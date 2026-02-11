@@ -19,6 +19,7 @@ local bridgeTree = {
 	NenNotification = bridgeNet2.ReferenceBridge("NenNotification"),
 	NenExhausted = bridgeNet2.ReferenceBridge("NenExhausted"),
 	NenStaminaDrain = bridgeNet2.ReferenceBridge("NenStaminaDrain"),
+	EnDetection = bridgeNet2.ReferenceBridge("EnDetection"),
 	NightTransition = bridgeNet2.ReferenceBridge("NightTransition"),
 	JailPlayer = bridgeNet2.ReferenceBridge("JailPlayer"),
 	InventoryAction = bridgeNet2.ReferenceBridge("InventoryAction"),

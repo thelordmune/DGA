@@ -30,11 +30,12 @@ local comps = require(ReplicatedStorage.Modules.ECS.jecs_components)
 local tags = require(ReplicatedStorage.Modules.ECS.jecs_tags)
 local EntityCleanup = require(ReplicatedStorage.Modules.ECS.entity_cleanup)
 local Packets = require(ReplicatedStorage.Modules.Packets)
+local CombatConfig = require(game.ServerScriptService.ServerConfig.Server.CombatConfig)
 
--- Default posture values
-local DEFAULT_POSTURE_MAX = 100
-local DEFAULT_REGEN_RATE = 10      -- Posture recovered per second
-local DEFAULT_REGEN_DELAY = 2      -- Seconds before regen starts after damage
+-- Default posture values (sourced from CombatConfig)
+local DEFAULT_POSTURE_MAX = CombatConfig.Posture.MaxPostureBar
+local DEFAULT_REGEN_RATE = CombatConfig.Posture.RegenRate       -- Posture recovered per second
+local DEFAULT_REGEN_DELAY = CombatConfig.Posture.RegenDelay     -- Seconds before regen starts after damage
 
 -- Accumulators for fractional posture regen
 local postureAccumulators: { [number]: number } = {}

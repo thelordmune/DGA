@@ -53,6 +53,9 @@ local SPEED_PRIORITY = {
     -- Defensive speeds
     BlockSpeed = 40,
 
+    -- En sphere slowdown
+    EnSpeed = 35,
+
     -- Movement speeds (lowest priority - can be overridden by combat)
     RunSpeedSet = 30,
     FlashSpeedSet = 30,

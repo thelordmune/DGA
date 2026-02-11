@@ -36,6 +36,25 @@ return {
 	--this will be set to false to optimize output by default, only enable if you're experiencing bugs with the system
 	SHOW_WARNINGS = false,
 	MAX_SNAPSHOT_COUNT = 30,
+
+	-- Network packet sizing
+	MAX_UNRELIABLE_BYTES = 900,
+	HEADER_SIZE = 2,
+
+	-- ID reuse timing (prevents stale ID collisions)
+	ID_REUSE_DELAY_MIN = 2,
+	ID_REUSE_DELAY_MAX = 4,
+
+	-- Far player tick rate multipliers
+	FAR_PLAYER_MULTIPLIER = 4,
+	FAR_PLAYER_MULTIPLIER_DEFAULT = 50,
+
+	-- Position/rotation change thresholds
+	POSITION_THRESHOLD = 0.05,
+	ROTATION_EPSILON = 0.0001,
+
+	-- Client awaiting timeout
+	MAX_AWAITING_TIME = 2,
 } :: {
 	MIN_BUFFER: number,
 	MAX_BUFFER: number,
@@ -58,4 +77,14 @@ return {
 
 	SHOW_WARNINGS: boolean,
 	MAX_SNAPSHOT_COUNT: number,
+
+	MAX_UNRELIABLE_BYTES: number,
+	HEADER_SIZE: number,
+	ID_REUSE_DELAY_MIN: number,
+	ID_REUSE_DELAY_MAX: number,
+	FAR_PLAYER_MULTIPLIER: number,
+	FAR_PLAYER_MULTIPLIER_DEFAULT: number,
+	POSITION_THRESHOLD: number,
+	ROTATION_EPSILON: number,
+	MAX_AWAITING_TIME: number,
 }

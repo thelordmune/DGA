@@ -52,6 +52,9 @@ local SPEED_PRIORITY = {
 	-- Defensive speeds
 	BlockSpeed = 40,
 
+	-- En sphere slowdown (overrides normal movement speeds)
+	EnSpeed = 35,
+
 	-- Focus mini mode (overrides normal movement speeds)
 	FocusMiniSpeed = 35,
 

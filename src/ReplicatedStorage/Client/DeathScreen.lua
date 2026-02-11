@@ -10,6 +10,7 @@
 
 local DeathScreen = {}
 local CSystem = require(script.Parent)
+local ClientConfig = require(script.Parent.ClientConfig)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -22,21 +23,21 @@ local Fusion = require(ReplicatedStorage.Modules.Fusion)
 local scoped = Fusion.scoped
 
 -- Configuration
-local RAGDOLL_DURATION = 4 -- Increased for jail teleport timing
-local FADE_TO_BLACK_TIME = 0.5
-local HOLD_BLACK_TIME = 4 -- Show death info for 4 seconds
-local CONTENT_FADE_OUT_TIME = 0.6
-local FADE_TO_WHITE_TIME = 0.3
-local HOLD_WHITE_TIME = 0.5
-local FADE_FROM_WHITE_TIME = 0.5
-local IMAGE_ROTATION_SPEED = 15 -- Degrees per second
+local RAGDOLL_DURATION = ClientConfig.DeathScreen.RAGDOLL_DURATION
+local FADE_TO_BLACK_TIME = ClientConfig.DeathScreen.FADE_TO_BLACK_TIME
+local HOLD_BLACK_TIME = ClientConfig.DeathScreen.HOLD_BLACK_TIME
+local CONTENT_FADE_OUT_TIME = ClientConfig.DeathScreen.CONTENT_FADE_OUT_TIME
+local FADE_TO_WHITE_TIME = ClientConfig.DeathScreen.FADE_TO_WHITE_TIME
+local HOLD_WHITE_TIME = ClientConfig.DeathScreen.HOLD_WHITE_TIME
+local FADE_FROM_WHITE_TIME = ClientConfig.DeathScreen.FADE_FROM_WHITE_TIME
+local IMAGE_ROTATION_SPEED = ClientConfig.DeathScreen.IMAGE_ROTATION_SPEED
 
 -- Base colors
 local TITLE_BASE_COLOR = Color3.fromRGB(200, 50, 50) -- Red
 local TIP_BASE_COLOR = Color3.fromRGB(180, 180, 180) -- Gray
 
 -- Death image asset
-local DEATH_IMAGE_ID = "rbxassetid://128446959644937"
+local DEATH_IMAGE_ID = ClientConfig.DeathScreen.DEATH_IMAGE_ID
 
 -- FMA-themed death tips
 local DEATH_TIPS = {

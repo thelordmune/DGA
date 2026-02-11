@@ -1,4 +1,4 @@
-local Sound = {}; local CSystem = require(script.Parent);
+local Sound = {}; local CSystem = require(script.Parent); local ClientConfig = require(script.Parent.ClientConfig);
 Sound.__index = Sound
 local self = setmetatable({}, Sound)
 
@@ -22,8 +22,8 @@ task.spawn(function()
 			if not self.Footsteps[i] then self.Footsteps[i] = {} end;
 			local instance = Instance.new("Sound"); instance.Name = i..index;
 			instance.SoundId = "rbxassetid://"..Id
-			instance.Volume = 0.35
-			instance.RollOffMaxDistance = 75; instance.RollOffMinDistance = 10;
+			instance.Volume = ClientConfig.Sounds.FOOTSTEP_VOLUME
+			instance.RollOffMaxDistance = ClientConfig.Sounds.ROLLOFF_MAX; instance.RollOffMinDistance = ClientConfig.Sounds.ROLLOFF_MIN;
 			instance.Parent = SoundGroup
 
 			table.insert(self.Footsteps[i], instance)

@@ -230,46 +230,6 @@ function StateAccessors.SetRunning(character: Model, value: boolean)
 end
 
 --[[
-	Check if character is sliding
-	@param character Model - The character model
-	@return boolean
-]]
-function StateAccessors.IsSliding(character: Model): boolean
-	local entity = getEntity(character)
-	if not entity then return false end
-
-	-- Check ECS Sliding component or tag
-	if world:has(entity, tags.Sliding) then return true end
-	if world:has(entity, comps.Sliding) then
-		local sliding = world:get(entity, comps.Sliding)
-		return sliding and sliding.value == true
-	end
-
-	return StateManager.StateCheck(character, "Actions", "Sliding")
-end
-
---[[
-	Set sliding state
-	@param character Model - The character model
-	@param value boolean - Whether character is sliding
-	@param direction CFrame? - Optional slide direction
-]]
-function StateAccessors.SetSliding(character: Model, value: boolean, direction: CFrame?)
-	local entity = getEntity(character)
-	if not entity then return end
-
-	if value then
-		world:set(entity, comps.Sliding, { value = true, direction = direction or CFrame.new() })
-		StateManager.AddState(character, "Actions", "Sliding")
-	else
-		if world:has(entity, comps.Sliding) then
-			world:remove(entity, comps.Sliding)
-		end
-		StateManager.RemoveState(character, "Actions", "Sliding")
-	end
-end
-
---[[
 	Check if character is wall running
 	@param character Model - The character model
 	@return boolean
@@ -740,7 +700,6 @@ function StateAccessors.ClearMovementStates(character: Model)
 	StateAccessors.SetInAir(character, false)
 	StateAccessors.SetDodging(character, false)
 	StateAccessors.SetRunning(character, false)
-	StateAccessors.SetSliding(character, false)
 	StateAccessors.SetWallRunning(character, false)
 	StateAccessors.SetLedgeClimbing(character, false)
 	StateAccessors.SetLeaping(character, false)
